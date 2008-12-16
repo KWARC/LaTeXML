@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?latexml class="article"?>
+<?latexml RelaxNGSchema="LaTeXML"?>
+<document xmlns="http://dlmf.nist.gov/LaTeXML">
+  <para xml:id="p1">
+    <p>Normal macro: <text font="bold">a</text> b c done</p>
+  </para>
+  <para xml:id="p2">
+    <p>Funky macro: <text font="bold">a b c </text>done</p>
+  </para>
+</document>

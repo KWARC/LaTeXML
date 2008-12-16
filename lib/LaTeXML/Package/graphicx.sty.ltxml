@@ -1,0 +1,42 @@
+# -*- CPERL -*-
+# /=====================================================================\ #
+# |  graphicx                                                           | #
+# | Implementation for LaTeXML                                          | #
+# |=====================================================================| #
+# | Part of LaTeXML:                                                    | #
+# |  Public domain software, produced as part of work done by the       | #
+# |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
+# | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
+# \=========================================================ooo==U==ooo=/ #
+# (See  LaTeXML::Post::Graphics for suggested postprocessing)
+package LaTeXML::Package::Pool;
+use strict;
+use LaTeXML::Package;
+use LaTeXML::Util::KeyVal;
+
+#**********************************************************************
+# Provides alternative argument syntax.
+RequirePackage('graphics');
+
+DefKeyVal('Gin','width','Dimension');
+DefKeyVal('Gin','height','Dimension');
+DefKeyVal('Gin','keepaspectratio','','true');
+DefKeyVal('Gin','clip','','true');
+
+DefKeyVal('Gin','vrml','Semiverbatim');
+DefKeyVal('Gin','magnifiable','','true');
+
+# Redefine
+DefMacro('\includegraphics OptionalMatch:* []',
+	 '\@ifnextchar[{\@includegraphics#1[#2]}{\@includegraphicx#1[#2]}');
+
+DefConstructor('\@includegraphicx OptionalMatch:* OptionalKeyVals:Gin Semiverbatim',
+	       "<ltx:graphics graphic='#3' options='#2?#1(,clip=true)'/>",
+	      alias=>'\includegraphics');
+
+
+#**********************************************************************
+1;
+

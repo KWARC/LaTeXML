@@ -1,0 +1,55 @@
+# -*- CPERL -*-
+# /=====================================================================\ #
+# |  acronym                                                            | #
+# | Implementation for LaTeXML                                          | #
+# |=====================================================================| #
+# | Part of LaTeXML:                                                    | #
+# |  Public domain software, produced as part of work done by the       | #
+# |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
+# | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
+# \=========================================================ooo==U==ooo=/ #
+package LaTeXML::Package::Pool;
+use strict;
+use LaTeXML::Package;
+
+#**********************************************************************
+DefMacro('\acsfont{}','#1');
+DefMacro('\acffont{}','#1');
+DefMacro('\acfsfont{}','#1');
+
+DefMacro('\ac{}', '\@AC@if{#1}{\acs{#1}}{\acf{#1}}');
+DefMacro('\acs{}','\@ACRO@{#1}{\acsfont{\@AC@short{#1}}}');
+DefMacro('\acl{}','\@ACRO@{#1}{\acffont{\@AC@long{#1}}}');
+DefMacro('\acf{}','\@ACRO@{#1}{\acffont{\@AC@long{#1}}\acfsfont{(\@AC@short{#1})}}');
+
+
+DefEnvironment('{acronym}',"<ltx:definition class='acronyms'>#body</ltx:definition>",
+	      beforeDigest=>sub { DefMacro('\acro{}[]{}', 
+					   '\acrodef{#1}[#2]{#3}\item[\acs{#1}]\acl{#1} '); });
+
+DefPrimitive('\acrodef{}[]{}', sub {
+  my($stomach,$id,$short,$long)=@_;
+  $short = $id unless $short && ToString($short);
+  $id = ToString($id);
+  AssignValue('ACRONYM@short@'.$id => Digest($short),'global');
+  AssignValue('ACRONYM@long@'.$id  => Digest($long),'global'); });
+
+DefConstructor('\@AC@short{}',"&LookupValue('ACRONYM\@short\@#1')");
+DefConstructor('\@AC@long{}',"&LookupValue('ACRONYM\@long\@#1')");
+# \@ACR@{id}{text}
+DefConstructor('\@ACRO@{}{}',"<ltx:acronym name='#1'>#2</ltx:acronym>");
+
+DefMacro('\@AC@if{}{}{}', sub { 
+  my($gullet,$id,$short,$long)=@_;
+  my $key = 'ACROUSED@'.ToString($_[1]);
+  if(LookupValue($key)){
+    $short->unlist; }
+  else {
+    AssignValue($key=>1, 'global');
+    $long->unlist; }});
+
+
+#**********************************************************************
+1;

@@ -1,0 +1,720 @@
+#!/usr/bin/perl -w
+use strict;
+use FindBin;
+use lib "$FindBin::RealBin/../lib";
+use File::Spec;
+use Getopt::Long qw(:config no_ignore_case);
+use Pod::Usage;
+use LaTeXML;
+use LaTeXML::Post;
+use LaTeXML::Post::Writer;
+use LaTeXML::Post::Scan;
+use LaTeXML::Util::Pathname;
+use LaTeXML::Util::ObjectDB;
+
+#======================================================================
+# Parse command line.
+#======================================================================
+my $identity = "latexmlpost (LaTeXML version $LaTeXML::VERSION)";
+
+# undef => unspecified; 0 = NO, 1 = YES
+my($help,$showversion,$verbosity,$validate,$omit_doctype)=(0,0,0,1,0);
+my($sourcedir,$destination)=(undef,undef);
+my($format,$urlstyle) = (undef,'server');
+my($numbersections)=(1);
+my($stylesheet,$defaultcss,@css)=(undef,1);
+my($parallelmath,$mathimages,$mathimagemag)=(undef,undef,1.75);
+my($linelength,$keepXMath)=(undef,undef);
+my($dographics,$svg,$picimages)=(undef,undef,undef);
+my($split,$splitat,$splitpath,$splitnaming)=(undef,'section',undef,'id');
+my($prescan,$dbfile,$scan,$crossref,$sitedir)=(undef,undef,1,1,undef);
+my($index,$permutedindex,$splitindex)=(1,undef,undef);
+my($splitbibliography,@bibliographies)=(undef);
+my @math_formats =();
+my %removed_math_formats=();
+my $splitback= "//ltx:bibliography | //ltx:appendix | //ltx:index";
+my %splitpaths =
+  (chapter=>"//ltx:chapter | $splitback",
+   section=>"//ltx:chapter | //ltx:section | $splitback",
+   subsection=>"//ltx:chapter | //ltx:section | //ltx:subsection | $splitback",
+   subsubsection=>"//ltx:chapter | //ltx:section | //ltx:subsection | //ltx:subsubsection | $splitback");
+
+
+# Get the command line arguments.
+GetOptions("verbose+"              =>\$verbosity,
+	   "VERSION"      =>\$showversion,
+	   "help|?"       =>\$help,
+	   # Source Options
+	   "sourcedirectory=s"     =>\$sourcedir,
+	   "validate!"             =>\$validate,
+
+	   # Basics
+	   "format=s"              =>\$format,
+	   "destination=s"=>sub { $destination = $_[1];
+				  if(!defined $format){
+				    $format='xhtml' if $destination=~/\.xhtml$/;
+				    $format='html'  if $destination=~/\.html$/; }},
+	   "omitdoctype!"          =>\$omit_doctype,
+	   "numbersections!"       =>\$numbersections,
+	   # Some general XSLT/CSS options.
+	   "stylesheet=s"          =>\$stylesheet,
+	   "css=s"                 =>\@css,
+	   "defaultcss!"           =>\$defaultcss,
+	   # Options for broader document set processing
+	   "split!"                =>\$split,
+	   "splitat=s"             =>sub { $splitat=$_[1]; $split=1 unless defined $split;},
+	   "splitpath=s"           =>sub { $splitpath=$_[1]; $split=1 unless defined $split;},
+	   "splitnaming=s"         =>sub { $splitnaming=$_[1]; $split=1 unless defined $split;},
+	   "scan!"                 =>\$scan,
+	   "crossref!"             =>\$crossref,
+	   "urlstyle=s"            =>$urlstyle,
+	   # Generating indices
+	   "index!"                =>\$index,
+	   "permutedindex!"        =>\$permutedindex,
+	   "splitindex!"           =>\$splitindex,
+	   # Generating Bibliographies
+	   "bibliography=s"        =>\@bibliographies,
+	   "splitbibliography!"    =>\$splitbibliography,
+	   # Options for two phase processing
+	   "prescan"               =>\$prescan,
+	   "dbfile=s"              =>\$dbfile,
+	   "sitedirectory=s"       =>\$sitedir,
+	   # Various choices for math processing.
+	   # Note: Could want OM embedded in mml annotation, too.
+	   # In general, could(?) want multiple math reps within <Math>
+	   # OR, multiple math reps combined with <mml:sematics>
+	   #   or, in fact, _other_ parallel means? (om?, omdoc? ...)
+	   # So, need to separate multiple transformations from the combination.
+	   # However, IF combining, then will need to support a id/ref mechanism.
+#	   "mathml|mml!"  =>\$mathml,
+	   "mathimages!"                 => \$mathimages,
+	   "mathimagemagnification=f"    => \$mathimagemag,
+	   "linelength=i"                =>\$linelength,
+	   "presentationmathml|pmml"     => sub { addMathFormat('pmml'); },
+	   "contentmathml|cmml"          => sub { addMathFormat('cmml'); },
+	   "openmath|om"                 => sub { addMathFormat('om'); },
+	   "nopresentationmathml|nopmml" => sub { removeMathFormat('pmml'); },
+	   "nocontentmathml|nocmml"      => sub { removeMathFormat('cmml'); },
+	   "noopenmath|noom"             => sub { removeMathFormat('om'); },
+	   "parallelmath!"               => \$parallelmath,
+	   "keepXMath!"                  =>\$keepXMath,
+	   # For graphics: vaguely similar issues, but more limited.
+	   # includegraphics images (eg. ps) can be converted to webimages (eg.png)
+	   # picture/pstricks images can be converted to png or possibly svg.
+	   "graphicimages!"=>\$dographics,
+	   "svg!"          =>\$svg,
+	   "pictureimages!"=>\$picimages,
+
+	  ) or pod2usage(-message => $identity, -exitval=>1, -verbose=>0, -output=>\*STDERR);
+pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
+if($showversion){ print STDERR "$identity\n"; exit(1); }
+
+# Get the requested XML file
+Error("Missing input xmlfile") unless @ARGV;
+my $xmlfile = shift(@ARGV);
+if($xmlfile ne '-'){
+    $xmlfile .= '.xml' unless -f $xmlfile;
+    Error("No input file \"$xmlfile\" found") unless -f $xmlfile; }
+
+#======================================================================
+# Sanity check and Completion of options.
+#======================================================================
+
+$sourcedir   = $sourcedir   && pathname_canonical($sourcedir);
+$destination = $destination && pathname_canonical($destination);
+$sitedir     = $sitedir     && pathname_canonical($sitedir);
+
+# Sanity check & option completion for known output formats.
+if($split && !defined $destination){
+  Error("Must supply destination when using split"); }
+if($split){
+  $splitnaming = checkOptionValue('--splitnaming',$splitnaming,
+				  qw(id idrelative label labelrelative)); 
+  $splitat = checkOptionValue('--splitat',$splitat,keys %splitpaths);
+  $splitpath = $splitpaths{$splitat} unless defined $splitpath;
+}
+if($prescan && !$scan){
+  Error("Makes no sense to prescan with scanning disabled"); }
+if($prescan && (!defined $dbfile)){
+  Error("Cannot prescan documents without a dbfile"); }
+if(!$prescan && $crossref && ! ($scan || (defined $dbfile))){
+  Error("Cannot cross-reference without scan or dbfile"); }
+if($crossref){
+  $urlstyle = checkOptionValue('--urlstyle',$urlstyle,qw(server negotiated file)); }
+if(($permutedindex || $splitindex) && (! defined $index)){
+  $index=1; }
+if(!$prescan && $index && ! ($scan || defined $crossref)){
+  Error("Cannot generate index without scan or dbfile"); }
+if(!$prescan && @bibliographies && ! ($scan || defined $crossref)){
+  Error("Cannot generate bibliography without scan or dbfile"); }
+if(!defined $format){}
+elsif($format eq 'html'){
+  Error("Default html stylesheet only supports math images")
+    if (!defined $stylesheet) && ($parallelmath || scalar(@math_formats));
+  Error("Default html stylesheet does not support SVG") if $svg;
+
+  $mathimages = 1 unless defined $mathimages;
+  $dographics = 1 unless defined $dographics;
+  $picimages  = 1 unless defined $picimages;
+  if(!defined $stylesheet){
+    $stylesheet = "LaTeXML-html.xsl";
+    unshift(@css,"core.css") if $defaultcss; }}
+elsif($format eq 'xhtml'){
+  Error("Default xhtml stylesheet does not support math images")
+    if (!defined $stylesheet) && $mathimages;
+  $parallelmath = 1 if (!defined $parallelmath) && (scalar(@math_formats)>1);
+  Error("Default xhtml stylesheet only supports OpenMath in parallel with MathMl")
+    if (!defined $stylesheet) && !$parallelmath && grep($_ eq 'om',@math_formats);
+  if(!@math_formats){		# No math format specified?
+    addMathFormat('pmml');
+    addMathFormat('cmml') if $parallelmath || !@math_formats; }
+  $svg        = 1 unless defined $svg;
+  $dographics = 1 unless defined $dographics;
+  if(!defined $stylesheet){
+    $stylesheet = "LaTeXML-xhtml.xsl";
+    unshift(@css,"core.css") if $defaultcss; }}
+
+Error("Parallel math markup needs at least two formats")
+  if $parallelmath && (scalar(@math_formats) < 2);
+Error("Parallel math markup can only be based on MathML") 
+  if $parallelmath && ($math_formats[0] !~ /^(cmml|pmml)$/);
+
+#======================================================================
+# Do the processing.
+#======================================================================
+
+binmode(STDERR,":utf8");
+#binmode(STDOUT,":utf8");
+print STDERR "$identity\n" if $verbosity > 0;
+our %OPTIONS = (verbosity=>$verbosity||0,
+	       siteDirectory=>(defined $sitedir ? $sitedir
+			       : (defined $dbfile ? pathname_directory($dbfile)
+				  : ".")));
+
+if(defined $dbfile && !-f $dbfile){
+  if(my $dbdir = pathname_directory($dbfile)){
+    pathname_mkdir($dbdir); }}
+my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile,%OPTIONS);
+
+# Create the processors:
+my @procs = ();
+if($split){
+  require 'LaTeXML/Post/Split.pm';
+  push(@procs,LaTeXML::Post::Split->new(split_xpath=>$splitpath,splitnaming=>$splitnaming,
+					%OPTIONS)); }
+
+##require 'LaTeXML/Post/Scan.pm';
+our $scanner = ($scan || $DB) && LaTeXML::Post::Scan->new(db=>$DB,%OPTIONS);
+if($scan){
+  push(@procs,$scanner); }
+
+if(!$prescan){
+  if($index){
+    require 'LaTeXML/Post/MakeIndex.pm';
+    push(@procs,LaTeXML::Post::MakeIndex->new(db=>$DB, permuted=>$permutedindex,
+					      split=>$splitindex, scanner=>$scanner,
+					      %OPTIONS)); }
+  if(@bibliographies){
+    require 'LaTeXML/Post/MakeBibliography.pm';
+    push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>[@bibliographies],
+						     split=>$splitbibliography, scanner=>$scanner,
+						     %OPTIONS)); }
+  if($crossref){
+    require 'LaTeXML/Post/CrossRef.pm';
+    push(@procs,LaTeXML::Post::CrossRef->new(db=>$DB,urlstyle=>$urlstyle,format=>$format,
+					     ($numbersections ? (number_sections=>1):()),
+					     %OPTIONS)); }
+
+  if($mathimages){
+    require 'LaTeXML/Post/MathImages.pm';
+    push(@procs,LaTeXML::Post::MathImages->new(magnification=>$mathimagemag,%OPTIONS)); }
+  if($picimages){
+    require 'LaTeXML/Post/PictureImages.pm';
+    push(@procs,LaTeXML::Post::PictureImages->new(%OPTIONS)); }
+  if($dographics){
+    require 'LaTeXML/Post/Graphics.pm';
+    push(@procs,LaTeXML::Post::Graphics->new(%OPTIONS)); }
+  if($svg){
+    require 'LaTeXML/Post/SVG.pm';
+    push(@procs,LaTeXML::Post::SVG->new(%OPTIONS)); }
+  if(@math_formats){
+    $keepXMath  = 0 unless defined $keepXMath;
+    my @mprocs=();
+    foreach my $fmt (@math_formats){
+      if($fmt eq 'pmml'){
+	require 'LaTeXML/Post/MathML.pm';
+	push(@mprocs,LaTeXML::Post::MathML::Presentation->new(
+		    (defined $linelength ? (linelength=>$linelength):()),
+                    %OPTIONS)); }
+      elsif($fmt eq 'cmml'){
+	require 'LaTeXML/Post/MathML.pm';
+	push(@mprocs,LaTeXML::Post::MathML::Content->new(%OPTIONS)); }
+      elsif($fmt eq 'om'){
+	require 'LaTeXML/Post/OpenMath.pm';
+	push(@mprocs,LaTeXML::Post::OpenMath->new(%OPTIONS)); }}
+    if($parallelmath){
+      require 'LaTeXML/Post/MathML.pm';
+      push(@procs,LaTeXML::Post::MathML::Parallel->new(math_processors=>[@mprocs],%OPTIONS)); }
+    else {
+      push(@procs,@mprocs); }}
+  else {
+    $keepXMath  = 1 unless defined $keepXMath;
+  }
+  if(!$keepXMath){
+    require 'LaTeXML/Post/PurgeXMath.pm';
+    push(@procs,LaTeXML::Post::PurgeXMath->new(%OPTIONS)); }
+
+  if($stylesheet){
+    require 'LaTeXML/Post/XSLT.pm'; 
+    my @csspaths=();
+    if(@css){
+      foreach my $css (@css){
+	$css .= '.css' unless $css =~ /\.css$/;
+	# Dance, if dest is current dir, we'll find the old css before the new one!
+	my @csssources = map(pathname_canonical($_),
+			     pathname_findall($css,types=>['css'],
+					      ($sourcedir ? (paths=>[$sourcedir]):()),
+					      installation_subdir=>'style'));
+	my $csspath = pathname_absolute($css,pathname_directory($destination));
+	while(@csssources && ($csssources[0] eq $csspath)){ shift(@csssources); }
+	my $csssource = shift(@csssources);
+	pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
+	push(@csspaths,$csspath); }}
+    push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$stylesheet,
+					 css=>[@csspaths],
+					 parameters=>{number_sections
+						      =>($numbersections ?"true()":"false()")
+						     },
+					 %OPTIONS)); }
+
+  push(@procs,LaTeXML::Post::Writer->new(format=>$format,omit_doctype=>$omit_doctype,%OPTIONS));
+}
+
+# Figure how to define a Reader processor (?)
+# that initialize the thing by reading several files (the rest of the command line).
+LaTeXML::Post::ProcessChain(
+	  ($xmlfile eq '-'
+	   ? LaTeXML::Post::Document->newFromSTDIN(validate=>$validate,
+						   sourceDirectory=>$sourcedir,
+						   destination=>$destination)
+	   : LaTeXML::Post::Document->newFromFile($xmlfile,
+						  validate=>$validate,
+						  sourceDirectory=>$sourcedir,
+						  destination=>$destination)),
+			    @procs);
+$DB->finish;
+#======================================================================
+# helpers
+#======================================================================
+sub Error {
+  my($message)=@_;
+  pod2usage(-message=>"$identity\n$message",-exitval=>1, -verbose=>0,-output=>\*STDERR); }
+
+sub addMathFormat {
+  my($fmt)=@_;
+  push(@math_formats,$fmt) 
+    unless grep($_ eq $fmt,@math_formats) || $removed_math_formats{$fmt}; }
+sub removeMathFormat {
+  my($fmt)=@_;
+  @math_formats = grep($_ ne $fmt, @math_formats);
+  $removed_math_formats{$fmt}=1; }
+
+sub checkOptionValue {
+  my($option,$value,@choices)=@_;
+  if($value){
+    foreach my $choice (@choices){
+      return $choice if substr($choice,0,length($value)) eq $value; }}
+  Error("Value for $option, $value, doesn't match ".join(', ',@choices)); }
+
+#**********************************************************************
+__END__
+
+=head1 NAME
+
+C<latexmlpost> - postprocesses an xml file generated by C<latexml>
+to perform common tasks, such as convert math to images and processing
+graphics inclusions for the web.
+
+=head1 SYNOPSIS
+
+latexmlpost [options] xmlfile
+
+ Options:
+ --verbose               shows progress during processing.
+ --VERSION               show version number.
+ --help                  shows help message.
+ --sourcedirectory=sourcedir specifies directory of source TeX file.
+ --validate, --novalidate Enables (the default) or disables
+                         validation of the source xml.
+ --format=html|xhtml|xml requests the output format.
+ --destination=file      specifies output file (and directory).
+ --omitdoctype           omits the Doctype declaration,
+ --noomitdoctype         disbles the omission (the default)
+ --numbersections        enables (the default) the inclusion
+                         of section numbers in titles and crossrefs.
+ --nonumbersections      disbles the above
+ --stylesheet=xslfile    requests the XSL transform using the
+                         given xslfile as stylesheet.
+ --css=cssfile           adds a css stylesheet to html/xhtml
+                         (can be repeated)
+ --nodefaultcss          disables inclusion of default css stylesheet
+ --split                 requests splitting each document
+ --nosplit               disables the above (default)
+ --splitat               specifies level to split the document
+ --splitpath=xpath       specifies xpath expression for splitting
+                         (default is section-like, if splitting)
+ --splitnaming=(id|idrelative|label|labelrelative) specifies how
+                         to name split files (def. idrelative).
+ --scan                  scans documents to extract ids, labels, 
+                         section titles, etc. (default)
+ --noscan                disables the above
+ --crossref              fills in crossreferences (default)
+ --nocrossref            disables the above
+ --urlstyle=(server|negotiated|file) format to use for urls
+                         (default server).
+ --index                 requests filling in the index (default)
+ --noindex               disables the above
+ --splitindex            Splits the index into pages per initial.
+ --nosplitindex          disables the above (default)
+ --permutedindex         permutes index phrases in the index
+ --nopermutedindex       disables the above (default)
+ --bibliography=file     specifies a bibliography file
+ --splitbibliography     splits the bibliography into pages per
+                         initial.
+ --nosplitbibliography   disables the above (default)
+
+ --prescan               carries out only the split (if enabled)
+                         and scan, storing cross-referencing data
+                         in dbfile
+                         (default is complete processing)
+ --dbfile=dbfile         specifies file to store crossreferences
+ --sitedirectory=dir     specifies the base directory of the site
+ --mathimages            converts math to images
+                         (default for html format)
+ --nomathimages          disables the above
+ --mathimagemagnification=mag specifies magnification factor
+ --presentationmathml    converts math to Presentation MathML
+                         (default for xhtml format)
+ --pmml                  alias for --presentationmathml
+ --nopresentationmathml  disables the above
+ --linelength=n          formats presentation mathml to a
+                         linelength max of n characters
+ --contentmathml         converts math to Content MathML
+ --nocontentmathml       disables the above (default)
+ --cmml                  alias for --contentmathml
+ --openmath              converts math to OpenMath
+ --noopenmath            disables the above (default)
+ --om                    alias for --openmath
+ --parallelmath          requests parallel math markup for MathML
+                         (default when multiple math formats)
+ --noparallelmath        disables the above
+ --keepXMath             preserves the intermediate XMath
+                         representation (default is to remove)
+ --graphicimages        converts graphics to images (default)
+ --nographicimages      disables the above
+ --pictureimages         converts picture environments to
+                         images (default)
+ --nopictureimages       disables the above
+ --svg                   converts picture environments to SVG
+ --nosvg                 disables the above (default)
+
+If xmlfile is '-', latexmlpost reads the XML from standard input.
+
+=head1 OPTIONS AND ARGUMENTS
+
+=head2 General Options
+
+=over 4
+
+=item C<--verbose>
+
+Requests informative output as processing proceeds. Can be repeated
+to increase the amount of information.
+
+=item C<--VERSION>
+
+Shows the version number of the LaTeXML package..
+
+=item C<--help>
+
+Shows this help message.
+
+=back
+
+=head2 Source Options
+
+=over 4
+
+=item C<--sourcedirectory>=I<source>
+
+Specifies the directory where the original latex source is located.
+Unless latexmlpost is run from that directory, or it can be determined
+from the xml filename, it may be necessary to specify this option in
+order to find graphics and style files.
+
+=item C<--validate>, C<--novalidate>
+
+Enables (or disables) the validation of the source XML document (the default).
+
+=back
+
+=head2 Format Options
+
+=over 4
+
+=item C<--format>=C<(html|xhtml|xml)>
+
+Specifies the output format for post processing. 
+C<html> format converts the material to html and the mathematics to png images.
+C<xhtml> format converts to xhtml and uses presentation MathML (after attempting
+to parse the mathematics) for representing the math.  In both cases, any
+graphics will be converted to web-friendly formats and/or copied to the
+destination directory.  By default, C<xml>, the output is left in LaTeXML's xml,
+but the math is parsed and converted to presentation MathML.
+For html and xhtml, a default stylesheet is provided, but see
+the C<--stylesheet> option.
+
+=item C<--destination=>I<destination>
+
+Specifies the destination file and directory.  The directory is needed for
+mathimages and graphics processing.
+
+=item C<--omitdoctype>, C<--noomitdoctype>
+
+Omits (or includes) the document type declaration.
+The default is to include it if the document model was based on a DTD.
+
+=item C<--numbersections>, C<--nonumbersections>
+
+Includes (default), or disables the inclusion of section, equation, etc,
+numbers in the formatted document and crossreference links.
+
+=item C<--stylesheet>=I<xslfile>
+
+Requests the XSL transformation of the document using the given xslfile as stylesheet.
+If the stylesheet is omitted, a `standard' one appropriate for the
+format (html or xhtml) will be used.
+
+=item C<--css>=I<cssfile>
+
+Adds I<cssfile> as a css stylesheet to be used in the transformed html/xhtml.
+Multiple stylesheets can be used; they are included in the html in the
+order given, following the default C<core.css>
+(but see C<--nodefaultcss>). Some stylesheets included in the distribution are
+  --css=navbar-left   Puts a navigation bar on the left.
+                      (default omits navbar)
+  --css=navbar-right  Puts a navigation bar on the left.
+  --css=theme-blue    A blue coloring theme for headings.
+  --css=amsart        A style suitable for journal articles.
+
+=item C<--nodefaultcss>
+
+Disables the inclusion of the default C<core.css> stylesheet.
+
+=back
+
+=head2 Site & Crossreferencing Options
+
+=over 4
+
+=item C<--split>, C<--nosplit>
+
+Enables or disables (default) the splitting of documents into multiple `pages'.
+If enabled, the the document will be split into sections, bibliography,
+index and appendices (if any) by default, unless C<--splitpath> is specified.
+
+=item C<--splitat=>I<unit>
+
+Specifies what level of the document to split at. Should be one
+of C<chapter>, C<section> (the default), C<subsection> or C<subsubsection>.
+For more control, see C<--splitpath>.
+
+=item C<--splitpath=>I<xpath>
+
+Specifies an XPath expression to select nodes that will generate separate
+pages. The default splitpath is
+  //ltx:section | //ltx:bibliography | //ltx:appendix | //ltx:index
+
+Specifying
+  --splitpath="//ltx:section | //ltx:subsection | //ltx:bibliography
+              | //ltx:appendix | //ltx:index"
+
+would split the document at subsections as well as sections.
+
+=item C<--splitnaming>=C<(id|idrelative|label|labelrelative)>
+
+Specifies how to name the files for subdocuments created by splitting.
+The values C<id> and C<label> simply use the id or label of the subdocument's
+root node for it's filename.  C<idrelative> and C<labelrelative> use
+the portion of the id or label that follows the parent document's
+id or label. Furthermore, to impose structure and uniqueness, 
+if a split document has children that are also split, that document
+(and it's children) will be in a separate subdirectory with the
+name index.
+
+=item C<--scan>, C<--noscan>
+
+Enables (default) or disables the scanning of documents for ids, labels,
+references, indexmarks, etc, for use in filling in refs, cites, index and
+so on.  It may be useful to disable when generating documents not based
+on the LaTeXML doctype.
+
+=item C<--crossref>, C<--nocrossref>
+
+Enables (default) or disables the filling in of references, hrefs, etc
+based on a previous scan (either from C<--scan>, or C<--dbfile>)
+It may be useful to disable when generating documents not based
+on the LaTeXML doctype.
+
+=item C<--urlstyle>=C<(server|negotiated|file)>
+
+This option determines the way that URLs within the documents
+are formatted, depending on the way they are intended to be served.
+The default, C<server>, eliminates unneccessary
+trailing C<index.html>.  With C<negotiated>, the trailing
+file extension (typically C<html> or C<xhtml>) are eliminated.
+The scheme C<file> preserves complete (but relative) urls
+so that the site can be browsed as files without any server.
+
+=item C<--index>, C<--noindex>
+
+Enables (default) or disables the generation of an index from indexmarks
+embedded within the document.  Enabling this has no effect unless
+there is an index element in the document (generated by \printindex).
+
+=item C<--splitindex>, C<--nosplitindex>
+
+Enables or disables (default) the splitting of generated indexes
+into separate pages per initial letter.
+
+=item C<--bibliography=>I<pathname>
+
+Specifies a bibliography file generated from a BibTeX file
+and used to fill in a bibliography element.
+Hand-written bibliographies placed in a C<thebibliography> environment
+do not need this processing.  Enabling this has no effect unless
+there is an bibliography element in the document (generated by \bibliography).
+
+=item C<--splitbibliography>, C<--nosplitbibliography>
+
+Enables or disables (default) the splitting of generated bibliographies
+into separate pages per initial letter.
+
+=item C<--prescan>
+
+By default C<latexmlpost> processes a single document into one
+(or more; see C<--split>) destination files in a single pass.
+When generating a complicated site consisting of several documents
+it may be advantageous to first scan through the documents
+to extract and store (in C<dbfile>) cross-referencing data
+(such as ids, titles, urls, and so on).
+A later pass then has complete information allowing all documents
+to reference each other, and also constructs an index and bibliography
+that reflects the entire document set.  The same effect (though less efficient)
+can be achieved by running C<latexmlpost> twice, provided a C<dbfile>
+is specified.
+
+=item C<--dbfile>I<=file>
+
+Specifies a filename to use for the crossreferencing data when
+using two-pass processing.  This file may reside in the intermediate
+destination directory.
+
+=item C<--sitedirectory=>I<dir>
+
+Specifies the base directory of the overall web site.
+Pathnames in the database are stored in a form relative
+to this directory to make it more portable.
+
+=back
+
+=head2 Math Options
+
+These options specify how math should be converted into other formats.
+Multiple formats can be requested; how they will be combined
+depends on the format and other options.
+
+=over 4
+
+=item C<--mathimages>, C<--nomathimages>
+
+Requests or disables the conversion of math to images.
+Conversion is the default for html format.
+
+=item C<--mathimagemagnification=>I<factor>
+
+Specifies the magnification used for math images, if they are made.
+Default is 1.75.
+
+=item C<--presentationmathml>, C<--nopresentationmathml>
+
+Requests or disables conversion of math to Presentation MathML.
+Conversion is the default for xhtml format.
+
+=item C<--linelength>I<=number>
+
+(Experimental) Line-breaks the generated Presentation
+MathML so that it is no longer than I<number> `characters'.
+
+=item C<--contentmathml>, C<--nocontentmathml>
+
+Requests or disables conversion of math to Content MathML.
+Conversion is disabled by default.
+B<Note> that this conversion is only partially implemented.
+
+=item C<--openmath>
+
+Requests or disables conversion of math to OpenMath.
+Conversion is disabled by default.
+B<Note> that this conversion is only partially implemented.
+
+=item C<--parallelmath>, C<--noparallelmath>
+
+Requests or disables parallel math markup.
+Parallel markup is the default for xhtml formats when multiple math
+formats are requested.
+
+This method uses the MathML C<semantics> element with additional formats
+appearing as C<annotation>'s.
+The first math format requested must be either Presentation or Content MathML;
+additional formats may be MathML or OpenMath.
+
+If this option is disabled and multiple formats are requested, the
+representations are simply stored as separate children of the C<Math> element.
+
+=item C<--keepXMath>
+
+By default, when any of the MathML or OpenMath conversions
+are used, the intermediate math representation will be removed;
+this option preserves it.
+
+=back
+
+=head2 Graphics Options
+
+=over 4
+
+=item C<--graphicimages>, C<--nographicimages>
+
+Enables (default) or disables the conversion of graphics
+to web-appropriate format (png).
+
+=item C<--pictureimages>, C<--nopictureimages>
+
+Enables (default) or disables the conversion of picture environments
+and pstricks material into images.
+
+=item C<--svg>, C<--nosvg>
+
+Enables or disables (default) the conversion of picture environments
+and pstricks material to SVG.
+
+=back
+
+=head1 SEE ALSO
+
+L<latexml>, L<latexmlbib>, L<LaTeXML>
+
+=cut
+#**********************************************************************
+

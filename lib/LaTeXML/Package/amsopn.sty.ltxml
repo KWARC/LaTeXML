@@ -1,0 +1,50 @@
+# -*- CPERL -*-
+# /=====================================================================\ #
+# |  amsopn                                                             | #
+# | Implementation for LaTeXML                                          | #
+# |=====================================================================| #
+# | Part of LaTeXML:                                                    | #
+# |  Public domain software, produced as part of work done by the       | #
+# |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
+# | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
+# \=========================================================ooo==U==ooo=/ #
+
+#**********************************************************************
+# See amsldoc
+#**********************************************************************
+package LaTeXML::Package::Pool;
+use strict;
+use LaTeXML::Package;
+
+DefPrimitive('\DeclareMathOperator OptionalMatch:* {Token}{}',sub{
+  my($stomach,$star,$cs,$text)=@_;
+  DefMathI($cs,undef,$text,scriptpos=>($star ? 'mid':'post')); });
+
+# See p.18
+# New functions (most are already in TeX)
+DefMath('\injlim', "inj lim", 
+	role=>'LIMITOP', meaning=>'injective-limit',
+	scriptpos=>\&doScriptpos);
+DefMath('\projlim', "proj lim",
+	role=>'LIMITOP', meaning=>'projective-limit',
+	scriptpos=>\&doScriptpos);
+
+
+DefMath('\varlimsup', '\overline{\lim}',
+	role=>'LIMITOP', meaning=>'limit-supremum');
+DefMath('\varliminf', '\underline{\lim}',
+	role=>'LIMITOP', meaning=>'limit-infimum');
+DefMath('\varinjlim', '\underrightarrow{\lim}',
+	role=>'LIMITOP', meaning=>'injective-limit');
+DefMath('\varprojlim','\underleftarrow{\lim}',
+	role=>'LIMITOP', meaning=>'projective-limit');
+
+# Hmm... OPERATOR or LIMITOP ??
+DefConstructor('\operatorname OptionalMatch:* {}',
+	       "<ltx:XMWrap role='OPERATOR' scriptpos='?#1(mid)(post)'>#2</ltx:XMWrap>",
+	       bounded=>1, requireMath=>1, font=>{family=>'serif'});
+
+#**********************************************************************
+1;

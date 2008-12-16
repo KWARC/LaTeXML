@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?latexml class="article"?>
+<?latexml RelaxNGSchema="LaTeXML"?>
+<document xmlns="http://dlmf.nist.gov/LaTeXML">
+  <para xml:id="p1">
+    <p>Expect Original : Original</p>
+  </para>
+  <para xml:id="p2">
+    <p>Expect a + Original: <Math mode="inline" tex="a+\mbox{Original}" text="a + [Original]"><XMath><XMApp><XMTok meaning="plus" role="ADDOP">+</XMTok><XMTok role="UNKNOWN" font="italic">a</XMTok><XMText><text>Original</text></XMText></XMApp></XMath></Math></p>
+  </para>
+  <para xml:id="p3">
+    <p>Expect Original : Original</p>
+  </para>
+  <para xml:id="p4">
+    <p>Expect InBox + Original:  <text>InBox</text> + Original</p>
+  </para>
+  <para xml:id="p5">
+    <p>Expect Original : Original</p>
+  </para>
+  <para xml:id="p6">
+    <p>Expect a + InlineMath: <Math mode="inline" tex="a+\hbox{InlineMath}" text="a + [InlineMath]"><XMath><XMApp><XMTok meaning="plus" role="ADDOP">+</XMTok><XMTok role="UNKNOWN" font="italic">a</XMTok><XMText><text>InlineMath</text></XMText></XMApp></XMath></Math></p>
+  </para>
+  <para xml:id="p7">
+    <p>Expect Original : Original</p>
+  </para>
+  <para xml:id="p8">
+    <p>Expect a + DisplayMath :</p>
+    <equation xml:id="S0.Ex1">
+      <Math mode="display" tex="a+\hbox{DisplayMath}" text="a + [DisplayMath]">
+        <XMath>
+          <XMApp>
+            <XMTok meaning="plus" role="ADDOP">+</XMTok>
+            <XMTok role="UNKNOWN" font="italic">a</XMTok>
+            <XMText>
+              <text>DisplayMath</text>
+            </XMText>
+          </XMApp>
+        </XMath>
+      </Math>
+    </equation>
+  </para>
+  <para xml:id="p9">
+    <p>Expect Original : Original</p>
+  </para>
+  <para xml:id="p10">
+    <p>Expect a + InText + InlineMath: <Math mode="inline" tex="a+\hbox{InText}+\hbox{InlineMath}" text="a + [InText] + [InlineMath]"><XMath><XMApp><XMTok meaning="plus" role="ADDOP">+</XMTok><XMTok role="UNKNOWN" font="italic">a</XMTok><XMText><text>InText</text></XMText><XMText><text>InlineMath</text></XMText></XMApp></XMath></Math></p>
+  </para>
+  <para xml:id="p11">
+    <p>Expect Original : Original</p>
+  </para>
+</document>

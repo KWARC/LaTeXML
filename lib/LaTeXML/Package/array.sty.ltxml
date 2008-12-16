@@ -1,0 +1,36 @@
+# -*- CPERL -*-
+# /=====================================================================\ #
+# |  array                                                              | #
+# | Implementation for LaTeXML                                          | #
+# |=====================================================================| #
+# | Part of LaTeXML:                                                    | #
+# |  Public domain software, produced as part of work done by the       | #
+# |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
+# | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
+# \=========================================================ooo==U==ooo=/ #
+use LaTeXML::Package;
+
+DefColumnType('>{}',sub { $LaTeXML::BUILD_TEMPLATE->addBefore($_[1]->unlist); return; });
+DefColumnType('<{}',sub { $LaTeXML::BUILD_TEMPLATE->addAfter($_[1]->unlist); return; });
+
+# This is the same as p
+# but really needs to specify vertical alignment as centered
+DefColumnType('m{Dimension}',sub {
+  $LaTeXML::BUILD_TEMPLATE->addColumn(before=>Tokens(T_CS('\hbox'),T_BEGIN),#Tokens(T_BEGIN),
+				      after=>Tokens(T_END),
+				      align=>'justify', width=>$_[1]); return; });
+# This is also the same as p
+# but really needs to specify vertical alignment as bottom
+DefColumnType('b{Dimension}',sub {
+  $LaTeXML::BUILD_TEMPLATE->addColumn(before=>Tokens(T_CS('\hbox'),T_BEGIN),#Tokens(T_BEGIN),
+				      after=>Tokens(T_END),
+				      align=>'justify', width=>$_[1]); return; });
+
+# NOTE:  Come back & check this; is the arglist right??
+DefPrimitive('\newcolumntype{}[][]{}',sub {
+  my($stomach,$char,$nargs,$opt,$replacement)=@_;
+  DefMacroI(T_CS('NC@rewrite@'.ToString($char)),convertLaTeXArgs($nargs,$opt), $replacement); });
+
+1;

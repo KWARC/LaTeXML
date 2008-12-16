@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?latexml class="article"?>
+<?latexml RelaxNGSchema="LaTeXML"?>
+<document xmlns="http://dlmf.nist.gov/LaTeXML">
+  <section refnum="1" xml:id="S1">
+    <title>Normal Use</title>
+    <para xml:id="S1.p1">
+      <tabular>
+        <tbody>
+          <tr>
+            <td align="center">t</td>
+            <td align="center">
+              <Math mode="inline" tex="m" text="m">
+                <XMath>
+                  <XMTok role="UNKNOWN" font="italic">m</XMTok>
+                </XMath>
+              </Math>
+            </td>
+          </tr>
+        </tbody>
+      </tabular>
+    </para>
+    <para xml:id="S1.p2">
+      <equation xml:id="S1.Ex1">
+        <tabular>
+          <tbody>
+            <tr>
+              <td align="center">t</td>
+              <td align="center">
+                <Math mode="inline" tex="m" text="m">
+                  <XMath>
+                    <XMTok role="UNKNOWN" font="italic">m</XMTok>
+                  </XMath>
+                </Math>
+              </td>
+            </tr>
+          </tbody>
+        </tabular>
+      </equation>
+    </para>
+  </section>
+  <section refnum="2" xml:id="S2">
+    <title>Perverse Use</title>
+    <para xml:id="S2.p1">
+      <equation xml:id="S2.Ex2">
+        <Math mode="display" tex="\begin{array}[]{cc}m&amp;$t$\end{array}" text="Array[[m, [t]]]">
+          <XMath>
+            <XMArray role="ARRAY">
+              <XMRow>
+                <XMCell align="center">
+                  <XMTok role="UNKNOWN" font="italic">m</XMTok>
+                </XMCell>
+                <XMCell align="center">
+                  <XMText>t</XMText>
+                </XMCell>
+              </XMRow>
+            </XMArray>
+          </XMath>
+        </Math>
+      </equation>
+    </para>
+    <para xml:id="S2.p2">
+      <equation xml:id="S2.Ex3">
+        <Math mode="display" tex="\begin{array}[]{cc}\mbox{t}&amp;\mbox{$m$}\end{array}" text="Array[[[t], [m]]]">
+          <XMath>
+            <XMArray role="ARRAY">
+              <XMRow>
+                <XMCell align="center">
+                  <XMText>
+                    <text>t</text>
+                  </XMText>
+                </XMCell>
+                <XMCell align="center">
+                  <XMText>
+                    <text>
+                      <Math mode="inline" tex="m" text="m">
+                        <XMath>
+                          <XMTok role="UNKNOWN" font="italic">m</XMTok>
+                        </XMath>
+                      </Math>
+                    </text>
+                  </XMText>
+                </XMCell>
+              </XMRow>
+            </XMArray>
+          </XMath>
+        </Math>
+      </equation>
+    </para>
+    <para xml:id="S2.p3">
+      <equation xml:id="S2.Ex4">
+        <Math mode="display" tex="\begin{array}[]{cc}\mbox{t}&amp;\mbox{$m$, $n$}\end{array}" text="Array[[[t], [m, n]]]">
+          <XMath>
+            <XMArray role="ARRAY">
+              <XMRow>
+                <XMCell align="center">
+                  <XMText>
+                    <text>t</text>
+                  </XMText>
+                </XMCell>
+                <XMCell align="center">
+                  <XMText>
+                    <text><Math mode="inline" tex="m" text="m"><XMath><XMTok role="UNKNOWN" font="italic">m</XMTok></XMath></Math>, <Math mode="inline" tex="n" text="n"><XMath><XMTok role="UNKNOWN" font="italic">n</XMTok></XMath></Math></text>
+                  </XMText>
+                </XMCell>
+              </XMRow>
+            </XMArray>
+          </XMath>
+        </Math>
+      </equation>
+    </para>
+  </section>
+  <section refnum="3" xml:id="S3">
+    <title>Very Perverse</title>
+    <para xml:id="S3.p1">
+      <equation xml:id="S3.Ex5">
+        <Math mode="display" tex="\begin{array}[]{cc}m&amp;$\hbox{$m$}$\end{array}" text="Array[[m, [m]]]">
+          <XMath>
+            <XMArray role="ARRAY">
+              <XMRow>
+                <XMCell align="center">
+                  <XMTok role="UNKNOWN" font="italic">m</XMTok>
+                </XMCell>
+                <XMCell align="center">
+                  <XMText>
+                    <text>
+                      <Math mode="inline" tex="m" text="m">
+                        <XMath>
+                          <XMTok role="UNKNOWN" font="italic">m</XMTok>
+                        </XMath>
+                      </Math>
+                    </text>
+                  </XMText>
+                </XMCell>
+              </XMRow>
+            </XMArray>
+          </XMath>
+        </Math>
+      </equation>
+    </para>
+  </section>
+</document>

@@ -1,0 +1,9 @@
+~$
+^\#
+^\.
+^Makefile$
+^Makefile.old$
+\.bak$
+($|/)TAGS$
+(^|/)\.svn/
+^doc/

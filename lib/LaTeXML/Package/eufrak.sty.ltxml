@@ -1,0 +1,20 @@
+# -*- CPERL -*-
+# /=====================================================================\ #
+# |  eufrak                                                             | #
+# | Implementation for LaTeXML                                          | #
+# |=====================================================================| #
+# | Part of LaTeXML:                                                    | #
+# |  Public domain software, produced as part of work done by the       | #
+# |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
+# | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
+# \=========================================================ooo==U==ooo=/ #
+#
+# See amsfndoc
+#
+# Only defines \mathfrak to use the Euler Fraktur font
+DefConstructor('\EuFrak{}','#1', bounded=>1, requireMath=>1, font=>{family=>'fraktur'});
+DefConstructor('\mathfrak{}','#1', bounded=>1, requireMath=>1, font=>{family=>'fraktur'});
+
+1;

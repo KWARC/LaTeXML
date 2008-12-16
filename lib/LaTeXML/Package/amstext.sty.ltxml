@@ -1,0 +1,25 @@
+# -*- CPERL -*-
+# /=====================================================================\ #
+# |  amstext                                                            | #
+# | Implementation for LaTeXML                                          | #
+# |=====================================================================| #
+# | Part of LaTeXML:                                                    | #
+# |  Public domain software, produced as part of work done by the       | #
+# |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
+# | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
+# \=========================================================ooo==U==ooo=/ #
+
+#**********************************************************************
+# See amsldoc
+#**********************************************************************
+use strict;
+use LaTeXML::Package;
+
+DefConstructor('\text{}', "<ltx:text>#1</ltx:text>", mode=>'text');
+
+# There's also redefinitions of \stepcounter & \addtocounter
+# that I can't quite seethe point of including here...
+#**********************************************************************
+1;

@@ -1,0 +1,319 @@
+# /=====================================================================\ 
+# |  LaTeXML-structure.rnc                                              |
+# | RelaxNG model for LaTeXML generated documents                       |
+# |=====================================================================|
+# | Part of LaTeXML:                                                    |
+# |  Public domain software, produced as part of work done by the       |
+# |  United States Government & not subject to copyright in the US.     |
+# |=====================================================================|
+# | Bruce Miller <bruce.miller@nist.gov>                        #_#     |
+# | http://dlmf.nist.gov/LaTeXML/                              (o o)    |
+# \=========================================================ooo==U==ooo=/
+
+default namespace = "http://dlmf.nist.gov/LaTeXML"
+
+#======================================================================
+
+document =
+## The document root.
+element document {
+  Sectional.attributes,
+
+  (FrontMatter.class | SectionalFrontMatter.class | Meta.class)*,
+  document.body.class*,
+  BackMatter.class* }
+
+## The content allowable as the main body of the document.
+document.body.class = Para.model | paragraph | section | chapter | part
+
+#----------------------------------------------------------------------
+
+part =
+## A part within a document.
+element part {
+  Sectional.attributes,
+
+  SectionalFrontMatter.class*,
+  part.body.class* }
+
+## The content allowable as the main body of a part.
+part.body.class = Para.model | chapter
+
+#----------------------------------------------------------------------
+
+chapter =
+## A Chapter within a document.
+element chapter {
+  Sectional.attributes,
+
+  SectionalFrontMatter.class*,
+  chapter.body.class* }
+
+## The content allowable as the main body of a chapter.
+chapter.body.class = Para.model | subparagraph | paragraph | subsubsection | subsection | section
+
+#----------------------------------------------------------------------
+
+section =
+## A Section within a document.
+element section {
+  Sectional.attributes,
+
+  SectionalFrontMatter.class*,
+  section.body.class* }
+
+## The content allowable as the main body of a section.
+section.body.class = Para.model | subparagraph | paragraph | subsubsection | subsection
+
+#----------------------------------------------------------------------
+
+appendix =
+## An Appendix within a document.
+element appendix {
+  Sectional.attributes,
+
+  SectionalFrontMatter.class*,
+  appendix.body.class* }
+
+## The content allowable as the main body of a chapter.
+appendix.body.class = Para.model | subparagraph | paragraph | subsubsection | subsection | section
+
+#----------------------------------------------------------------------
+
+subsection =
+## A Subsection within a document.
+element subsection {
+  Sectional.attributes,
+
+  SectionalFrontMatter.class*,
+  subsection.body.class* }
+
+## The content allowable as the main body of a chapter.
+subsection.body.class = Para.model | subparagraph | paragraph | subsubsection
+
+#----------------------------------------------------------------------
+
+subsubsection =
+## A Subsubsection within a document.
+element subsubsection {
+  Sectional.attributes,
+
+  SectionalFrontMatter.class*,
+  subsubsection.body.class* }
+
+## The content allowable as the main body of a chapter.
+subsubsection.body.class = Para.model | subparagraph | paragraph
+
+#----------------------------------------------------------------------
+
+paragraph =
+## A Paragraph within a document. This corresponds to a `formal' marked, possibly labelled
+## LaTeX Paragraph,  in distinction from an unlabelled logical paragraph.
+element paragraph {
+  Sectional.attributes,
+
+  SectionalFrontMatter.class*,
+  paragraph.body.class* }
+
+## The content allowable as the main body of a chapter.
+paragraph.body.class = Para.model | subparagraph
+
+#----------------------------------------------------------------------
+
+subparagraph =
+## A Subparagraph within a document.
+element subparagraph {
+  Sectional.attributes,
+
+  SectionalFrontMatter.class*,
+  subparagraph.body.class* }
+
+## The content allowable as the main body of a chapter.
+subparagraph.body.class = Para.model
+
+#----------------------------------------------------------------------
+
+bibliography =
+## A Bibliography within a document.
+element bibliography {
+  Sectional.attributes,
+
+  ## the list of bib files used to create the bibliograph.
+  attribute files { text }?,
+
+  FrontMatter.class*,
+  SectionalFrontMatter.class*,
+  bibliography.body.class* }
+
+## The content allowable as the main body of a chapter.
+bibliography.body.class = Para.model | biblist
+
+#----------------------------------------------------------------------
+
+index =
+## An Index within a document.
+element index {
+  Sectional.attributes,
+
+  SectionalFrontMatter.class*,
+  index.body.class* }
+
+## The content allowable as the main body of a chapter.
+index.body.class = Para.model | indexlist
+
+indexlist =
+## A heirarchical index generated. Typically generated during postprocessing
+## from the collection of \elementref{indexmark} in the document
+## (or document collection).
+element indexlist {
+  Common.attributes,
+  ID.attributes,
+
+  indexentry* }
+
+indexentry =
+## An entry in an \elementref{indexlist} consisting of a phrase, references to
+## points in the document where the phrase was found, and possibly
+## a nested \elementref{indexlist} represented index levels below this one.
+element indexentry {
+  Common.attributes,
+  ID.attributes,
+
+  indexphrase, indexrefs?, indexlist? }
+
+indexrefs =
+## A container for the references (\elementref{ref}) to where an \elementref{indexphrase} was
+## encountered in the document. The model is Inline to allow
+## arbitrary text, in addition to the expected \elementref{ref}'s.
+element indexrefs {
+  Common.attributes,
+
+  Inline.model }
+
+#======================================================================
+
+title =
+## The title of a document, section or similar document structure container.
+element title {
+  Common.attributes,
+
+  Inline.model }
+
+toctitle =
+## The short form of a title, for use in tables of contents or similar.
+element toctitle {
+  Common.attributes,
+
+  Inline.model }
+
+subtitle =
+## A subtitle, or secondary title.
+element subtitle {
+  Common.attributes,
+
+  Inline.model }
+
+# NOTE: This should be aligned with Bibname.
+
+personname =
+## A person's name.
+element personname {
+  Common.attributes,
+
+  Inline.model }
+
+creator =
+## Generalized document creator.
+element creator {
+  Common.attributes,
+
+  ## indicates the role of the person in creating the docment.
+  ## Commonly useful values are specified, but is open-ended to support extension.
+  attribute role { "author" | "editor" | "translator" | "contributor" | "translator" | text }?,
+
+  (Person.class | Misc.class)* }
+
+## The content allowed in authors, editors, etc.
+Person.class = personname | contact
+
+contact =
+## Generalized contact information for a document creator.
+## Note that this element can be repeated to give different types 
+## of contact information (using \attr{role}) for the same creator.
+element contact {
+  Common.attributes,
+
+  ## indicates the type of contact information contained.
+  ## Commonly useful values are specified, but is open-ended to support extension.
+  attribute role { "affiliation" | "address" | "current_address" | "email" | "url"
+                 | "thanks" | "dedicatory" | text }?,
+
+  Inline.model }
+
+date =
+## Generalized document date.
+## Note that this element can be repeated to give the dates
+## of different events (using \attr{role}) for the same document.
+element date {
+  Common.attributes,
+
+  ## indicates the relevance of the date to the document.
+  ## Commonly useful values are specified, but is open-ended to support extension.
+  attribute role { "creation" | "conversion" | "posted" | "received"
+                 | "revised" | "accepted" | text }?,
+
+  Inline.model }
+
+abstract =
+## A document abstract.
+element abstract {
+  Common.attributes,
+
+  Block.model }
+
+acknowledgements =
+## Acknowledgements for the document.
+element acknowledgements {
+  Common.attributes,
+
+  Inline.model }
+
+keywords =
+## Keywords for the document. The content is freeform.
+element keywords {
+  Common.attributes,
+
+  Inline.model }
+
+classification =
+## A classification of the document.
+element classification {
+  Common.attributes,
+
+  ## indicates what classification scheme was used.
+  attribute scheme { text }?,
+
+  Inline.model }
+
+#======================================================================
+
+## Attributes shared by all sectional elements
+Sectional.attributes =
+  Common.attributes,
+  Labelled.attributes
+
+## The content allowed for the front matter of each sectional unit,
+## and the document.
+SectionalFrontMatter.class = title | toctitle | creator
+
+## The content allowed (in addition to \patternref{SectionalFrontMatter.class})
+## for the front matter of a document.
+FrontMatter.class =
+  subtitle | date | abstract | acknowledgements
+  | keywords | classification
+
+## The content allowed a the end of a document.
+## Note that this includes random trailing Block and Para material,
+## to support articles with figures and similar data appearing `at end'.
+BackMatter.class = bibliography | appendix | index | acknowledgements
+		 | Para.class | Meta.class
