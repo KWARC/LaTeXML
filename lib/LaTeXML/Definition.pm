@@ -39,7 +39,7 @@ sub stringify {
   my($self)=@_;
   my $type = ref $self;
   $type =~ s/^LaTeXML:://;
-  $type.'['.($$self{alias}||$$self{cs}->getCSName).' '.Stringify($$self{parameters}).']'; }
+  $type.'['.($$self{alias}||$$self{cs}->getCSName).' '.Stringify($$self{parameters}||'').']'; }
 
 sub toString {
   my($self)=@_;
@@ -61,8 +61,9 @@ use base qw(LaTeXML::Definition);
 #    isConditional: whether this expandable is some form of \ifxxx
 sub new {
   my($class,$cs,$parameters,$expansion,%traits)=@_;
-  Fatal(":misdefined:".Stringify($cs)." expansion is neither Tokens nor CODE: $expansion.")
-    unless (ref $expansion) =~ /^(LaTeXML::Tokens|CODE)$/;
+  $expansion = Tokens($expansion) if ref $expansion eq 'LaTeXML::Token';
+#  Fatal(":misdefined:".Stringify($cs)." expansion is neither Tokens nor CODE: $expansion.")
+#    unless (ref $expansion) =~ /^(LaTeXML::Tokens|CODE)$/;
   if(ref $expansion eq 'LaTeXML::Tokens'){
     my $level=0;
     foreach my $t ($expansion->unlist){
@@ -70,11 +71,17 @@ sub new {
       $level-- if $t->equals(T_END); }
     Fatal(":misdefined:".Stringify($cs)." expansion has unbalanced {}: ".ToString($expansion)) if $level;  }
   bless {cs=>$cs, parameters=>$parameters, expansion=>$expansion,
-	 locator=>"defined ".$STATE->getStomach->getGullet->getLocator,
+	 locator=>"defined ".$STATE->getStomach->getGullet->getMouth->getLocator,
 	 %traits}, $class; }
 
 sub isExpandable  { 1; }
 sub isConditional { $_[0]->{isConditional}; }
+
+sub getExpansion {
+  my($self)=@_;
+  if(! ref $$self{expansion}){
+    $$self{expansion} = TokenizeInternal($$self{expansion}); }
+  $$self{expansion}; }
 
 # Expand the expandable control sequence. This should be carried out by the Gullet.
 sub invoke {
@@ -85,7 +92,7 @@ sub invoke {
 
 sub doInvocation {
   my($self,$gullet,@args)=@_;
-  my $expansion = $$self{expansion};
+  my $expansion = $self->getExpansion;
   (ref $expansion eq 'CODE' 
    ? &$expansion($gullet,@args)
    : substituteTokens($expansion,map($_ && Tokens($_->revert),@args))); }
@@ -106,9 +113,9 @@ sub substituteTokens {
 
 sub equals {
   my($self,$other)=@_;
-  (defined $other
-   && (ref $self) eq (ref $other)) && Equals($$self{parameters},$$other{parameters})
-     && Equals($$self{expansion},$$other{expansion}); }
+  (defined $other && (ref $self) eq (ref $other))
+    && Equals($$self{parameters},$$other{parameters})
+      && Equals($self->getExpansion,$other->getExpansion); }
 
 #**********************************************************************
 # Primitive control sequences; Executed in the Stomach.
@@ -126,17 +133,19 @@ sub new {
   Fatal(":misdefined:".Stringify($cs)."  Primitive replacement is not CODE: $replacement.")
     unless ref $replacement eq 'CODE';
   bless {cs=>$cs, parameters=>$parameters, replacement=>$replacement,
-	 locator=>"defined ".$STATE->getStomach->getGullet->getLocator, %traits}, $class; }
+	 locator=>"defined ".$STATE->getStomach->getGullet->getMouth->getLocator, %traits}, $class; }
 
 sub isPrefix      { $_[0]->{isPrefix}; }
 
 sub executeBeforeDigest {
   my($self,$stomach)=@_;
+  local $LaTeXML::State::UNLOCKED=1;
   my $pre = $$self{beforeDigest};
   ($pre ? map(&$_($stomach), @$pre) : ()); }
 
 sub executeAfterDigest {
   my($self,$stomach,@whatever)=@_;
+  local $LaTeXML::State::UNLOCKED=1;
   my $post = $$self{afterDigest};
   ($post ? map(&$_($stomach,@whatever), @$post) : ()); }
 
@@ -169,7 +178,7 @@ sub new {
   my($class,$cs,$parameters,$type,$getter,$setter ,%traits)=@_;
   bless {cs=>$cs, parameters=>$parameters,
 	 registerType=>$type, getter => $getter, setter => $setter,
-	 locator=>"defined ".$STATE->getStomach->getGullet->getLocator, %traits}, $class; }
+	 locator=>"defined ".$STATE->getStomach->getGullet->getMouth->getLocator, %traits}, $class; }
 
 sub isPrefix    { 0; }
 sub isRegister { $_[0]->{registerType}; }
@@ -208,7 +217,7 @@ sub new {
   bless {cs=>$cs, parameters=>undef,
 	 value=>$value, char=>T_OTHER(chr($value->valueOf)),
 	 registerType=>'Number', readonly=>1,
-	 locator=>"defined ".$STATE->getStomach->getGullet->getLocator, %traits}, $class; }
+	 locator=>"defined ".$STATE->getStomach->getGullet->getMouth->getLocator, %traits}, $class; }
 
 sub valueOf  { $_[0]->{value}; }
 sub setValue { Error(":unexpected:".$_[0]->getCSName." Cannot assign to chardef ".$_[0]->getCSName); return; }
@@ -240,7 +249,7 @@ sub new {
   Fatal(":misdefined:".Stringify($cs)." Constructor replacement is not a string or CODE: $replacement")
     unless (defined $replacement) && (!(ref $replacement) || (ref $replacement eq 'CODE'));
   bless {cs=>$cs, parameters=>$parameters, replacement=>$replacement,
-	 locator=>"defined ".$STATE->getStomach->getGullet->getLocator, %traits,
+	 locator=>"defined ".$STATE->getStomach->getGullet->getMouth->getLocator, %traits,
 #	 nargs =>(defined $traits{nargs} ? $traits{nargs}
 #		  : ($parameters ? scalar(grep(! $_->getNoValue, $parameters->getParameters))
 #		     : 0))}, $class; }
@@ -277,7 +286,7 @@ sub invoke {
     elsif($value && ($value =~/^\#(\d)$/)){
       $props{$key} = $args[$1-1]->toString; }}
   $props{font}    = $font   unless defined $props{font};
-  $props{locator} = $stomach->getGullet->getLocator unless defined $props{locator};
+  $props{locator} = $stomach->getGullet->getMouth->getLocator unless defined $props{locator};
   $props{isMath}  = $ismath unless defined $props{isMath};
   $props{level}   = $stomach->getBoxingLevel;
 
@@ -388,7 +397,8 @@ sub translate_constructor {
 	$code .= "\$document->absorb('".slashify($key)."=');\n"; }}
     # Else random text
     elsif(s/^$TEXT_RE//so){	# Else, just some text.
-      $code .= "\$document->absorb('".slashify($1)."');\n"; }
+      # Careful; need to respect the Whatsit's font, too!
+      $code .= "\$document->absorbText('".slashify($1)."',\$prop{'font'});\n"; }
   }
   $code; }
 

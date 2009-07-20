@@ -14,8 +14,7 @@ default namespace = "http://dlmf.nist.gov/LaTeXML"
 
 ## The block module defines the following `physical' block elements.
 Block.class |= 
-   p | equation | equationgroup | quote
- | centering | block
+   p | equation | equationgroup | quote | block | listingblock
  | itemize | enumerate | description
 
 
@@ -32,14 +31,6 @@ element p {
   Common.attributes,
 
   Inline.model  }
-
-centering =
-## A physical block that centers its content.
-## NOTE: Reconsider this; perhaps should be a property on other blocks?
-element centering {
-  Common.attributes,
-
-  (caption | toccaption | Block.model)*  }
 
 constraint = 
 ## A constraint upon an equation.
@@ -102,6 +93,14 @@ element block {
 
   Inline.model  }
 
+listingblock =
+## An in-block Listing, without caption
+element listingblock {
+  Common.attributes,
+  Labelled.attributes,
+
+  Block.model*  }
+
 break =
 ## A forced line break.
 element break { 
@@ -117,7 +116,6 @@ element inline-block {
   Positionable.attributes,
 
   Block.model }
-#  Inline.model }
 
 verbatim =
 ## Verbatim content
@@ -160,7 +158,7 @@ element item {
   Common.attributes,
   Labelled.attributes,
 
-  tag?, Block.model }
+  tag?, Para.model }
 
 tag =
 ## A tag within an item indicating the term or bullet for a given item.

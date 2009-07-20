@@ -1,4 +1,61 @@
-0.6.0  2008-04-09
+0.7.x 2009-06-19 (ref 983)
+     - fixed typos in aa_support & sv
+     - added wrapfig.sty, llncs.cls, rsfs.sty, multicol.sty, enumerate.sty,
+       xspace.sty, caption.sty, subfigure.sty
+     - initial implementation of AMSTeX (amstex.tex & amsppt.sty)
+     - enabled better CSS styling via XSLT.
+      Thanks Lee Worden
+
+0.7.0  2009-06-16 (rev 964)
+     - Release 0.7.0
+
+0.6.x  2009-06-15 (rev 959)
+     - mostly complete listings.sty
+     - new classes sv, svmult
+     - better compatibility-mode support
+     - made indices case sensitive and fixed sorting order correspondingly
+     - many small fixes throughout
+     - improved manual
+     - Thanks to Deyan Ginev, Michael Kohlhase, Lee Worden for reports/patches.
+
+0.6.x  2009-05-07 (rev 899)
+     - added various macros to existing packages.
+     - new packages/classes: elsart, iopart, iopams, mn, mn2e
+     - added less obnoxious Info message for things not as severe as Warning.
+     - changes to centering, flush commands; get rid of centering element,
+       try to use class and css for same effect.
+     - fix typos in latexmlpost (Thanks Jason Blevins)
+     - reduced load time, primarily for latexmlmath
+   
+0.6.x  2009-03-15 (rev. 824)
+     - efficiency improvements
+     - documentation and error message improvements
+     - various minor fixes, extra macros, 
+     - heuristics to handle misused environments
+     - support to "lock" macros from being inappropriately
+       redefined within TeX documents
+     - new packages: paralist, eurosym
+
+0.6.x  2009-01-14 (rev. 740)
+       Preparation for release 0.7.0
+     - New packages:
+       revtex and revtex4 classes and styles
+       (Thanks Deyan Ginev <d.ginev@jacobs-university.de>
+       and Catalin David <c.david@jacobs-university.de>)
+       aas styles, amscd, lscape
+     - latexml now processes BibTeX files
+     - latexmlmath; new command for creating images or MathML
+       for individual math expressions.
+     - Improvements to MathGrammar for bra-ket notations,
+       assignment, and other presentation markup like odd sub/superscripts
+     - Improved option handling
+     - More consistent math meaning "ontology"
+     - Some documentation improvements
+     - Rearranged Makefile & dependencies to port to Centos, MacOS
+     - Many additional macros, robustness fixes
+     - Clarified progress and error messages.
+
+0.6.0  2008-04-09 (rev 485)
        Released.
      - Reorganized site and manual building.
        Unfortunately, the manual isn't as extensively rewritten

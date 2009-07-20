@@ -36,8 +36,13 @@ sub ProcessChain {
   my($doc,@postprocessors)=@_;
   my @docs = ($doc);
   foreach my $processor (@postprocessors){
+    local $LaTeXML::Post::PROCESSOR = $processor;
     my $t0 = [Time::HiRes::gettimeofday];
-    @docs = map($processor->process($_),@docs);
+    my @newdocs = ();
+    foreach my $doc (@docs){
+      local $LaTeXML::Post::DOCUMENT = $doc;
+      push(@newdocs, $processor->process($doc)); }
+    @docs = @newdocs;
     my $elapsed = Time::HiRes::tv_interval($t0,[Time::HiRes::gettimeofday]);
     my $mem =  `ps -p $$ -o size=`; chomp($mem);
     $processor->Progress($doc,sprintf(" %.2f sec; $mem KB",$elapsed));
@@ -106,6 +111,14 @@ use Unicode::Normalize;
 our $NSURI = "http://dlmf.nist.gov/LaTeXML";
 our $XPATH = LaTeXML::Common::XML::XPath->new(ltx=>$NSURI);
 
+# Useful options:
+#   destination = the ultimate destination file for this document to be written.
+#   destinationDirectory = the directory it will be stored in (derived from $destination)
+#   namespaces = a hash of namespace prefix => namespace uri
+#   namespaceURIs = reverse hash of above.
+#   nocache = a boolean, disables storing of permanent LaTeXML.cache
+#     the cache is used to remember things like image conversions from previous runs.
+#   searchpaths = array of paths to search for other resources
 sub new {
   my($class,$xmldoc,%options)=@_;
   my %data = ();
@@ -139,6 +152,8 @@ sub new {
   $$self{idcache} = {};
   foreach my $node ($self->findnodes("//*[\@xml:id]")){
     $$self{idcache}{$node->getAttribute('xml:id')} = $node; }
+  # Possibly disable permanent cache?
+  $$self{cache} = {} if $data{nocache};
   $self; }
 
 sub Error {
@@ -227,7 +242,8 @@ sub validate {
     eval { $rng->validate($$self{document}); };
     if($@){
 #      die "Error during RelaxNG validation  (".$schema."):\n".substr($@,0,200); }}
-      die "Error during RelaxNG validation  (".$schema."):\n".$@; }}
+      die "Error during RelaxNG validation  (".$schema."):\n".$@
+	."\nEither fix the source document, or use the --novalidate option\n"; }}
   elsif(my $decldtd = $$self{document}->internalSubset){ # Else look for DTD Declaration
 #    print STDERR "Validating using DTD ".$decldtd->publicId." at ".$decldtd->systemId."\n";
     my $dtd = XML::LibXML::Dtd->new($decldtd->publicId,$decldtd->systemId);
@@ -235,7 +251,8 @@ sub validate {
       die "Failed to load DTD ".$decldtd->publicId." at ".$decldtd->systemId; }
     eval { $$self{document}->validate($dtd); };
     if($@){
-      die "Error during DTD validation  (".$decldtd->systemId."):\n$@"; }}
+      die "Error during DTD validation  (".$decldtd->systemId."):\n$@"
+	."\nEither fix the source document, or use the --novalidate option\n"; }}
   else {			# Nothing found to validate with
     warn "No Schema or DTD found for this document";  }
 }
@@ -253,10 +270,12 @@ sub findnode {
 
 sub addNamespace{
   my($self,$nsuri,$prefix)=@_;
-  $$self{namespaces}{$prefix}=$nsuri;
-  $$self{namespaceURIs}{$nsuri}=$prefix;
-  $XPATH->registerNS($prefix=>$nsuri);
-  $self->getDocumentElement->setNamespace($nsuri,$prefix,0); }
+  if(!$$self{namespaces}{$prefix} || ($$self{namespaces}{$prefix} ne $nsuri)
+    || (($self->getDocumentElement->lookupNamespacePrefix($nsuri)||'') ne $prefix)){
+    $$self{namespaces}{$prefix}=$nsuri;
+    $$self{namespaceURIs}{$nsuri}=$prefix;
+    $XPATH->registerNS($prefix=>$nsuri);
+    $self->getDocumentElement->setNamespace($nsuri,$prefix,0); }}
 
 sub getQName {
   my($self,$node)=@_;

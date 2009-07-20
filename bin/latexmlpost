@@ -24,7 +24,7 @@ my($format,$urlstyle) = (undef,'server');
 my($numbersections)=(1);
 my($stylesheet,$defaultcss,@css)=(undef,1);
 my($parallelmath,$mathimages,$mathimagemag)=(undef,undef,1.75);
-my($linelength,$keepXMath)=(undef,undef);
+my($linelength,$keepXMath,$plane1)=(undef,undef,undef);
 my($dographics,$svg,$picimages)=(undef,undef,undef);
 my($split,$splitat,$splitpath,$splitnaming)=(undef,'section',undef,'id');
 my($prescan,$dbfile,$scan,$crossref,$sitedir)=(undef,undef,1,1,undef);
@@ -67,7 +67,7 @@ GetOptions("verbose+"              =>\$verbosity,
 	   "splitnaming=s"         =>sub { $splitnaming=$_[1]; $split=1 unless defined $split;},
 	   "scan!"                 =>\$scan,
 	   "crossref!"             =>\$crossref,
-	   "urlstyle=s"            =>$urlstyle,
+	   "urlstyle=s"            =>\$urlstyle,
 	   # Generating indices
 	   "index!"                =>\$index,
 	   "permutedindex!"        =>\$permutedindex,
@@ -89,7 +89,8 @@ GetOptions("verbose+"              =>\$verbosity,
 #	   "mathml|mml!"  =>\$mathml,
 	   "mathimages!"                 => \$mathimages,
 	   "mathimagemagnification=f"    => \$mathimagemag,
-	   "linelength=i"                =>\$linelength,
+	   "linelength=i"                => \$linelength,
+	   "plane1!"                     => \$plane1,
 	   "presentationmathml|pmml"     => sub { addMathFormat('pmml'); },
 	   "contentmathml|cmml"          => sub { addMathFormat('cmml'); },
 	   "openmath|om"                 => sub { addMathFormat('om'); },
@@ -114,7 +115,7 @@ Error("Missing input xmlfile") unless @ARGV;
 my $xmlfile = shift(@ARGV);
 if($xmlfile ne '-'){
     $xmlfile .= '.xml' unless -f $xmlfile;
-    Error("No input file \"$xmlfile\" found") unless -f $xmlfile; }
+    Error("The input file \"$xmlfile\" was not found") unless -f $xmlfile; }
 
 #======================================================================
 # Sanity check and Completion of options.
@@ -124,9 +125,9 @@ $sourcedir   = $sourcedir   && pathname_canonical($sourcedir);
 $destination = $destination && pathname_canonical($destination);
 $sitedir     = $sitedir     && pathname_canonical($sitedir);
 
-# Sanity check & option completion for known output formats.
+# Check for appropriate combination of split, scan, prescan, dbfile, crossref
 if($split && !defined $destination){
-  Error("Must supply destination when using split"); }
+  Error("Must supply --destination when using --split"); }
 if($split){
   $splitnaming = checkOptionValue('--splitnaming',$splitnaming,
 				  qw(id idrelative label labelrelative)); 
@@ -134,24 +135,26 @@ if($split){
   $splitpath = $splitpaths{$splitat} unless defined $splitpath;
 }
 if($prescan && !$scan){
-  Error("Makes no sense to prescan with scanning disabled"); }
+  Error("Makes no sense to --prescan with scanning disabled (--noscan)"); }
 if($prescan && (!defined $dbfile)){
-  Error("Cannot prescan documents without a dbfile"); }
+  Error("Cannot prescan documents (--prescan) without specifying --dbfile"); }
 if(!$prescan && $crossref && ! ($scan || (defined $dbfile))){
-  Error("Cannot cross-reference without scan or dbfile"); }
+  Error("Cannot cross-reference (--crossref) without --scan or --dbfile "); }
 if($crossref){
   $urlstyle = checkOptionValue('--urlstyle',$urlstyle,qw(server negotiated file)); }
 if(($permutedindex || $splitindex) && (! defined $index)){
   $index=1; }
 if(!$prescan && $index && ! ($scan || defined $crossref)){
-  Error("Cannot generate index without scan or dbfile"); }
+  Error("Cannot generate index (--index) without --scan or --dbfile"); }
 if(!$prescan && @bibliographies && ! ($scan || defined $crossref)){
-  Error("Cannot generate bibliography without scan or dbfile"); }
+  Error("Cannot generate bibliography (--bibliography) without --scan or --dbfile"); }
+
+# Check format and complete math and image options
 if(!defined $format){}
 elsif($format eq 'html'){
-  Error("Default html stylesheet only supports math images")
+  Error("Default html stylesheet only supports math images, not ".join(', ',@math_formats))
     if (!defined $stylesheet) && ($parallelmath || scalar(@math_formats));
-  Error("Default html stylesheet does not support SVG") if $svg;
+  Error("Default html stylesheet does not support --svg") if $svg;
 
   $mathimages = 1 unless defined $mathimages;
   $dographics = 1 unless defined $dographics;
@@ -160,7 +163,7 @@ elsif($format eq 'html'){
     $stylesheet = "LaTeXML-html.xsl";
     unshift(@css,"core.css") if $defaultcss; }}
 elsif($format eq 'xhtml'){
-  Error("Default xhtml stylesheet does not support math images")
+  Error("Default xhtml stylesheet does not support --mathimages")
     if (!defined $stylesheet) && $mathimages;
   $parallelmath = 1 if (!defined $parallelmath) && (scalar(@math_formats)>1);
   Error("Default xhtml stylesheet only supports OpenMath in parallel with MathMl")
@@ -173,11 +176,18 @@ elsif($format eq 'xhtml'){
   if(!defined $stylesheet){
     $stylesheet = "LaTeXML-xhtml.xsl";
     unshift(@css,"core.css") if $defaultcss; }}
+elsif($format eq 'xml'){}
+else {
+  Error("Unrecognized target format: $format"); }
 
 Error("Parallel math markup needs at least two formats")
   if $parallelmath && (scalar(@math_formats) < 2);
-Error("Parallel math markup can only be based on MathML") 
-  if $parallelmath && ($math_formats[0] !~ /^(cmml|pmml)$/);
+#Error("Parallel math markup can only be based on MathML") 
+#  if $parallelmath && ($math_formats[0] !~ /^(cmml|pmml)$/);
+
+if((!defined $destination) && ($mathimages || $dographics || $picimages)){
+  Error("Must supply --destination unless image generation is disabled"
+	."(--nomathimages --nographics --nopictureimages)"); }
 
 #======================================================================
 # Do the processing.
@@ -245,6 +255,7 @@ if(!$prescan){
 	require 'LaTeXML/Post/MathML.pm';
 	push(@mprocs,LaTeXML::Post::MathML::Presentation->new(
 		    (defined $linelength ? (linelength=>$linelength):()),
+                    ($plane1 ? (plane1=>1):()),
                     %OPTIONS)); }
       elsif($fmt eq 'cmml'){
 	require 'LaTeXML/Post/MathML.pm';
@@ -253,8 +264,11 @@ if(!$prescan){
 	require 'LaTeXML/Post/OpenMath.pm';
 	push(@mprocs,LaTeXML::Post::OpenMath->new(%OPTIONS)); }}
     if($parallelmath){
-      require 'LaTeXML/Post/MathML.pm';
-      push(@procs,LaTeXML::Post::MathML::Parallel->new(math_processors=>[@mprocs],%OPTIONS)); }
+#      require 'LaTeXML/Post/MathML.pm';
+#      push(@procs,LaTeXML::Post::MathML::Parallel->new(math_processors=>[@mprocs],%OPTIONS)); }
+      my $main = shift(@mprocs);
+      $main->setParallel(@mprocs);
+      push(@procs,$main); }
     else {
       push(@procs,@mprocs); }}
   else {
@@ -308,7 +322,9 @@ $DB->finish;
 #======================================================================
 sub Error {
   my($message)=@_;
-  pod2usage(-message=>"$identity\n$message",-exitval=>1, -verbose=>0,-output=>\*STDERR); }
+#  pod2usage(-message=>"$identity\n$message",-exitval=>1, -verbose=>0,-output=>\*STDERR); 
+  die "ERROR: $message\nUse the --help option for complete details\n";
+}
 
 sub addMathFormat {
   my($fmt)=@_;
@@ -343,21 +359,22 @@ latexmlpost [options] xmlfile
  --verbose               shows progress during processing.
  --VERSION               show version number.
  --help                  shows help message.
- --sourcedirectory=sourcedir specifies directory of source TeX file.
+ --sourcedirectory=sourcedir specifies directory of the original
+                         source TeX file.
  --validate, --novalidate Enables (the default) or disables
                          validation of the source xml.
  --format=html|xhtml|xml requests the output format.
  --destination=file      specifies output file (and directory).
  --omitdoctype           omits the Doctype declaration,
- --noomitdoctype         disbles the omission (the default)
- --numbersections        enables (the default) the inclusion
-                         of section numbers in titles and crossrefs.
- --nonumbersections      disbles the above
+ --noomitdoctype         disables the omission (the default)
+ --numbersections        enables (the default) the inclusion of
+                         section numbers in titles and crossrefs.
+ --nonumbersections      disables the above
  --stylesheet=xslfile    requests the XSL transform using the
                          given xslfile as stylesheet.
  --css=cssfile           adds a css stylesheet to html/xhtml
                          (can be repeated)
- --nodefaultcss          disables inclusion of default css stylesheet
+ --nodefaultcss          disables the default css stylesheet
  --split                 requests splitting each document
  --nosplit               disables the above (default)
  --splitat               specifies level to split the document
@@ -382,7 +399,6 @@ latexmlpost [options] xmlfile
  --splitbibliography     splits the bibliography into pages per
                          initial.
  --nosplitbibliography   disables the above (default)
-
  --prescan               carries out only the split (if enabled)
                          and scan, storing cross-referencing data
                          in dbfile
@@ -595,6 +611,10 @@ Hand-written bibliographies placed in a C<thebibliography> environment
 do not need this processing.  Enabling this has no effect unless
 there is an bibliography element in the document (generated by \bibliography).
 
+Note that this option provides the bibliography to be used to
+fill in the bibliography element (generated by C<\bibliography>);
+latexmlpost does not (currently) directly process and format such a bibliography.
+
 =item C<--splitbibliography>, C<--nosplitbibliography>
 
 Enables or disables (default) the splitting of generated bibliographies
@@ -656,6 +676,12 @@ Conversion is the default for xhtml format.
 (Experimental) Line-breaks the generated Presentation
 MathML so that it is no longer than I<number> `characters'.
 
+=item C<--plane1>
+
+Converts the content of Presentation MathML token elements to
+the appropriate Unicode Plane-1 codepoints according to the selected font,
+when applicable.
+
 =item C<--contentmathml>, C<--nocontentmathml>
 
 Requests or disables conversion of math to Content MathML.
@@ -713,7 +739,7 @@ and pstricks material to SVG.
 
 =head1 SEE ALSO
 
-L<latexml>, L<latexmlbib>, L<LaTeXML>
+L<latexml>, L<latexmlmath>, L<LaTeXML>
 
 =cut
 #**********************************************************************

@@ -46,6 +46,7 @@ body { margin:0; background:#cfd2e6; color:#000000; }
    background:#e6eaff;
    border: 2px solid #701f99;
    min-height:500px;
+   min-width:600px;
 }
 .title {
    text-align:left;
@@ -65,10 +66,21 @@ body { margin:0; background:#cfd2e6; color:#000000; }
    margin: 5px 10px 5px 5px;
    padding:5px;
 }
-.para {
+.document > .para,
+.chapter > .para,
+.section > .para,
+.subsection > .para,
+.subsubsection > .para,
+.paragraph > .para {
    background:#f2f4ff;
    margin:5px; padding:5px 10px;
    border: 1px solid #B0B0B0;
+}
+
+.listing > .tabular {
+   background:#f2f4ff;
+   margin:25px; padding:5px 10px;
+   border: 2px solid #B0B0B0;
 }
 
 .navbar .start .ref .text {

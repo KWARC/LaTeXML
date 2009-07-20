@@ -20,8 +20,8 @@
       <ref name="equation"/>
       <ref name="equationgroup"/>
       <ref name="quote"/>
-      <ref name="centering"/>
       <ref name="block"/>
+      <ref name="listingblock"/>
       <ref name="itemize"/>
       <ref name="enumerate"/>
       <ref name="description"/>
@@ -46,20 +46,6 @@ in both inline and block contexts.</a:documentation>
       <a:documentation>A physical paragraph.</a:documentation>
       <ref name="Common.attributes"/>
       <ref name="Inline.model"/>
-    </element>
-  </define>
-  <define name="centering">
-    <element name="centering">
-      <a:documentation>A physical block that centers its content.
-NOTE: Reconsider this; perhaps should be a property on other blocks?</a:documentation>
-      <ref name="Common.attributes"/>
-      <zeroOrMore>
-        <choice>
-          <ref name="caption"/>
-          <ref name="toccaption"/>
-          <ref name="Block.model"/>
-        </choice>
-      </zeroOrMore>
     </element>
   </define>
   <define name="constraint">
@@ -156,6 +142,16 @@ for example being table rows or cells arising from an eqnarray.</a:documentation
       <ref name="Inline.model"/>
     </element>
   </define>
+  <define name="listingblock">
+    <element name="listingblock">
+      <a:documentation>An in-block Listing, without caption</a:documentation>
+      <ref name="Common.attributes"/>
+      <ref name="Labelled.attributes"/>
+      <zeroOrMore>
+        <ref name="Block.model"/>
+      </zeroOrMore>
+    </element>
+  </define>
   <define name="break">
     <element name="break">
       <a:documentation>A forced line break.</a:documentation>
@@ -172,7 +168,6 @@ typesets its contents as a block.</a:documentation>
       <ref name="Block.model"/>
     </element>
   </define>
-  <!--  Inline.model } -->
   <define name="verbatim">
     <element name="verbatim">
       <a:documentation>Verbatim content</a:documentation>
@@ -224,7 +219,7 @@ which represents the term being described in each \elementref{item}.</a:document
       <optional>
         <ref name="tag"/>
       </optional>
-      <ref name="Block.model"/>
+      <ref name="Para.model"/>
     </element>
   </define>
   <define name="tag">

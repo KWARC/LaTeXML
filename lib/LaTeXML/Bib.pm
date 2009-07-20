@@ -286,6 +286,11 @@ sub getKey    { $_[0]->{key}; }
 sub getFields { @{$_[0]->{fieldlist}}; }
 sub getField  { $_[0]->{fieldmap}{$_[1]}; }
 
+sub addField  {
+  my($self,$field,$value)=@_;
+  push(@{ $$self{fieldlist}},[$field,$value]);
+  $$self{fieldmap}{$field} = $value; }
+
 #**********************************************************************
 1;
 
@@ -313,7 +318,7 @@ is carried out, and can be customized.
 =item C<< my $bib = LaTeXML::Bib->newFromFile($bibname); >>
 
 Creates a C<LaTeXML::Bib> object representing a bibliography
-from a database file.
+from a BibTeX database file.
 
 =item C<< my $bib = LaTeXML::Bib->newFromString($string); >>
 

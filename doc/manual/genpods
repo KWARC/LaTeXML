@@ -22,16 +22,44 @@ GetOptions("force!"    => \$force,
 pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
 
 #======================================================================
-my @exes = (qw(latexml latexmlpost));
+my @exes = (qw(latexml latexmlpost latexmlmath));
 # would be nice to automatically discover documentable modules
-my @modules = (qw(LaTeXML
-		  LaTeXML::Box LaTeXML::Definition LaTeXML::Document
-		  LaTeXML::Error LaTeXML::Font LaTeXML::Global LaTeXML::Gullet
-		  LaTeXML::MathParser LaTeXML::Model LaTeXML::Mouth
-		  LaTeXML::Number LaTeXML::Object LaTeXML::Package
-		  LaTeXML::Parameters LaTeXML::Post LaTeXML::Rewrite
-		  LaTeXML::State LaTeXML::Stomach LaTeXML::Token
-		  LaTeXML::Util::Pathname));
+# Actually, we Can, by looking in ../blib/man1 and ../blib/man3
+# However, we'd still need to manually add them to the appropriate Appendx!
+my @modules = (
+	       # Core modules
+	       qw(LaTeXML
+		  LaTeXML::Object
+		  LaTeXML::Definition
+		  LaTeXML::Global
+		  LaTeXML::Error
+		  LaTeXML::Package
+		  LaTeXML::Parameters
+		  LaTeXML::State
+
+		  LaTeXML::Token
+		  LaTeXML::Box
+		  LaTeXML::Number
+		  LaTeXML::Font
+		  LaTeXML::Mouth
+		  LaTeXML::Gullet
+		  LaTeXML::Stomach
+
+		  LaTeXML::Document
+		  LaTeXML::Model
+		  LaTeXML::Rewrite
+
+		  LaTeXML::MathParser
+		  LaTeXML::Bib
+		),
+
+	       # Utility
+	       qw(LaTeXML::Util::Pathname
+		  LaTeXML::Util::KeyVal
+		),
+		  # Postprocessing
+	       qw(LaTeXML::Post),
+	      );
 
 if(! -d $GENDIR){
   mkdir($GENDIR) or die "Couldn't create directory for pods: $!"; }
@@ -96,6 +124,19 @@ sub interior_sequence {
     "\\pod{$seq_argument}"; }
   else {
     $self->SUPER::interior_sequence($seq_command,$seq_argument,$pod_seq); }}
+
+# Redefine to better sort indices.
+# ALL packages start with LaTeXML:: !!!
+sub _create_index {
+  my $string = $_[0]->SUPER::_create_index($_[1]);
+  my $reftype = "Command Reference";
+  my @phrases = split('!',$string);
+  if($phrases[0] =~ /^LaTeXML/){
+    $reftype = "Module Reference";
+    my @comp = split('::',$phrases[0]);
+    $phrases[0] = $comp[$#comp]
+      .(@comp > 1 ? ' ('.join('::',@comp[0..$#comp-1]).'::)' :''); }
+  join('!',$phrases[0],$reftype,@phrases[1..$#phrases]); }
 
 # Redefined to avoid unnecessary math.
 sub _replace_special_chars_late {

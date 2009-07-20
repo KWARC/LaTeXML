@@ -37,6 +37,7 @@ sub new {
 
   $self->registerHandler('ltx:table'         => \&captioned_handler);
   $self->registerHandler('ltx:figure'        => \&captioned_handler);
+  $self->registerHandler('ltx:listing'       => \&captioned_handler);
 
   $self->registerHandler('ltx:equation'      => \&labelled_handler);
   $self->registerHandler('ltx:equationmix'   => \&labelled_handler);
@@ -93,6 +94,10 @@ sub scanChildren {
     if($child->nodeType == XML_ELEMENT_NODE){
       $self->scan($doc,$child,$parent_id); }}}
 
+sub pageID {
+  my($self,$doc)=@_;
+  $doc->getDocumentElement->getAttribute('xml:id'); }
+
 # Compute a "Fragment ID", ie. an ID based on the given ID,
 # but which is potentially shortened so that it need only be
 # unique within the given page.
@@ -123,7 +128,7 @@ sub default_handler {
   if($id){
     $$self{db}->register("ID:$id", type=>$tag, parent=>$parent_id, labels=>$self->noteLabels($node),
 			 location=>$self->siteRelativePathname($doc->getDestination),
-			 fragid=>$self->inPageID($doc,$id)); }
+			 pageid=>$self->pageID($doc), fragid=>$self->inPageID($doc,$id)); }
   $self->scanChildren($doc,$node,$id || $parent_id); }
 
 sub section_handler {
@@ -136,7 +141,7 @@ sub section_handler {
       map($_->parentNode->removeChild($_), $doc->findnodes('.//ltx:indexmark',$title)); }
     $$self{db}->register("ID:$id", type=>$tag, parent=>$parent_id,labels=>$self->noteLabels($node),
 			 location=>$self->siteRelativePathname($doc->getDestination),
-			 fragid=>$self->inPageID($doc,$id),
+			 pageid=>$self->pageID($doc), fragid=>$self->inPageID($doc,$id),
 			 refnum=>$node->getAttribute('refnum'),
 			 title=>$title, children=>[],
 			 stub=>$node->getAttribute('stub'));
@@ -158,7 +163,7 @@ sub captioned_handler {
       map($_->parentNode->removeChild($_), $doc->findnodes('.//ltx:indexmark',$caption)); }
     $$self{db}->register("ID:$id", type=>$tag, parent=>$parent_id,labels=>$self->noteLabels($node),
 			 location=>$self->siteRelativePathname($doc->getDestination),
-			 fragid=>$self->inPageID($doc,$id),
+			 pageid=>$self->pageID($doc), fragid=>$self->inPageID($doc,$id),
 			 refnum=>$node->getAttribute('refnum'),
 			 caption=>$caption);  }
   $self->scanChildren($doc,$node,$id || $parent_id); }
@@ -169,7 +174,7 @@ sub labelled_handler {
   if($id){
     $$self{db}->register("ID:$id", type=>$tag, parent=>$parent_id,labels=>$self->noteLabels($node),
 			 location=>$self->siteRelativePathname($doc->getDestination),
-			 fragid=>$self->inPageID($doc,$id),
+			 pageid=>$self->pageID($doc), fragid=>$self->inPageID($doc,$id),
 			 refnum=>$node->getAttribute('refnum')); }
   $self->scanChildren($doc,$node,$id || $parent_id); }
 
@@ -213,7 +218,7 @@ sub bibitem_handler {
       $$self{db}->register("BIBLABEL:$key",id=>$id); }
     $$self{db}->register("ID:$id", type=>$tag, parent=>$parent_id,
 			 location=>$self->siteRelativePathname($doc->getDestination),
-			 fragid      =>$self->inPageID($doc,$id),
+			 pageid=>$self->pageID($doc), fragid      =>$self->inPageID($doc,$id),
 			 authors     =>$doc->findnode('ltx:bibtag[@role="authors"]',$node),
 			 fullauthors =>$doc->findnode('ltx:bibtag[@role="fullauthors"]',$node),
 			 year        =>$doc->findnode('ltx:bibtag[@role="year"]',$node),

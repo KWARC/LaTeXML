@@ -222,9 +222,14 @@
 	<xsl:value-of select="concat(f:classes(.),' ',concat(local-name(..),'-title'))"/>
       </xsl:attribute>
       <xsl:if test="$number_sections">
-	<xsl:if test="$title_prefix"><xsl:value-of select="$title_prefix"/><xsl:text> </xsl:text></xsl:if>
-	<xsl:if test="../@refnum and not(../@refnum = '')">
-	  <xsl:apply-templates select="../@refnum"/>.<xsl:text> </xsl:text>
+	<xsl:if test="$title_prefix or ../@refnum">
+	  <span class="refnum">
+	    <xsl:if test="$title_prefix"><span class="reftype"><xsl:value-of select="$title_prefix"
+	    /><xsl:text> </xsl:text></span></xsl:if>
+	    <xsl:if test="../@refnum and not(../@refnum = '')">
+	      <xsl:apply-templates select="../@refnum"/>.<xsl:text> </xsl:text>
+	    </xsl:if>
+	  </span>
 	</xsl:if>
       </xsl:if>
       <xsl:apply-templates/>
@@ -249,7 +254,7 @@
 
   <xsl:template match="ltx:indexentry">
     <li class="{f:classes(.)}"><xsl:call-template name="add_id"/>
-    <xsl:apply-templates select="ltx:indexphrase"/>
+    <xsl:apply-templates select="ltx:indexphrase"/><xsl:text> </xsl:text>
     <xsl:apply-templates select="ltx:indexrefs"/>
     <xsl:apply-templates select="ltx:indexlist"/>
     </li>

@@ -19,12 +19,12 @@ document =
 element document {
   Sectional.attributes,
 
-  (FrontMatter.class | SectionalFrontMatter.class | Meta.class)*,
+  (FrontMatter.class | SectionalFrontMatter.class | Meta.class | titlepage)*,
   document.body.class*,
   BackMatter.class* }
 
 ## The content allowable as the main body of the document.
-document.body.class = Para.model | paragraph | section | chapter | part
+document.body.class = Para.model | paragraph | subsection | section | chapter | part
 
 #----------------------------------------------------------------------
 
@@ -294,6 +294,16 @@ element classification {
   attribute scheme { text }?,
 
   Inline.model }
+
+#======================================================================
+# Fallback
+
+titlepage =
+## block of random stuff marked as a titlepage
+element titlepage {
+  Sectional.attributes,
+
+  (FrontMatter.class | SectionalFrontMatter.class | Block.class)* }
 
 #======================================================================
 

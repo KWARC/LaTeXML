@@ -34,12 +34,23 @@ DefMacro('\accepted{}', '\@add@frontmatter{ltx:date}[role=accepted]{#1}');
 DefMacro('\journalid{}{}','');
 DefMacro('\articleid{}{}','');
 DefMacro('\paperid{}','');
+DefMacro('\msid{}','');		# Manuscript id.
 
 #\ccc{code}
 DefMacro('\ccc{}','');		# Ignorable?
 #\cpright{type}{year}   Should be recorded somehow?
 # type is AAS, ASP, PD, none
 DefMacro('\cpright{}{}', '\@add@frontmatter{ltx:note}[class=copyright]{\copyright #2: #1}');
+
+# Editorial additions?
+DefMacro('\journal{}','');
+DefMacro('\volume{}','');
+DefMacro('\issue{}','');
+DefMacro('\SGMLbi{}','#1');
+DefMacro('\SGMLbsc{}','#1');
+DefMacro('\SGMLclc{}','#1');
+DefMacro('\SGMLentity{}','#1');	# Actually should produce &#1; !!!
+DefMacro('\SGML{}','');
 
 #======================================================================
 # 2.1.4 Short Comment
@@ -66,6 +77,9 @@ DefMacro('\author{}',
 
 DefConstructor('\@affiliation{}',"^ <ltx:contact role='affiliation'>#1</ltx:contact>");
 DefMacro('\affil{}','\@add@to@frontmatter{ltx:creator}{\@affiliation{#1}}');
+
+DefConstructor('\@authoraddr{}',"^ <ltx:contact role='address'>#1</ltx:contact>");
+DefMacro('\authoraddr{}','\@add@to@frontmatter{ltx:creator}{\@authoraddr{#1}}');
 
 DefConstructor('\@email{}',"^ <ltx:contact role='email'>#1</ltx:contact>");
 DefMacro('\email{}', '\@add@to@frontmatter{ltx:creator}{\@email{#1}}');
@@ -97,6 +111,8 @@ Let(T_CS('\subjectheadings'),T_CS('\keywords'));
 # DefConstructor('\notetoeditor{}',"<ltx:note class='toeditor'>#1</ltx:note>");
 DefMacro('\notetoeditor{}','');
 
+NewCounter('editornote');
+DefMacroI('\theeditornote',undef,'E\arabic{editornote}');
 #======================================================================
 # 2.7 Sections
 # normal LaTeX
@@ -150,7 +166,7 @@ DefPrimitive('\appendix',sub{
   NewCounter('equation', 'section', idprefix=>'E');
   DefMacro('\thesection', '\Alph{section}');
   DefMacro('\theequation','\thesection\arabic{equation}');
-  DefMacro('\section', '\@startsection{appendix}{}{}{}{}{}');
+  Let(T_CS('\section'),T_CS('\appendix@section'),'global');
  });
 
 #======================================================================
@@ -181,6 +197,7 @@ DefConstructor('\eqnum {}', '',
 #======================================================================
 # 2.13 Citations and Bibliography
 
+DefMacro('\markcite{}','');	# apparently like \cite w/o text?
 #======================================================================
 # 2.13.1 The thebibliography Environment 
 # normal LaTeX
@@ -197,19 +214,21 @@ RequirePackage('natbib');
 
 # Is this the right treatment?
 # Is the same true for RevTeX?
-DefEnvironment('{references}',
+DefConstructor('\references',
 	       "<ltx:bibliography xml:id='#id'>"
 	       . "<ltx:title>#refname</ltx:title>"
-	       . "<ltx:biblist>#body</ltx:biblist>"
-	       ."</ltx:bibliography>",
-	       afterDigestBegin=>sub { 
+	       . "<ltx:biblist>",
+	       afterDigest=>sub { 
 		 my $docid = ToString(Expand(T_CS('\thedocument@ID')));
 		 ResetCounter('enumiv');
 		 DefMacroI(T_CS('\thebibliography@ID'),undef,($docid ? "$docid.bib" : 'bib'));
 		 $_[1]->setProperty(id=>ToString(Expand(T_CS('\thebibliography@ID'))));
 		 $_[1]->setProperty(refname=>Digest(T_CS('\refname')));  
-		 # VERY dubious!
-		 Let(T_CS('\par'),T_CS('\non@bibitem')); });
+		 # Fix for missing \bibitems!
+		 setupPseudoBibitem(); });
+DefConstructor('\endreferences',
+	       "</ltx:biblist></ltx:bibliography>");
+
 Let(T_CS('\reference'),T_CS('\bibitem'));
 
 #======================================================================
@@ -340,6 +359,7 @@ DefMacro('\enddeluxetable','\end{table}');
 
 DefMacro('\tabletypesize{}','');	# Ignorable
 DefMacro('\rotate','');			# Ignorable ?
+DefMacro('\tabletail{}','');
 DefMacro('\tablewidth{Dimension}','');	# Ignorable?
 DefMacro('\platewidth{Dimension}','');	# Ignorable?
 DefMacro('\tablenum{}','\def\thetable{#1}');
@@ -443,9 +463,6 @@ Let(T_CS('\slantfrac'),T_CS('\case'));
 # See aassymbols document.
 # Table 1: Additional AASTeX symbols
 
-# \lesssim,\gtrsim in amssymb
-Let(T_CS('\la'),T_CS('\lesssim'));
-Let(T_CS('\ga'),T_CS('\gtrsim'));
 DefConstructor('\micron',UTF(0xB5)."m");
 DefMacro('\Sun','\sun');
 DefMacro('\Sol','\sun');
@@ -525,6 +542,10 @@ DefConstructor('\ur',"U\x{2000}R",bounded=>1, font=>{shape=>'italic'});
 RequirePackage('latexsym');
 RequirePackage('amssymb');
 
+# \lesssim,\gtrsim in amssymb
+Let(T_CS('\la'),T_CS('\lesssim'));
+Let(T_CS('\ga'),T_CS('\gtrsim'));
+
 #======================================================================
 # 2.17.5 Hypertext Constructs
 # \anchor{href}{text}
@@ -556,8 +577,17 @@ DefMacro('\eqsecnum',
 	 '\@addtoreset{equation}{section}'
 	 .'\def\theequation{\arabic{section}-\arabic{equation}}'); 
 
-DefMacro('\singlespace','');
-DefMacro('\doublespace','');
-
+#======================================================================
+# Random extra bits
+DefMacroI('\singlespace',undef,'');
+DefMacroI('\doublespace',undef,'');
+DefMacroI('\tighten',    undef,'');
+DefMacroI('\tightenlines',undef,'');
+DefMacroI('\nohyphenation',undef,'');
+DefMacroI('\offhyphenation',undef,'');
+DefMacroI('\ptlandscape',undef,'');
+DefMacroI('\refpar',undef,'');
+DefMacroI('\traceoutput',undef,'');
+DefMacroI('\tracingplain',undef,'');
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 1;

@@ -14,14 +14,20 @@
 -->
 <grammar ns="http://dlmf.nist.gov/LaTeXML" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
   <define name="Para.class" combine="choice">
-    <a:documentation>This module `logical' block elements.</a:documentation>
+    <a:documentation>This module defines the following `logical' block elements.</a:documentation>
     <choice>
       <ref name="para"/>
       <ref name="theorem"/>
       <ref name="proof"/>
       <ref name="figure"/>
       <ref name="table"/>
+      <ref name="listing"/>
     </choice>
+  </define>
+  <define name="Misc.class" combine="choice">
+    <a:documentation>Additionally, it defines these miscellaneous elements that can appear
+in both inline and block contexts.</a:documentation>
+    <ref name="inline-para"/>
   </define>
   <define name="para">
     <element name="para">
@@ -29,6 +35,15 @@
       <ref name="Common.attributes"/>
       <ref name="ID.attributes"/>
       <ref name="Block.model"/>
+    </element>
+  </define>
+  <define name="inline-para">
+    <element name="inline-para">
+      <a:documentation>An inline para. Actually, can appear in inline or block mode, but
+typesets its contents as para.</a:documentation>
+      <ref name="Common.attributes"/>
+      <ref name="Positionable.attributes"/>
+      <ref name="Para.model"/>
     </element>
   </define>
   <define name="theorem">
@@ -40,7 +55,7 @@ different kinds of theorem.</a:documentation>
       <optional>
         <ref name="title"/>
       </optional>
-      <ref name="Block.model"/>
+      <ref name="Para.model"/>
     </element>
   </define>
   <define name="proof">
@@ -52,7 +67,7 @@ different kinds of proof.</a:documentation>
       <optional>
         <ref name="title"/>
       </optional>
-      <ref name="Block.model"/>
+      <ref name="Para.model"/>
     </element>
   </define>
   <define name="Caption.class">
@@ -86,6 +101,24 @@ Or, should caption be used for theorem and proof?</a:documentation>
   <define name="table">
     <element name="table">
       <a:documentation>A  Table, possibly captioned. This is not necessarily a \elementref{tabular}.</a:documentation>
+      <ref name="Common.attributes"/>
+      <ref name="Labelled.attributes"/>
+      <optional>
+        <attribute name="placement">
+          <a:documentation>the floating placement parameter that determines where the object is displayed.</a:documentation>
+        </attribute>
+      </optional>
+      <zeroOrMore>
+        <choice>
+          <ref name="Block.model"/>
+          <ref name="Caption.class"/>
+        </choice>
+      </zeroOrMore>
+    </element>
+  </define>
+  <define name="listing">
+    <element name="listing">
+      <a:documentation>A Listing, possibly captioned.</a:documentation>
       <ref name="Common.attributes"/>
       <ref name="Labelled.attributes"/>
       <optional>

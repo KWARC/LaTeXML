@@ -35,6 +35,9 @@ RequirePackage('amsopn');
 #   amscd
 #   amsxtra
 
+DefMacroI('\AmSfont',undef,Tokens());
+DefMacroI('\AmS',undef,"AmS");
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Section 3:  Displayed equations
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -69,10 +72,9 @@ DefConstructor('\tag OptionalMatch:* {}', '',
 	       mode=>'text');
 
 DefMacro('\@ams@intertext{}',
-	 '\multicolumn{1}{l}{\@@ams@intertext{#1}}\nonumber\@alignment@newline');
+	 '\@alignment@newline\multicolumn{\@alignment@ncolumns}{l}{\@@ams@intertext{#1}}\nonumber\@alignment@newline');
 DefConstructor('\@@ams@intertext{}',
-	       "<ltx:block class='intertext'>#1</ltx:block>",
-	       mode=>'text');
+	       "<ltx:block class='intertext'>#1</ltx:block>", mode=>'text');
 
 sub amsalignBindings {
   my($template)=@_;
@@ -145,9 +147,12 @@ DefEnvironment('{multline*}',
 DefEnvironment('{split}',
 	       "<ltx:XMHint name='split-begin'/>#body<ltx:XMHint name='split-end'/>",
 	       beforeDigest=>sub{
+		 # Just dummy up these definitions; they shouldn't do much special now.
 		 DefConstructor("&","<ltx:XMHint name='align'/>");
 		 DefConstructor("\\\\","<ltx:XMHint name='newline'/>",
-				reversion=>Tokens(T_CS("\\\\"),T_CR)); });
+				reversion=>Tokens(T_CS("\\\\"),T_CR)); 
+		 DefConstructor('\intertext{}',
+				"<ltx:block class='intertext'>#1</ltx:block>", mode=>'text'); });
 
 #======================================================================
 # Section 3.5 Equation groups without alignment
@@ -180,6 +185,8 @@ sub processAMSGatherRows {
     if((scalar(@cells)==1) && (scalar(@cell1cont)==1)
        && ($document->getNodeQName($cell1cont[0]) eq 'ltx:block')){
       $equation->replaceNode($cell1cont[0]); } # Replace equation with the block.
+    elsif((scalar(@cells)==1) && (scalar(@cell1cont)==0)){ # Empty row? Remove it!
+      $equationgroup->removeChild($equation); }
     else {
       equationgroupFlattenCols($document,$equation); }}}
 
@@ -235,6 +242,8 @@ sub processAMSAlignRows {
     if((scalar(@cells)==1) && (scalar(@cell1cont)==1)
        && ($document->getNodeQName($cell1cont[0]) eq 'ltx:block')){
       $equation->replaceNode($cell1cont[0]); } # Replace equation with the block.
+    elsif((scalar(@cells)==1) && (scalar(@cell1cont)==0)){ # Empty row? Remove it!
+      $equationgroup->removeChild($equation); }
     else {
       equationgroupJoinCols($document,2,$equation); }}}
 
@@ -276,6 +285,23 @@ DefMacro('\csname alignat*\endcsname{}',
 	 '\ifmmode\expandafter\let\csname endalignat*\endcsname\endalignedat\alignedat{#1}\else'
 	 .'\@amsalign@bindings\@@amsalign\@equationgroup@nonumber\@start@alignment\fi');
 DefMacro('\csname endalignat*\endcsname',
+	 '\@finish@alignment\end@amsalign');
+
+DefMacro('\xalignat{}',
+	 '\ifmmode\let\endalignat\endalignedat\alignedat{#1}\else'
+	 .'\@amsalign@bindings\@@amsalign\@equationgroup@number\@start@alignment\fi');
+DefMacro('\endxalignat',
+	 '\@finish@alignment\end@amsalign');
+DefMacro('\csname xalignat*\endcsname{}',
+	 '\ifmmode\expandafter\let\csname endalignat*\endcsname\endalignedat\alignedat{#1}\else'
+	 .'\@amsalign@bindings\@@amsalign\@equationgroup@nonumber\@start@alignment\fi');
+DefMacro('\csname endxalignat*\endcsname',
+	 '\@finish@alignment\end@amsalign');
+
+DefMacro('\xxalignat{}',
+	 '\ifmmode\let\endalignat\endalignedat\alignedat{#1}\else'
+	 .'\@amsalign@bindings\@@amsalign\@equationgroup@number\@start@alignment\fi');
+DefMacro('\endxxalignat',
 	 '\@finish@alignment\end@amsalign');
 
 #======================================================================
@@ -480,15 +506,25 @@ DefConstructor('\negmedspace',"?#isMath(<ltx:XMHint name='negmedspace'/>)()");
 DefConstructor('\negthickspace',"?#isMath(<ltx:XMHint name='negthickspace'/>)()");
 
 DefConstructor('\mspace{MuDimension}',"<ltx:XMHint name='#1'/>");
+
 #======================================================================
 # Section 4.3 Dots
 # Nice idea, but not sure what I really should do about it.
 # In principle, a processor has access to the context....
-DefMacro('\dotsc','\ldots');	# Dots with commas
-DefMacro('\dotsb','\cdots');	# Dots with binary operators/relations
-DefMacro('\dotsm','\cdots');	# multiplication dots
-DefMacro('\dotsi','\cdots');	# Dots with integrals
-DefMacro('\dotso','\ldots');	# other dots (??)
+DefMacroI('\dotsc',undef,'\ldots');	# Dots with commas
+DefMacroI('\dotsb',undef,'\cdots');	# Dots with binary operators/relations
+DefMacroI('\dotsm',undef,'\cdots');	# multiplication dots
+DefMacroI('\dotsi',undef,'\cdots');	# Dots with integrals
+DefMacroI('\dotso',undef,'\ldots');	# other dots (??)
+
+# Not really clear when these get set to something other than \relax, in amsfonts.sty
+DefMacroI('\DOTSB',undef,Tokens());
+DefMacroI('\DOTSI',undef,Tokens());
+DefMacroI('\DOTSX',undef,Tokens());
+Let(T_CS('\hdots'),T_CS('\ldots'));
+
+DefMacro('\hdotsfor Number', sub {
+  (map('\hdots',1..$_[1]->valueOf)); });
 
 #======================================================================
 # Section 4.4 Nonbreaking dashes
@@ -629,7 +665,7 @@ DefConstructor('\genfrac{}{}{Dimension}{}{}{}',
 # I've left it to a special case in conversion to pmml.
 DefConstructor('\cfrac{}{}',
 	       "<ltx:XMApp>"
-	       . "<ltx:XMTok name='cfrac' style='#style'/>"
+	       . "<ltx:XMTok name='cfrac' style='#style' meaning='continued-fraction'/>"
 	       . "<ltx:XMArg>#1</ltx:XMArg>"
 	       . "<ltx:XMArg>#2</ltx:XMArg>"
 	       ."</ltx:XMApp>",
@@ -756,6 +792,11 @@ DefMath('\iiint',"\x{222D}", meaning=>'triple-integral', role=>'INTOP'); # TRIPL
 DefMath('\iiiint',"\x{2A0C}", meaning=>'quadruple-integral', role=>'INTOP');
 DefMath('\idotsint',"\x{222B}\x{22EF}\x{222B}", meaning=>'multiple-integral', role=>'INTOP');
 
+DefMacro('\MultiIntegral{}',sub {
+  my($gullet,$n)=@_;
+  $n = ToString($n);
+  (($n==0 ? T_CS('\idotsint'):($n==1?T_CS('\int'):($n==2?T_CS('\iint'):($n==3?T_CS('\iiint'):T_CS('\iiiint'))))));});
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Section 8 Commutative diagrams
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -781,17 +822,18 @@ DefMath('\idotsint',"\x{222B}\x{22EF}\x{222B}", meaning=>'multiple-integral', ro
 #======================================================================
 # Section 9.4 Italic Greek letters
 # I think this is sufficient:
-DefMacro('\varGamma',   '\mathit{\Gamma}');
-DefMacro('\varSigma',   '\mathit{\Sigma}');
-DefMacro('\varDelta',   '\mathit{\Delta}');
-DefMacro('\varUpsilon', '\mathit{\Upsilon}');
-DefMacro('\varTheta',   '\mathit{\Theta}');
-DefMacro('\varPhi',     '\mathit{\Phi}');
-DefMacro('\varLambda',  '\mathit{\Lambda}');
-DefMacro('\varPsi',     '\mathit{\Psi}');
-DefMacro('\varXi',      '\mathit{\Xi}');
-DefMacro('\varOmega',   '\mathit{\Omega}');
-DefMacro('\varPi',      '\mathit{\Pi}');
+
+DefMath('\varGamma',   "\x{0393}",font=>{shape=>'italic'});
+DefMath('\varSigma',   "\x{03A3}",font=>{shape=>'italic'});
+DefMath('\varDelta',   "\x{0394}",font=>{shape=>'italic'});
+DefMath('\varUpsilon', "\x{03A5}",font=>{shape=>'italic'});
+DefMath('\varTheta',   "\x{0398}",font=>{shape=>'italic'});
+DefMath('\varPhi',     "\x{03A6}",font=>{shape=>'italic'});
+DefMath('\varLambda',  "\x{039B}",font=>{shape=>'italic'});
+DefMath('\varPsi',     "\x{03A8}",font=>{shape=>'italic'});
+DefMath('\varXi',      "\x{039E}",font=>{shape=>'italic'});
+DefMath('\varOmega',   "\x{03A9}",font=>{shape=>'italic'});
+DefMath('\varPi',      "\x{03A0}",font=>{shape=>'italic'});
 
 #======================================================================
 # And some random other weird naming
@@ -807,7 +849,18 @@ Let('\Bar', '\bar');
 Let('\Vec', '\vec');
 
 # And where does this go?
-DefPrimitive('\allowdisplaybreaks', undef);
+DefPrimitive('\allowdisplaybreaks[]', undef);
+#======================================================================
+DefMacroI('\mintagsep',undef,Tokens());
+DefMacroI('\minalignsep',undef,"10pt");
+DefRegister('\multlinegap'=>Glue('10pt'));
+DefRegister('\multlinetaggap'=>Glue('10pt'));
+DefMacro('\primfrac{}',Tokens());
+
+# \shoveleft, \shoveright should do something about eqn number placement?
+DefMacro('\shoveleft{}','#1');
+DefMacro('\shoveright{}','#1');
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 1;
 

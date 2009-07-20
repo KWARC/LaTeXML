@@ -45,12 +45,14 @@ EOTeX
 # The core sectioning commands are defined in LaTeX.pm
 # but the counter setup, etc, depends on article
 #Let('\thedocument@ID','\@empty');
+NewCounter('part',         'document',     idprefix=>'Pt', nested=>['section']);
 NewCounter('section',      'document',     idprefix=>'S',  nested=>['subsection']);
 NewCounter('subsection',   'section',      idprefix=>'SS', nested=>['subsubsection']);
 NewCounter('subsubsection','subsection',   idprefix=>'SSS',nested=>['paragraph']);
 NewCounter('paragraph',    'subsubsection',idprefix=>'P',  nested=>['subparagraph']);
 NewCounter('subparagraph', 'paragraph',    idprefix=>'SP', nested=>['equation','figure','table']);
 
+DefMacro('\thepart',         '\Roman{part}');
 DefMacro('\thesection',      '\arabic{section}');
 DefMacro('\thesubsection',   '\thesection.\arabic{subsection}');
 DefMacro('\thesubsubsection','\thesubsection.\arabic{subsubsection}');
@@ -88,10 +90,12 @@ DefMacro('\theenumiv',          '\Alph{enumiv}');
 Tag('ltx:appendix',autoClose=>1);
 # Actually we should be using section counter
 AssignValue(counter_for_appendix=>'section');
+DefMacro('\appendix@section', '\@startsection{appendix}{}{}{}{}{}');
 DefPrimitive('\appendix',sub{
   NewCounter('section', 'document', idprefix=>'A',nested=>['subsection']);
-  DefMacro('\thesection', '\Alph{section}');
-  DefMacro('\section', '\@startsection{appendix}{}{}{}{}{}');
+  DefMacro('\thesection', '\Alph{section}',scope=>'global');
+  Let(T_CS('\section'),T_CS('\appendix@section'),'global');
+  Let(T_CS('\appendix'),T_CS('\relax'),'global');
  });
 
 #**********************************************************************

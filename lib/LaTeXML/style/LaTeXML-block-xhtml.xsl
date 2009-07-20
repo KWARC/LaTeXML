@@ -28,7 +28,7 @@
 
   <!-- no class here, since ltx:p it is generated behind the scenes (?)-->
   <xsl:template match="ltx:p" xml:space="preserve">
-    <p><xsl:apply-templates/></p>
+    <p class="{f:classes(.)}"><xsl:apply-templates/></p>
   </xsl:template>
 
   <xsl:template match="ltx:quote" xml:space="preserve">
@@ -41,8 +41,14 @@
     <div class="{f:classes(.)}"><xsl:apply-templates/></div>
   </xsl:template>
 
-  <xsl:template match="ltx:centering">
-    <div class="{f:classes(.)}"><xsl:apply-templates/></div>
+  <xsl:template match="ltx:listingblock" xml:space="preserve">
+    <div class="{concat('listing ',f:classes(.))}"><xsl:apply-templates/></div>
+  </xsl:template>
+
+  <xsl:template match="ltx:listingblock/ltx:tabular" xml:space="preserve">
+    <table class="{f:classes(.)}">
+      <xsl:apply-templates/>
+    </table>
   </xsl:template>
 
   <xsl:template match="ltx:break">

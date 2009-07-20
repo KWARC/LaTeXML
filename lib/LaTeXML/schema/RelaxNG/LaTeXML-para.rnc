@@ -12,11 +12,15 @@
 
 default namespace = "http://dlmf.nist.gov/LaTeXML"
 
-## This module `logical' block elements.
+## This module defines the following `logical' block elements.
 Para.class |=
      para
    | theorem | proof
-   | figure | table
+   | figure | table | listing
+
+## Additionally, it defines these miscellaneous elements that can appear
+## in both inline and block contexts.
+Misc.class  |= inline-para
 
 para =
 ## A Logical paragraph. It has an \attr{id}, but not a \attr{label}.
@@ -26,6 +30,15 @@ element para {
 
   Block.model }
 
+inline-para =
+## An inline para. Actually, can appear in inline or block mode, but
+## typesets its contents as para.
+element inline-para {
+  Common.attributes,
+  Positionable.attributes,
+
+  Para.model }
+
 theorem =
 ## A theorem or similar object. The \attr{class} attribute can be used to distinguish
 ## different kinds of theorem.
@@ -33,7 +46,7 @@ element theorem {
   Common.attributes,
   Labelled.attributes,
 
-  title?, Block.model  }
+  title?, Para.model  }
 
 proof =
 ## A proof or similar object. The \attr{class} attribute can be used to distinguish
@@ -42,7 +55,7 @@ element proof {
   Common.attributes,
   Labelled.attributes,
 
-  title?, Block.model }
+  title?, Para.model }
 
 ## These are the additional elements representing figure and
 ## table captions.
@@ -64,6 +77,17 @@ element figure {
 table =
 ## A  Table, possibly captioned. This is not necessarily a \elementref{tabular}.
 element table {
+  Common.attributes,
+  Labelled.attributes,
+
+  ## the floating placement parameter that determines where the object is displayed.
+  attribute placement { text }?,
+
+  (Block.model | Caption.class)*  }
+
+listing =
+## A Listing, possibly captioned.
+element listing {
   Common.attributes,
   Labelled.attributes,
 

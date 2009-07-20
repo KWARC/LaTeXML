@@ -146,10 +146,10 @@ sub LookupMeaning      { $STATE->lookupMeaning(@_); }
 sub LookupDefinition   { $STATE->lookupDefinition(@_); }
 sub InstallDefinition  { $STATE->installDefinition(@_); }
 sub Let {
-  my($token1,$token2)=@_;
+  my($token1,$token2,$scope)=@_;
   ($token1)=TokenizeInternal($token1)->unlist unless ref $token1;
   ($token2)=TokenizeInternal($token2)->unlist unless ref $token2;
-  $STATE->assignMeaning($token1,$STATE->lookupMeaning($token2)); 
+  $STATE->assignMeaning($token1,$STATE->lookupMeaning($token2),$scope); 
   return; }
 
 sub Digest {
@@ -159,7 +159,7 @@ sub ReadParameters {
   my($gullet,$spec)=@_;
   my $for = T_OTHER("Anonymous");
   my $parm = parseParameters($spec,$for);
-  $parm->readArguments($gullet,$for); }
+  ($parm ? $parm->readArguments($gullet,$for) : ()); }
 
 # Merge the current font with the style specifications
 sub MergeFont { AssignValue(font=>LookupValue('font')->merge(@_), 'local'); }
@@ -202,7 +202,8 @@ sub CleanIndexKey {
   my($key)=@_;
   $key = ToString($key);
   $key =~ s/[^a-zA-Z0-9]//g;
-  $key =~ tr|A-Z|a-z|;
+## Shouldn't be case insensitive?
+##  $key =~ tr|A-Z|a-z|;
   $key; }
 
 # used as id.
@@ -312,6 +313,8 @@ sub StepCounter {
   my($ctr)=@_;
   my $value = CounterValue($ctr);
   AssignValue("\\c\@$ctr"=>$value->add(Number(1)),'global');
+  DefMacroI(T_CS("\\\@$ctr\@ID"),undef, Tokens(Explode(LookupValue('\c@'.$ctr)->valueOf)),
+	    scope=>'global');
   # and reset any within counters!
   if(my $nested = LookupValue("\\cl\@$ctr")){
     foreach my $c ($nested->unlist){
@@ -410,12 +413,14 @@ sub CheckOptions {
   Error(":misdefined:$operation $operation does not accept options:".join(', ',@badops)) if @badops;
 }
 
-sub requireMath() {
-  Error(":unexpected:<unknown> Current operation can only appear in math mode") unless LookupValue('IN_MATH');
+sub requireMath {
+  my $cs = ToString($_[0]);
+  Warn(":unexpected:$cs $cs should only appear in math mode") unless LookupValue('IN_MATH');
   return; }
 
-sub forbidMath() {
-  Error(":unexpected:<unknown> Current operation can not appear in math mode") if LookupValue('IN_MATH');
+sub forbidMath {
+  my $cs = ToString($_[0]);
+  Warn(":unexpected:$cs $cs should not appear in math mode") if LookupValue('IN_MATH');
   return; }
 
 
@@ -431,7 +436,7 @@ sub forbidMath() {
 # substituted for any #1,...), or a sub which returns a list of tokens (or just return;).
 # Those tokens, if any, will be reinserted into the input.
 # There are no options to these definitions.
-our $expandable_options = {isConditional=>1, scope=>1};
+our $expandable_options = {isConditional=>1, scope=>1, locked=>1};
 sub DefExpandable {
   my($proto,$expansion,%options)=@_;
   Warn(":misdefined:DefExpandable DefExpandable ($proto) is deprecated; use DefMacro");
@@ -439,7 +444,7 @@ sub DefExpandable {
 
 # Define a Macro: Essentially an alias for DefExpandable
 # For convenience, the $expansion can be a string which will be tokenized.
-our $macro_options = {isConditional=>1, scope=>1};
+our $macro_options = {isConditional=>1, scope=>1, locked=>1};
 sub DefMacro {
   my($proto,$expansion,%options)=@_;
   CheckOptions("DefMacro ($proto)",$macro_options,%options);
@@ -448,10 +453,10 @@ sub DefMacro {
 sub DefMacroI {
   my($cs,$paramlist,$expansion,%options)=@_;
   if(!defined $expansion){ $expansion = Tokens(); }
-  elsif(!ref $expansion) { $expansion = TokenizeInternal($expansion); }
   $cs = coerceCS($cs);
   $STATE->installDefinition(LaTeXML::Expandable->new($cs,$paramlist,$expansion,%options),
 			    $options{scope});
+  AssignValue(ToString($cs).":locked"=>1) if $options{locked};
   return; }
 
 sub RawTeX {
@@ -468,7 +473,8 @@ sub RawTeX {
 #    isPrefix  : 1 for things like \global, \long, etc.
 #    registerType : for parameters (but needs to be worked into DefParameter, below).
 
-our $primitive_options = {isPrefix=>1,scope=>1, requireMath=>1, forbidMath=>1,beforeDigest=>1};
+our $primitive_options = {isPrefix=>1,scope=>1, requireMath=>1,
+			  forbidMath=>1,beforeDigest=>1, locked=>1};
 sub DefPrimitive {
   my($proto,$replacement,%options)=@_;
   CheckOptions("DefPrimitive ($proto)",$primitive_options,%options);
@@ -478,12 +484,14 @@ sub DefPrimitiveI {
   my($cs,$paramlist,$replacement,%options)=@_;
   $replacement = sub { (); } unless defined $replacement;
   $cs = coerceCS($cs);
-  $STATE->installDefinition(LaTeXML::Primitive->new($cs,$paramlist,$replacement,
-						    beforeDigest=> flatten(($options{requireMath} ? (\&requireMath):()),
-									   ($options{forbidMath}  ? (\&forbidMath):()),
-									   $options{beforeDigest}),
-						    isPrefix=>$options{isPrefix}),
+  $STATE->installDefinition(LaTeXML::Primitive
+			    ->new($cs,$paramlist,$replacement,
+				  beforeDigest=> flatten(($options{requireMath} ? (sub{requireMath($cs);}):()),
+							 ($options{forbidMath}  ? (sub{forbidMath($cs);}):()),
+							 $options{beforeDigest}),
+				  isPrefix=>$options{isPrefix}),
 			    $options{scope});
+  AssignValue(ToString($cs).":locked"=>1) if $options{locked};
   return; }
 
 our $register_options = {readonly=>1, getter=>1, setter=>1};
@@ -519,11 +527,7 @@ sub DefRegisterI {
   return; }
 
 sub flatten {
-  my @list=();
-  foreach my $item (@_){
-    if(ref $item eq 'ARRAY'){ push(@list,@$item); }
-    elsif(defined $item)    { push(@list,$item); }}
-  [@list]; }
+  [map((defined $_ ? (ref $_ eq 'ARRAY' ? @$_ : ($_)) : ()), @_)]; }
 
 #======================================================================
 # Define a constructor control sequence. 
@@ -548,7 +552,7 @@ sub flatten {
 our $constructor_options = {mode=>1, requireMath=>1, forbidMath=>1, font=>1,
 			    reversion=>1, properties=>1, alias=>1, nargs=>1,
 			    beforeDigest=>1, afterDigest=>1, beforeConstruct=>1, afterConstruct=>1,
-			    captureBody=>1, scope=>1, bounded=>1};
+			    captureBody=>1, scope=>1, bounded=>1, locked=>1};
 sub DefConstructor {
   my($proto,$replacement,%options)=@_;
   CheckOptions("DefConstructor ($proto)",$constructor_options,%options);
@@ -561,8 +565,8 @@ sub DefConstructorI {
   my $bounded = $options{bounded};
   $STATE->installDefinition(LaTeXML::Constructor
 			    ->new($cs,$paramlist,$replacement,
-				  beforeDigest=> flatten(($options{requireMath} ? (\&requireMath):()),
-							 ($options{forbidMath}  ? (\&forbidMath):()),
+				  beforeDigest=> flatten(($options{requireMath} ? (sub{requireMath($cs);}):()),
+							 ($options{forbidMath}  ? (sub{forbidMath($cs);}):()),
 							 ($mode ? (sub { $_[0]->beginMode($mode); })
 							  :($bounded ? (sub {$_[0]->bgroup;}) :()) ),
 							 ($options{font}? (sub { MergeFont(%{$options{font}});}):()),
@@ -579,7 +583,7 @@ sub DefConstructorI {
 				  captureBody => $options{captureBody},
 				  properties  => $options{properties}||{}),
 			    $options{scope});
-
+  AssignValue(ToString($cs).":locked"=>1) if $options{locked};
   return; }
 
 # DefMath Define a Mathematical symbol or function.
@@ -598,9 +602,9 @@ sub DefConstructorI {
 # If the $presentation seems to be TeX (ie. it involves #1... but not ONLY!)
 our $math_options = {name=>1, meaning=>1, omcd=>1, reversion=>1, alias=>1,
 		     role=>1, operator_role=>1, reorder=>1, dual=>1,
-		     style=>1, font=>1,
+		     style=>1, font=>1, size=>1,
 		     scriptpos=>1,operator_scriptpos=>1,
-		     beforeDigest=>1, afterDigest=>1, scope=>1, nogroup=>1};
+		     beforeDigest=>1, afterDigest=>1, scope=>1, nogroup=>1,locked=>1};
 our $XMID=0;
 sub next_id {
 ##  "LXID".$XMID++; }
@@ -646,7 +650,7 @@ sub DefMathI {
   $name = undef if (defined $name)
     && (($name eq $presentation) || ($name eq '')
 	|| ((defined $meaning) && ($meaning eq $name)));
-  my $attr="name='#name' meaning='#meaning' omcd='#omcd' style='#style'";
+  my $attr="name='#name' meaning='#meaning' omcd='#omcd' style='#style' size='#size'";
   $options{role} = 'UNKNOWN'
     if ($nargs == 0) && !defined $options{role};
   $options{operator_role} = 'UNKNOWN'
@@ -663,7 +667,7 @@ sub DefMathI {
   my %common =(alias=>$options{alias}||$cs->getString,
 	       (defined $options{reversion}
 		? (reversion=>$options{reversion}) : ()),
-	       beforeDigest=> flatten(\&requireMath,
+	       beforeDigest=> flatten(sub{requireMath($csname);},
 				      ($options{nogroup}
 				       ? ()
 				       :(sub{$_[0]->bgroup;})),
@@ -682,6 +686,7 @@ sub DefMathI {
 			      role => $options{role},
 			      operator_role=>$options{operator_role},
 			      style=>$options{style}, 
+			      size=>$options{size},
 			      scriptpos=>$options{scriptpos},
 			      operator_scriptpos=>$options{operator_scriptpos}},
 	       scope=>$options{scope});
@@ -695,6 +700,8 @@ sub DefMathI {
   #   \cs              macro that expands into \DUAL{pres}{content}
   #   \cs@content      constructor creates the content branch
   #   \cs@presentation macro that expands into code in the presentation branch.
+###  if((ref $presentation eq 'CODE')
+###     || ((ref $presentation) && grep($_->equals(T_PARAM),$presentation->unlist))
   if((ref $presentation) || ($presentation =~ /\#\d|\\./)){
     my $cont_cs = T_CS($csname."\@content");
     my $pres_cs = T_CS($csname."\@presentation");
@@ -742,6 +749,7 @@ sub DefMathI {
 	  .   join('',map("<ltx:XMArg>#$_</ltx:XMArg>", 1..$nargs))
 	  ."</ltx:XMApp>"),
          %common), $options{scope}); }
+  AssignValue(ToString($cs).":locked"=>1) if $options{locked};
   return; }
 
 #======================================================================
@@ -751,7 +759,7 @@ our $environment_options = {mode=>1, requireMath=>1, forbidMath=>1,
 			    properties=>1, nargs=>1, font=>1,
 			    beforeDigest=>1, afterDigest=>1, beforeConstruct=>1, afterConstruct=>1,
 			    afterDigestBegin=>1, beforeDigestEnd=>1,
-			    scope=>1};
+			    scope=>1, locked=>1};
 sub DefEnvironment {
   my($proto,$replacement,%options)=@_;
   CheckOptions("DefEnvironment ($proto)",$environment_options,%options);
@@ -771,8 +779,8 @@ sub DefEnvironmentI {
   # This is for the common case where the environment is opened by \begin{env}
   $STATE->installDefinition(LaTeXML::Constructor
 			     ->new(T_CS("\\begin{$name}"), $paramlist,$replacement,
-				   beforeDigest=>flatten(($options{requireMath} ? (\&requireMath):()),
-							 ($options{forbidMath}  ? (\&forbidMath):()),
+				   beforeDigest=>flatten(($options{requireMath} ? (sub{requireMath($name);}):()),
+							 ($options{forbidMath}  ? (sub{forbidMath($name);}):()),
 							 ($mode ? (sub { $_[0]->beginMode($mode);})
 							  : (sub {$_[0]->bgroup;})),
 							 sub { AssignValue(current_environment=>$name); },
@@ -801,8 +809,8 @@ sub DefEnvironmentI {
   # For the uncommon case opened by \csname env\endcsname
   $STATE->installDefinition(LaTeXML::Constructor
 			     ->new(T_CS("\\$name"), $paramlist,$replacement,
-				   beforeDigest=>flatten(($options{requireMath} ? (\&requireMath):()),
-							 ($options{forbidMath}  ? (\&forbidMath):()),
+				   beforeDigest=>flatten(($options{requireMath} ? (sub{requireMath($name);}):()),
+							 ($options{forbidMath}  ? (sub{forbidMath($name);}):()),
 							 ($mode ? (sub { $_[0]->beginMode($mode);}):()),
 							 ($options{font}? (sub { MergeFont(%{$options{font}});}):()),
 							 $options{beforeDigest}),
@@ -820,6 +828,11 @@ sub DefEnvironmentI {
 				   afterDigest=>flatten($options{afterDigest},
 							($mode ? (sub { $_[0]->endMode($mode);}):())),
 				  ),$options{scope});
+  if($options{locked}){
+    AssignValue("\\begin{$name}:locked"=>1);
+    AssignValue("\\end{$name}:locked"=>1);
+    AssignValue("\\$name:locked"=>1);
+    AssignValue("\\end$name:locked"=>1); }
   return; }
 
 #======================================================================
@@ -892,7 +905,7 @@ sub FindFile {
   $file .= ".$options{type}" if $options{type};
   if($options{raw}){
     pathname_find("$file",paths=>$paths); }
-  elsif($options{type} || ($file =~ /\.(tex|pool|sty|cls|clo|cnf)$/)){ # explicit or known extensions
+  elsif($options{type} || ($file =~ /\.(tex|pool|sty|cls|clo|cnf|cfg)$/)){ # explicit or known extensions
     pathname_find("$file.ltxml",paths=>$paths,installation_subdir=>'Package')
       || pathname_find("$file",paths=>$paths); }
   else {
@@ -996,18 +1009,25 @@ sub AddToMacro {
   my($cs,$tokens)=@_;
   # Needs error checking!
   my $defn = LookupDefinition($cs);
-  DefMacroI($cs,undef,Tokens($$defn{expansion}->unlist,$tokens->unlist)); }
+  DefMacroI($cs,undef,Tokens($defn->getExpansion->unlist,$tokens->unlist)); }
 
-our $require_options = {options=>1, withoptions=>1, type=>1, raw=>1};
+our $require_options = {options=>1, withoptions=>1, type=>1, as_class=>1, raw=>1, after=>1};
 sub RequirePackage {
   my($package,%options)=@_;
   $package = ToString($package) if ref $package;
+  $package =~ s/^\s*//;  $package =~ s/\s*$//;
   CheckOptions("RequirePackage ($package)",$require_options,%options);
-  $options{type} = 'sty' unless $options{type};
-  my $type = $options{type};
-  # For \RequirePackageWithOptions, pass the options from the outer class/style to the inner one.
   my $prevname = LookupDefinition(T_CS('\@currname')) && ToString(Digest(T_CS('\@currname')));
   my $prevext  = LookupDefinition(T_CS('\@currext')) && ToString(Digest(T_CS('\@currext')));
+
+  $options{type} = 'sty' unless $options{type};
+  # This package will be treated somewhat as if it were a class if as_class is true
+  # OR if it is loaded by such a class, and has withoptions true!!!
+  $options{as_class} = 1 if  $options{withoptions}
+    && grep($prevname eq $_, @{LookupValue('@masquerading@as@class')||[]});
+  my $filetype = $options{type};
+  my $type = ($options{as_class} ? 'cls' : $options{type});
+  # For \RequirePackageWithOptions, pass the options from the outer class/style to the inner one.
   if($options{withoptions} && $prevname){
     PassOptions($package,$type,@{LookupValue('opt@'.$prevname.".".$prevext)}); }
   DefMacroI('\@currname',undef,Tokens(Explode($package)));
@@ -1015,10 +1035,11 @@ sub RequirePackage {
   # reset options
   resetOptions();
   PassOptions($package,$type,@{$options{options} || []});
-  if(my $file = FindFile($package, type=>$type, raw=>$options{raw})){
+  if(my $file = FindFile($package, type=>$filetype, raw=>$options{raw})){
+    # Note which packages are pretending to be classes.
+    PushValue('@masquerading@as@class',$package) if $options{as_class};
     DefMacroI(T_CS("\\$package.$type-hook"),undef,$options{after} || '');
     my $gullet = $STATE->getStomach->getGullet;
-##    $gullet->openMouth(Tokens(T_CS("\\$package.$type-hook")));
     $gullet->input($file,undef,%options); 
     Digest(T_CS("\\$package.$type-hook"));
     DefMacroI('\@currname',undef,Tokens(Explode($prevname))) if $prevname;
@@ -1035,6 +1056,7 @@ our $loadclass_options = {options=>1, withoptions=>1, after=>1};
 sub LoadClass {
   my($class,%options)=@_;
   $class = ToString($class) if ref $class;
+  $class =~ s/^\s*//;  $class =~ s/\s*$//;
   CheckOptions("LoadClass ($class)",$loadclass_options,%options);
   $options{type} = 'cls' unless $options{type};
   my $type = $options{type};
@@ -1049,7 +1071,7 @@ sub LoadClass {
   # What about "global options" ??????
   resetOptions();
   my $classfile = FindFile($class, type=>$type, raw=>$options{raw});
-  if(!$classfile || ($classfile =~ /\.cls$/)){
+  if(!$classfile || ($classfile =~ /\.\Q$type\E$/)){
     Warn(":missing_file:$class.cls.ltxml No LaTeXML implementation of class $class found, using article");
     if(!($classfile = FindFile("article.cls"))){
       Fatal(":missing_file:article.cls.ltxml Installation error: Cannot find article implementation!"); }}
@@ -1137,7 +1159,8 @@ installed C<LaTeXML/Package> directory for realistic examples.
   # Use a RelaxNG schema
   RelaxNGSchema("MySchema");
   # Or use a special DocType if you have to:
-  # DocType("rootelement","-//Your Site//Your DocType",'your.dtd',
+  # DocType("rootelement",
+  #         "-//Your Site//Your DocType",'your.dtd',
   #          prefix=>"http://whatever/");
   #
   # Allow sometag elements to be automatically closed if needed
@@ -1690,8 +1713,8 @@ of another counter which, when incremented, will cause this counter
 to be reset.
 The options are
 
-   idprefix  Specifies a prefix to be used when using this counter
-             to generate ID's.
+   idprefix  Specifies a prefix to be used to generate ID's
+             when using this counter
    nested    Not sure that this is even sane.
 
 =item C<< $num = CounterValue($ctr); >>
@@ -1700,19 +1723,20 @@ Fetches the value associated with the counter C<$ctr>.
 
 =item C<< $tokens = StepCounter($ctr); >>
 
-Like C<\stepcounter>, steps the counter and returns the expansion of
+Analog of C<\stepcounter>, steps the counter and returns the expansion of
 C<\the$ctr>.  Usually you should use C<RefStepCounter($ctr)> instead.
 
 =item C<< $keys = RefStepCounter($ctr); >>
 
-Like C<\refstepcounter>, it steps the counter and returns the keys
-C<refnum=>$refnum, id=>$id>, making it suitable for use in
-a C<properties> option to constructors.  The C<id> is generated
-in parallel with the reference number to assist debugging.
+Analog of C<\refstepcounter>, steps the counter and returns a hash
+containing the keys C<refnum=>$refnum, id=>$id>.  This makes it
+suitable for use in a C<properties> option to constructors.
+The C<id> is generated in parallel with the reference number
+to assist debugging.
 
 =item C<< $keys = RefStepID($ctr); >>
 
-Analogous to C<RefStepCounter>, but only steps the "uncounter",
+Like to C<RefStepCounter>, but only steps the "uncounter",
 and returns only the id;  This is useful for unnumbered cases
 of objects that normally get both a refnum and id.
 
@@ -2053,7 +2077,7 @@ control sequence.
 =item C<< CleanLabel($label,$prefix); >>
 
 Cleans a C<$label> of disallowed characters,
-and prepends C<$prefix> (or C<LABEL>, if none given).
+prepending C<$prefix> (or C<LABEL>, if none given).
 
 =item C<< CleanIndexKey($key); >>
 
