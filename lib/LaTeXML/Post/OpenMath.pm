@@ -25,9 +25,11 @@
 package LaTeXML::Post::OpenMath;
 use strict;
 use LaTeXML::Common::XML;
+use LaTeXML::Post::MathML;
 use base qw(LaTeXML::Post);
 
 our $omURI = "http://www.openmath.org/OpenMath";
+our $pres_processor=LaTeXML::Post::MathML::Presentation->new();
 
 sub process {
   my($self,$doc)=@_;
@@ -107,10 +109,15 @@ sub Expr {
 ##    Row(grep($_,map(Expr($_),element_nodes($node)))); 
     (); }
   elsif($tag eq 'ltx:XMApp'){
-    my($op,@args) = element_nodes($node);
-    return OMError("Missing Operator") unless $op;
-    my $sub = lookupConverter('Apply',$op->getAttribute('role'),$op->getAttribute('meaning'));
-    &$sub($op,@args); }
+    # Experiment: If XMApp has role ID, we treat it as a "Decorated Symbol"
+    if(($node->getAttribute('role')||'') eq 'ID'){
+      om_decoratedSymbol($node); }
+    else {
+      my($op,@args) = element_nodes($node);
+      return OMError("Missing Operator") unless $op;
+      my $sub = lookupConverter('Apply',$op->getAttribute('role'),$op->getAttribute('meaning'));
+      &$sub($op,@args); }
+  }
   elsif($tag eq 'ltx:XMTok'){
     my $sub = lookupConverter('Token',$node->getAttribute('role'),$node->getAttribute('meaning'));
     &$sub($node); }
@@ -118,6 +125,24 @@ sub Expr {
     (); }
   else {
     ['om:OMSTR',{},$node->textContent]; }}
+
+# Experimental; for an XMApp with role=ID, we treat it as a ci
+# or ultimately as csymbol, if it had defining attributes,
+# but we format its contents as pmml
+sub om_decoratedSymbol {
+  my($item)=@_;
+  my $doc=$LaTeXML::Post::DOCUMENT;
+  my $id=$item->getAttribute('xml:id');
+  #Assuming id="cvar.X" is always supplied, distinguish between a given name
+  #i.e. name="X" and a defaulted one i.e. name="name.cvar.X" where X is \d+
+  my $name=$id;
+  $name=~s/^cvar\.//;
+  $name="name.cvar.$name" if ($name=~/^\d+$/);
+  ['om:OMATTR',{id=>"$id"},
+   ['om:OMATP',{},
+    ['om:OMS',{name=>'PMML',cd=>'OMPres'}],
+    ['om:OMFOREIGN',{},$pres_processor->translateNode($doc,$item,'text','om:OMATP')]],
+   ['om:OMV',{name=>$name}]]; }
 
 sub lookupConverter {
   my($mode,$role,$name)=@_;
@@ -164,6 +189,11 @@ DefOpenMath('Token:SUPERSCRIPTOP:?',sub {
    ['om:OMS',{name=>'superscript',cd=>'ambiguous'}];});
 DefOpenMath('Token:SUBSCRIPTOP:?',sub {
    ['om:OMS',{name=>'subscript',cd=>'ambiguous'}];});
+
+DefOpenMath('Token:RELOP:equals', sub {
+   ['om:OMS',{name=>'eq',cd=>'arith1'}];});
+DefOpenMath('Token:MULOP:times', sub {
+   ['om:OMS',{name=>'times',cd=>'arith1'}];});
 
 DefOpenMath("Token:?:\x{2062}", sub {
   ['om:OMS',{name=>'times', cd=>'arith1'}]; });
