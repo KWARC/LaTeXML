@@ -20,7 +20,7 @@
 #
 # So, I think LaTeXML's naming scheme is a worthwhile one to pursue,
 # but we DO need to provide a rich but customizable mapping, starting with stuff like:
-#    equals => arith1:eq
+#    equals => relation1:eq
 # ================================================================================
 package LaTeXML::Post::OpenMath;
 use strict;
@@ -191,7 +191,7 @@ DefOpenMath('Token:SUBSCRIPTOP:?',sub {
    ['om:OMS',{name=>'subscript',cd=>'ambiguous'}];});
 
 DefOpenMath('Token:RELOP:equals', sub {
-   ['om:OMS',{name=>'eq',cd=>'arith1'}];});
+   ['om:OMS',{name=>'eq',cd=>'relation1'}];});
 DefOpenMath('Token:MULOP:times', sub {
    ['om:OMS',{name=>'times',cd=>'arith1'}];});
 
