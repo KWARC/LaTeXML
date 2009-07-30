@@ -138,10 +138,12 @@ sub om_decoratedSymbol {
   my $name=$id;
   $name=~s/^cvar\.//;
   $name="name.cvar.$name" if ($name=~/^\d+$/);
+  my $pmml=$pres_processor->translateNode($doc,$item,'text','om:OMATP');
+  my $pmml_nommath=$pmml->[2];
   ['om:OMATTR',{id=>"$id"},
    ['om:OMATP',{},
     ['om:OMS',{name=>'PMML',cd=>'OMPres'}],
-    ['om:OMFOREIGN',{},$pres_processor->translateNode($doc,$item,'text','om:OMATP')]],
+    ['om:OMFOREIGN',{},$pmml_nommath]],
    ['om:OMV',{name=>$name}]]; }
 
 sub lookupConverter {
