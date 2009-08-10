@@ -194,9 +194,10 @@ DefOpenMath('Token:SUBSCRIPTOP:?',sub {
 
 DefOpenMath('Token:RELOP:equals', sub {
    ['om:OMS',{name=>'eq',cd=>'relation1'}];});
+DefOpenMath('Token:ADDOP:plus', sub {
+   ['om:OMS',{name=>'plus',cd=>'arith1'}];});
 DefOpenMath('Token:MULOP:times', sub {
    ['om:OMS',{name=>'times',cd=>'arith1'}];});
-
 DefOpenMath("Token:?:\x{2062}", sub {
   ['om:OMS',{name=>'times', cd=>'arith1'}]; });
 
