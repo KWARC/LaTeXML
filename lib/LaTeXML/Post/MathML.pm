@@ -204,7 +204,7 @@ sub pmml_internal {
     pmml($presentation); }
   elsif(($tag eq 'ltx:XMWrap')||($tag eq 'ltx:XMArg')){	# Only present if parsing failed!
     pmml_row(map(pmml($_),element_nodes($node))); }
-  elsif($tag eq 'ltx:XMApp'){
+  elsif($tag eq 'ltx:XMApp') {
     my($op,@args) = element_nodes($node);
     if(!$op){
       ['m:merror',{},['m:mtext',{},"Missing Operator"]]; }
@@ -219,7 +219,8 @@ sub pmml_internal {
       my $result = &{ lookupPresenter('Apply',getOperatorRole($rop),$rop->getAttribute('meaning'))
 		    }($op,@args);
       $result = ['m:mstyle',{@$styleattr},$result] if $styleattr;
-      $result; }}
+      $result; }
+  } 
   elsif($tag eq 'ltx:XMTok'){
     &{ lookupPresenter('Token',$role,$node->getAttribute('meaning')) }($node); }
   elsif($tag eq 'ltx:XMHint'){
@@ -249,7 +250,8 @@ sub pmml_internal {
     $result = ['m:mstyle',{@$styleattr},$result] if $styleattr;
     $result; }
   elsif($tag eq 'ltx:XMText'){
-    pmml_row(map(pmml_text($_), $node->childNodes)); }
+    pmml_row(map(pmml_text($_), $node->childNodes));
+  }
   else {
     my $text = $node->textContent; #  Spaces are significant here
     $text =~ s/^\s+/$NBSP/;
@@ -410,6 +412,10 @@ our %plane1map =
 				 R=>"\x{211D}",Z=>"\x{2124}"}
     );
 
+our %plane1hack = (script=>$plane1map{script},  'bold-script'=>$plane1map{script},
+		   fraktur=>$plane1map{fraktur},'bold-fraktur'=>$plane1map{fraktur},
+		   'double-struck'=>$plane1map{'double-struck'});
+
 sub stylizeContent {
   my($item,$mihack,%attr)=@_;
   my $font  = (ref $item ? $item->getAttribute('font') : $attr{font}) || $LaTeXML::MathML::FONT;
@@ -429,11 +435,13 @@ sub stylizeContent {
   # For each mathvariant, and for each of those 5 groups, there is a linear mapping,
   # EXCEPT for chars defined before Plain 1, which already exist in lower blocks.
   my $mapping;
-  if($variant && $LaTeXML::MathML::PLANE1 && ($mapping = $plane1map{$variant})){
+  if($variant
+     && ($LaTeXML::MathML::PLANE1 || $LaTeXML::MathML::PLANE1HACK)
+     && ($mapping = ($LaTeXML::MathML::PLANE1HACK ? $plane1hack{$variant} : $plane1map{$variant}))){
     my @c = map($$mapping{$_}, split(//,$text));
     if(! grep(! defined $_, @c)){ # Only if ALL chars in the token could be mapped... ?????
       $text = join('',@c);
-      $variant = undef;  }}
+      $variant = ($LaTeXML::MathML::PLANE1HACK && ($variant =~ /^bold/) ? 'bold' : undef);  }}
   ($text,$variant,$size && $sizes{$size},$color); }
 
 # These are the strings that should be known as fences in a normal operator dictionary.
@@ -730,6 +738,24 @@ sub cmml_ci {
 sub cmml_decoratedSymbol {
   my($item)=@_;
   ['m:ci',{},pmml($item)]; }
+
+# Experimental; for an XMApp with role=WRAPOP, we treat it as a mo
+# and we format its contents as pmml
+# Note that we need to transfer the mcd:cr attribute of the XMApp to the m:mo
+sub pmml_decoratedOperator {
+  my($head,@args)=@_;
+  return undef if (!($head->getAttribute('role') eq "WRAPOP"));
+  my $doc=$LaTeXML::Post::DOCUMENT;
+  my $mcd_cr  = (ref $head ? $head->getAttributeNS("http://www.w3.org/ns/mathml-cd","cr") : "fun");
+  $doc->addNamespace("http://www.w3.org/ns/mathml-cd",'mcd') if $mcd_cr;
+  $head->setAttribute("role","SKIP");
+  my $operator=pmml_unrow(pmml(@args));
+  $operator=$$operator[2] if ($$operator[0] eq "m:mi"); #Unwrap if only a mi
+  ['m:mo',{'mcd:cr'=>$mcd_cr},
+   $operator]; }
+#Experiment: WRAPOP
+DefMathML("Apply:WRAPOP:?",       \&pmml_decoratedOperator, undef);
+DefMathML("Token:SKIP:?", sub {undef;}, sub{undef;});
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Tranlators
@@ -1162,6 +1188,7 @@ sub translateNode {
   my($self,$doc,$xmath,$style,$embedding)=@_;
   $doc->addNamespace($mmlURI,'m');
   local $LaTeXML::MathML::PLANE1= $$self{plane1};
+  local $LaTeXML::MathML::PLANE1HACK= $$self{hackplane1};
   my @trans = $self->pmml_top($xmath,$style);
   my $m = (scalar(@trans)> 1 ? ['m:mrow',{},@trans] : $trans[0]);
   # Wrap unless already embedding within MathML.
@@ -1214,6 +1241,7 @@ sub translateNodeLinebreaks {
   my($self,$doc,$xmath,$style)=@_;
   $doc->addNamespace($mmlURI,'m');
   local $LaTeXML::MathML::PLANE1= $$self{plane1};
+  local $LaTeXML::MathML::PLANE1HACK= $$self{hackplane1};
   my @trans = $self->pmml_top($xmath,$style);
   my $mml = (scalar(@trans)> 1 ? ['m:mrow',{},@trans] : $trans[0]);
   my $linelength = $$self{linelength} || 80;
