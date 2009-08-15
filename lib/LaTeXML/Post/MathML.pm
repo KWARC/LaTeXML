@@ -739,12 +739,12 @@ sub cmml_decoratedSymbol {
   my($item)=@_;
   ['m:ci',{},pmml($item)]; }
 
-# Experimental; for an XMApp with role=WRAPOP, we treat it as a mo
+# Experimental; for an XMApp with role=CROSSREFOP, we treat it as a mo
 # and we format its contents as pmml
 # Note that we need to transfer the mcd:cr attribute of the XMApp to the m:mo
 sub pmml_decoratedOperator {
   my($head,@args)=@_;
-  return undef if (!($head->getAttribute('role') eq "WRAPOP"));
+  return undef if (!($head->getAttribute('role') eq "CROSSREFOP"));
   my $doc=$LaTeXML::Post::DOCUMENT;
   my $mcd_cr  = (ref $head ? $head->getAttributeNS("http://www.w3.org/ns/mathml-cd","cr") : "fun");
   $doc->addNamespace("http://www.w3.org/ns/mathml-cd",'mcd') if $mcd_cr;
@@ -753,8 +753,8 @@ sub pmml_decoratedOperator {
   $operator=$$operator[2] if ($$operator[0] eq "m:mi"); #Unwrap if only a mi
   ['m:mo',{'mcd:cr'=>$mcd_cr},
    $operator]; }
-#Experiment: WRAPOP
-DefMathML("Apply:WRAPOP:?",       \&pmml_decoratedOperator, undef);
+#Experiment: CROSSREFOP
+DefMathML("Apply:CROSSREFOP:?",       \&pmml_decoratedOperator, undef);
 DefMathML("Token:SKIP:?", sub {undef;}, sub{undef;});
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
