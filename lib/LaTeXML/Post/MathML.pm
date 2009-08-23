@@ -749,7 +749,8 @@ sub pmml_decoratedOperator {
   my $mcd_cr  = (ref $head ? $head->getAttributeNS("http://www.w3.org/ns/mathml-cd","cr") : "fun");
   $doc->addNamespace("http://www.w3.org/ns/mathml-cd",'mcd') if $mcd_cr;
   $head->setAttribute("role","SKIP");
-  my $operator=pmml_unrow(pmml(@args));
+ 
+  my $operator=pmml(@args);
   $operator=$$operator[2] if ($$operator[0] eq "m:mi"); #Unwrap if only a mi
   ['m:mo',{'mcd:cr'=>$mcd_cr},
    $operator]; }
