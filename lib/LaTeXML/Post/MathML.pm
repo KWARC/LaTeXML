@@ -757,7 +757,7 @@ sub pmml_decoratedOperator {
   $head->setAttribute("role","SKIP");
  
   my $operator=pmml(@args);
-  $operator=$$operator[2] if ($$operator[0] eq "m:mi"); #Unwrap if only a mi
+  $operator=$$operator[2] if ($$operator[0] =~ /^m:m[io]$/); #Unwrap if only a mi or mo
   ['m:mo',{'mcd:cr'=>$mcd_cr},
    $operator]; }
 #Experiment: CROSSREFOP
