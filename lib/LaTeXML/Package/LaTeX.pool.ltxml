@@ -2084,7 +2084,7 @@ DefConstructor('\@bibliography Semiverbatim',
 		 $_[1]->setProperty(id=>ToString(Expand(T_CS('\thebibliography@ID'))));
 		 $_[1]->setProperty(refname=>Digest(T_CS('\refname'))); });
 DefMacroI('\refname',undef, 'References');
-DefPrimitive('\bibstyle{}', undef);
+DefPrimitive('\bibsty*le{}', undef);
 DefMacro('\bibliographystyle{}', '\bibstyle{#1}');
 
 # Should be an environment, but people seem to want to misuse it.
