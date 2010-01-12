@@ -747,18 +747,16 @@ sub cmml_decoratedSymbol {
 
 # Experimental; for an XMApp with role=CROSSREFOP, we treat it as a mo
 # and we format its contents as pmml
-# Note that we need to transfer the mcd:cr attribute of the XMApp to the m:mo
+# Note that we need to transfer the cr attribute of the XMApp to the m:mo
 sub pmml_decoratedOperator {
   my($head,@args)=@_;
   return undef if (!($head->getAttribute('role') eq "CROSSREFOP"));
   my $doc=$LaTeXML::Post::DOCUMENT;
-  my $mcd_cr  = (ref $head ? $head->getAttributeNS("http://www.w3.org/ns/mathml-cd","cr") : "fun");
-  $doc->addNamespace("http://www.w3.org/ns/mathml-cd",'mcd') if $mcd_cr;
+  my $cr  = (ref $head ? $head->getAttribute("cr") : "fun");
   $head->setAttribute("role","SKIP");
- 
   my $operator=pmml(@args);
   $operator=$$operator[2] if ($$operator[0] =~ /^m:m[io]$/); #Unwrap if only a mi or mo
-  ['m:mo',{'mcd:cr'=>$mcd_cr},
+  ['m:mo',{'cr'=>$cr},
    $operator]; }
 #Experiment: CROSSREFOP
 DefMathML("Apply:CROSSREFOP:?",       \&pmml_decoratedOperator, undef);
