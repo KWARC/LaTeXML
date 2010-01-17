@@ -146,6 +146,18 @@ sub om_decoratedSymbol {
     ['om:OMFOREIGN',{},$pmml_nommath]],
    ['om:OMV',{name=>$name}]]; }
 
+#OpenMath symbol name specification:
+# See http://www.openmath.org/standard/om20-2004-06-30/omstd20html-2.xml#sec_names
+our $nameStartCharRex = qr/([:]|[A-Z]|[_]|[a-z]|[\xC0-\xD6]|[\xD8-\xF6]|[\xF8-\x{2FF}]|[\x{370}-\x{37D}]|[\x{37F}-\x{1FFF}]|[\x{200C}-\x{200D}]|[\x{2070}-\x{218F}]|[\x{2C00}-\x{2FEF}]|[\x{3001}-\x{D7FF}]|[\x{F900}-\x{FDCF}]|[\x{FDF0}-\x{FFFD}]|[\x{10000}-\x{EFFFF}])/;
+our $nameCharRex = qr/($nameStartCharRex|[-]|[.]|[0-9]|\xB7|[\x{0300}-\x{036F}]|[\x{203F}-\x{2040}])/;
+our $nameRex= qr/($nameStartCharRex($nameCharRex)*)/;
+
+#Tests against the allowed symbol names in the OpenMath standard
+sub isOpenMathName {
+  my ($name) = @_;
+  ($name =~ /^$nameRex$/);
+}
+
 sub lookupConverter {
   my($mode,$role,$name)=@_;
   $name = '?' unless $name;
@@ -174,7 +186,14 @@ DefOpenMath('Token:?:?',    sub {
     my $cd = $token->getAttribute('omcd') || 'latexml';
     ['om:OMS',{name=>$meaning, cd=>$cd}]; }
   else {
-    my $name = $token->getAttribute('name') || $token->textContent;
+    #If the textContent is an admissible OpenMath name, use it as the OMV name:
+    my $name;
+    if (isOpenMathName($token->textContent)) {
+      $name = $token->textContent;
+    }
+    else {
+      $name = $token->getAttribute('name') || $token->textContent; 
+    }
     ['om:OMV',{name=>$name}]; }});
 
 # NOTE: Presence of '.' distinguishes float from int !?!?
