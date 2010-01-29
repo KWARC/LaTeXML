@@ -267,6 +267,11 @@ sub getStatus {
   my($self,$type)=@_;
   $$self{status}{$type}; }
 
+sub setStatus {
+  my($self,$type,$value)=@_;
+  $$self{status}{$type} = $value; }
+
+
 sub getStatusMessage {
   my($self)=@_;
   my $status= $$self{status};
