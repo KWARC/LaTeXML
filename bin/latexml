@@ -87,7 +87,6 @@ else {
     foreach my $piece(@sources) {
       $multicontent .= '\input{'.$piece."}\n";
     }
-    print $multicontent;
     $digested = $latexml->digestString($multicontent); 
   }
   else {
