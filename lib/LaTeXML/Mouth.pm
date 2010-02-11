@@ -97,9 +97,9 @@ sub stringify {
 sub getLocator {
   my($self,$long)=@_;
   my($l,$c)=($$self{lineno},$$self{colno});
-  my $msg =  "at $$self{source}; line $l col $c";
+  #my $msg =  "at $$self{source}; line $l col $c";
   #Deyan: Upgrade message to XPointer style
-  #my $msg = 
+  my $msg = "$$self{source}#textpoint($l,$c)";
   
   if($long && (defined $l || defined $c)){
     my $chars=$$self{chars};
