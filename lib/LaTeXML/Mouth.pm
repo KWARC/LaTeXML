@@ -96,10 +96,21 @@ sub stringify {
 #**********************************************************************
 sub getLocator {
   my($self,$long)=@_;
-  my($l,$c)=($$self{lineno},$$self{colno});
+  my($l,$c,$lstart,$cstart)=($$self{lineno},$$self{colno});
   #my $msg =  "at $$self{source}; line $l col $c";
   #Deyan: Upgrade message to XPointer style
-  my $msg = "$$self{source}#textpoint($l,$c)";
+  my $nc = $$self{nchars}-1; #There is always a weird (end of line?) char that gets counted
+  if ($c>=$nc) {
+    $lstart = $l;
+    $cstart = $c - $nc;
+  } else {
+    #Very rough and dirty approximation, not to be relied on.
+    #One would need to keep all line lengths to properly establish the start and end
+    # or just remember the initial char of the token's position
+    $lstart = $l-1;
+    $cstart = $nc - $c;
+  }
+  my $msg = "$$self{source}#textrange(from=$lstart;$cstart,to=$l;$c)";
   
   if($long && (defined $l || defined $c)){
     my $chars=$$self{chars};
@@ -197,7 +208,7 @@ sub readToken {
     $$self{chars}=[split('',$line)];
     $$self{nchars} = scalar(@{$$self{chars}});
     while(($$self{colno} < $$self{nchars})
-##	  && (($STATE->lookupCatcode($$self{chars}->[$$self{colno}])||CC_OTHER)==CC_SPACE)){
+##	  && (($STATE->lookuptCatcode($$self{chars}->[$$self{colno}])||CC_OTHER)==CC_SPACE)){
 ##	  && (($$STATE{table}{'catcode:'.$$self{chars}->[$$self{colno}]}[0]||CC_OTHER)==CC_SPACE)){
 	  && (($$STATE{table}{catcode}{$$self{chars}->[$$self{colno}]}[0]||CC_OTHER)==CC_SPACE)){
       $$self{colno}++; }
