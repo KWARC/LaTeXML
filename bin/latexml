@@ -77,9 +77,12 @@ if($source eq '-'){
 elsif($mode eq 'bibtex'){
   $digested = $latexml->digestBibTeXFile($source); }
 else {
+  # ===============================================
+  #Deyan: adding support for multiple file on input,
+  # where the assumption is that we are given several pieces of the same document
+  # Basic idea - write a temp file which \input{}s the ARGV collection of file pieces.
   pop @sources if $sources[-1] eq '-';
   if (scalar(@sources) > 1) {
-    #Write down what the file should have looked like: a series of \input statements.
     my $leadfile = $sources[0];
     $leadfile =~ s/\.tex$//;
     my $pathname = $destination;
