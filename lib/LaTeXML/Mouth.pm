@@ -98,6 +98,9 @@ sub getLocator {
   my($self,$long)=@_;
   my($l,$c)=($$self{lineno},$$self{colno});
   my $msg =  "at $$self{source}; line $l col $c";
+  #Deyan: Upgrade message to XPointer style
+  #my $msg = 
+  
   if($long && (defined $l || defined $c)){
     my $chars=$$self{chars};
     my $n = $$self{nchars}; 
