@@ -83,21 +83,12 @@ else {
   # Basic idea - write a temp file which \input{}s the ARGV collection of file pieces.
   pop @sources if $sources[-1] eq '-';
   if (scalar(@sources) > 1) {
-    my $leadfile = $sources[0];
-    $leadfile =~ s/\.tex$//;
-    my $pathname = $destination;
-    $pathname = pathname_find($leadfile,types=>['tex','']) unless $pathname;
-    my($dir,$name,$ext)=pathname_split($pathname);
-    $name =~ s/^(.+)\.(.+)/$1/;
-    my $multifile = "$dir"."__$name"."_multi.tex";
-    print "MULTIFILE: $multifile \n\n\n";
-    open(MULTI,">$multifile");
+    my $multicontent;
     foreach my $piece(@sources) {
-      print MULTI '\input{'.$piece."}\n";
+      $multicontent .= '\input{'.$piece."}\n";
     }
-    close(MULTI);
-    $digested = $latexml->digestFile($multifile); 
-    unlink($multifile);
+    print $multicontent;
+    $digested = $latexml->digestString($multicontent); 
   }
   else {
     $digested = $latexml->digestFile($source); 
