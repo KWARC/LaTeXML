@@ -755,9 +755,15 @@ sub pmml_decoratedOperator {
   my $cr  = (ref $head ? $head->getAttribute("cr") : "fun");
   $head->setAttribute("role","SKIP");
   my $operator=pmml(@args);
-  $operator=$$operator[2] if ($$operator[0] =~ /^m:m[io]$/); #Unwrap if only a mi or mo
-  ['m:mo',{'cr'=>$cr},
-   $operator]; }
+  if ($$operator[0] =~ /^m:m[io]$/) { #Unwrap if only a mi or mo
+    $operator=$$operator[2];
+    ['m:mo',{'cr'=>$cr},
+     $operator]; }
+  else {
+    #If structure is present, add cr attribute to top level element
+    $$operator[1]{'cr'} = $cr;
+    $operator;
+  }}
 #Experiment: CROSSREFOP
 DefMathML("Apply:CROSSREFOP:?",       \&pmml_decoratedOperator, undef);
 DefMathML("Token:SKIP:?", sub {undef;}, sub{undef;});
