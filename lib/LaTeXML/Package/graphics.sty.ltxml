@@ -49,7 +49,10 @@ DefConstructor('\@includegraphics OptionalMatch:* [][] Semiverbatim', sub {
   my $bb = ($op2 ? ToString($op1)." ".ToString($op2) : ($op1 ? "0 0 ".ToString($op1) : ''));
   $bb=~ s/,/ /g;
   my $options=($starred ? ($bb ? "viewport=$bb, clip" : "clip") : '');
-  $document->insertElement('ltx:graphics',undef,graphic=>$graphic,options=>$options); },
+  $document->insertElement('ltx:graphics',undef,graphic=>$graphic,
+			   sources=>join(",",(map {$_=~s/^(.+)\.//;$_;} 
+					      pathname_findall($graphic,types=>['jpg','jpeg','png','gif','eps','ps','ai','pdf']))),
+			   options=>$options); },
 	       alias=>'\includegraphics');
 
 # Also unimplemented... probably nothing useful to pass thru anyway?

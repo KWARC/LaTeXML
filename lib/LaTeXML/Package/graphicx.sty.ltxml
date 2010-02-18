@@ -33,7 +33,13 @@ DefMacro('\includegraphics OptionalMatch:* []',
 	 '\@ifnextchar[{\@includegraphics#1[#2]}{\@includegraphicx#1[#2]}');
 
 DefConstructor('\@includegraphicx OptionalMatch:* OptionalKeyVals:Gin Semiverbatim',
-	       "<ltx:graphics graphic='#3' options='#2?#1(,clip=true)'/>",
+	       "<ltx:graphics graphic='#3' sources='#sources' options='#2?#1(,clip=true)'/>",
+	       afterDigest=> sub {
+		 my ($stomach,$whatsit) = @_;
+		 my $graphic = ToString($whatsit->getArg(3));
+		 my $sources = join(",",(map {$_=~s/^(.+)\.//;$_;} pathname_findall($graphic,types=>['jpg','jpeg','png','gif','eps','ps','ai','pdf'])));
+		 $whatsit->setProperty("sources",$sources);
+	       },
 	      alias=>'\includegraphics');
 
 
