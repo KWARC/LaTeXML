@@ -1,3 +1,14 @@
+Branch 20010-19-02 (rev 1090)
+ - adding sources attribute to ltx:graphics elements in graphic[sx].sty.ltxml (r1090)
+ - switching locator message to XPointer style at Mouth.pm (r1086)
+ - allowing multiple files on input for latexml at bin/latexml (pieces of the same document) (r1081)
+ - adding setState method to State.pm to support error masking (modules.sty.ltxml hack) (r1080)
+ - Switching default names of created OMV elements in OpenMath.pm to the XMTok bodies, if OM compliant (r1079)
+ - adding CROSSREFOP support in MathML.pm for complex operators (r1017)
+ - adding support for plus symbol in OpenMath.pm (r1013)
+ - fixed cd of "eq" to "relation1" in OpenMath.pm (r1004)
+ - adding support for OpenMath complex tokens/decorated symbols in OpenMath.pm (r999,r1005)
+
 0.7.x 2009-06-19 (ref 983)
      - fixed typos in aa_support & sv
      - added wrapfig.sty, llncs.cls, rsfs.sty, multicol.sty, enumerate.sty,
