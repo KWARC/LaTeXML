@@ -1,4 +1,5 @@
 Branch 20010-19-02 (rev 1090)
+ - adding a bootstrap for empty Box at MathParser.pm failureReport (r1091)
  - adding sources attribute to ltx:graphics elements in graphic[sx].sty.ltxml (r1090)
  - switching locator message to XPointer style at Mouth.pm (r1086)
  - allowing multiple files on input for latexml at bin/latexml (pieces of the same document) (r1081)
