@@ -18,6 +18,7 @@ package LaTeXML::Mouth;
 use strict;
 use LaTeXML::Global;
 use LaTeXML::Token;
+use Encode;
 use base qw(LaTeXML::Object);
 
 sub new {
@@ -163,7 +164,7 @@ sub handle_comment {
   $$self{colno} = $$self{nchars};
   my $comment = join('',@{$$self{chars}}[$n..$$self{nchars}-1]);
   $comment =~ s/^\s+//; $comment =~ s/\s+$//;
-  ($comment && $STATE->lookupValue('INCLUDE_COMMENTS') ? T_COMMENT($comment) : $self->readToken); }
+  ($comment && $STATE->lookupValue('INCLUDE_COMMENTS') ? T_COMMENT(encode('UTF-8',$comment)) : $self->readToken); }
 
 # Some caches
 my %LETTER =();
