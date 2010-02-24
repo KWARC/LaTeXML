@@ -320,7 +320,7 @@ sub XXXgetNextLine {
   if($line){
     if(my $encoding = $STATE->lookupValue('INPUT_ENCODING')){
       $line = decode($encoding,$line); }}
-  $line=encode('UTF-8',$line); }
+  $line; }
 
 sub getNextLine {
   my($self)=@_;
@@ -339,7 +339,7 @@ sub getNextLine {
       $line = decode($encoding,$line); }}
   if(!($$self{lineno} % 25)){
     NoteProgress("[#$$self{lineno}]"); }
-  $line; }
+  $line=encode('UTF-8',$line); }
 
 sub stringify {
   my($self)=@_;
