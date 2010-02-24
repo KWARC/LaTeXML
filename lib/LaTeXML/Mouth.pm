@@ -164,7 +164,7 @@ sub handle_comment {
   $$self{colno} = $$self{nchars};
   my $comment = join('',@{$$self{chars}}[$n..$$self{nchars}-1]);
   $comment =~ s/^\s+//; $comment =~ s/\s+$//;
-  ($comment && $STATE->lookupValue('INCLUDE_COMMENTS') ? T_COMMENT(encode('UTF-8',$comment)) : $self->readToken); }
+  ($comment && $STATE->lookupValue('INCLUDE_COMMENTS') ? T_COMMENT($comment) : $self->readToken); }
 
 # Some caches
 my %LETTER =();
@@ -320,7 +320,7 @@ sub XXXgetNextLine {
   if($line){
     if(my $encoding = $STATE->lookupValue('INPUT_ENCODING')){
       $line = decode($encoding,$line); }}
-  $line; }
+  $line=encode('UTF-8',$line); }
 
 sub getNextLine {
   my($self)=@_;
