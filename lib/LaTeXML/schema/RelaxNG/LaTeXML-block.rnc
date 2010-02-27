@@ -20,7 +20,7 @@ Block.class |=
 
 ## Additionally, it defines these miscellaneous elements that can appear
 ## in both inline and block contexts.
-Misc.class  |= inline-block | verbatim | break | graphics
+Misc.class  |= inline-block | verbatim | break | graphics | picture
 
 ## Additional Metadata that can be present in equations.
 EquationMeta.class = constraint
