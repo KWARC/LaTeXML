@@ -84,10 +84,15 @@ else {
   pop @sources if $sources[-1] eq '-';
   if (scalar(@sources) > 1) {
     my $multicontent;
+    my @bases=();
     foreach my $piece(@sources) {
       $multicontent .= '\input{'.$piece."}\n";
+      #Keep track of source base:
+      my ($dir,$name,$ext) = pathname_split($piece);
+      push(@bases,$name);
     }
-    $digested = $latexml->digestString($multicontent); 
+    my $sourcebase = join("-",@bases);
+    $digested = $latexml->digestString($multicontent,$sourcebase);
   }
   else {
     $digested = $latexml->digestFile($source); 

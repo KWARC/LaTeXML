@@ -92,8 +92,9 @@ sub digestFile {
 
      my $pathname = pathname_find($file,types=>['tex','']);
      Fatal(":missing_file:$file Cannot find TeX file $file") unless $pathname;
-     $state->assignValue(SOURCEFILE=>$pathname);
+     $state->assignValue(SOURCEFILE=>$pathname,'global');
      my($dir,$name,$ext)=pathname_split($pathname);
+     $state->assignValue(SOURCEBASE=>$name,'global');
      $state->pushValue(SEARCHPATHS=>$dir);
      $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
 							Tokens(Explode($name))));
@@ -103,12 +104,12 @@ sub digestFile {
      $list; });
 }
 sub digestString {
-  my($self,$string)=@_;
+  my($self,$string,$sourcebase)=@_;
   $self->withState(sub {
      my($state)=@_;
      NoteBegin("Digesting string");
      $self->initializeState('TeX.pool', @{$$self{preload} || []});
-
+     $state->assignValue(SOURCEBASE=>$sourcebase,'global') if $sourcebase;
      $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($string),0);
 ###     $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
 ###						       Tokens(Explode("Unknown"))));
