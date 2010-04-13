@@ -1,3 +1,7 @@
+Branch 2010-13-04 (rev 1115)
+ - Upgrades to latexmldaemon:
+  * introduced --log option on input
+  * Allowed "#name" patterns in --log and --destination specification
 Branch 2010-13-04 (rev 1112)
 .- Alpha version of the latexmldaemon (not documented yet)
    To this end, introduced a new binary and a new subroutine at
