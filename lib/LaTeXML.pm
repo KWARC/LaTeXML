@@ -103,6 +103,36 @@ sub digestFile {
      NoteEnd("Digesting $file");
      $list; });
 }
+
+sub digestFileDaemonized {
+  my($self,$file)=@_;
+  $file =~ s/\.tex$//;
+  $self->withState(sub {
+     my($state)=@_;
+     NoteBegin("Digesting $file");
+     #We only need to initialize the state at the start of the daemon!
+     #$self->initializeState('TeX.pool', @{$$self{preload} || []});
+
+     my $pathname = pathname_find($file,types=>['tex','']);
+     Fatal(":missing_file:$file Cannot find TeX file $file") unless $pathname;
+     $state->assignValue(SOURCEFILE=>$pathname,'global');
+     my($dir,$name,$ext)=pathname_split($pathname);
+     $state->assignValue(SOURCEBASE=>$name,'global');
+     $state->pushValue(SEARCHPATHS=>$dir);
+     $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
+							Tokens(Explode($name))));
+     $state->getStomach->getGullet->input($pathname);
+     my $list = $self->finishDigestion;
+     NoteEnd("Digesting $file");
+     #In the daemon case: Reset state counters
+     $state->setStatus("warning",0);
+     $state->setStatus("error",0);
+     $state->setStatus("fatal",0);
+     $state->setStatus("undefined",0);
+     $state->setStatus("missing",0);
+     $list; });
+}
+
 sub digestString {
   my($self,$string,$sourcebase)=@_;
   $self->withState(sub {
