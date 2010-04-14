@@ -6,7 +6,6 @@ use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 use LaTeXML;
 use LaTeXML::Util::Pathname;
-
 #**********************************************************************
 # Parse command line
 
@@ -65,10 +64,12 @@ if(my @baddirs = grep(! -d $_, @paths)){
 binmode(STDERR,":utf8");
 
 #Initialize state:
+my $initstate;
 $latexml->withState(sub {
   my($state)=@_;
   $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
 });
+
 print STDERR "\n"; #Sanitize log.
 #**********************************************************************
 # Daemon has been set up, now process files on demand:
@@ -106,15 +107,38 @@ while(1) {
 	 ." latexmldaemon requires a filepath per line as arguments\n";
 	next;
     }
-    elsif($mode eq 'bibtex'){
-	$digested = $latexml->digestBibTeXFileDaemonized($source); }
     else {
 	# ===============================================
 	#TODO: adding support for multiple file on input
 	# (is this really something we want here?)
-	    $digested = $latexml->digestFileDaemonized($source); 
+	$latexml->withState(sub {
+	   my($state)=@_;#Sandbox state
+	   $state->pushFrame; });
+	my $tryDigest = eval {
+	 if ($mode eq 'bibtex'){
+	     $digested = $latexml->digestBibTeXFileDaemonized($source); }
+	 else {
+	     $digested = $latexml->digestFileDaemonized($source); 
+	 }
+	};
+        if ($@) { #Fatal occured!
+	    print STDERR "$@\n";
+	    print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
+	    #Need to reset latexml in these cases
+	    $latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[@paths],
+			  verbosity=>$verbosity, strict=>$strict,
+			  includeComments=>$comments,inputencoding=>$inputencoding,
+			  includeStyles=>$includestyles,
+			  documentid=>$documentid,
+			  nomathparse=>$noparse);
+	    $latexml->withState(sub {
+	       my($state)=@_;
+	       $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
+	   });
+	    print STDERR "\n"; #Again, flush log
+	   next; #Move on, no body to be produced.
 	}
-    
+    }
     # ========================================
     # Now, convert to DOM and output, if desired.
     #use Encode;
@@ -130,7 +154,15 @@ while(1) {
 	    $serialized = $dom->toString(1);
 	}}
     print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
-    
+    $latexml->withState(sub {
+        my($state)=@_;#Remove current state frame
+	$state->popFrame;
+	$state->setStatus("warning",0);
+	$state->setStatus("error",0);
+	$state->setStatus("fatal",0);
+	$state->setStatus("undefined",0);
+	$state->setStatus("missing",0);
+    });
     if($cdest){
 	open(OUT,">",$cdest) or die "Couldn't open output file $cdest: $!"; }
     else {
@@ -139,8 +171,8 @@ while(1) {
     print OUT $serialized if $serialized;
     if($cdest){ 
 	close(OUT); }
+    if ($log) { close(LOG);} #Close log file
 }
-if ($log) { close(LOG);} #Close log file
 #**********************************************************************
 __END__
 
@@ -190,6 +222,9 @@ as a BibTeX bibliography.
 =item C<--destination>=I<file>
 
 Specifies the destination file; by default the XML is written to stdout.
+The Daemon allows using the #name, #dir and #ext patterns as variables for
+the base of the source filename, the source directory and the source file extension.
+An example would be: --destination=#dir/#name.xml
 
 =item C<--preload>=I<module>
 
@@ -219,6 +254,9 @@ somewhat like TEXINPUTS.  This option can be repeated.
 =item C<--log>=I<file>
 
 Specifies the log file; be default any conversion messages are printed to stderr.
+The Daemon allows using the #name, #dir and #ext patterns as variables for
+the base of the source filename, the source directory and the source file extension.
+An example would be: --log=#dir/#name.log
 
 =item C<--documentid>=I<id>
 
