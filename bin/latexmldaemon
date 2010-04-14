@@ -13,7 +13,7 @@ use LaTeXML::Util::Pathname;
 my $identity = "latexml (LaTeXML version $LaTeXML::VERSION)";
 my($verbosity,$strict,$comments,$noparse,$includestyles,
    $errlog)=(0,0,1,0,0,0);
-my ($format,$destination,$help,$showversion)=('xml','');
+my ($format,$destination,$log,$help,$showversion)=('xml','','');
 my ($documentid);
 my $inputencoding;
 my $mode = 'auto';
@@ -31,6 +31,7 @@ GetOptions("destination=s" => \$destination,
 	   "box"       => sub { $format = 'box'; },
 	   "bibtex"    => sub { $mode='bibtex'; },
 	   "noparse"   => \$noparse,
+	   "log=s"       => \$log,
 	   "includestyles"=> \$includestyles,
 	   "inputencoding=s"=>\$inputencoding,
 	   "comments!" => \$comments,
@@ -41,6 +42,8 @@ GetOptions("destination=s" => \$destination,
 	  ) or pod2usage(-message => $identity, -exitval=>1, -verbose=>0, -output=>\*STDERR);
 pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
 if($showversion){ print STDERR "$identity\n"; exit(1); }
+
+#This is obsolete in daemon mode:
 #pod2usage(-message=>"$identity\nMissing input TeX file", 
 #	  -exitval=>1, -verbose=>0,-output=>\*STDERR) unless @ARGV;
 my $source = $ARGV[0];
@@ -66,7 +69,7 @@ $latexml->withState(sub {
   my($state)=@_;
   $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
 });
-
+print STDERR "\n"; #Sanitize log.
 #**********************************************************************
 # Daemon has been set up, now process files on demand:
 while(1) {
@@ -74,46 +77,43 @@ while(1) {
     chomp $source;
     $source =~s/(^\s+)|(\s+$)//g;#Cleanup spaces
     last if (($source eq ":q") || ($source eq "")); #:q or empty marks we're done
-    #Note: The alpha version won't be flexible to configure
-    # - The user provides "path/to/foo.tex" and gets "path/to/foo.tex.xml"
-    #   as the converted equivalent. (--tex and --box work too though)
-    # - If --errlog is on, foo.tex.xml.log will be created.
-
+    $source = pathname_canonical($source);
     $mode = 'bibtex' if ($mode eq 'auto') && ($source =~ /\.bib$/);
     # ========================================
     # First read and digest whatever we're given.
     my $digested;
-    my $errlog;
-    @sources = split(/\s/,$source);
-    $source = join(" ",@sources);
-    $destination = $source.".$format";
+    my ($dir,$name,$ext) = pathname_split($source);
+    #Redirect to logfile, if requested:
+    if ($log) {
+	my $clog = $log;
+	$clog=~s/#name/$name/eg;
+	$clog=~s/#dir/$dir/eg;
+	$clog=~s/#ext/$ext/eg;
+	open(LOG,">$clog");
+	*STDERR = *LOG;
+    }
+    my $cdest;
+    if ($destination) {
+	$cdest = $destination;
+	$cdest =~ s/#name/$name/eg;
+	$cdest =~ s/#dir/$dir/eg;
+	$cdest =~ s/#ext/$ext/eg;
+    } else {
+	$cdest = $source.".$format";
+    }
     if($source eq '-'){
-	$digested = "Invalid source file:\n"
+	print STDERR "Invalid source file:\n"
 	 ." latexmldaemon requires a filepath per line as arguments\n";
+	next;
     }
     elsif($mode eq 'bibtex'){
-	$digested = $latexml->digestBibTeXFile($source); }
+	$digested = $latexml->digestBibTeXFileDaemonized($source); }
     else {
 	# ===============================================
-	#Deyan: adding support for multiple file on input,
-	# where the assumption is that we are given several pieces of the same document
-	# Basic idea - write a temp file which \input{}s the ARGV collection of file pieces.
-	pop @sources if $sources[-1] eq '-';
-	if (scalar(@sources) > 1) {
-	    my $multicontent;
-	    my @bases=();
-	    foreach my $piece(@sources) {
-		$multicontent .= '\input{'.$piece."}\n";
-		#Keep track of source base:
-		my ($dir,$name,$ext) = pathname_split($piece);
-		push(@bases,$name);
-	    }
-	    my $sourcebase = join("-",@bases);
-	    $digested = $latexml->digestString($multicontent,$sourcebase);
-	}
-	else {
+	#TODO: adding support for multiple file on input
+	# (is this really something we want here?)
 	    $digested = $latexml->digestFileDaemonized($source); 
-	}}
+	}
     
     # ========================================
     # Now, convert to DOM and output, if desired.
@@ -131,16 +131,16 @@ while(1) {
 	}}
     print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
     
-    if($destination){
-	#  open(OUT,">:utf8",$destination) or die "Couldn't open output file $destination: $!"; }
-	open(OUT,">",$destination) or die "Couldn't open output file $destination: $!"; }
+    if($cdest){
+	open(OUT,">",$cdest) or die "Couldn't open output file $cdest: $!"; }
     else {
 	#  binmode(STDOUT,":utf8");
 	*OUT = *STDOUT; }
     print OUT $serialized if $serialized;
-    if($destination){ 
+    if($cdest){ 
 	close(OUT); }
 }
+if ($log) { close(LOG);} #Close log file
 #**********************************************************************
 __END__
 
@@ -161,6 +161,7 @@ latexml [options] I<texfile>
                     by default it avoids this.
  --path=dir         adds dir to the paths searched for files,
                     modules, etc; 
+ --log=file         specifies log file (default: STDERR)
  --documentid=id    assign an id to the document root.
  --quiet            suppress messages (can repeat)
  --verbose          more informative output (can repeat)
@@ -214,6 +215,10 @@ lead to a correct document.
 
 Add I<dir> to the search paths used when searching for files, modules, style files, etc;
 somewhat like TEXINPUTS.  This option can be repeated.
+
+=item C<--log>=I<file>
+
+Specifies the log file; be default any conversion messages are printed to stderr.
 
 =item C<--documentid>=I<id>
 
