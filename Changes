@@ -1,11 +1,12 @@
-Branch 2010-13-04 (rev 1115)
+Branch 2010-13/14-04 (rev 1112-1118)
+ - Alpha version of the latexmldaemon (not documented yet)
+   To this end, introduced a new binary and two new subroutines at
+   LaTeXML.pm (digestFileDaemonized, digestBibTeXFileDaemonized)
  - Upgrades to latexmldaemon:
   * introduced --log option on input
-  * Allowed "#name" patterns in --log and --destination specification
-Branch 2010-13-04 (rev 1112)
-.- Alpha version of the latexmldaemon (not documented yet)
-   To this end, introduced a new binary and a new subroutine at
-   LaTeXML.pm (digestFileDaemonized)
+  * Allowed #name,#dir and #ext patterns in --log and --destination
+  * Wrapped digestion in eval {} to persist through fatal errors.
+  * pushFrame and popFrame used to properly sandbox state
 Branch 2010-06-04 (rev 1111)
  - adding the global $STATE variable "SOURCEBASE".
    As opposed to SOURCEFILE, it is to be used as an id,
