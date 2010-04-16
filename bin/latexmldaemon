@@ -6,13 +6,20 @@ use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 use LaTeXML;
 use LaTeXML::Util::Pathname;
+use LaTeXML;
+use LaTeXML::Post;
+use LaTeXML::Post::Writer;
+use LaTeXML::Post::Scan;
+use LaTeXML::Util::Pathname;
+use LaTeXML::Util::ObjectDB;
+
 #**********************************************************************
 # Parse command line
 
 my $identity = "latexml (LaTeXML version $LaTeXML::VERSION)";
 my($verbosity,$strict,$comments,$noparse,$includestyles,
-   $errlog)=(0,0,1,0,0,0);
-my ($format,$destination,$log,$help,$showversion)=('xml','','');
+   $errlog,$post,$standard)=(0,0,1,0,0,0,0,0);
+my ($format,$destination,$log,$help,$showversion,$stylesheet)=('xml','','');
 my ($documentid);
 my $inputencoding;
 my $mode = 'auto';
@@ -30,9 +37,12 @@ GetOptions("destination=s" => \$destination,
 	   "box"       => sub { $format = 'box'; },
 	   "bibtex"    => sub { $mode='bibtex'; },
 	   "noparse"   => \$noparse,
+	   "standard"  => \$standard,
 	   "log=s"       => \$log,
 	   "includestyles"=> \$includestyles,
 	   "inputencoding=s"=>\$inputencoding,
+	   "post"      => \$post,
+	   "stylesheet=s"=>\$stylesheet,
 	   "comments!" => \$comments,
 	   "VERSION"   => \$showversion,
 	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
@@ -78,6 +88,7 @@ while(1) {
     chomp $source;
     $source =~s/(^\s+)|(\s+$)//g;#Cleanup spaces
     last if (($source eq ":q") || ($source eq "")); #:q or empty marks we're done
+    $source = pathname_find($source,types=>['tex','']);
     $source = pathname_canonical($source);
     $mode = 'bibtex' if ($mode eq 'auto') && ($source =~ /\.bib$/);
     # ========================================
@@ -85,8 +96,9 @@ while(1) {
     my $digested;
     my ($dir,$name,$ext) = pathname_split($source);
     #Redirect to logfile, if requested:
+    my $clog;
     if ($log) {
-	my $clog = $log;
+	$clog = $log;
 	$clog=~s/#name/$name/eg;
 	$clog=~s/#dir/$dir/eg;
 	$clog=~s/#ext/$ext/eg;
@@ -111,6 +123,21 @@ while(1) {
 	# ===============================================
 	#TODO: adding support for multiple file on input
 	# (is this really something we want here?)
+	if ($standard) {
+	    #In the classic case, we need to reinitialize latexml
+	    # on every input
+	    $latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[@paths],
+			  verbosity=>$verbosity, strict=>$strict,
+			  includeComments=>$comments,inputencoding=>$inputencoding,
+			  includeStyles=>$includestyles,
+			  documentid=>$documentid,
+			  nomathparse=>$noparse);
+	    $latexml->withState(sub {
+	       my($state)=@_;
+	       $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
+	    });
+	    print STDERR "\n"; #Again, flush log
+	}
 	$latexml->withState(sub {
 	   my($state)=@_;#Sandbox state
 	   $state->pushFrame; });
@@ -143,6 +170,7 @@ while(1) {
     # Now, convert to DOM and output, if desired.
     #use Encode;
     my $serialized;
+    my $dom;
     if($digested){
 	local $LaTeXML::Global::STATE = $$latexml{state};
 	if($format eq 'tex'){
@@ -150,7 +178,7 @@ while(1) {
 	elsif($format eq 'box'){
 	    $serialized = $digested->toString; }
 	else {
-	    my $dom = $latexml->convertDocument($digested); 
+	    $dom = $latexml->convertDocument($digested); 
 	    $serialized = $dom->toString(1);
 	}}
     print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
@@ -172,6 +200,60 @@ while(1) {
     if($cdest){ 
 	close(OUT); }
     if ($log) { close(LOG);} #Close log file
+    if ($post && $dom && $cdest && (!$noparse)) {
+	#Postprocess
+	#TODO: Make this scalable, currently the arXMLiv default is hardcoded
+	my $postlog = $clog;
+	if ($postlog) {
+	    #Add .post. to log name
+	    $postlog=~s/\.(\w+)$/".post.".$1/e;
+	    open(PLOG,">$postlog");
+	    *STDERR = *PLOG;
+	}
+	my $postdest = $cdest;
+	$postdest.=".xhtml" unless
+	  ($postdest=~s/\.tex\.xml$/.xhtml/ || $postdest=~s/\.xml$/.xhtml/);
+	$stylesheet = "LaTeXML-xhtml.xsl" unless $stylesheet;
+	my @css = ("core.css");
+	my $parallelmath = 1;
+	my $doc = LaTeXML::Post::Document->new($dom,
+				 destination=>$postdest,nocache=>1);
+	our %PostOPS = (verbosity=>$verbosity||0);
+	require 'LaTeXML/Post/MathML.pm';
+	require 'LaTeXML/Post/PurgeXMath.pm';
+	my @mprocs = (LaTeXML::Post::MathML::Presentation->new(%PostOPS),
+	  LaTeXML::Post::MathML::Content->new(%PostOPS));
+	my $main = shift(@mprocs);
+	$main->setParallel(@mprocs);
+	my @procs;
+	push(@procs,$main);
+        push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS));
+	require 'LaTeXML/Post/XSLT.pm'; 
+	my @csspaths=();
+	foreach my $css (@css){
+	    $css .= '.css' unless $css =~ /\.css$/;
+		# Dance, if dest is current dir, we'll find the old css before the new one!
+	    my @csssources = map(pathname_canonical($_),
+				 pathname_findall($css,types=>['css'],
+						  (),
+						  installation_subdir=>'style'));
+	    my $csspath = pathname_absolute($css,pathname_directory($destination));
+	    while(@csssources && ($csssources[0] eq $csspath)){ shift(@csssources); }
+	    my $csssource = shift(@csssources);
+	    pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
+	    push(@csspaths,$csspath); }
+	push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$stylesheet,
+					     css=>[@csspaths],
+					     parameters=>{number_sections
+							  =>("true()")
+							 },
+					     %PostOPS));
+	push(@procs,LaTeXML::Post::Writer->new(format=>"xhtml",omit_doctype=>0,%PostOPS));
+	LaTeXML::Post::ProcessChain($doc,@procs);
+	if ($postlog) {
+	    close PLOG;
+	}
+    }
 }
 #**********************************************************************
 __END__
@@ -203,7 +285,12 @@ latexml [options] I<texfile>
  --tex              requests TeX output after expansion.
  --box              requests box output after expansion
                     and digestion.
- --noparse          suppresses parsing math
+ --noparse          suppresses parsing math (default: off)
+ --standard         parse entire documents (slower)
+                    default: off
+ --post             requests a followup postprocessing
+ --stylesheet       specifies a stylesheet,
+                    to be used by the postprocessor.
  --nocomments       omit comments from the output
  --inputencoding=enc specify the input encoding.
  --VERSION          show version number.
@@ -307,6 +394,21 @@ This may not be quite valid TeX, since Unicode may be introduced.
 Requests Box output for debugging purposes;  processing is carried out through expansion and digestions,
 and the result is printed.
 
+=item C<--standard>
+
+Turns on the classic, unoptimized processing of documents as performed by latexml.
+This is suitable for processing sets of heterogeneous documents, but is slower in general.
+
+=item C<--post>
+
+Request postprocessing of converted XML to XHTML. Currently we force parallel presentation and
+content MathML and no further customization is allowed. Future versions will be more flexible.
+However, the user can still specify a custom stylesheet via --stylesheet
+
+=item C<--stylesheet>=I<file>
+
+Sets a stylesheet of choice to be used by the postprocessor.
+
 =item C<--nocomments>
 
 Normally latexml preserves comments from the source file, and adds a comment every 25 lines as
@@ -338,7 +440,7 @@ Shows this help message.
 
 =head1 SEE ALSO
 
-L<latexmlpost>, L<latexmlmath>, L<LaTeXML>
+L<latexml>, L<latexmlpost>, L<latexmlmath>, L<LaTeXML>
 
 =cut
 #**********************************************************************
