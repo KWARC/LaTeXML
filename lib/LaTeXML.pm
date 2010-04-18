@@ -122,6 +122,7 @@ sub digestFileDaemonized {
 							Tokens(Explode($name))));
      $state->getStomach->getGullet->input($pathname);
      my $list = $self->finishDigestion;
+     $state->popValue('SEARCHPATHS');
      NoteEnd("Digesting $file");
      $list; });
 }
@@ -145,6 +146,7 @@ sub digestBibTeXFileDaemonized {
      my $tex = $bib->toTeX;
      $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($tex),0);
      my $line = $self->finishDigestion;
+     $state->popValue('SEARCHPATHS');
      NoteEnd("Digesting bibliography $file");
      $line; });
 }

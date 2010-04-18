@@ -84,10 +84,10 @@ print STDERR "\n"; #Sanitize log.
 #**********************************************************************
 # Daemon has been set up, now process files on demand:
 while(1) {
-    my $source = <>;
+    $source = <>;
     chomp $source;
     $source =~s/(^\s+)|(\s+$)//g;#Cleanup spaces
-    last if (($source eq ":q") || ($source eq "")); #:q or empty marks we're done
+    last if (!$source || ($source eq ":q") || ($source eq "")); #:q or empty marks we're done
     $source = pathname_find($source,types=>['tex','']);
     $source = pathname_canonical($source);
     $mode = 'bibtex' if ($mode eq 'auto') && ($source =~ /\.bib$/);
@@ -103,6 +103,7 @@ while(1) {
 	$clog=~s/#dir/$dir/eg;
 	$clog=~s/#ext/$ext/eg;
 	open(LOG,">$clog");
+	*ERRORIG=*STDERR;
 	*STDERR = *LOG;
     }
     my $cdest;
@@ -116,7 +117,7 @@ while(1) {
     }
     if($source eq '-'){
 	print STDERR "Invalid source file:\n"
-	 ." latexmldaemon requires a filepath per line as arguments\n";
+	." latexmldaemon requires a filepath per line as arguments\n";
 	next;
     }
     else {
@@ -135,23 +136,41 @@ while(1) {
 	    $latexml->withState(sub {
 	       my($state)=@_;
 	       $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
-	    });
+	   });
 	    print STDERR "\n"; #Again, flush log
 	}
 	$latexml->withState(sub {
 	   my($state)=@_;#Sandbox state
 	   $state->pushFrame; });
-	my $tryDigest = eval {
-	 if ($mode eq 'bibtex'){
-	     $digested = $latexml->digestBibTeXFileDaemonized($source); }
-	 else {
-	     $digested = $latexml->digestFileDaemonized($source); 
-	 }
+	my $serialized;
+	my $dom;
+	eval {
+	    if ($mode eq 'bibtex'){
+		$digested = $latexml->digestBibTeXFileDaemonized($source); }
+	    else {
+		$digested = $latexml->digestFileDaemonized($source); 
+	    }
+	    # ========================================
+	    # Now, convert to DOM and output, if desired.
+	    #use Encode;
+	    if($digested){
+		local $LaTeXML::Global::STATE = $$latexml{state};
+		if($format eq 'tex'){
+		    $serialized = LaTeXML::Global::UnTeX($digested); }
+		elsif($format eq 'box'){
+		    $serialized = $digested->toString; }
+		else {
+		    $dom = $latexml->convertDocument($digested); 
+		    $serialized = $dom->toString(1);
+		}
+	    }
 	};
-        if ($@) { #Fatal occured!
+	if ($@) { #Fatal occured!
 	    print STDERR "$@\n";
 	    print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
 	    #Need to reset latexml in these cases
+	    if ($log) { close(LOG); *STDERR = *ERRORIG;} #Close log file
+	    undef $latexml;
 	    $latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[@paths],
 			  verbosity=>$verbosity, strict=>$strict,
 			  includeComments=>$comments,inputencoding=>$inputencoding,
@@ -161,97 +180,89 @@ while(1) {
 	    $latexml->withState(sub {
 	       my($state)=@_;
 	       $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
-	   });
+	    });
 	    print STDERR "\n"; #Again, flush log
-	   next; #Move on, no body to be produced.
+	    next; #Move on, no body to be produced.
 	}
-    }
-    # ========================================
-    # Now, convert to DOM and output, if desired.
-    #use Encode;
-    my $serialized;
-    my $dom;
-    if($digested){
-	local $LaTeXML::Global::STATE = $$latexml{state};
-	if($format eq 'tex'){
-	    $serialized = LaTeXML::Global::UnTeX($digested); }
-	elsif($format eq 'box'){
-	    $serialized = $digested->toString; }
+	print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
+	$latexml->withState(sub {
+          my($state)=@_;#Remove current state frame
+	  $state->popFrame;
+	  $state->setStatus("warning",0);
+	  $state->setStatus("error",0);
+	  $state->setStatus("fatal",0);
+	  $state->setStatus("undefined",0);
+	  $state->setStatus("missing",0);
+      });
+	if($cdest){
+	    open(OUT,">",$cdest) or die "Couldn't open output file $cdest: $!"; }
 	else {
-	    $dom = $latexml->convertDocument($digested); 
-	    $serialized = $dom->toString(1);
-	}}
-    print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
-    $latexml->withState(sub {
-        my($state)=@_;#Remove current state frame
-	$state->popFrame;
-	$state->setStatus("warning",0);
-	$state->setStatus("error",0);
-	$state->setStatus("fatal",0);
-	$state->setStatus("undefined",0);
-	$state->setStatus("missing",0);
-    });
-    if($cdest){
-	open(OUT,">",$cdest) or die "Couldn't open output file $cdest: $!"; }
-    else {
-	#  binmode(STDOUT,":utf8");
-	*OUT = *STDOUT; }
-    print OUT $serialized if $serialized;
-    if($cdest){ 
-	close(OUT); }
-    if ($log) { close(LOG);} #Close log file
-    if ($post && $dom && $cdest && (!$noparse)) {
-	#Postprocess
-	#TODO: Make this scalable, currently the arXMLiv default is hardcoded
-	my $postlog = $clog;
-	if ($postlog) {
-	    #Add .post. to log name
-	    $postlog=~s/\.(\w+)$/".post.".$1/e;
-	    open(PLOG,">$postlog");
-	    *STDERR = *PLOG;
-	}
-	my $postdest = $cdest;
-	$postdest.=".xhtml" unless
-	  ($postdest=~s/\.tex\.xml$/.xhtml/ || $postdest=~s/\.xml$/.xhtml/);
-	$stylesheet = "LaTeXML-xhtml.xsl" unless $stylesheet;
-	my @css = ("core.css");
-	my $parallelmath = 1;
-	my $doc = LaTeXML::Post::Document->new($dom,
-				 destination=>$postdest,nocache=>1);
-	our %PostOPS = (verbosity=>$verbosity||0);
-	require 'LaTeXML/Post/MathML.pm';
-	require 'LaTeXML/Post/PurgeXMath.pm';
-	my @mprocs = (LaTeXML::Post::MathML::Presentation->new(%PostOPS),
-	  LaTeXML::Post::MathML::Content->new(%PostOPS));
-	my $main = shift(@mprocs);
-	$main->setParallel(@mprocs);
-	my @procs;
-	push(@procs,$main);
-        push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS));
-	require 'LaTeXML/Post/XSLT.pm'; 
-	my @csspaths=();
-	foreach my $css (@css){
-	    $css .= '.css' unless $css =~ /\.css$/;
+	    #  binmode(STDOUT,":utf8");
+	    *OUT = *STDOUT; }
+	print OUT $serialized if $serialized;
+	if($cdest){ 
+	    close(OUT); }
+	if ($log) { close(LOG); *STDERR = *ERRORIG;} #Close log file
+	if ($post && $dom && $cdest && (!$noparse)) {
+	    #Postprocess
+	    #TODO: Make this scalable, currently the arXMLiv default is hardcoded
+	    my $postlog = $clog;
+	    if ($postlog) {
+		#Add .post. to log name
+		$postlog=~s/\.(\w+)$/".post.".$1/e;
+		open(PLOG,">$postlog");
+		*ERRORIG = *STDERR;
+		*STDERR = *PLOG;
+	    }
+	    my $postdest = $cdest;
+	    $postdest.=".xhtml" unless
+	    ($postdest=~s/\.tex\.xml$/.xhtml/ || $postdest=~s/\.xml$/.xhtml/);
+	    $stylesheet = "LaTeXML-xhtml.xsl" unless $stylesheet;
+	    my @css = ("core.css");
+	    my $parallelmath = 1;
+	    my $doc = LaTeXML::Post::Document->new($dom,
+						   destination=>$postdest,nocache=>1);
+	    our %PostOPS = (verbosity=>$verbosity||0);
+	    require 'LaTeXML/Post/MathML.pm';
+	    require 'LaTeXML/Post/PurgeXMath.pm';
+	    my @mprocs = (LaTeXML::Post::MathML::Presentation->new(%PostOPS),
+			  LaTeXML::Post::MathML::Content->new(%PostOPS));
+	    my $main = shift(@mprocs);
+	    $main->setParallel(@mprocs);
+	    my @procs;
+	    push(@procs,$main);
+	    push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS));
+	    require 'LaTeXML/Post/XSLT.pm'; 
+	    my @csspaths=();
+	    foreach my $css (@css){
+		$css .= '.css' unless $css =~ /\.css$/;
 		# Dance, if dest is current dir, we'll find the old css before the new one!
-	    my @csssources = map(pathname_canonical($_),
-				 pathname_findall($css,types=>['css'],
-						  (),
-						  installation_subdir=>'style'));
-	    my $csspath = pathname_absolute($css,pathname_directory($destination));
-	    while(@csssources && ($csssources[0] eq $csspath)){ shift(@csssources); }
-	    my $csssource = shift(@csssources);
-	    pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
-	    push(@csspaths,$csspath); }
-	push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$stylesheet,
-					     css=>[@csspaths],
-					     parameters=>{number_sections
-							  =>("true()")
-							 },
-					     %PostOPS));
-	push(@procs,LaTeXML::Post::Writer->new(format=>"xhtml",omit_doctype=>0,%PostOPS));
-	LaTeXML::Post::ProcessChain($doc,@procs);
-	if ($postlog) {
-	    close PLOG;
+		my @csssources = map(pathname_canonical($_),
+				     pathname_findall($css,types=>['css'],
+						      (),
+						      installation_subdir=>'style'));
+		my $csspath = pathname_absolute($css,pathname_directory($destination));
+		while(@csssources && ($csssources[0] eq $csspath)){ shift(@csssources); }
+		my $csssource = shift(@csssources);
+		pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
+		push(@csspaths,$csspath); }
+	    push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$stylesheet,
+						 css=>[@csspaths],
+						 parameters=>{number_sections
+							      =>("true()")
+							     },
+						 %PostOPS));
+	    push(@procs,LaTeXML::Post::Writer->new(format=>"xhtml",omit_doctype=>0,%PostOPS));
+	    eval { LaTeXML::Post::ProcessChain($doc,@procs); };
+	    if ($@) { #Fatal occured!
+		#Since this is postprocessing, we don't need to do anything
+		#   just avoid crashing...
+		print STDERR "$@\n";
+	    }
+	    if ($postlog) {
+		close PLOG;
+		*STDERR = *ERRORIG;
+	    }
 	}
     }
 }

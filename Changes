@@ -1,3 +1,10 @@
+Branch 2010-18-04 (rev 1119-1121)
+ - Beta version of latexmldaemon, tested on first 100,000 ZBL abstracts
+ - Introduced --standard option, for heterogeneous sources on input
+ - Added missing eval {} wrappers to capture Fatals in serialization and
+   postprocessing
+ - Improved bookkeeping in the daemonized digesting subroutines at LaTeXML.pm
+ - Smaller fixes at bin/latexmldaemon binary 
 Branch 2010-13/14-04 (rev 1112-1118)
  - Alpha version of the latexmldaemon (not documented yet)
    To this end, introduced a new binary and two new subroutines at
