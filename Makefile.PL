@@ -52,7 +52,7 @@ WriteMakefile(NAME => 'LaTeXML',
 			     'Parse::RecDescent' => 0,
 			    'Image::Magick'=> 0,
 			   },
-	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmldaemon'],
+	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmld'],
 	      macro => $MORE_MACROS,
 	      );
 

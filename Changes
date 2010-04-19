@@ -2,6 +2,7 @@ Branch 2010-19-04 (rev 1122)
  - Refactored latexmldaemon to have 3 "--mode"s: math,standard and fragment
  - Introduced latexmlmath functionality, tirggered by --math=mode
  - Added digestStringDaemonized to LaTeXML.pm (no state initialization)
+ - renamed binary to "latexmld"
 Branch 2010-18-04 (rev 1119-1121)
  - Beta version of latexmldaemon, tested on first 100,000 ZBL abstracts
  - Introduced --standard option, for heterogeneous sources on input
