@@ -151,6 +151,23 @@ sub digestBibTeXFileDaemonized {
      $line; });
 }
 
+sub digestStringDaemonized {
+  my($self,$string,$sourcebase)=@_;
+  $self->withState(sub {
+     my($state)=@_;
+     NoteBegin("Digesting string");
+     #We only need to initialize the state at the start of the daemon!
+     #$self->initializeState('TeX.pool', @{$$self{preload} || []});
+     $state->assignValue(SOURCEBASE=>$sourcebase,'global') if $sourcebase;
+     $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($string),0);
+###     $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
+###						       Tokens(Explode("Unknown"))));
+     my $line = $self->finishDigestion;
+     NoteEnd("Digesting string");
+     $line; });
+}
+
+
 sub digestString {
   my($self,$string,$sourcebase)=@_;
   $self->withState(sub {
