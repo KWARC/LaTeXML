@@ -95,6 +95,7 @@ print STDERR "\n"; #Sanitize log.
 # Daemon has been set up, now process files on demand:
 while(1) {
     my $source = <STDIN>;
+    next unless $source;
     chomp $source;
     $source =~ s/^\s+//; #Cleanup space
     $source =~ s/\s+$//; #Cleanup space
