@@ -17,8 +17,8 @@ use LaTeXML::Util::ObjectDB;
 # Parse command line
 my $identity = "latexml (LaTeXML version $LaTeXML::VERSION)";
 my($verbosity,$strict,$comments,$noparse,$includestyles,
-   $errlog,$post)=(0,0,1,0,0,0,0);
-my ($format,$mode,$destination,$log,$help,$showversion,$stylesheet)=('xml','fragment','','');
+   $errlog,$post,$parallelmath)=(0,0,1,0,0,0,0,0);
+my ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet)=('xml','fragment','','',{});
 my ($documentid);
 my $inputencoding;
 my $type = 'auto';
@@ -41,6 +41,12 @@ GetOptions("destination=s" => \$destination,
 	   "includestyles"=> \$includestyles,
 	   "inputencoding=s"=>\$inputencoding,
 	   "post"      => \$post,
+	   "pmml"      => sub {$$procs_post{'pmml'}=1;},
+	   "cmml"      => sub {$$procs_post{'cmml'}=1;},
+	   "om"        => sub {$$procs_post{'om'}=1;},
+	   "keepTeX"   => sub {$$procs_post{'keepTeX'}=1;},
+	   "keepXMath" => sub {$$procs_post{'keepXMath'}=1;},
+	   "parallelmath" => \$parallelmath,
 	   "stylesheet=s"=>\$stylesheet,
 	   "comments!" => \$comments,
 	   "VERSION"   => \$showversion,
@@ -60,6 +66,7 @@ if($showversion){ print STDERR "$identity\n"; exit(1); }
 print STDERR "$identity\n" unless $verbosity < 0;
 
 $mode = lc($mode);
+$$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post));
 if ($mode eq "math") {
     #Preload math packages:
     my  @mathpreload = ("LaTeX.pool", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
@@ -76,7 +83,6 @@ my $latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[@paths],
 if(my @baddirs = grep(! -d $_, @paths)){
     warn "$identity: these path directories do not exist: ".join(', ',@baddirs)."\n"; }
 binmode(STDERR,":utf8");
-our %PostOPS = (verbosity=>$verbosity||0);
 
 #Initialize state:
 $latexml->withState(sub {
@@ -88,7 +94,7 @@ print STDERR "\n"; #Sanitize log.
 #**********************************************************************
 # Daemon has been set up, now process files on demand:
 while(1) {
-    my $source = <>;
+    my $source = <STDIN>;
     chomp $source;
     $source =~ s/^\s+//; #Cleanup space
     $source =~ s/\s+$//; #Cleanup space
@@ -101,7 +107,8 @@ while(1) {
 	    my $digested = $latexml->digestStringDaemonized($texdoc);
 	    $dom = $latexml->convertDocument($digested);
 	};
-	doPost($log,$destination,$stylesheet,$dom,"math");
+	doPost(log=>$log,dest=>$destination,stylesheet=>$stylesheet,dom=>$dom,
+	       mode=>"math",parallel=>$parallelmath,procs=>$procs_post);
 	undef $texdoc;
 	next;
     }
@@ -231,33 +238,37 @@ while(1) {
 	my $postdest = $cdest;
 	$postdest.=".xhtml" unless
 	($postdest=~s/\.tex\.xml$/.xhtml/ || $postdest=~s/\.xml$/.xhtml/);
-	doPost($postlog,$postdest,$stylesheet,$dom);
+	doPost(log=>$postlog,dest=>$postdest,stylesheet=>$stylesheet,dom=>$dom,mode=>$mode,
+	      parallel=>$parallelmath,procs=>$procs_post);
     }
 }
 
 #======================================================================
 # Helpers
 #======================================================================
-
+our %PostOPS = (verbosity=>$verbosity||0);
 sub doPost {
-    my ($postlog,$postdest,$stylesheet,$dom,$extract)=@_;
+    my (%options)=@_;
+    my ($postlog,$postdest,$stylesheet,$dom,$extract,$parallelmath,$proctypes)= 
+       map ($options{$_},qw(log dest stylesheet dom mode parallel procs));
     #Postprocess
     #TODO: Make this scalable, currently the arXMLiv default is hardcoded
     $stylesheet = "LaTeXML-xhtml.xsl" unless $stylesheet;
     my @css = ("core.css");
-    my $parallelmath = 1;
+    $parallelmath = $parallelmath||0;
     my $doc = LaTeXML::Post::Document->new($dom,
 					   destination=>$postdest,nocache=>1);
     require 'LaTeXML/Post/MathML.pm';
     require 'LaTeXML/Post/PurgeXMath.pm';
-    my @mprocs = (LaTeXML::Post::MathML::Presentation->new(%PostOPS),
-		  LaTeXML::Post::MathML::Content->new(%PostOPS));
+    my @mprocs;
+    push @mprocs, LaTeXML::Post::MathML::Presentation->new(%PostOPS) if $$proctypes{'pmml'};
+    push @mprocs, LaTeXML::Post::MathML::Content->new(%PostOPS) if $$proctypes{'cmml'};
     my $main = shift(@mprocs);
-    $main->setParallel(@mprocs);
+    $main->setParallel(@mprocs) if $parallelmath;
     my @procs;
-    push(@procs,$main);
-    push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS));
-    require 'LaTeXML/Post/XSLT.pm'; 
+    push(@procs,$main); #If not parallel, only the first one goes through.
+    push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $$proctypes{'keepXMath'};
+    require 'LaTeXML/Post/XSLT.pm';
     my @csspaths=();
     foreach my $css (@css){
 	$css .= '.css' unless $css =~ /\.css$/;
