@@ -265,6 +265,7 @@ sub doPost {
     push @mprocs, LaTeXML::Post::MathML::Content->new(%PostOPS) if $$proctypes{'cmml'};
     my $main = shift(@mprocs);
     $main->setParallel(@mprocs) if $parallelmath;
+    $main->keepTeX if ($$proctypes{'keepTeX'} && $parallelmath);
     my @procs;
     push(@procs,$main); #If not parallel, only the first one goes through.
     push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $$proctypes{'keepXMath'};
@@ -299,6 +300,7 @@ sub doPost {
 	print STDERR "$@\n";
     }
     elsif ($extract eq "math") {
+	#Output to destination:
 	outputXML($postdoc->findnode('//m:math'),$postdest||"-");
     }
 }

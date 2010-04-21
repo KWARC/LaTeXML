@@ -50,6 +50,10 @@ sub setParallel {
   $$self{parallel}=1;
   $$self{math_processors} = [@moreprocessors]; }
 
+sub keepTeX {
+ my($self)=@_;
+  $$self{keepTeX}=1;}
+
 sub find_math_nodes {  $_[1]->findnodes('//ltx:Math'); }
 
 sub getQName {
@@ -60,7 +64,9 @@ sub getQName {
 sub processNode {
   my($self,$doc,$math)=@_;
   my $mode = $math->getAttribute('mode')||'inline';
+  my $sourceTeX = $math->getAttribute('tex')||''; #DG: keep TeX source
   my $xmath = $doc->findnode('ltx:XMath',$math);
+  $xmath->setAttribute('tex',$sourceTeX); #DG: keep TeX source
   my $style = ($mode eq 'display' ? 'display' : 'text');
   if($$self{parallel}){
     $doc->addNodes($math,$self->translateParallel($doc,$xmath,$style,'ltx:Math')); }
@@ -1184,11 +1190,18 @@ DefMathML('Apply:?:continued-fraction', sub {
 sub translateParallel {
   my($self,$doc,$xmath,$style,$embedding)=@_;
   $doc->addNamespace($mmlURI,'m');
+  #DG: Add TeX source as annotation
+  my $annoTeX;
+  if ($$self{keepTeX}) {
+      my $texsource = $xmath->getAttribute('tex');
+      $annoTeX = ['m:annotation',{encoding=>"TeX"},
+		     $texsource];
+  }
   my @trans = ['m:semantics',{},
 	       $self->translateNode($doc,$xmath,$style,'m:semantics'),
 	       map( ['m:annotation-xml',{encoding=>$_->getEncodingName},
 		     $_->translateNode($doc,$xmath,$style,'m:annotation-xml')],
-		    @{$$self{math_processors}}) ];
+		    @{$$self{math_processors}}), $annoTeX ];
   # Wrap unless already embedding within MathML.
   ($embedding =~ /^m:/ ? @trans 
    : ['m:math',{display=>($style eq 'display' ? 'block' : 'inline')},@trans]); }
