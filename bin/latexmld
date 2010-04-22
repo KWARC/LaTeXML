@@ -15,9 +15,10 @@ use LaTeXML::Util::ObjectDB;
 
 #**********************************************************************
 # Parse command line
+my @ARGV_SAVED = @ARGV;
 my $identity = "latexml (LaTeXML version $LaTeXML::VERSION)";
 my($verbosity,$strict,$comments,$noparse,$includestyles,
-   $errlog,$post,$parallelmath)=(0,0,1,0,0,0,0,0);
+   $errlog,$post,$parallelmath,$input_counter,$input_limit)=(0,0,1,0,0,0,0,0,0,0);
 my ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet)=('xml','fragment','','',{});
 my ($documentid);
 my $inputencoding;
@@ -37,6 +38,7 @@ GetOptions("destination=s" => \$destination,
 	   "bibtex"    => sub { $type='bibtex'; },
 	   "noparse"   => \$noparse,
 	   "mode=s"  => \$mode,
+	   "autoflush=s" => \$input_limit,
 	   "log=s"       => \$log,
 	   "includestyles"=> \$includestyles,
 	   "inputencoding=s"=>\$inputencoding,
@@ -66,6 +68,9 @@ if($showversion){ print STDERR "$identity\n"; exit(1); }
 print STDERR "$identity\n" unless $verbosity < 0;
 
 $mode = lc($mode);
+$input_limit=50000
+  if (($mode eq "math") && !$input_limit); #50k if not set and math
+$input_limit=10000 unless $input_limit; #Else, 10k
 $$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post));
 if ($mode eq "math") {
     #Preload math packages:
@@ -96,6 +101,10 @@ print STDERR "\n"; #Sanitize log.
 while(1) {
     my $source = <STDIN>;
     next unless $source;
+    $input_counter++;
+    #Flush daemon, every $input_limit files:
+    exec("latexmld ".join(" ",@ARGV_SAVED)) 
+      or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
     chomp $source;
     $source =~ s/^\s+//; #Cleanup space
     $source =~ s/\s+$//; #Cleanup space
