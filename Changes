@@ -1,3 +1,7 @@
+Branch 2010-22-04 (rev 1123-1129)
+ - Introduced --autoflush=C to restart the daemon after parsing C inputs
+ - Introduced --keepTeX to preserve TeX formula source as MathML annotation
+ - Bootstrapped $source when read on input, to facilitate redirecting to pipes.
 Branch 2010-19-04 (rev 1122)
  - Refactored latexmldaemon to have 3 "--mode"s: math,standard and fragment
  - Introduced latexmlmath functionality, tirggered by --math=mode

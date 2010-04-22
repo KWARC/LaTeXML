@@ -6,17 +6,15 @@ use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 use LaTeXML;
 use LaTeXML::Util::Pathname;
-use LaTeXML;
 use LaTeXML::Post;
 use LaTeXML::Post::Writer;
 use LaTeXML::Post::Scan;
 use LaTeXML::Util::Pathname;
-use LaTeXML::Util::ObjectDB;
 
 #**********************************************************************
 # Parse command line
-my @ARGV_SAVED = @ARGV;
-my $identity = "latexml (LaTeXML version $LaTeXML::VERSION)";
+my @ARGV_SAVED = @ARGV; #Save, so that we reinvoke when flushed
+my $identity = "latexmld (LaTeXML version $LaTeXML::VERSION)";
 my($verbosity,$strict,$comments,$noparse,$includestyles,
    $errlog,$post,$parallelmath,$input_counter,$input_limit)=(0,0,1,0,0,0,0,0,0,0);
 my ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet)=('xml','fragment','','',{});
@@ -45,7 +43,7 @@ GetOptions("destination=s" => \$destination,
 	   "post"      => \$post,
 	   "pmml"      => sub {$$procs_post{'pmml'}=1;},
 	   "cmml"      => sub {$$procs_post{'cmml'}=1;},
-	   "om"        => sub {$$procs_post{'om'}=1;},
+	   "openmath"  => sub {$$procs_post{'openmath'}=1;},
 	   "keepTeX"   => sub {$$procs_post{'keepTeX'}=1;},
 	   "keepXMath" => sub {$$procs_post{'keepXMath'}=1;},
 	   "parallelmath" => \$parallelmath,
@@ -368,11 +366,12 @@ __END__
 
 =head1 NAME
 
-C<latexml> - transforms a TeX/LaTeX file into XML.
+C<latexmld> - Daemon for latexml, latexmlpost and latexmlmath.
+Remains initialized in memory until ":q" or "" are given on input.
 
 =head1 SYNOPSIS
 
-latexml [options] I<texfile>
+latexmld [options]
 
  Options:
  --destination=file specifies destination file (fault stdout).
@@ -384,6 +383,9 @@ latexml [options] I<texfile>
  --path=dir         adds dir to the paths searched for files,
                     modules, etc; 
  --log=file         specifies log file (default: STDERR)
+ --autoflush=count  Automatically restart the daemon after 
+                    "count" inputs. Good practice for vast batch 
+                    jobs. (default: 10000)
  --documentid=id    assign an id to the document root.
  --quiet            suppress messages (can repeat)
  --verbose          more informative output (can repeat)
@@ -394,11 +396,22 @@ latexml [options] I<texfile>
  --box              requests box output after expansion
                     and digestion.
  --noparse          suppresses parsing math (default: off)
- --mode             standard|math|fragment parsing mode
-                    default: fragment
+ --mode=modename    Specify daemon parsing mode
+                    Supported: standard|math|fragment
+                    (default: fragment)
  --post             requests a followup postprocessing
  --stylesheet       specifies a stylesheet,
                     to be used by the postprocessor.
+ --pmml             converts math to Presentation MathML
+                    (default for xhtml format)
+ --cmml             converts math to Content MathML
+ --openmath         converts math to OpenMath 
+ --parallelmath     requests parallel math markup for MathML
+                    (off by default)
+ --keepTeX          keeps the TeX source of a formula as a MathML
+                    annotation element (requires --parallelmath)
+ --keepXMath        keeps the XMath of a formula as a MathML
+                    annotation-xml element (requires --parallelmath)
  --nocomments       omit comments from the output
  --inputencoding=enc specify the input encoding.
  --VERSION          show version number.
@@ -406,7 +419,9 @@ latexml [options] I<texfile>
                     package
  --help             shows this help message.
 
-If I<texfile> is '-', latexml reads the TeX source from standard input.
+In I<math> C<mode>, latexmld accepts one TeX formula per line on input.
+In I<standard> and I<fragment> C<mode>, latexmld accepts one I<texfile>
+filename per line on input.
 If I<texfile> has an explicit extention of C<.bib>, it is processed
 as a BibTeX bibliography.
 
@@ -452,6 +467,11 @@ Specifies the log file; be default any conversion messages are printed to stderr
 The Daemon allows using the #name, #dir and #ext patterns as variables for
 the base of the source filename, the source directory and the source file extension.
 An example would be: --log=#dir/#name.log
+
+=item C<--autoflush>=I<count>
+
+Automatically restart the daemon after converting "count" inputs.
+Good practice for vast batch jobs. (default: 10000)
 
 =item C<--documentid>=I<id>
 
@@ -504,22 +524,73 @@ and the result is printed.
 
 =item C<--mode>
 
-fragment: Default, parses \begin{document}...\end{document} fragments.
-          Assumes frontmatter is fixed, which achieves a big speedup since
-          no state reinitialization is necessary.
+fragment: Default, parses frontmatter and \begin{document}...\end{document} fragments.
+          Assumes that the documentclass is fixed (if any), which achieves a big speedup,
+          since no state reinitialization is necessary. Use the C<--preload> switch
+          to load the document class when invoking the daemon.
+          Example:  latexmld --preload=LaTeX.pool --preload=article.cls
+
 standard: Turns on the classic, unoptimized processing of documents as performed by latexml.
           This is suitable for processing sets of heterogeneous documents, but is slower in general.
+          Example:  latexmld --mode=standard
+
 math:     Like latexmlmath, parses a single TeX formula per line.
+          Example:  latexmld --mode=math --pmml --keepTeX --parallelmath
 
 =item C<--post>
 
-Request postprocessing of converted XML to XHTML. Currently we force parallel presentation and
-content MathML and no further customization is allowed. Future versions will be more flexible.
-However, the user can still specify a custom stylesheet via --stylesheet
+Request postprocessing of converted XML to XHTML. Default behaviour is
+creating XHTML output with Presentational MathML.
+
+=item C<--pmml>
+
+Requests conversion of math to Presentation MathML.
+Conversion is the default for xhtml format.
+
+=item C<--cmml>
+
+Requests or disables conversion of math to Content MathML.
+Conversion is disabled by default.
+B<Note> that this conversion is only partially implemented.
+
+=item C<--openmath>
+
+Requests or disables conversion of math to OpenMath.
+Conversion is disabled by default.
+B<Note> that this conversion is not yet implemented in the Daemon.
+
+=item C<--keepTeX>
+
+By default, when any of the MathML or OpenMath conversions
+are used, the source TeX formula will be removed;
+This option preserves it as a MathML annotation in parallel markup.
+B<Note> that C<--parallelmath> and C<--pmml> or C<--cmml> are required.
+
+=item C<--keepXMath>
+
+By default, when any of the MathML or OpenMath conversions
+are used, the intermediate math representation will be removed;
+This option preserves it as a MathML annotation in parallel markup.
+B<Note> that C<--parallelmath> and C<--pmml> or C<--cmml> are required.
+
+=item C<--parallelmath>
+
+Requests or disables parallel math markup.
+Parallel markup is the default for xhtml formats when multiple math
+formats are requested.
+
+This method uses the MathML C<semantics> element with additional formats
+appearing as C<annotation>'s.
+The first math format requested must be either Presentation or Content MathML;
+additional formats may be MathML or OpenMath.
+
+If this option is disabled and multiple formats are requested, the
+representations are simply stored as separate children of the C<Math> element.
+
 
 =item C<--stylesheet>=I<file>
 
-Sets a stylesheet of choice to be used by the postprocessor.
+Sets a stylesheet of choice to be used by the postprocessor. Requires C<--post>
 
 =item C<--nocomments>
 
