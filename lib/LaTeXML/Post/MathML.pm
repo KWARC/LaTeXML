@@ -66,7 +66,6 @@ sub processNode {
   my $mode = $math->getAttribute('mode')||'inline';
   my $sourceTeX = $math->getAttribute('tex')||''; #DG: keep TeX source
   my $xmath = $doc->findnode('ltx:XMath',$math);
-  $xmath->setAttribute('tex',$sourceTeX); #DG: keep TeX source
   my $style = ($mode eq 'display' ? 'display' : 'text');
   if($$self{parallel}){
     $doc->addNodes($math,$self->translateParallel($doc,$xmath,$style,'ltx:Math')); }
@@ -1193,7 +1192,9 @@ sub translateParallel {
   #DG: Add TeX source as annotation
   my $annoTeX;
   if ($$self{keepTeX}) {
-      my $texsource = $xmath->getAttribute('tex');
+      my $math =  $LaTeXML::Post::DOCUMENT->findnode('./ancestor::ltx:Math',$xmath);
+      return undef unless $math;
+      my $texsource = $math->getAttribute('tex');
       $annoTeX = ['m:annotation',{encoding=>"TeX"},
 		     $texsource];
   }

@@ -139,7 +139,7 @@ while(1) {
 	$clog=~s/#name/$name/eg;
 	$clog=~s/#dir/$dir/eg;
 	$clog=~s/#ext/$ext/eg;
-	open(LOG,">$clog");
+	open(LOG,">$clog") or die "Couldn't open log file $clog : $!\n";
 	*ERRORIG=*STDERR;
 	*STDERR = *LOG;
     }
@@ -239,7 +239,7 @@ while(1) {
 	if ($postlog) {
 	    #Add .post. to log name
 	    $postlog=~s/\.(\w+)$/".post.".$1/e;
-	    open(PLOG,">$postlog");
+	    open(PLOG,">$postlog") or die "Couldn't open log file $postlog: $!";
 	    *ERRORIG = *STDERR;
 	    *STDERR = *PLOG;
 	}
@@ -324,7 +324,7 @@ sub outputXML {
       print $serialized; 
   }
   else {
-      open(OUT,">$destination");
+      open(OUT,">$destination") or die "Couldn't open output file $destination: $!";
       print OUT $serialized;
       close OUT;
   }

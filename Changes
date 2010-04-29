@@ -1,3 +1,7 @@
+Branch 2010-29-04 (rev 1129-1131)
+ - Bootstrapped file handles in daemon
+ - Upgraded the --keepTeX fixes to MathML.pm to a clean solution 
+   (ready for merge)
 Branch 2010-22-04 (rev 1123-1129)
  - Introduced --autoflush=C to restart the daemon after parsing C inputs
  - Introduced --keepTeX to preserve TeX formula source as MathML annotation
