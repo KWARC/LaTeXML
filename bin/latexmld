@@ -16,7 +16,8 @@ use LaTeXML::Util::Pathname;
 my @ARGV_SAVED = @ARGV; #Save, so that we reinvoke when flushed
 my $identity = "latexmld (LaTeXML version $LaTeXML::VERSION)";
 my($verbosity,$strict,$comments,$noparse,$includestyles,
-   $errlog,$post,$parallelmath,$input_counter,$input_limit)=(0,0,1,0,0,0,0,0,0,0);
+   $errlog,$post,$parallelmath,$input_counter,$input_limit,
+   $timeout)=(0,0,1,0,0,0,0,0,0,0,60);
 my ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet)=('xml','fragment','','',{});
 my ($documentid);
 my $inputencoding;
@@ -37,6 +38,7 @@ GetOptions("destination=s" => \$destination,
 	   "noparse"   => \$noparse,
 	   "mode=s"  => \$mode,
 	   "autoflush=s" => \$input_limit,
+           "timeout=s"   => \$timeout,
 	   "log=s"       => \$log,
 	   "includestyles"=> \$includestyles,
 	   "inputencoding=s"=>\$inputencoding,
@@ -94,14 +96,23 @@ $latexml->withState(sub {
 });
 
 print STDERR "\n"; #Sanitize log.
+
+# install signal-handlers
+$SIG{'ALRM'} = 'dotimeout';
+$SIG{'TERM'} = 'doterm';
+$SIG{'INT'} = 'doterm';
+
 #**********************************************************************
 # Daemon has been set up, now process files on demand:
 while(1) {
     #Flush daemon, every $input_limit files:
     exec($0,@ARGV_SAVED) 
       or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
+    #Set timeout, if wanted:
+    alarm($timeout); #Timeout if inactive for too long...
     my $source = <STDIN>;
     next unless $source;
+    alarm(0); #We are processing, ignore timeout here
     $input_counter++;
     chomp $source;
     $source =~ s/^\s+//; #Cleanup space
@@ -361,6 +372,17 @@ EODoc
 $texdoc;
 }
 
+sub dotimeout {
+        print "Daemon timed out after inactivity.\n";
+        print "Self destructing...\n";
+        kill 'TERM', $$
+}
+
+sub doterm {
+        print "Exiting...\n";
+	exit;
+}
+
 #**********************************************************************
 __END__
 
@@ -386,6 +408,8 @@ latexmld [options]
  --autoflush=count  Automatically restart the daemon after 
                     "count" inputs. Good practice for vast batch 
                     jobs. (default: 10000)
+ --timeout=secs     Set a timeout value for inactivity.
+                    Default is 60 seconds, set 0 to disable.
  --documentid=id    assign an id to the document root.
  --quiet            suppress messages (can repeat)
  --verbose          more informative output (can repeat)
@@ -472,6 +496,12 @@ An example would be: --log=#dir/#name.log
 
 Automatically restart the daemon after converting "count" inputs.
 Good practice for vast batch jobs. (default: 10000)
+
+=item C<--timeout>=I<secs>
+
+Set an inactivity timeout value in seconds. If the daemon is not given any input
+for the timeout period it will automatically self-destruct.
+The default value is 60 seconds, set to 0 to disable.
 
 =item C<--documentid>=I<id>
 

@@ -1,3 +1,5 @@
+Branch 2010-29-04 (rev 1132)
+ - Adding --timeout as a Daemon switch (complete)
 Branch 2010-29-04 (rev 1129-1131)
  - Bootstrapped file handles in daemon
  - Upgraded the --keepTeX fixes to MathML.pm to a clean solution 
