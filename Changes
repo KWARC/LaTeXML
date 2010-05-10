@@ -1,9 +1,11 @@
+Branch 2010-11-05 (rev 1134)
+ - Bootstrapping and stability fixes.
+ - Allowed runtime customization of latexmls (test with latexmlc)
+ - Still some glitches remain, the exact way the switch overwriting works
+   needs some thought.
 Branch 2010-10-05 (rev 1133)
  - Adding Server and Client pair to the LaTeXML Daemon
-   bin/latexlms and bin/latexmlc
-   TODO: Customization by latexmlc switches while server is running
-         Carefully test and bootstrap all possible use-cases.
-         Add entries to the Manual   
+   bin/latexlms and bin/latexmlc 
 Branch 2010-29-04 (rev 1132)
  - Adding --timeout as a Daemon switch (complete)
 Branch 2010-29-04 (rev 1129-1131)

@@ -9,7 +9,7 @@ eval 'exec /usr/bin/perl -w -S $0 ${1+"$@"}'
 use strict;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
-use Getopt::Long qw(:config no_ignore_case);
+use Getopt::Long qw(GetOptionsFromString :config no_ignore_case);
 use Pod::Usage;
 use LaTeXML;
 use LaTeXML::Util::Pathname;
@@ -24,53 +24,73 @@ use IO::Socket;
 #**********************************************************************
 # Parse command line
 my @ARGV_SAVED = @ARGV; #Save, so that we reinvoke when flushed
-my $identity = "latexmld (LaTeXML version $LaTeXML::VERSION)";
+my $identity = "latexmld (LaTeXML version $LaTeXML::VERION)";
+#Since we allow runtime customization, we need two sets of the same
+# switch variables:
+#GLOBAL VARS
+my($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
+   $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
+   $_timeout,$_port,$_local)=(0,0,1,0,0,0,0,0,0,0,60,3334,0);
+my ($_format,$_mode,$_destination,$_log,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble)=('xml','fragment','','',{});
+my ($_documentid);
+my $_inputencoding;
+my $_type = 'auto';
+my @paths_ = ('.');
+my (@preload_,@debugs_);
+
+#LOCAL VARS
 my($verbosity,$strict,$comments,$noparse,$includestyles,
    $errlog,$post,$parallelmath,$input_counter,$input_limit,
-   $timeout,$port,$local)=(0,0,1,0,0,0,0,0,0,0,60,3334,0);
-my ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet,$preamble)=('xml','fragment','','',{});
+   $timeout,$port,$local)=
+  ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
+   $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
+   $_timeout,$_port,$_local);
+my ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet,$preamble)=
+  ($_format,$_mode,$_destination,$_log,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
 my ($documentid);
 my $inputencoding;
-my $type = 'auto';
-my @paths = ('.');
+my $type = $_type;
+my @paths = @paths_;
 my (@preload,@debugs);
-GetOptions("destination=s" => \$destination,
-	   "output=s"  => \$destination,
-	   "preload=s" => \@preload,
-	   "preamble=s" => \$preamble,
-	   "path=s"    => \@paths,
-	   "quiet"     => sub { $verbosity--; },
-	   "verbose"   => sub { $verbosity++; },
-	   "strict"    => \$strict,
-	   "xml"       => sub { $format = 'xml'; },
-	   "tex"       => sub { $format = 'tex'; },
-	   "box"       => sub { $format = 'box'; },
-	   "bibtex"    => sub { $type='bibtex'; },
-	   "noparse"   => \$noparse,
-	   "mode=s"  => \$mode,
-	   "autoflush=s" => \$input_limit,
-           "timeout=s"   => \$timeout,
-           "port=s"      => \$port,
-           "local"       => \$local,
-	   "log=s"       => \$log,
-	   "includestyles"=> \$includestyles,
-	   "inputencoding=s"=>\$inputencoding,
-	   "post"      => \$post,
-	   "pmml"      => sub {$$procs_post{'pmml'}=1;},
-	   "cmml"      => sub {$$procs_post{'cmml'}=1;},
-	   "openmath"  => sub {$$procs_post{'openmath'}=1;},
-	   "keepTeX"   => sub {$$procs_post{'keepTeX'}=1;},
-	   "keepXMath" => sub {$$procs_post{'keepXMath'}=1;},
-	   "parallelmath" => \$parallelmath,
-	   "stylesheet=s"=>\$stylesheet,
-	   "comments!" => \$comments,
-	   "VERSION"   => \$showversion,
+
+#Read global variables
+GetOptions("destination=s" => \$_destination,
+	   "output=s"  => \$_destination,
+	   "preload=s" => \@preload_,
+	   "preamble=s" => \$_preamble,
+	   "path=s"    => \@paths_,
+	   "quiet"     => sub { $_verbosity--; },
+	   "verbose"   => sub { $_verbosity++; },
+	   "strict"    => \$_strict,
+	   "xml"       => sub { $_format = 'xml'; },
+	   "tex"       => sub { $_format = 'tex'; },
+	   "box"       => sub { $_format = 'box'; },
+	   "bibtex"    => sub { $_type='bibtex'; },
+	   "noparse"   => \$_noparse,
+	   "mode=s"  => \$_mode,
+	   "autoflush=s" => \$_input_limit,
+           "timeout=s"   => \$_timeout,
+           "port=s"      => \$_port,
+           "local"       => \$_local,
+	   "log=s"       => \$_log,
+	   "includestyles"=> \$_includestyles,
+	   "inputencoding=s"=>\$_inputencoding,
+	   "post"      => \$_post,
+	   "pmml"      => sub {$$_procs_post{'pmml'}=1;},
+	   "cmml"      => sub {$$_procs_post{'cmml'}=1;},
+	   "openmath"  => sub {$$_procs_post{'openmath'}=1;},
+	   "keepTeX"   => sub {$$_procs_post{'keepTeX'}=1;},
+	   "keepXMath" => sub {$$_procs_post{'keepXMath'}=1;},
+	   "parallelmath" => \$_parallelmath,
+	   "stylesheet=s"=>\$_stylesheet,
+	   "comments!" => \$_comments,
+	   "VERSION"   => \$_showversion,
 	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
-	   "documentid=s" => \$documentid,
-	   "help"      => \$help,
+	   "documentid=s" => \$_documentid,
+	   "help"      => \$_help,
 	  ) or pod2usage(-message => $identity, -exitval=>1, -verbose=>0, -output=>\*STDERR);
-pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
-if($showversion){ print STDERR "$identity\n"; exit(1); }
+pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $_help;
+if($_showversion){ print STDERR "$identity\n"; exit(1); }
 
 #This is obsolete in daemon mode:
 #pod2usage(-message=>"$identity\nMissing input TeX file", 
@@ -79,10 +99,26 @@ if($showversion){ print STDERR "$identity\n"; exit(1); }
 #**********************************************************************
 #Set up the server
 my $server = setup_server($port);
+#Setting up Daemon
+daemonize();
 
 #**********************************************************************
 # Set up the processing.
 print STDERR "$identity\n" unless $verbosity < 0;
+
+#Setup LOCAL VARS
+($verbosity,$strict,$comments,$noparse,$includestyles,
+ $errlog,$post,$parallelmath,$input_counter,$input_limit,
+ $timeout,$port,$local)=
+  ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
+   $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
+   $_timeout,$_port,$_local);
+($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet,$preamble)=
+        ($_format,$_mode,$_destination,$_log,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
+$documentid=$_documentid;
+$inputencoding=$_inputencoding;
+$type = $_type;
+@paths = @paths_; @preload=@preload_; @debugs=@debugs_;
 
 $mode = lc($mode);
 $input_limit=50000
@@ -119,8 +155,6 @@ $SIG{'ALRM'} = 'dotimeout';
 $SIG{'TERM'} = 'doterm';
 $SIG{'INT'} = 'doterm';
 
-#Setting up Daemon
-daemonize();
 #Flush daemon, every $input_limit files:
 exec($0,@ARGV_SAVED) 
   or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
@@ -131,7 +165,64 @@ alarm($timeout);              #Timeout if inactive for too long...
 # Daemon has been set up, now process files on demand:
 while ( my $client = $server->accept() ) {
   my $source = '';
+  my $sockstart=1;
   while (my $line = <$client>) {
+    if ($sockstart) {
+      #Accept customizations for each input:
+      #Setup LOCAL VARS
+      ($verbosity,$strict,$comments,$noparse,$includestyles,
+       $errlog,$post,$parallelmath,$input_counter,$input_limit,
+       $timeout,$port,$local)=
+         ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
+          $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
+          $_timeout,$_port,$_local);
+      ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet,$preamble)=
+        ($_format,$_mode,$_destination,$_log,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
+      $documentid=$_documentid;
+      $inputencoding=$_inputencoding;
+      $type = $_type;
+      @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
+      #Parse overwrites from current input:
+      my ($ret,$args) = GetOptionsFromString($line,
+           "destination=s" => \$destination,
+	   "output=s"  => \$destination,
+	   "preload=s" => \@preload,
+	   "preamble=s" => \$preamble,
+	   "path=s"    => \@paths,
+	   "quiet"     => sub { $verbosity--; },
+	   "verbose"   => sub { $verbosity++; },
+	   "strict"    => \$strict,
+	   "xml"       => sub { $format = 'xml'; },
+	   "tex"       => sub { $format = 'tex'; },
+	   "box"       => sub { $format = 'box'; },
+	   "bibtex"    => sub { $type='bibtex'; },
+	   "noparse"   => \$noparse,
+	   "mode=s"  => \$mode,
+	   "autoflush=s" => \$input_limit,
+           "timeout=s"   => \$timeout,
+           "port=s"      => \$port,
+           "local"       => \$local,
+	   "log=s"       => \$log,
+	   "includestyles"=> \$includestyles,
+	   "inputencoding=s"=>\$inputencoding,
+	   "post"      => \$post,
+	   "pmml"      => sub {$$procs_post{'pmml'}=1;},
+	   "cmml"      => sub {$$procs_post{'cmml'}=1;},
+	   "openmath"  => sub {$$procs_post{'openmath'}=1;},
+	   "keepTeX"   => sub {$$procs_post{'keepTeX'}=1;},
+	   "keepXMath" => sub {$$procs_post{'keepXMath'}=1;},
+	   "parallelmath" => \$parallelmath,
+	   "stylesheet=s"=>\$stylesheet,
+	   "comments!" => \$comments,
+	   "VERSION"   => \$showversion,
+	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
+	   "documentid=s" => \$documentid,
+	   "help"      => \$help,
+      );
+      pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
+      $source.=join(" ",grep($_ !~ /^--/,@$args));
+      $sockstart=0; next;
+    }
     last if ($line =~ /^(\s*)END REQUEST(\s*)$/);
     $source .= $line;
   }
@@ -142,7 +233,7 @@ while ( my $client = $server->accept() ) {
   chomp $source;
   $source =~ s/^\s+//;                     #Cleanup space
   $source =~ s/\s+$//;                     #Cleanup space
-  last if (!$source || ($source eq ""));   #empty marks we're done
+  last if (!$source || ($source eq ":q"));   #:q marks we're done
   #Instantiate targets for current input
   my ($dir,$name,$ext) = pathname_split($source);
   #Redirect to logfile, if requested:
@@ -155,7 +246,9 @@ while ( my $client = $server->accept() ) {
     open(LOG,">$clog") or die "Couldn't open log file $clog : $!\n";
     *ERRORIG=*STDERR;
     *STDERR = *LOG;
-  } #No log if not local (STDERR redirects to /dev/null)
+  } else {
+    #No log if not local (STDERR redirects to /dev/null)
+  }
   my $cdest;
   if ($destination && $local) {
     $cdest = $destination;
@@ -357,7 +450,6 @@ sub doPost {
   my ($postlog,$postdest,$stylesheet,$dom,$extract,$parallelmath,$proctypes,$isStream)= 
     map ($options{$_},qw(log dest stylesheet dom mode parallel procs isStream));
   #Postprocess
-  #TODO: Make this scalable, currently the arXMLiv default is hardcoded
   $stylesheet = "LaTeXML-xhtml.xsl" unless $stylesheet;
   my @css = ("core.css");
   $parallelmath = $parallelmath||0;
@@ -506,12 +598,13 @@ __END__
 
 =head1 NAME
 
-C<latexmld> - Daemon for latexml, latexmlpost and latexmlmath.
-Remains initialized in memory until ":q" or "" are given on input.
+C<latexmls> - A server for latexml, latexmlpost and latexmlmath.
+Remains initialized in memory until ":q" is given on input or an
+inactivity timeout occurs.
 
 =head1 SYNOPSIS
 
-latexmld [options]
+latexmls [options]
 
  Options:
  --destination=file specifies destination file, requires --local.
@@ -565,11 +658,21 @@ latexmld [options]
                     package
  --help             shows this help message.
 
-In I<math> C<mode>, latexmld accepts one TeX formula per line on input.
-In I<standard> and I<fragment> C<mode>, latexmld accepts one I<texfile>
-filename per line on input.
+In I<math> C<mode>, latexmls accepts one TeX formula on input.
+In I<standard> and I<fragment> C<mode>, latexmls accepts one I<texfile>
+filename per line on input, but only when --local is specified.
 If I<texfile> has an explicit extention of C<.bib>, it is processed
 as a BibTeX bibliography.
+
+Each communication session allows local option overwriting on the first sent line.
+The input will be read until a line containing "END OF REQUEST" is found. Please
+take this into account to avoid hanging.
+
+=head1 ToDo List
+
+This is an early release, which has a list of future features planned. They include:
+- Support fragments and standard LaTeX files sent via the socket, in addition to the filename scheme.
+- Allow log transmission.
 
 =head1 OPTIONS AND ARGUMENTS
 
@@ -788,7 +891,7 @@ Shows this help message.
 
 =head1 SEE ALSO
 
-L<latexml>, L<latexmlpost>, L<latexmlmath>, L<LaTeXML>
+L<latexmlc>, L<latexmld>, L<latexml>, L<latexmlpost>, L<latexmlmath>, L<LaTeXML>
 
 =cut
 #**********************************************************************
