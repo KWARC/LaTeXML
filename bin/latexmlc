@@ -1,0 +1,57 @@
+#!/usr/bin/perl -w
+
+#######################
+# A Client for LaTeXML
+#######################
+
+use strict;
+use FindBin;
+use lib "$FindBin::RealBin/../lib";
+use Pod::Usage;
+use Carp;
+use IO::Socket;
+
+my @opts = grep ($_ =~ /^-/,@ARGV);
+my @args = grep ($_ !~ /^-/,@ARGV);
+
+my $daemonpid = latexmlspid();
+
+unless ($daemonpid) {
+  #Startup daemon with @opts and feed in args
+  push(@opts,'--local'); #bootstrap local switch.
+  system('latexmls',@opts,"2>/dev/null");
+}
+croak "Error: Could not start a LaTeXML Server!\n" unless latexmlspid();
+my ($port) = grep {$_ =~ /^--port=(\d+)$/; $_=$1;} @opts;
+$port = 3334 unless $port; #Default is 3334
+
+#Daemon is running, feed in @args and @opts
+foreach my $arg(@args) {
+  my $text;
+  my $sock = new IO::Socket::INET 
+    ( PeerAddr => '127.0.0.1',
+      PeerPort => $port,
+      Proto => 'tcp',
+    );
+  croak "Could not create socket: $!\n" unless $sock; 
+  $sock->send($arg."\nEND REQUEST\n");
+  $sock->recv($text,1024);
+  print $text;
+  close($sock);
+}
+
+
+#****************************************************
+#Helper Subroutines:
+
+sub latexmlspid { 
+    my $pid;
+    open(PSEF_PIPE,"ps -e|grep latexmls|"); 
+    while (<PSEF_PIPE>) {
+	chomp;
+        $_ =~ s/^\s*//g; #Remove leading whitespace
+        ($pid) = split(/\s/, $_);
+    }
+    close(PSEF_PIPE);
+    $pid;
+}
