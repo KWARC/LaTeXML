@@ -23,10 +23,11 @@ $port = 3334 unless $port; #Default is 3334
 
 #***************************************************************************
 #Need absolute arguments, paths, preamble, preload, destination and log:
+my $cdir = cwd();
 #ARGUMENTS
 my @absargs;
 foreach (@args) {
-  $_ = pathname_absolute($_,'.') if (-e $_);
+  $_ = pathname_absolute($_,$cdir) if (-e $_);
   push (@absargs,$_);
 } @args = @absargs;
 #PATHS
@@ -38,24 +39,24 @@ foreach (@paths) {
 #PREAMBLE
 my ($preamble) = map {$_=~/^--preamble=(.+)$/; $1;} grep {$_ =~ /^--preamble=(.+)$/;} @opts;
 @opts = grep {$_ !~ /^--preamble=(.+)$/;} @opts;
-push(@opts,'--preamble='.abs_path($preamble));
+push(@opts,'--preamble='.pathname_absolute($preamble,$cdir)) if $preamble;
 #PRELOAD
 @paths = map {$_=~/^--preload=(.+)$/; $1;} grep {$_ =~ /^--preload=(.+)$/;} @opts;
  @opts = grep {$_ !~ /^--preload=(.+)$/;} @opts;
 foreach (@paths) {
-  push(@opts,'--preload='.abs_path($_));
+  push(@opts,'--preload='.pathname_absolute($_,$cdir)) if $_;
 }
 #DESTINATION
-@paths = map {$_=~/^--(destination|output)=(.+)$/; $1;} grep {$_ =~ /^--(destination|output)=(.+)$/;} @opts;
+@paths = map {$_=~/^--(destination|output)=(.+)$/; $2;} grep {$_ =~ /^--(destination|output)=(.+)$/;} @opts;
  @opts = grep {$_ !~ /^--(destination|output)=(.+)$/;} @opts;
 foreach (@paths) {
-  push(@opts,'--destination='.abs_path($_));
+  push(@opts,'--destination='.pathname_absolute($_,$cdir)) if $_;
 }
 #LOG
 @paths = map {$_=~/^--log=(.+)$/; $1;} grep {$_ =~ /^--log=(.+)$/;} @opts;
  @opts = grep {$_ !~ /^--log=(.+)$/;} @opts;
 foreach (@paths) {
-  push(@opts,'--log='.abs_path($_));
+  push(@opts,'--log='.pathname_absolute($_,$cdir)) if $_;
 }
 ###
 
@@ -69,7 +70,7 @@ my $sock = new IO::Socket::INET
 unless ($sock) {
   #Startup daemon with @opts and feed in args
   push(@opts,'--local'); #bootstrap local switch.
-  push(@opts,'--path='.cwd());#add current path
+  push(@opts,'--path='.$cdir);#add current path
   print join(" ",@opts)."\n";
   system('latexmls',@opts);
 }
