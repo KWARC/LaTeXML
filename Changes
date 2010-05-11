@@ -1,3 +1,8 @@
+Branch 2010-11-05 (rev 1135)
+ - Fragments must not have \begin{document}\end{document} wrappers,
+   included automatically. TODO: Make this smarter
+ - --preamble is now proprely activated
+ - some fixes on runtime customization for --switches.
 Branch 2010-11-05 (rev 1134)
  - Bootstrapping and stability fixes.
  - Allowed runtime customization of latexmls (test with latexmlc)
