@@ -122,15 +122,15 @@ sub digestFileDaemonized {
 							Tokens(Explode($name))));
     #Note that we first open the \end and then the \begin
     #Since we have a stack and not a queue.
-    if ($mode eq "fragment") {
+     if ($mode eq "fragment" && $state->lookupDefinition(T_CS("\\begin{document}"))) {
        #End {document}
        my $edoc = '\\end{document}';
        $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($edoc),0);
      }
      #Digest input
      $state->getStomach->getGullet->input($pathname);
-     if ($mode eq "fragment") {
-       #Wrap fragments in a {document} environment
+     #Wrap LaTeX fragments in a {document} environment
+     if ($mode eq "fragment" && $state->lookupDefinition(T_CS("\\begin{document}"))) {
        my $bdoc = '\\begin{document}';
        $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($bdoc),0);
      }

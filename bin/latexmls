@@ -300,7 +300,7 @@ while ( my $client = $server->accept() ) {
     }
     
     doPost(log=>$clog,dest=>$cdest,stylesheet=>$stylesheet,dom=>$dom,
-           mode=>"math",parallel=>$parallelmath,procs=>$procs_post,isStream=>($cdest==$client));
+           mode=>"math",parallel=>$parallelmath,procs=>$procs_post,isStream=>($cdest eq $client));
     undef $texdoc;
     #Move to next...
     exec($0,@ARGV_SAVED) 
