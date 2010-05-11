@@ -92,18 +92,24 @@ if(my @baddirs = grep(! -d $_, @paths)){
     warn "$identity: these path directories do not exist: ".join(', ',@baddirs)."\n"; }
 binmode(STDERR,":utf8");
 
+# install signal-handlers
+$SIG{'ALRM'} = 'dotimeout';
+$SIG{'TERM'} = 'doterm';
+$SIG{'INT'} = 'doterm';
+
 #Initialize state:
 $latexml->withState(sub {
   my($state)=@_;
   $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
 });
+# Preload the preamble if any
+if ($preamble && $mode eq "fragment") {
+  #TODO: It is difficult to digest 2 files via LaTeXML right now...
+  $latexml->digestFileDaemonized($preamble,"standard"; 
+}
 
 print STDERR "\n"; #Sanitize log.
 
-# install signal-handlers
-$SIG{'ALRM'} = 'dotimeout';
-$SIG{'TERM'} = 'doterm';
-$SIG{'INT'} = 'doterm';
 
 #**********************************************************************
 # Daemon has been set up, now process files on demand:
@@ -192,7 +198,7 @@ while(1) {
 	if ($type eq 'bibtex'){
 	    $digested = $latexml->digestBibTeXFileDaemonized($source); }
 	else {
-	    $digested = $latexml->digestFileDaemonized($source); 
+	    $digested = $latexml->digestFileDaemonized($source,$mode); 
 	}
 	# ========================================
 	# Now, convert to DOM and output, if desired.

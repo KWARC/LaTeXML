@@ -9,14 +9,58 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use Pod::Usage;
 use Carp;
+use Cwd qw(cwd abs_path);
 use IO::Socket;
+use LaTeXML::Util::Pathname;
 
 my @opts = grep ($_ =~ /^-/,@ARGV);
 my @args = grep ($_ !~ /^-/,@ARGV);
 
+#Need to make all paths absolute
+
 my ($port) = map {$_=~/(\d+)/; $1;} grep {$_ =~ /^--port=(\d+)$/;} @opts;
 $port = 3334 unless $port; #Default is 3334
 
+#***************************************************************************
+#Need absolute arguments, paths, preamble, preload, destination and log:
+#ARGUMENTS
+my @absargs;
+foreach (@args) {
+  $_ = pathname_absolute($_,'.') if (-e $_);
+  push (@absargs,$_);
+} @args = @absargs;
+#PATHS
+my @paths = map {$_=~/^--path=(.+)$/; $1;} grep {$_ =~ /^--path=(.+)$/;} @opts;
+ @opts = grep {$_ !~ /^--path=(.+)$/;} @opts;
+foreach (@paths) {
+  push(@opts,'--path='.abs_path($_));
+}
+#PREAMBLE
+my ($preamble) = map {$_=~/^--preamble=(.+)$/; $1;} grep {$_ =~ /^--preamble=(.+)$/;} @opts;
+@opts = grep {$_ !~ /^--preamble=(.+)$/;} @opts;
+push(@opts,'--preamble='.abs_path($preamble));
+#PRELOAD
+@paths = map {$_=~/^--preload=(.+)$/; $1;} grep {$_ =~ /^--preload=(.+)$/;} @opts;
+ @opts = grep {$_ !~ /^--preload=(.+)$/;} @opts;
+foreach (@paths) {
+  push(@opts,'--preload='.abs_path($_));
+}
+#DESTINATION
+@paths = map {$_=~/^--(destination|output)=(.+)$/; $1;} grep {$_ =~ /^--(destination|output)=(.+)$/;} @opts;
+ @opts = grep {$_ !~ /^--(destination|output)=(.+)$/;} @opts;
+foreach (@paths) {
+  push(@opts,'--destination='.abs_path($_));
+}
+#LOG
+@paths = map {$_=~/^--log=(.+)$/; $1;} grep {$_ =~ /^--log=(.+)$/;} @opts;
+ @opts = grep {$_ !~ /^--log=(.+)$/;} @opts;
+foreach (@paths) {
+  push(@opts,'--log='.abs_path($_));
+}
+###
+
+#***************************************************************************
+#Setup client and communicate
 my $sock = new IO::Socket::INET
   ( PeerAddr => '127.0.0.1',
     PeerPort => $port,
@@ -25,6 +69,8 @@ my $sock = new IO::Socket::INET
 unless ($sock) {
   #Startup daemon with @opts and feed in args
   push(@opts,'--local'); #bootstrap local switch.
+  push(@opts,'--path='.cwd());#add current path
+  print join(" ",@opts)."\n";
   system('latexmls',@opts);
 }
 

@@ -24,7 +24,7 @@ use IO::Socket;
 #**********************************************************************
 # Parse command line
 my @ARGV_SAVED = @ARGV; #Save, so that we reinvoke when flushed
-my $identity = "latexmld (LaTeXML version $LaTeXML::VERION)";
+my $identity = "latexmld (LaTeXML version $LaTeXML::VERSION)";
 #Since we allow runtime customization, we need two sets of the same
 # switch variables:
 #GLOBAL VARS
@@ -105,6 +105,11 @@ daemonize();
 #**********************************************************************
 # Set up the processing.
 print STDERR "$identity\n" unless $verbosity < 0;
+$_mode = lc($_mode);
+$_input_limit=50000
+  if (($mode eq "math") && (!$_input_limit || $_input_limit<1)); #50k if not set and math or if wrong
+$_input_limit=10000 unless ($_input_limit && $_input_limit>0); #Else, 10k
+$$_procs_post{'pmml'}=1 unless (scalar(keys %$_procs_post));
 
 #Setup LOCAL VARS
 ($verbosity,$strict,$comments,$noparse,$includestyles,
@@ -120,11 +125,6 @@ $inputencoding=$_inputencoding;
 $type = $_type;
 @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
 
-$mode = lc($mode);
-$input_limit=50000
-  if (($mode eq "math") && (!$input_limit || $input_limit<1)); #50k if not set and math or if wrong
-$input_limit=10000 unless ($input_limit && $input_limit>0); #Else, 10k
-$$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post));
 if ($mode eq "math") {
     #Preload math packages:
     my  @mathpreload = ("LaTeX.pool", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
@@ -142,18 +142,22 @@ if(my @baddirs = grep(! -d $_, @paths)){
     warn "$identity: these path directories do not exist: ".join(', ',@baddirs)."\n"; }
 binmode(STDERR,":utf8");
 
+# install signal-handlers
+$SIG{'ALRM'} = 'dotimeout';
+$SIG{'TERM'} = 'doterm';
+$SIG{'INT'} = 'doterm';
+
 #Initialize state:
 $latexml->withState(sub {
   my($state)=@_;
   $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
 });
-
 print STDERR "\n"; #Sanitize log.
-
-# install signal-handlers
-$SIG{'ALRM'} = 'dotimeout';
-$SIG{'TERM'} = 'doterm';
-$SIG{'INT'} = 'doterm';
+# Preload the preamble if any
+if ($preamble && $mode eq "fragment") {
+  #TODO: It is difficult to digest 2 files via LaTeXML right now...
+  $latexml->digestFileDaemonized($preamble); 
+}
 
 #Flush daemon, every $input_limit files:
 exec($0,@ARGV_SAVED) 
@@ -350,7 +354,7 @@ while ( my $client = $server->accept() ) {
     if ($type eq 'bibtex') {
       $digested = $latexml->digestBibTeXFileDaemonized($source);
     } else {
-      $digested = $latexml->digestFileDaemonized($source); 
+      $digested = $latexml->digestFileDaemonized($source,$mode); 
     }
     # ========================================
     # Now, convert to DOM and output, if desired.

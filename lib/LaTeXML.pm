@@ -105,7 +105,7 @@ sub digestFile {
 }
 
 sub digestFileDaemonized {
-  my($self,$file)=@_;
+  my($self,$file,$mode)=@_;
   $file =~ s/\.tex$//;
   $self->withState(sub {
      my($state)=@_;
@@ -120,7 +120,21 @@ sub digestFileDaemonized {
      $state->pushValue(SEARCHPATHS=>$dir);
      $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
 							Tokens(Explode($name))));
+    #Note that we first open the \end and then the \begin
+    #Since we have a stack and not a queue.
+    if ($mode eq "fragment") {
+       #End {document}
+       my $edoc = '\\end{document}';
+       $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($edoc),0);
+     }
+     #Digest input
      $state->getStomach->getGullet->input($pathname);
+     if ($mode eq "fragment") {
+       #Wrap fragments in a {document} environment
+       my $bdoc = '\\begin{document}';
+       $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($bdoc),0);
+     }
+
      my $list = $self->finishDigestion;
      $state->popValue('SEARCHPATHS');
      NoteEnd("Digesting $file");
