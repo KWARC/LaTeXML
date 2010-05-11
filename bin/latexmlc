@@ -71,7 +71,6 @@ unless ($sock) {
   #Startup daemon with @opts and feed in args
   push(@opts,'--local'); #bootstrap local switch.
   push(@opts,'--path='.$cdir);#add current path
-  print join(" ",@opts)."\n";
   system('latexmls',@opts);
 }
 
