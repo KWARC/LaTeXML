@@ -575,7 +575,8 @@ sub doterm {
 }
 
 sub daemonize {
-    chdir '/'                 or croak "Can't chdir to /: $!";
+    #chdir '/'                 or croak "Can't chdir to /: $!";
+    #This causes more problems than it solves (e.g. sTeX setup)
     open STDIN, '/dev/null'   or croak "Can't read /dev/null: $!";
     open STDOUT, '>/dev/null' or croak "Can't write to /dev/null: $!";
     defined(my $pid = fork)   or croak "Can't fork: $!";
