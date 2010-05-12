@@ -291,6 +291,11 @@ while ( my $client = $server->accept() ) {
                             my($state)=@_;
                             $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
                           });
+      # Preload the preamble if any
+      if ($preamble && $mode eq "fragment") {
+        #TODO: It is difficult to digest 2 files via LaTeXML right now...
+        $latexml->digestFileDaemonized($preamble); 
+      }
       print STDERR "\n";        #Again, flush log
       #Move to next...
       exec($0,@ARGV_SAVED)
@@ -342,6 +347,11 @@ while ( my $client = $server->accept() ) {
                           my($state)=@_;
                           $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
                         });
+    # Preload the preamble if any
+    if ($preamble && $mode eq "fragment") {
+      #TODO: It is difficult to digest 2 files via LaTeXML right now...
+      $latexml->digestFileDaemonized($preamble); 
+    }
     print STDERR "\n";          #Again, flush log
   }
   #Continue with processing in standard and fragment cases:
@@ -389,6 +399,11 @@ while ( my $client = $server->accept() ) {
                           my($state)=@_;
                           $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
                         });
+    # Preload the preamble if any
+    if ($preamble && $mode eq "fragment") {
+      #TODO: It is difficult to digest 2 files via LaTeXML right now...
+      $latexml->digestFileDaemonized($preamble); 
+    }
     print STDERR "\n";          #Again, flush log
     #Move to next...
     exec($0,@ARGV_SAVED) 
