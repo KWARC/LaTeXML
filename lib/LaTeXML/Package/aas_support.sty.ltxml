@@ -161,12 +161,14 @@ DefConstructor('\facility{}',"<ltx:text class='facility'>#1</ltx:text>");
 #======================================================================
 # 2.11 Appendices
 # almost normal LaTeX
-DefPrimitive('\appendix',sub{
+DefMacro('\appendix','\@appendix');
+DefPrimitive('\@appendix',sub{
   NewCounter('section', 'document', idprefix=>'A',nested=>['subsection']);
   NewCounter('equation', 'section', idprefix=>'E');
   DefMacro('\thesection', '\Alph{section}');
   DefMacro('\theequation','\thesection\arabic{equation}');
   Let(T_CS('\section'),T_CS('\appendix@section'),'global');
+  Let(T_CS('\@appendix'),T_CS('\relax'),'global');
  });
 
 #======================================================================
@@ -218,14 +220,7 @@ DefConstructor('\references',
 	       "<ltx:bibliography xml:id='#id'>"
 	       . "<ltx:title>#refname</ltx:title>"
 	       . "<ltx:biblist>",
-	       afterDigest=>sub { 
-		 my $docid = ToString(Expand(T_CS('\thedocument@ID')));
-		 ResetCounter('enumiv');
-		 DefMacroI(T_CS('\thebibliography@ID'),undef,($docid ? "$docid.bib" : 'bib'));
-		 $_[1]->setProperty(id=>ToString(Expand(T_CS('\thebibliography@ID'))));
-		 $_[1]->setProperty(refname=>Digest(T_CS('\refname')));  
-		 # Fix for missing \bibitems!
-		 setupPseudoBibitem(); });
+	       afterDigest=>sub { beginBibliography($_[1]); });
 DefConstructor('\endreferences',
 	       "</ltx:biblist></ltx:bibliography>");
 

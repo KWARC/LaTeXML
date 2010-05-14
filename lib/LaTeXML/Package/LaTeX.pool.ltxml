@@ -184,7 +184,8 @@ DefEnvironment('{document}', sub {
 		 Digest(Tokens(@{LookupValue('@at@begin@document')}));  },
 	       afterDigest=> sub {
 		 $_[0]->getGullet->flush; 
-		 Digest(Tokens(@{LookupValue('@at@end@document')}));  });
+		 Digest(Tokens(@{LookupValue('@at@end@document')}));  },
+	       mode=>'text');
 
 #**********************************************************************
 # C.3. Sentences and Paragraphs
@@ -578,7 +579,7 @@ DefEnvironment('{abstract}','',
  		      ['ltx:abstract',undef,@LaTeXML::LIST]);
 		 DefMacroI('\maybe@end@abstract',undef,Tokens());
  		 return; },
-	       locked=>1);
+	       locked=>1, mode=>'text');
 DefMacroI('\maybe@end@abstract',undef, '\endabstract');
 
 DefMacroI('\abstractname',undef, 'Abstract'); # never used?
@@ -612,7 +613,7 @@ DefEnvironment('{titlepage}','<ltx:titlepage>#body',
 				  Info(":unexpected:titlepage Frontmatter will not be well-structured");
 				return; },
 	       beforeDigestEnd=>sub { Digest(T_CS('\maybe@end@title')); },
-	       locked=>1);
+	       locked=>1, mode=>'text');
 #DefConstructor('\title@cr[]',"<ltx:subtitle>",
 #	       beforeDigest=>sub {  Digest(T_CS('\maybe@end@title')); });
 
@@ -681,14 +682,17 @@ DefConstructorI('\@block@cr',undef,  "<ltx:break/>",
 	       reversion=>Tokens(T_CS("\\\\"),T_CR));
 DefEnvironment('{quote}',   
 	       '<ltx:quote>#body</ltx:quote>',
-	       beforeDigest=>sub{ Let(T_CS('\\\\'),T_CS('\@block@cr'));});
+	       beforeDigest=>sub{ Let(T_CS('\\\\'),T_CS('\@block@cr'));},
+	       mode=>'text');
 DefEnvironment('{quotation}',
 	       '<ltx:quote>#body</ltx:quote>',
-	       beforeDigest=>sub{ Let(T_CS('\\\\'),T_CS('\@block@cr')); });
+	       beforeDigest=>sub{ Let(T_CS('\\\\'),T_CS('\@block@cr')); },
+	       mode=>'text');
 # NOTE: Handling of \\ within these environments?
 DefEnvironment('{verse}',
 	       '<ltx:quote class="verse">#body</ltx:quote>',
-	       beforeDigest=>sub{ Let(T_CS('\\\\'),T_CS('\@block@cr'));});
+	       beforeDigest=>sub{ Let(T_CS('\\\\'),T_CS('\@block@cr'));},
+	       mode=>'text');
 
 #======================================================================
 # C.6.2 List-Making environments
@@ -774,15 +778,15 @@ DefConstructor('\description@item[]',
 DefEnvironment('{itemize}',
 	       "<ltx:itemize xml:id='#id'>#body</ltx:itemize>",
 	       properties=>sub { beginItemize('itemize'); },
-	       locked=>1);
+	       locked=>1, mode=>'text');
 DefEnvironment('{enumerate}',
 	       "<ltx:enumerate  xml:id='#id'>#body</ltx:enumerate>",
 	       properties=>sub { beginItemize('enumerate'); },
-	       locked=>1);
+	       locked=>1, mode=>'text');
 DefEnvironment('{description}',
 	       "<ltx:description  xml:id='#id'>#body</ltx:description>",
 	       properties=>sub { beginItemize('description'); },
-	       locked=>1);
+	       locked=>1, mode=>'text');
 DefMacro('\descriptionlabel{}','#1');
 
 # NOTE: Do I need to do anything with
@@ -2078,17 +2082,41 @@ DefConstructor('\pageref OptionalMatch:* Semiverbatim', "<ltx:ref labelref='#lab
 DefMacroI('\bibname',undef, 'Bibliography');
 
 DefMacroI('\thebibliography@ID',undef, Tokens());
+
+# This sub does things that would commonly be needed when starting a bibliography
+# setting the ID, etc...
+sub beginBibliography {
+  my($whatsit)=@_;
+  # Try to compute a reasonable, but unique ID;
+  # relative to the document's ID, if any.
+  # But also, if there are multiple bibliographies, 
+  my $bibid = LookupValue('bibliography_ID'); # previous bibliographic ID?
+  if($bibid){
+    if($bibid =~ /(.*?bib)(\w)$/){ $bibid = $1.chr(ord($2)+1); }
+    else { $bibid .= 'a'; }}
+  elsif(my $docid = ToString(Expand(T_CS('\thedocument@ID')))){
+    $bibid = $docid.".bib"; }
+  else {
+    $bibid = 'bib'; }
+  AssignValue('bibliography_ID'=>$bibid, 'global');
+  DefMacroI(T_CS('\thebibliography@ID'),undef,$bibid);
+#  $whatsit->setProperty(id=>ToString(Expand(T_CS('\thebibliography@ID'))));
+  $whatsit->setProperty(id=>$bibid);
+  $whatsit->setProperty(refname=>Digest(T_CS('\refname')));
+  # And prepare for the likely nonsense that appears within bibliographies
+  ResetCounter('enumiv');
+  # Fix for missing \bibitems!
+  setupPseudoBibitem(); }
+
 # NOTE: Not really complete, since I haven't dealt with bibliographies!
 DefMacro('\bibliography Semiverbatim', '\ifx.#1.\else\@bibliography{#1}\fi');
 DefConstructor('\@bibliography Semiverbatim',
 	       "<ltx:bibliography files='#1' xml:id='#id'>"
 	       . "<ltx:title>#refname</ltx:title>"
 	       ."</ltx:bibliography>",
-	       afterDigest=>sub { 
-		 my $docid = ToString(Expand(T_CS('\thedocument@ID')));
-		 DefMacroI(T_CS('\thebibliography@ID'),undef,($docid ? "$docid.bib" : 'bib'));
-		 $_[1]->setProperty(id=>ToString(Expand(T_CS('\thebibliography@ID'))));
-		 $_[1]->setProperty(refname=>Digest(T_CS('\refname'))); });
+	       afterDigest=>sub { $_[0]->begingroup; # wrapped so redefns don't take effect!
+				  beginBibliography($_[1]); 
+				  $_[0]->endgroup; });
 DefMacroI('\refname',undef, 'References');
 DefPrimitive('\bibstyle{}', undef);
 DefMacro('\bibliographystyle{}', '\bibstyle{#1}');
@@ -2107,20 +2135,14 @@ DefConstructorI('\thebibliography',undef,
 		 my $gullet = $stomach->getGullet;
 		 $gullet->skipSpaces;
 		 $gullet->readArg if $gullet->ifNext(T_BEGIN);
-#		 $gullet->skipSpaces; # And AFTER to avoid prematurely triggering \par!!!
-		 my $docid = ToString(Expand(T_CS('\thedocument@ID')));
-		 ResetCounter('enumiv');
-		 DefMacroI(T_CS('\thebibliography@ID'),undef,($docid ? "$docid.bib" : 'bib'));
-		 $_[1]->setProperty(id=>ToString(Expand(T_CS('\thebibliography@ID'))));
-		 $_[1]->setProperty(refname=>Digest(T_CS('\refname')));  
-		 # Fix for missing \bibitems!
-		 setupPseudoBibitem(); },
+
+		 beginBibliography($_[1]); },
 	      locked=>1);
 
 # Close the bibliography
 DefConstructorI('\endthebibliography',undef,
 	       "</ltx:biblist></ltx:bibliography>",
-	       afterDigest=>sub { Digest(T_CS('\appendix')); },
+	       afterDigest=>sub { Digest(T_CS('\@appendix')); },
 	      locked=>1);
 # auto close the bibliography and contained biblist.
 Tag('ltx:biblist',autoClose=>1);
