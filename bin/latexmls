@@ -11,7 +11,7 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use Getopt::Long qw(GetOptionsFromString :config no_ignore_case);
 use Pod::Usage;
-use LaTeXML;
+use LaTeXML::Daemon;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::ObjectDB;
 use LaTeXML::Post;
@@ -131,7 +131,7 @@ if ($mode eq "math") {
     @preload=(@preload,@mathpreload);
 }
 @paths = map(pathname_canonical($_),@paths);
-my $latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[@paths],
+my $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
 			  verbosity=>$verbosity, strict=>$strict,
 			  includeComments=>$comments,inputencoding=>$inputencoding,
 			  includeStyles=>$includestyles,
@@ -281,7 +281,7 @@ while ( my $client = $server->accept() ) {
         close(LOG); *STDERR = *ERRORIG;
       }                         #Close log file
       undef $latexml;
-      $latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[@paths],
+      $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
                              verbosity=>$verbosity, strict=>$strict,
                              includeComments=>$comments,inputencoding=>$inputencoding,
                              includeStyles=>$includestyles,
@@ -337,7 +337,7 @@ while ( my $client = $server->accept() ) {
     #In the classic case, we need to reinitialize latexml
     # on every input
     undef $latexml;
-    $latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[@paths],
+    $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
                            verbosity=>$verbosity, strict=>$strict,
                            includeComments=>$comments,inputencoding=>$inputencoding,
                            includeStyles=>$includestyles,
@@ -389,7 +389,7 @@ while ( my $client = $server->accept() ) {
       close(LOG); *STDERR = *ERRORIG;
     }                           #Close log file
     undef $latexml;
-    $latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[@paths],
+    $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
                            verbosity=>$verbosity, strict=>$strict,
                            includeComments=>$comments,inputencoding=>$inputencoding,
                            includeStyles=>$includestyles,

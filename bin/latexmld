@@ -6,7 +6,7 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
-use LaTeXML;
+use LaTeXML::Daemon;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::ObjectDB;
 use LaTeXML::Post;
@@ -81,7 +81,7 @@ if ($mode eq "math") {
     @preload=(@preload,@mathpreload);
 }
 @paths = map(pathname_canonical($_),@paths);
-my $latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[@paths],
+my $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
 			  verbosity=>$verbosity, strict=>$strict,
 			  includeComments=>$comments,inputencoding=>$inputencoding,
 			  includeStyles=>$includestyles,
@@ -105,7 +105,7 @@ $latexml->withState(sub {
 # Preload the preamble if any
 if ($preamble && $mode eq "fragment") {
   #TODO: It is difficult to digest 2 files via LaTeXML right now...
-  $latexml->digestFileDaemonized($preamble,"standard"; 
+  $latexml->digestFileDaemonized($preamble,"standard");
 }
 
 print STDERR "\n"; #Sanitize log.
@@ -176,7 +176,7 @@ while(1) {
 	#In the classic case, we need to reinitialize latexml
 	# on every input
 	undef $latexml;
-	$latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[@paths],
+	$latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
 			  verbosity=>$verbosity, strict=>$strict,
 			  includeComments=>$comments,inputencoding=>$inputencoding,
 			  includeStyles=>$includestyles,
@@ -221,7 +221,7 @@ while(1) {
 	#Need to reset latexml in these cases
 	if ($log) { close(LOG); *STDERR = *ERRORIG;} #Close log file
 	undef $latexml;
-	$latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[@paths],
+	$latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
 			  verbosity=>$verbosity, strict=>$strict,
 			  includeComments=>$comments,inputencoding=>$inputencoding,
 			  includeStyles=>$includestyles,
