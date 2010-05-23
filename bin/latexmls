@@ -17,8 +17,10 @@ use LaTeXML::Util::ObjectDB;
 use LaTeXML::Post;
 use LaTeXML::Post::Writer;
 use LaTeXML::Post::Scan;
+
 use Carp;
 use POSIX qw( setsid );
+use LWP::Simple;
 use IO::Socket;
 
 #**********************************************************************
@@ -156,7 +158,11 @@ print STDERR "\n"; #Sanitize log.
 # Preload the preamble if any
 if ($preamble && $mode eq "fragment") {
   #TODO: It is difficult to digest 2 files via LaTeXML right now...
-  $latexml->digestFileDaemonized($preamble); 
+  if (head($preamble)) {
+    $latexml->digestURLDaemonized($preamble);
+  } else {
+    $latexml->digestFileDaemonized($preamble);
+  }
 }
 
 #Flush daemon, every $input_limit files:
@@ -238,8 +244,9 @@ while ( my $client = $server->accept() ) {
   $source =~ s/^\s+//;                     #Cleanup space
   $source =~ s/\s+$//;                     #Cleanup space
   last if (!$source || ($source eq ":q"));   #:q marks we're done
+  my $isURL = head($source);
   #Instantiate targets for current input
-  my ($dir,$name,$ext) = pathname_split($source);
+  my ($dir,$name,$ext) = pathname_split($source) unless $isURL;
   #Redirect to logfile, if requested:
   my $clog;
   if ($log && $local) {
@@ -294,7 +301,11 @@ while ( my $client = $server->accept() ) {
       # Preload the preamble if any
       if ($preamble && $mode eq "fragment") {
         #TODO: It is difficult to digest 2 files via LaTeXML right now...
-        $latexml->digestFileDaemonized($preamble); 
+        if (head($preamble)) {
+          $latexml->digestURLDaemonized($preamble);
+        } else {
+          $latexml->digestFileDaemonized($preamble);
+        }
       }
       print STDERR "\n";        #Again, flush log
       #Move to next...
@@ -317,6 +328,7 @@ while ( my $client = $server->accept() ) {
   # *****************************
   # Mode: STANDARD and FRAGMENT
   # *****************************
+
   if ($source eq '-') {
     print STDERR "Invalid source file:\n"
       ." latexmldaemon requires a filepath per line as arguments\n";
@@ -327,8 +339,10 @@ while ( my $client = $server->accept() ) {
     alarm($timeout);              #Timeout if inactive for too long...
     next;
   }
-  $source = pathname_find($source,types=>['tex','']);
-  $source = pathname_canonical($source);
+  unless ($isURL) {
+    $source = pathname_find($source,types=>['tex','']);
+    $source = pathname_canonical($source);
+  }
   $type = 'bibtex' if ($type eq 'auto') && ($source =~ /\.bib$/);
   # ========================================
   # First read and digest whatever we're given.
@@ -350,7 +364,11 @@ while ( my $client = $server->accept() ) {
     # Preload the preamble if any
     if ($preamble && $mode eq "fragment") {
       #TODO: It is difficult to digest 2 files via LaTeXML right now...
-      $latexml->digestFileDaemonized($preamble); 
+      if (head($preamble)) {
+        $latexml->digestURLDaemonized($preamble);
+      } else {
+        $latexml->digestFileDaemonized($preamble);
+      }
     }
     print STDERR "\n";          #Again, flush log
   }
@@ -362,9 +380,14 @@ while ( my $client = $server->accept() ) {
   my $dom;
   eval {
     if ($type eq 'bibtex') {
+      #TODO: Do we want URL support here?
       $digested = $latexml->digestBibTeXFileDaemonized($source);
     } else {
-      $digested = $latexml->digestFileDaemonized($source,$mode); 
+      if ($isURL) {
+        $digested = $latexml->digestURLDaemonized($source,$mode); 
+      } else {
+        $digested = $latexml->digestFileDaemonized($source,$mode); 
+      }
     }
     # ========================================
     # Now, convert to DOM and output, if desired.
@@ -402,7 +425,11 @@ while ( my $client = $server->accept() ) {
     # Preload the preamble if any
     if ($preamble && $mode eq "fragment") {
       #TODO: It is difficult to digest 2 files via LaTeXML right now...
-      $latexml->digestFileDaemonized($preamble); 
+      if (head($preamble)) {
+        $latexml->digestURLDaemonized($preamble);
+      } else {
+        $latexml->digestFileDaemonized($preamble);
+      }
     }
     print STDERR "\n";          #Again, flush log
     #Move to next...

@@ -69,7 +69,7 @@ my $sock = new IO::Socket::INET
   ); #Attempt connecting to a service
 unless ($sock) {
   #Startup daemon with @opts and feed in args
-  push(@opts,'--local'); #bootstrap local switch.
+  #push(@opts,'--local'); #bootstrap local switch.
   push(@opts,'--path='.$cdir);#add current path
   system('latexmls',@opts);
 }
@@ -82,9 +82,12 @@ $sock = new IO::Socket::INET
   );
 croak "Could not create socket: $!\n" unless $sock; 
 foreach my $arg(@args) {
-  my $text;
+  my ($text,$batch);
   $sock->send(join(" ",@opts)."\n".$arg."\nEND REQUEST\n");
-  $sock->recv($text,1024);
+  do {
+    $sock->recv($batch,1024);
+    $text.=$batch;
+  } while ($batch);
   print $text;
 }
 close($sock);
