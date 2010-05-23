@@ -213,6 +213,13 @@ sub activateScope {
 	$$frame{$subtable}{$key}++; # Note that this value must be undone
 	unshift(@{$$table{$subtable}{$key}},$value); }}}} # And push new binding.
 
+sub getActiveScopes {
+  my($self)=@_;
+  my $table = $$self{table};
+  my $scopes = $$table{stash_active};
+  [keys %$scopes];
+}
+
 sub deactivateScope {
   my($self,$scope)=@_;
   my $table = $$self{table};

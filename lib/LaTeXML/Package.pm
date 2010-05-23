@@ -1102,7 +1102,7 @@ sub LoadPool {
 #======================================================================
 # Defining Rewrite rules that act on the DOM
 
-our $rewrite_options = {label=>1,scope=>1, xpath=>1, match=>1,
+our $rewrite_options = {active=>1, label=>1,scope=>1, xpath=>1, match=>1,
 			 attributes=>1, replace=>1, regexp=>1};
 sub DefRewrite {
   my(@specs)=@_;
@@ -1902,6 +1902,10 @@ to modify or replace the selected nodes.
 The following select portions of the document:
 
 =over
+
+=item active =>$scopes
+
+Activates the named scopes in the $scopes array reference on replacement
 
 =item label =>$label
 
