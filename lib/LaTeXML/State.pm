@@ -216,7 +216,7 @@ sub activateScope {
 sub getActiveScopes {
   my($self)=@_;
   my $table = $$self{table};
-  my $scopes = $$table{stash_active};
+  my $scopes = $$table{stash_active}||{};
   [keys %$scopes];
 }
 

@@ -1905,7 +1905,7 @@ The following select portions of the document:
 
 =item active =>$scopes
 
-Activates the named scopes in the $scopes array reference on replacement
+Activates the named scopes in the $scopes array reference on replacement.
 
 =item label =>$label
 
