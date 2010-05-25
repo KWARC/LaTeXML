@@ -58,6 +58,8 @@ foreach (@paths) {
 foreach (@paths) {
   push(@opts,'--log='.pathname_absolute($_,$cdir)) if $_;
 }
+#ADD BASEDIR
+push(@opts,'--basedir='.abs_path($cdir));
 ###
 
 #***************************************************************************

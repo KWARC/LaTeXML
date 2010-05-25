@@ -33,7 +33,7 @@ my $identity = "latexmld (LaTeXML version $LaTeXML::VERSION)";
 my($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
    $_timeout,$_port,$_local)=(0,0,1,0,0,0,0,0,0,0,60,3334,0);
-my ($_format,$_mode,$_destination,$_log,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble)=('xml','fragment','','',{});
+my ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble)=('xml','fragment','','','',{});
 my ($_documentid);
 my $_inputencoding;
 my $_type = 'auto';
@@ -47,8 +47,8 @@ my($verbosity,$strict,$comments,$noparse,$includestyles,
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
    $_timeout,$_port,$_local);
-my ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet,$preamble)=
-  ($_format,$_mode,$_destination,$_log,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
+my ($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
+  ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
 my ($documentid);
 my $inputencoding;
 my $type = $_type;
@@ -60,6 +60,7 @@ GetOptions("destination=s" => \$_destination,
 	   "output=s"  => \$_destination,
 	   "preload=s" => \@preload_,
 	   "preamble=s" => \$_preamble,
+           "basedir=s"  => \$_basedir,
 	   "path=s"    => \@paths_,
 	   "quiet"     => sub { $_verbosity--; },
 	   "verbose"   => sub { $_verbosity++; },
@@ -109,7 +110,7 @@ daemonize();
 print STDERR "$identity\n" unless $verbosity < 0;
 $_mode = lc($_mode);
 $_input_limit=50000
-  if (($mode eq "math") && (!$_input_limit || $_input_limit<1)); #50k if not set and math or if wrong
+  if (($_mode eq "math") && (!$_input_limit || $_input_limit<1)); #50k if not set and math or if wrong
 $_input_limit=10000 unless ($_input_limit && $_input_limit>0); #Else, 10k
 $$_procs_post{'pmml'}=1 unless (scalar(keys %$_procs_post));
 
@@ -120,8 +121,8 @@ $$_procs_post{'pmml'}=1 unless (scalar(keys %$_procs_post));
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
    $_timeout,$_port,$_local);
-($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet,$preamble)=
-        ($_format,$_mode,$_destination,$_log,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
+($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
+        ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
 $documentid=$_documentid;
 $inputencoding=$_inputencoding;
 $type = $_type;
@@ -186,8 +187,8 @@ while ( my $client = $server->accept() ) {
          ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
           $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
           $_timeout,$_port,$_local);
-      ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet,$preamble)=
-        ($_format,$_mode,$_destination,$_log,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
+      ($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
+        ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
       $documentid=$_documentid;
       $inputencoding=$_inputencoding;
       $type = $_type;
@@ -198,6 +199,7 @@ while ( my $client = $server->accept() ) {
 	   "output=s"  => \$destination,
 	   "preload=s" => \@preload,
 	   "preamble=s" => \$preamble,
+           "basedir=s" => \$basedir,
 	   "path=s"    => \@paths,
 	   "quiet"     => sub { $verbosity--; },
 	   "verbose"   => sub { $verbosity++; },
@@ -269,6 +271,8 @@ while ( my $client = $server->accept() ) {
   } else { #Output to client
     $cdest = $client;
   }
+  if ($basedir) { chdir "$basedir" or croak "Can't chdir to $basedir: $!";};
+
   #Start of conversion
   if ($mode eq "math") {
     # *******************
@@ -660,6 +664,10 @@ latexmls [options]
                     can be repeated
  --includestyles    allows latexml to load raw *.sty file;
                     by default it avoids this.
+ --preamble=file    loads a tex file containing document frontmatter.
+                    Useful for fragment mode.
+ --basedir=dir      Specifies the base directory that the server works in
+                    Useful when employing relative paths.
  --path=dir         adds dir to the paths searched for files,
                     modules, etc; 
  --log=file         specifies log file, reuqires --local (default: STDERR)
