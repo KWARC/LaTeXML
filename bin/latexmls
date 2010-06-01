@@ -21,6 +21,7 @@ use LaTeXML::Post::Scan;
 use Carp;
 use POSIX qw( setsid );
 use LWP::Simple;
+use LWP;
 use IO::Socket;
 
 #**********************************************************************
@@ -33,7 +34,7 @@ my $identity = "latexmld (LaTeXML version $LaTeXML::VERSION)";
 my($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
    $_timeout,$_port,$_local)=(0,0,1,0,0,0,0,0,0,0,60,3334,0);
-my ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble)=('xml','fragment','','','',{});
+my ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble,$_preamble_loaded)=('xml','fragment','','','',{},undef,undef,undef,undef,'');
 my ($_documentid);
 my $_inputencoding;
 my $_type = 'auto';
@@ -128,8 +129,12 @@ $inputencoding=$_inputencoding;
 $type = $_type;
 @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
 
+#Setup browser for URI requests
+my $browser = LWP::UserAgent->new;
+my $response;
+
+#When in math mode, preload math packages:
 if ($mode eq "math") {
-    #Preload math packages:
     my  @mathpreload = ("LaTeX.pool", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
     @preload=(@preload,@mathpreload);
 }
@@ -156,14 +161,16 @@ $latexml->withState(sub {
   $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
 });
 print STDERR "\n"; #Sanitize log.
-# Preload the preamble if any
+# Preload the preamble if any (and not loaded)
 if ($preamble && $mode eq "fragment") {
   #TODO: It is difficult to digest 2 files via LaTeXML right now...
-  if (head($preamble)) {
-    $latexml->digestURLDaemonized($preamble);
+  $response=$browser->get($preamble);
+  if ($response->is_success) {
+    $latexml->digestURLDaemonized($preamble,"standard");
   } else {
-    $latexml->digestFileDaemonized($preamble);
+    $latexml->digestFileDaemonized($preamble,"standard");
   }
+  $_preamble_loaded = $preamble;
 }
 
 #Flush daemon, every $input_limit files:
@@ -246,7 +253,8 @@ while ( my $client = $server->accept() ) {
   $source =~ s/^\s+//;                     #Cleanup space
   $source =~ s/\s+$//;                     #Cleanup space
   last if (!$source || ($source eq ":q"));   #:q marks we're done
-  my $isURL = head($source);
+  $response = $browser->get($source);
+  my $isURL = $response->is_success;
   #Instantiate targets for current input
   my ($dir,$name,$ext) = pathname_split($source) unless $isURL;
   #Redirect to logfile, if requested:
@@ -281,7 +289,7 @@ while ( my $client = $server->accept() ) {
     my $texdoc = mathdoc($source);
     my $dom;
     eval {
-      my $digested = $latexml->digestStringDaemonized($texdoc);
+      my $digested = $latexml->digestStringDaemonized($texdoc,$mode);
       $dom = $latexml->convertDocument($digested);
     };
     if ($@) {                   #Fatal occured!
@@ -303,13 +311,15 @@ while ( my $client = $server->accept() ) {
                             $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
                           });
       # Preload the preamble if any
-      if ($preamble && $mode eq "fragment") {
+      if ($preamble && $mode eq "fragment" && ($preamble ne $_preamble_loaded)) {
         #TODO: It is difficult to digest 2 files via LaTeXML right now...
-        if (head($preamble)) {
-          $latexml->digestURLDaemonized($preamble);
+        $response=$browser->get($preamble);
+        if ($response->is_success) {
+          $latexml->digestURLDaemonized($preamble,"standard");
         } else {
-          $latexml->digestFileDaemonized($preamble);
+          $latexml->digestFileDaemonized($preamble,"standard");
         }
+        $_preamble_loaded = $preamble;
       }
       print STDERR "\n";        #Again, flush log
       #Move to next...
@@ -365,18 +375,21 @@ while ( my $client = $server->accept() ) {
                           my($state)=@_;
                           $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
                         });
-    # Preload the preamble if any
-    if ($preamble && $mode eq "fragment") {
-      #TODO: It is difficult to digest 2 files via LaTeXML right now...
-      if (head($preamble)) {
-        $latexml->digestURLDaemonized($preamble);
-      } else {
-        $latexml->digestFileDaemonized($preamble);
-      }
-    }
     print STDERR "\n";          #Again, flush log
   }
   #Continue with processing in standard and fragment cases:
+  # Preload the preamble if any
+  if ($preamble && $mode eq "fragment" && ($preamble ne $_preamble_loaded)) {
+    #TODO: It is difficult to digest 2 files via LaTeXML right now...
+    $response=$browser->get($preamble);
+    if ($response->is_success) {
+      $latexml->digestURLDaemonized($preamble,"standard");
+    } else {
+      $latexml->digestFileDaemonized($preamble,"standard");
+    }
+    $_preamble_loaded = $preamble;
+  }
+
   $latexml->withState(sub {
                         my($state)=@_; #Sandbox state
                         $state->pushFrame; });
@@ -385,7 +398,7 @@ while ( my $client = $server->accept() ) {
   eval {
     if ($type eq 'bibtex') {
       #TODO: Do we want URL support here?
-      $digested = $latexml->digestBibTeXFileDaemonized($source);
+      $digested = $latexml->digestBibTeXFileDaemonized($source,$mode);
     } else {
       if ($isURL) {
         $digested = $latexml->digestURLDaemonized($source,$mode); 
@@ -429,11 +442,13 @@ while ( my $client = $server->accept() ) {
     # Preload the preamble if any
     if ($preamble && $mode eq "fragment") {
       #TODO: It is difficult to digest 2 files via LaTeXML right now...
-      if (head($preamble)) {
-        $latexml->digestURLDaemonized($preamble);
+      $response=$browser->get($preamble);
+      if ($response->is_success) {
+        $latexml->digestURLDaemonized($preamble,"standard");
       } else {
-        $latexml->digestFileDaemonized($preamble);
+        $latexml->digestFileDaemonized($preamble,"standard");
       }
+      $_preamble_loaded = $preamble;
     }
     print STDERR "\n";          #Again, flush log
     #Move to next...
@@ -628,7 +643,7 @@ sub daemonize {
     defined(my $pid = fork)   or croak "Can't fork: $!";
     exit if $pid;
     setsid                    or croak "Can't start a new session: $!";
-    open STDERR, '>&STDOUT'   or croak "Can't dup stdout: $!";
+   open STDERR, '>&STDOUT'   or croak "Can't dup stdout: $!";
 }
 
 sub setup_server {

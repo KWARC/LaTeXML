@@ -22,45 +22,10 @@ my ($port) = map {$_=~/(\d+)/; $1;} grep {$_ =~ /^--port=(\d+)$/;} @opts;
 $port = 3334 unless $port; #Default is 3334
 
 #***************************************************************************
-#Need absolute arguments, paths, preamble, preload, destination and log:
+#Add some basedir, so that relative paths work
 my $cdir = cwd();
-#ARGUMENTS
-my @absargs;
-foreach (@args) {
-  $_ = pathname_absolute($_,$cdir) if (-e $_);
-  push (@absargs,$_);
-} @args = @absargs;
-#PATHS
-my @paths = map {$_=~/^--path=(.+)$/; $1;} grep {$_ =~ /^--path=(.+)$/;} @opts;
- @opts = grep {$_ !~ /^--path=(.+)$/;} @opts;
-foreach (@paths) {
-  push(@opts,'--path='.abs_path($_));
-}
-#PREAMBLE
-my ($preamble) = map {$_=~/^--preamble=(.+)$/; $1;} grep {$_ =~ /^--preamble=(.+)$/;} @opts;
-@opts = grep {$_ !~ /^--preamble=(.+)$/;} @opts;
-push(@opts,'--preamble='.pathname_absolute($preamble,$cdir)) if $preamble;
-#PRELOAD
-@paths = map {$_=~/^--preload=(.+)$/; $1;} grep {$_ =~ /^--preload=(.+)$/;} @opts;
- @opts = grep {$_ !~ /^--preload=(.+)$/;} @opts;
-foreach (@paths) {
-  push(@opts,'--preload='.pathname_absolute($_,$cdir)) if $_;
-}
-#DESTINATION
-@paths = map {$_=~/^--(destination|output)=(.+)$/; $2;} grep {$_ =~ /^--(destination|output)=(.+)$/;} @opts;
- @opts = grep {$_ !~ /^--(destination|output)=(.+)$/;} @opts;
-foreach (@paths) {
-  push(@opts,'--destination='.pathname_absolute($_,$cdir)) if $_;
-}
-#LOG
-@paths = map {$_=~/^--log=(.+)$/; $1;} grep {$_ =~ /^--log=(.+)$/;} @opts;
- @opts = grep {$_ !~ /^--log=(.+)$/;} @opts;
-foreach (@paths) {
-  push(@opts,'--log='.pathname_absolute($_,$cdir)) if $_;
-}
-#ADD BASEDIR
-push(@opts,'--basedir='.abs_path($cdir));
-###
+my ($basedir) = map {$_=~/(\S+)/; $1;} grep {$_ =~ /^--basedir=(\S+)$/;} @opts;
+push(@opts,'--basedir='.abs_path($cdir)) unless $basedir;
 
 #***************************************************************************
 #Setup client and communicate
@@ -71,7 +36,6 @@ my $sock = new IO::Socket::INET
   ); #Attempt connecting to a service
 unless ($sock) {
   #Startup daemon with @opts and feed in args
-  #push(@opts,'--local'); #bootstrap local switch.
   push(@opts,'--path='.$cdir);#add current path
   system('latexmls',@opts);
 }
