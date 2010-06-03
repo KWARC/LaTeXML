@@ -180,11 +180,12 @@ exec($0,@ARGV_SAVED)
 alarm($timeout);              #Timeout if inactive for too long...
 
 #**********************************************************************
-# Daemon has been set up, now process files on demand:
+# Daemon has been set up, now process files on demand:grep($_ !~ /^--/,
 while ( my $client = $server->accept() ) {
   my $source = '';
   my $sockstart=1;
   while (my $line = <$client>) {
+    $sockstart=0 unless $line=~/^--/;#Assume no options will be given if the line does not start with --
     if ($sockstart) {
       #Accept customizations for each input:
       #Setup LOCAL VARS
@@ -640,11 +641,11 @@ sub daemonize {
     #chdir '/'                 or croak "Can't chdir to /: $!";
     #This causes more problems than it solves (e.g. sTeX setup)
     open STDIN, '/dev/null'   or croak "Can't read /dev/null: $!";
-    open STDOUT, '>/dev/null' or croak "Can't write to /dev/null: $!";
+   # open STDOUT, '>/dev/null' or croak "Can't write to /dev/null: $!";
     defined(my $pid = fork)   or croak "Can't fork: $!";
     exit if $pid;
     setsid                    or croak "Can't start a new session: $!";
-   open STDERR, '>&STDOUT'   or croak "Can't dup stdout: $!";
+   #open STDERR, '>&STDOUT'   or croak "Can't dup stdout: $!";
 }
 
 sub setup_server {
