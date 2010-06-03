@@ -201,6 +201,7 @@ while ( my $client = $server->accept() ) {
       $type = $_type;
       @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
       #Parse overwrites from current input:
+      chomp($line);
       my ($ret,$args) = GetOptionsFromString($line,
            "destination=s" => \$destination,
 	   "output=s"  => \$destination,
@@ -243,7 +244,7 @@ while ( my $client = $server->accept() ) {
       $sockstart=0; next;
     }
     last if ($line =~ /^(\s*)END REQUEST(\s*)$/);
-    $source .= $line;
+    $source .= $line."\n" if $line;
   }
   next unless $source;
   #Bookkeeping...
