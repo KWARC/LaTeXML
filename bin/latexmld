@@ -4,7 +4,7 @@ eval 'exec /usr/bin/perl -w -S $0 ${1+"$@"}'
 use strict;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
-use Getopt::Long qw(:config no_ignore_case);
+use Getopt::Long qw(GetOptionsFromString :config no_ignore_case);
 use Pod::Usage;
 use LaTeXML::Daemon;
 use LaTeXML::Util::Pathname;
@@ -132,7 +132,7 @@ while(1) {
 	my $texdoc = mathdoc($source);
 	my $dom;
 	eval {
-	    my $digested = $latexml->digestStringDaemonized($texdoc);
+	    my $digested = $latexml->digestStringDaemonized($texdoc,$mode);
 	    $dom = $latexml->convertDocument($digested);
 	};
 	doPost(log=>$log,dest=>$destination,stylesheet=>$stylesheet,dom=>$dom,
@@ -196,7 +196,7 @@ while(1) {
     my $dom;
     eval {
 	if ($type eq 'bibtex'){
-	    $digested = $latexml->digestBibTeXFileDaemonized($source); }
+	    $digested = $latexml->digestBibTeXFileDaemonized($source,$mode); }
 	else {
 	    $digested = $latexml->digestFileDaemonized($source,$mode); 
 	}
