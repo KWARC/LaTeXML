@@ -16,6 +16,8 @@ use LaTeXML::Global;
 use LaTeXML::Mouth;
 use LaTeXML::Number;
 use LaTeXML::Util::Pathname;
+use URI;
+use LWP::Simple;
 use base qw(LaTeXML::Object);
 #**********************************************************************
 sub new {
@@ -42,6 +44,24 @@ sub input {
   $name = $1 if $name =~ /^\{(.*)\}$/; # just in case
   my $file = pathname_find($name,paths=>$STATE->lookupValue('SEARCHPATHS'),
 			   types=>$types, installation_subdir=>'Package');
+  #DG TODO: This is an ad-hoc URI treatment for a demon, needs reworking
+   if(! $file) {
+     my $absuri = URI->new_abs( $name, $STATE->lookupValue('SOURCEFILE'));
+     unless (head($absuri)) {
+       $absuri=$absuri.".tex";
+       if (head($absuri)) {
+         $file = $absuri;
+       }
+     } else { $file = $absuri;}
+     if ($file) {
+       #URI Case:
+       my $content = get($absuri);
+       NoteBegin("Processing $file");
+       $self->openMouth(LaTeXML::Mouth->new($content), 0);
+       return;
+     }
+   }
+  ###############################
   if(! $file) {
     $STATE->noteStatus(missing=>$name);
     Error(":missing_file:$name Cannot find file $name of type ".join(', ',@{$types||[]})
