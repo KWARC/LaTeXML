@@ -102,7 +102,7 @@ if($_showversion){ print STDERR "$identity\n"; exit(1); }
 
 #**********************************************************************
 #Set up the server
-my $server = setup_server($port);
+my $server = setup_server($_port);
 #Setting up Daemon
 daemonize();
 
