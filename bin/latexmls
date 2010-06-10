@@ -135,7 +135,7 @@ my $response;
 
 #When in math mode, preload math packages:
 if ($mode eq "math") {
-    my  @mathpreload = ("LaTeX.pool", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
+    my  @mathpreload = ("LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
     @preload=(@preload,@mathpreload);
 }
 @paths = map(pathname_canonical($_),@paths);
@@ -290,6 +290,9 @@ while ( my $client = $server->accept() ) {
     # *******************
     my $texdoc = mathdoc($source);
     my $dom;
+    $latexml->withState(sub {
+                          my($state)=@_; #Sandbox state
+                          $state->pushFrame; });
     eval {
       my $digested = $latexml->digestStringDaemonized($texdoc,$mode);
       $dom = $latexml->convertDocument($digested);
@@ -330,9 +333,18 @@ while ( my $client = $server->accept() ) {
       alarm($timeout);          #Timeout if inactive for too long...
       next;                     #Move on, no body to be produced.
     }
-    
+    $latexml->withState(sub {
+                          my($state)=@_; #Remove current state frame
+                          $state->popFrame;
+                          $state->setStatus("warning",0);
+                          $state->setStatus("error",0);
+                          $state->setStatus("fatal",0);
+                          $state->setStatus("undefined",0);
+                          $state->setStatus("missing",0);
+                        });
     doPost(log=>$clog,dest=>$cdest,stylesheet=>$stylesheet,dom=>$dom,
            mode=>"math",parallel=>$parallelmath,procs=>$procs_post,isStream=>($cdest eq $client));
+
     undef $texdoc;
     #Move to next...
     exec($0,@ARGV_SAVED) 
@@ -511,51 +523,51 @@ while ( my $client = $server->accept() ) {
 #======================================================================
 # Helpers
 #======================================================================
-our %PostOPS = (verbosity=>$verbosity||0);
+our %PostOPS = (verbosity=>$verbosity||0,siteDirectory=>".");
 sub doPost {
   my (%options)=@_;
   my ($postlog,$postdest,$stylesheet,$dom,$extract,$parallelmath,$proctypes,$isStream)= 
     map ($options{$_},qw(log dest stylesheet dom mode parallel procs isStream));
   #Postprocess
   $stylesheet = "LaTeXML-xhtml.xsl" unless $stylesheet;
-  my @css = ("core.css");
+  my @css=();
+  unshift (@css,"core.css") unless ($extract eq "math");
   $parallelmath = $parallelmath||0;
-  my $doc = LaTeXML::Post::Document->new($dom,nocache=>1);
+  my $doc = LaTeXML::Post::Document->newFromString($dom->toString(1),nocache=>1);
   require 'LaTeXML/Post/MathML.pm';
   require 'LaTeXML/Post/PurgeXMath.pm';
-  my @mprocs;
-  push @mprocs, LaTeXML::Post::MathML::Presentation->new(%PostOPS) if $$proctypes{'pmml'};
-  push @mprocs, LaTeXML::Post::MathML::Content->new(%PostOPS) if $$proctypes{'cmml'};
+  my @mprocs=();
+  push (@mprocs, LaTeXML::Post::MathML::Presentation->new(%PostOPS)) if $$proctypes{'pmml'};
+  push (@mprocs, LaTeXML::Post::MathML::Content->new(%PostOPS)) if $$proctypes{'cmml'};
   my $main = shift(@mprocs);
   $main->setParallel(@mprocs) if $parallelmath;
   $main->keepTeX if ($$proctypes{'keepTeX'} && $parallelmath);
-  my @procs;
+  my @procs=();
   push(@procs,$main); #If not parallel, only the first one goes through.
   push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $$proctypes{'keepXMath'};
   require 'LaTeXML/Post/XSLT.pm';
   my @csspaths=();
-  foreach my $css (@css) {
-    $css .= '.css' unless $css =~ /\.css$/;
-    # Dance, if dest is current dir, we'll find the old css before the new one!
-    my @csssources = map(pathname_canonical($_),
-                         pathname_findall($css,types=>['css'],
-                                          (),
-                                          installation_subdir=>'style'));
-    my $csspath = pathname_absolute($css,pathname_directory('.'));
-    while (@csssources && ($csssources[0] eq $csspath)) {
-      shift(@csssources);
-    }
-    my $csssource = shift(@csssources);
-    pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
-    push(@csspaths,$csspath);
-  }
+  if (@css) {
+    foreach my $css (@css) {
+      $css .= '.css' unless $css =~ /\.css$/;
+      # Dance, if dest is current dir, we'll find the old css before the new one!
+      my @csssources = map(pathname_canonical($_),
+                           pathname_findall($css,types=>['css'],
+                                            (),
+                                            installation_subdir=>'style'));
+      my $csspath = pathname_absolute($css,pathname_directory('.'));
+      while (@csssources && ($csssources[0] eq $csspath)) {
+        shift(@csssources);
+      }
+      my $csssource = shift(@csssources);
+      pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
+      push(@csspaths,$csspath);
+    }}
   push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$stylesheet,
                                        css=>[@csspaths],
-                                       parameters=>{number_sections
-                                                    =>("true()")
-                                                   },
-                                       %PostOPS))
-    unless ($extract eq "math");
+					 parameters=>{number_sections
+						      =>("true()")},
+                                       %PostOPS)) if $stylesheet;
   push(@procs,LaTeXML::Post::Writer->new(format=>"xhtml",omit_doctype=>0,%PostOPS))
     unless (($extract eq "math") || !$postdest || $isStream);
   my $postdoc;
@@ -566,7 +578,14 @@ sub doPost {
     print STDERR "$@\n";
   } elsif ($extract eq "math") {
     #Output to destination:
-    outputXML($postdoc->findnode('//m:math'),$postdest||"-",$isStream);
+    my $mnodes = $postdoc->findnodes('//m:math');
+    if ($mnodes->size <= 1) {
+      outputXML($postdoc->findnode('//m:math'),$postdest||"-",$isStream);
+    } else {
+      my $ancestor = $postdoc->findnode('//m:math')->parentNode;
+      $ancestor = $ancestor->parentNode while ($ancestor->findnodes('.//m:math')->size != $mnodes->size);
+      outputXML($ancestor,$postdest||"-",$isStream);
+    }
   }
   elsif ($isStream) {
     #Client requested entire document returned via socket, hence send back serialized:
@@ -579,11 +598,10 @@ sub outputXML {
   my($xml,$destination,$isStream)=@_;
   # Need to move the node to a new document to set up namespaces
   my $newdoc = XML::LibXML::Document->new("1.0","UTF-8");
-  $newdoc->setDocumentElement($xml);
+  $newdoc->setDocumentElement($xml->cloneNode(1));
   my $serialized = $newdoc->toString(1);
-  undef $newdoc;
   if ($destination eq '-') {
-      print $serialized; 
+      print $serialized;
   }
   elsif ($isStream) {
     print $destination $serialized;
@@ -593,6 +611,8 @@ sub outputXML {
       print OUT $serialized;
       close OUT;
   }
+  undef $serialized; 
+  undef $newdoc;
 }
 
 sub mathdoc {
@@ -641,11 +661,11 @@ sub daemonize {
     #chdir '/'                 or croak "Can't chdir to /: $!";
     #This causes more problems than it solves (e.g. sTeX setup)
     open STDIN, '/dev/null'   or croak "Can't read /dev/null: $!";
-   # open STDOUT, '>/dev/null' or croak "Can't write to /dev/null: $!";
+    open STDOUT, '>/dev/null' or croak "Can't write to /dev/null: $!";
     defined(my $pid = fork)   or croak "Can't fork: $!";
     exit if $pid;
     setsid                    or croak "Can't start a new session: $!";
-   #open STDERR, '>&STDOUT'   or croak "Can't dup stdout: $!";
+    open STDERR, '>&STDOUT'   or croak "Can't dup stdout: $!";
 }
 
 sub setup_server {
