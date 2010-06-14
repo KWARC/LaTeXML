@@ -17,7 +17,7 @@ use LaTeXML::Package;
 our @ISA = qw(Exporter);
 our @EXPORT= (qw(&ReadRequiredKeyVals &ReadOptionalKeyVals
 		 &DefKeyVal
-		 &KeyVal &KeyVals));
+		 &KeyVal &KeyVals &ParseKeyValList));
 
 #======================================================================
 # New Readers for required and optional KeyVal sets.
@@ -107,6 +107,21 @@ sub readKeyVals {
       unless $delim;
     last if $delim->equals($close); }
   LaTeXML::KeyVals->new($keyset,$open,$close,@kv); }
+
+#**********************************************************************
+#DG: Bruce, we need some treatment for List values for KeyVal.
+# I am putting a helper subroutine for now, but maybe there is a better solution?
+sub ParseKeyValList {
+ my ($list) = @_;
+ $list = ToString($list);
+ $list =~ s/\s//g;#no whitespace
+#Very simple unwrap of { }
+ if ($list =~ m/^\{(.+)\}$/) {
+   $list = $1;
+ }
+ my @values = split(",",$list);
+ @values;
+}
 
 #**********************************************************************
 # This defines the KeyVal data object that can appear in the datastream
