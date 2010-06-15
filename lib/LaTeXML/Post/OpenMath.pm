@@ -115,7 +115,9 @@ sub Expr {
     else {
       my($op,@args) = element_nodes($node);
       return OMError("Missing Operator") unless $op;
-      my $sub = lookupConverter('Apply',$op->getAttribute('role'),$op->getAttribute('meaning'));
+      my $approle = $node->getAttribute('role')||$op->getAttribute('role');
+      my $appmeaning = $node->getAttribute('role')||$op->getAttribute('meaning');
+      my $sub = lookupConverter('Apply',$approle,$appmeaning);
       &$sub($op,@args); }
   }
   elsif($tag eq 'ltx:XMTok'){
@@ -222,6 +224,26 @@ DefOpenMath("Token:?:\x{2062}", sub {
 
 # ================================================================================
 # Applications.
+
+#NOTE: Experimental sketch for generic binding symbols
+sub findElements_internal {
+ my ($type,$name, $attr, @children) = @_;
+ if ($name eq $type) {
+   [$name, $attr, @children];
+ }
+ else {
+   map(findElements_internal($type,@$_),@children);
+ }}
+
+DefOpenMath('Apply:BINDER:?', sub {
+  my($op,$bvars,$expr)=@_;
+  my $bvarspost = Expr($bvars);
+  #Recursively fish out all OMV elements:
+  my @vars = findElements_internal('om:OMV',@$bvarspost);
+  ['om:OMBIND',{},
+   Expr($op),
+   ['om:OMBVAR',{},@vars], # Presumably, these yield OMV
+   Expr($expr)]});
 
 # Generic
 
