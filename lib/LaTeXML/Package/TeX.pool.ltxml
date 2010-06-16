@@ -4004,7 +4004,7 @@ DefConstructor('\@hidden{}','',reversion=>'');
 # This can easily be extended (and probably should) to support METARELOP, etc. roles
 # and from there, the respective \math* TeX macros
 DefMathRewrite(xpath=>'descendant-or-self::ltx:XMWrap[(@role="RELOP")'
-                   .  ' or (@role="BIGOP") or (@role="OP") or (@role="ADDOP") or (@role="OPEN")'
+                   .  ' or (@role="BIGOP") or (@role="OP") or (@role="ADDOP")'
                    .  ' or (@role="OPEN") or (@role="CLOSE") or (@role="PUNCT")]',
 	  replace=>sub { my($document,$app)=@_;
                          my $tokenbody = $app->textContent;
