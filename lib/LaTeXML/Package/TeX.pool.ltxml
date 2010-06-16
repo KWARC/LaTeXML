@@ -4006,12 +4006,13 @@ DefConstructor('\@hidden{}','',reversion=>'');
 DefMathRewrite(xpath=>'descendant-or-self::ltx:XMWrap[@role="RELOP"]',
 	  replace=>sub { my($document,$app)=@_;
                          my $tokenbody = $app->textContent;
-                         my $node = XML::LibXML::Element->new('ltx:XMTok');
+                         my $node = XML::LibXML::Element->new('XMTok');
                          my $role = $app->getAttribute('role')||"UNKNOWN";
                          my $meaning =  $app->getAttribute('meaning')||"";
                          $node->appendText($tokenbody);
                          $node->setAttribute('role',$role) if $role;
                          $node->setAttribute('meaning',$meaning) if $meaning;
+                         $node->setNamespace("http://dlmf.nist.gov/LaTeXML", "ltx");
                          $document->getNode->appendChild($node);
                        });
 
