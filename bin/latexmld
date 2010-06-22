@@ -1,4 +1,9 @@
 #!/usr/bin/perl -w
+
+#######################
+# A Daemon for LaTeXML
+#######################
+
 eval 'exec /usr/bin/perl -w -S $0 ${1+"$@"}'
     if 0; # not running under some shell
 use strict;
@@ -13,6 +18,10 @@ use LaTeXML::Post;
 use LaTeXML::Post::Writer;
 use LaTeXML::Post::Scan;
 
+use Carp;
+use LWP::Simple;
+use LWP;
+
 #**********************************************************************
 # Parse command line
 my @ARGV_SAVED = @ARGV; #Save, so that we reinvoke when flushed
@@ -20,12 +29,16 @@ my $identity = "latexmld (LaTeXML version $LaTeXML::VERSION)";
 my($verbosity,$strict,$comments,$noparse,$includestyles,
    $errlog,$post,$parallelmath,$input_counter,$input_limit,
    $timeout)=(0,0,1,0,0,0,0,0,0,0,60);
-my ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet,$preamble)=('xml','fragment','','',{});
+my ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet,$preamble)=('xml','fragment','','',{});# *****************************
+  # Mode: STANDARD and FRAGMENT
+  # *****************************
 my ($documentid);
 my $inputencoding;
 my $type = 'auto';
 my @paths = ('.');
 my (@preload,@debugs);
+#Hide STDERR unless log requested.
+open STDERR, '>/dev/null' or croak "Can't write to /dev/null: $!";
 GetOptions("destination=s" => \$destination,
 	   "output=s"  => \$destination,
 	   "preload=s" => \@preload,
@@ -62,22 +75,23 @@ GetOptions("destination=s" => \$destination,
 pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
 if($showversion){ print STDERR "$identity\n"; exit(1); }
 
-#This is obsolete in daemon mode:
-#pod2usage(-message=>"$identity\nMissing input TeX file", 
-#	  -exitval=>1, -verbose=>0,-output=>\*STDERR) unless @ARGV;
-
 #**********************************************************************
 # Set up the processing.
 print STDERR "$identity\n" unless $verbosity < 0;
 
 $mode = lc($mode);
 $input_limit=50000
-  if (($mode eq "math") && !$input_limit); #50k if not set and math
+  if (($mode eq "math") && (!$input_limit || $input_limit<1)); #50k if not set and math or if wrong
 $input_limit=10000 unless $input_limit; #Else, 10k
 $$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post));
+
+#Setup browser for URI requests
+my $browser = LWP::UserAgent->new;
+my $response;
+
+#When in math mode, preload math packages:
 if ($mode eq "math") {
-    #Preload math packages:
-    my  @mathpreload = ("LaTeX.pool", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
+    my  @mathpreload = ("LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
     @preload=(@preload,@mathpreload);
 }
 @paths = map(pathname_canonical($_),@paths);
@@ -105,7 +119,12 @@ $latexml->withState(sub {
 # Preload the preamble if any
 if ($preamble && $mode eq "fragment") {
   #TODO: It is difficult to digest 2 files via LaTeXML right now...
-  $latexml->digestFileDaemonized($preamble,"standard");
+  $response=$browser->get($preamble);
+  if ($response->is_success) {
+    $latexml->digestURLDaemonized($preamble,"standard");
+  } else {
+    $latexml->digestFileDaemonized($preamble,"standard");
+  }
 }
 
 print STDERR "\n"; #Sanitize log.
@@ -126,52 +145,119 @@ while(1) {
     chomp $source;
     $source =~ s/^\s+//; #Cleanup space
     $source =~ s/\s+$//; #Cleanup space
-    last if (!$source || ($source eq "")); #empty marks we're done
+    last if (!$source || ($source eq "") || ($source eq ":q")); #empty or :q marks we're done
+    $response = $browser->get($source);
+    my $isURL = $response->is_success;
+    #Instantiate targets for current input
+    if ($source eq '-' && ($mode ne "math")) {
+      print STDERR "Invalid source file:\n"
+        ." latexmld requires a filepath per line as arguments\n";
+      #Move to next...
+      exec($0,@ARGV_SAVED) 
+        or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
+      alarm($timeout);              #Timeout if inactive for too long...
+      next;
+    }
+    unless ($isURL || ($mode eq "math")) {
+      $source = pathname_find($source,types=>['tex','']);
+      $source = pathname_canonical($source);
+    }
+    my ($dir,$name,$ext) = pathname_split($source) unless ($isURL || ($mode eq "math"));
+    #Redirect to logfile, if requested:
+    my $clog;
+    if ($log) {
+      $clog = $log;
+      $clog=~s/#name/$name/eg;
+      $clog=~s/#dir/$dir/eg;
+      $clog=~s/#ext/$ext/eg;
+      open(LOG,">$clog") or die "Couldn't open log file $clog : $!\n";
+      *ERRORIG=*STDERR;
+      *STDERR = *LOG;
+    } else {
+      #No log if not local (STDERR redirects to /dev/null)
+    }
+    my $cdest;
+    if ($destination) {
+      $cdest = $destination;
+      $cdest =~ s/#name/$name/eg;
+      $cdest =~ s/#dir/$dir/eg;
+      $cdest =~ s/#ext/$ext/eg;
+    } else { #Output to STDOUT
+      $cdest = '-' ;
+    }
+
+    ###########################################################################
+    #   Start of conversion
+    #
     if ($mode eq "math") {
-	#Special handling for math --mode
-	my $texdoc = mathdoc($source);
-	my $dom;
-	eval {
-	    my $digested = $latexml->digestStringDaemonized($texdoc,$mode);
-	    $dom = $latexml->convertDocument($digested);
-	};
-	doPost(log=>$log,dest=>$destination,stylesheet=>$stylesheet,dom=>$dom,
-	       mode=>"math",parallel=>$parallelmath,procs=>$procs_post);
-	undef $texdoc;
-	next;
+      # *******************
+      # Mode: MATH
+      # *******************
+      my $texdoc = mathdoc($source);
+      my $dom;
+      $latexml->withState(sub {
+                          my($state)=@_; #Sandbox state
+                          $state->pushFrame; });
+      eval {
+        my $digested = $latexml->digestStringDaemonized($texdoc,$mode);
+        $dom = $latexml->convertDocument($digested);
+      };
+      if ($@) {                   #Fatal occured!
+        print STDERR "$@\n";
+        print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
+        #Need to reset latexml in these cases
+        if ($log) {
+          close(LOG); *STDERR = *ERRORIG;
+        }                         #Close log file
+        undef $latexml;
+        $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
+                             verbosity=>$verbosity, strict=>$strict,
+                             includeComments=>$comments,inputencoding=>$inputencoding,
+                             includeStyles=>$includestyles,
+                             documentid=>$documentid,
+                             nomathparse=>$noparse);
+        $latexml->withState(sub {
+                              my($state)=@_;
+                              $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
+                            });
+        # Preload the preamble if any
+        if ($preamble && $mode eq "fragment") {
+          #TODO: It is difficult to digest 2 files via LaTeXML right now...
+          $response=$browser->get($preamble);
+          if ($response->is_success) {
+            $latexml->digestURLDaemonized($preamble,"standard");
+          } else {
+            $latexml->digestFileDaemonized($preamble,"standard");
+          }
+        }
+        print STDERR "\n";        #Again, flush log
+        #Move to next...
+        exec($0,@ARGV_SAVED)
+          or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
+        alarm($timeout);          #Timeout if inactive for too long...
+        next;                     #Move on, no body to be produced.
+      }
+      $latexml->withState(sub {
+                          my($state)=@_; #Remove current state frame
+                          $state->popFrame;
+                          $state->setStatus("warning",0);
+                          $state->setStatus("error",0);
+                          $state->setStatus("fatal",0);
+                          $state->setStatus("undefined",0);
+                          $state->setStatus("missing",0);
+                        });
+      doPost(log=>$clog,dest=>$cdest,stylesheet=>$stylesheet,dom=>$dom,
+             mode=>"math",parallel=>$parallelmath,procs=>$procs_post);
+      undef $texdoc;
+      next;
     }
-    if($source eq '-'){
-	print STDERR "Invalid source file:\n"
-	." latexmldaemon requires a filepath per line as arguments\n";
-	next;
-    }
-    $source = pathname_find($source,types=>['tex','']);
-    $source = pathname_canonical($source);
+    # *****************************
+    # Mode: STANDARD and FRAGMENT
+    # *****************************
     $type = 'bibtex' if ($type eq 'auto') && ($source =~ /\.bib$/);
     # ========================================
     # First read and digest whatever we're given.
     my $digested;
-    my ($dir,$name,$ext) = pathname_split($source);
-    #Redirect to logfile, if requested:
-    my $clog;
-    if ($log) {
-	$clog = $log;
-	$clog=~s/#name/$name/eg;
-	$clog=~s/#dir/$dir/eg;
-	$clog=~s/#ext/$ext/eg;
-	open(LOG,">$clog") or die "Couldn't open log file $clog : $!\n";
-	*ERRORIG=*STDERR;
-	*STDERR = *LOG;
-    }
-    my $cdest;
-    if ($destination) {
-	$cdest = $destination;
-	$cdest =~ s/#name/$name/eg;
-	$cdest =~ s/#dir/$dir/eg;
-	$cdest =~ s/#ext/$ext/eg;
-    } else {
-	$cdest = $source.".$format";
-    }
     if ($mode eq "standard") {
 	#In the classic case, we need to reinitialize latexml
 	# on every input
@@ -195,33 +281,38 @@ while(1) {
     my $serialized;
     my $dom;
     eval {
-	if ($type eq 'bibtex'){
-	    $digested = $latexml->digestBibTeXFileDaemonized($source,$mode); }
-	else {
-	    $digested = $latexml->digestFileDaemonized($source,$mode); 
-	}
-	# ========================================
-	# Now, convert to DOM and output, if desired.
-	#use Encode;
-	if($digested){
-	    local $LaTeXML::Global::STATE = $$latexml{state};
-	    if($format eq 'tex'){
-		$serialized = LaTeXML::Global::UnTeX($digested); }
-	    elsif($format eq 'box'){
-		$serialized = $digested->toString; }
-	    else {
-		$dom = $latexml->convertDocument($digested); 
-		$serialized = $dom->toString(1);
-	    }
-	}
+      if ($type eq 'bibtex') {
+        #TODO: Do we want URL support here?
+        $digested = $latexml->digestBibTeXFileDaemonized($source,$mode);
+      } else {
+        if ($isURL) {
+          $digested = $latexml->digestURLDaemonized($source,$mode); 
+        } else {
+          $digested = $latexml->digestFileDaemonized($source,$mode); 
+        }
+      }
+      # ========================================
+      # Now, convert to DOM and output, if desired.
+      #use Encode;
+      if($digested){
+        local $LaTeXML::Global::STATE = $$latexml{state};
+        if($format eq 'tex'){
+          $serialized = LaTeXML::Global::UnTeX($digested); }
+        elsif($format eq 'box'){
+          $serialized = $digested->toString; }
+        else {
+          $dom = $latexml->convertDocument($digested); 
+          $serialized = $dom->toString(1);
+        }
+      }
     };
     if ($@) { #Fatal occured!
-	print STDERR "$@\n";
-	print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
-	#Need to reset latexml in these cases
-	if ($log) { close(LOG); *STDERR = *ERRORIG;} #Close log file
-	undef $latexml;
-	$latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
+      print STDERR "$@\n";
+      print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
+      #Need to reset latexml in these cases
+      if ($log) { close(LOG); *STDERR = *ERRORIG;} #Close log file
+      undef $latexml;
+      $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
 			  verbosity=>$verbosity, strict=>$strict,
 			  includeComments=>$comments,inputencoding=>$inputencoding,
 			  includeStyles=>$includestyles,
@@ -231,8 +322,17 @@ while(1) {
 	       my($state)=@_;
 	       $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
 	   });
-	print STDERR "\n"; #Again, flush log
-	next; #Move on, no body to be produced.
+      if ($preamble && $mode eq "fragment") {
+        #TODO: It is difficult to digest 2 files via LaTeXML right now...
+        $response=$browser->get($preamble);
+        if ($response->is_success) {
+          $latexml->digestURLDaemonized($preamble,"standard");
+        } else {
+          $latexml->digestFileDaemonized($preamble,"standard");
+        }
+      }
+      print STDERR "\n"; #Again, flush log
+      next; #Move on, no body to be produced.
     }
     print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
     $latexml->withState(sub {
@@ -244,13 +344,13 @@ while(1) {
 	  $state->setStatus("undefined",0);
 	  $state->setStatus("missing",0);
       });
-    if($cdest){
+    if($cdest && ($cdest ne "-")){
 	open(OUT,">",$cdest) or die "Couldn't open output file $cdest: $!"; }
     else {
 	#  binmode(STDOUT,":utf8");
 	*OUT = *STDOUT; }
     print OUT $serialized if $serialized;
-    if($cdest){ 
+    if($cdest && ($cdest ne "-")){ 
 	close(OUT); }
     if ($log) { close(LOG); *STDERR = *ERRORIG;} #Close log file
     if ($post && $dom && $cdest && (!$noparse)) {
@@ -334,22 +434,25 @@ sub doPost {
 }
 
 sub outputXML {
-  my($xml,$destination)=@_;
+  my($xml,$destination,$isStream)=@_;
   # Need to move the node to a new document to set up namespaces
   my $newdoc = XML::LibXML::Document->new("1.0","UTF-8");
-  $newdoc->setDocumentElement($xml);
+  $newdoc->setDocumentElement($xml->cloneNode(1));
   my $serialized = $newdoc->toString(1);
-  undef $newdoc;
   if ($destination eq '-') {
-      print $serialized; 
+      print $serialized;
+  }
+  elsif ($isStream) {
+    print $destination $serialized;
   }
   else {
       open(OUT,">$destination") or die "Couldn't open output file $destination: $!";
       print OUT $serialized;
       close OUT;
   }
+  undef $serialized; 
+  undef $newdoc;
 }
-
 sub mathdoc {
 #======================================================================
 # TeX Source
@@ -411,6 +514,8 @@ latexmld [options]
                     can be repeated
  --includestyles    allows latexml to load raw *.sty file;
                     by default it avoids this.
+ --preamble=file    loads a tex file containing document frontmatter.
+                    Useful for fragment mode.
  --path=dir         adds dir to the paths searched for files,
                     modules, etc; 
  --log=file         specifies log file (default: STDERR)

@@ -96,10 +96,6 @@ GetOptions("destination=s" => \$_destination,
 pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $_help;
 if($_showversion){ print STDERR "$identity\n"; exit(1); }
 
-#This is obsolete in daemon mode:
-#pod2usage(-message=>"$identity\nMissing input TeX file", 
-#	  -exitval=>1, -verbose=>0,-output=>\*STDERR) unless @ARGV;
-
 #**********************************************************************
 #Set up the server
 my $server = setup_server($_port);
@@ -117,10 +113,10 @@ $$_procs_post{'pmml'}=1 unless (scalar(keys %$_procs_post));
 
 #Setup LOCAL VARS
 ($verbosity,$strict,$comments,$noparse,$includestyles,
- $errlog,$post,$parallelmath,$input_counter,$input_limit,
+ $errlog,$post,$parallelmath,$input_limit,
  $timeout,$port,$local)=
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
-   $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
+   $_errlog,$_post,$_parallelmath,$_input_limit,
    $_timeout,$_port,$_local);
 ($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
         ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
@@ -190,10 +186,10 @@ while ( my $client = $server->accept() ) {
       #Accept customizations for each input:
       #Setup LOCAL VARS
       ($verbosity,$strict,$comments,$noparse,$includestyles,
-       $errlog,$post,$parallelmath,$input_counter,$input_limit,
+       $errlog,$post,$parallelmath,$input_limit,
        $timeout,$port,$local)=
          ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
-          $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
+          $_errlog,$_post,$_parallelmath,$_input_limit,
           $_timeout,$_port,$_local);
       ($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
         ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
@@ -258,7 +254,21 @@ while ( my $client = $server->accept() ) {
   $response = $browser->get($source);
   my $isURL = $response->is_success;
   #Instantiate targets for current input
-  my ($dir,$name,$ext) = pathname_split($source) unless $isURL;
+  if ($source eq '-' && ($mode ne "math")) {
+    print STDERR "Invalid source file:\n"
+      ." latexms requires a filepath per line as arguments\n";
+    #TODO: Rethink this in server mode
+    #Move to next...
+    exec($0,@ARGV_SAVED) 
+      or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
+    alarm($timeout);              #Timeout if inactive for too long...
+    next;
+  }
+  unless ($isURL || ($mode eq "math")) {
+    $source = pathname_find($source,types=>['tex','']);
+    $source = pathname_canonical($source);
+  }
+  my ($dir,$name,$ext) = pathname_split($source) unless ($isURL || ($mode eq "math")) ;
   #Redirect to logfile, if requested:
   my $clog;
   if ($log && $local) {
@@ -283,7 +293,9 @@ while ( my $client = $server->accept() ) {
   }
   if ($basedir) { chdir "$basedir" or croak "Can't chdir to $basedir: $!";};
 
-  #Start of conversion
+  ###########################################################################
+  #   Start of conversion
+  #
   if ($mode eq "math") {
     # *******************
     # Mode: MATH
@@ -356,21 +368,6 @@ while ( my $client = $server->accept() ) {
   # *****************************
   # Mode: STANDARD and FRAGMENT
   # *****************************
-
-  if ($source eq '-') {
-    print STDERR "Invalid source file:\n"
-      ." latexmldaemon requires a filepath per line as arguments\n";
-    #TODO: Rethink this in server mode
-    #Move to next...
-    exec($0,@ARGV_SAVED) 
-      or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
-    alarm($timeout);              #Timeout if inactive for too long...
-    next;
-  }
-  unless ($isURL) {
-    $source = pathname_find($source,types=>['tex','']);
-    $source = pathname_canonical($source);
-  }
   $type = 'bibtex' if ($type eq 'auto') && ($source =~ /\.bib$/);
   # ========================================
   # First read and digest whatever we're given.
@@ -490,13 +487,13 @@ while ( my $client = $server->accept() ) {
     #  binmode(STDOUT,":utf8");
     *OUT = *STDOUT;
   }
-  print OUT $serialized if ($serialized && (!$post || $cdest!=$client));
+  print OUT $serialized if ($serialized && (!$post || $cdest ne $client));
   if ($cdest && $local && ($cdest ne $client)) { 
     close(OUT);
   }
-  if ($log) {
+  if ($log) { #Close log file
     close(LOG); *STDERR = *ERRORIG;
-  }                             #Close log file
+  }
   if ($post && $dom && $cdest && (!$noparse)) {
     #Postprocess
     my $postlog = $clog;
@@ -509,9 +506,9 @@ while ( my $client = $server->accept() ) {
     }
     my $postdest = $cdest;
     $postdest.=".xhtml" unless
-      (($postdest == $client) || $postdest=~s/\.tex\.xml$/.xhtml/ || $postdest=~s/\.xml$/.xhtml/);
+      (($postdest eq $client) || $postdest=~s/\.tex\.xml$/.xhtml/ || $postdest=~s/\.xml$/.xhtml/);
     doPost(log=>$postlog,dest=>$postdest,stylesheet=>$stylesheet,dom=>$dom,mode=>$mode,
-           parallel=>$parallelmath,procs=>$procs_post,isStream=>($postdest==$client));
+           parallel=>$parallelmath,procs=>$procs_post,isStream=>($postdest eq $client));
   }
   close $client;
   #Move to next...
@@ -533,7 +530,7 @@ sub doPost {
   my @css=();
   unshift (@css,"core.css") unless ($extract eq "math");
   $parallelmath = $parallelmath||0;
-  my $doc = LaTeXML::Post::Document->newFromString($dom->toString(1),nocache=>1);
+  my $doc = LaTeXML::Post::Document->newFromString($dom->toString(1),nocache=>1,destination=>$postdest);
   require 'LaTeXML/Post/MathML.pm';
   require 'LaTeXML/Post/PurgeXMath.pm';
   my @mprocs=();
@@ -647,38 +644,38 @@ $texdoc;
 }
 
 sub dotimeout {
-        print "Daemon timed out after inactivity.\n";
-        print "Self destructing...\n";
-        kill 'TERM', $$
+  print "Daemon timed out after inactivity.\n";
+  print "Self destructing...\n";
+  kill 'TERM', $$
 }
 
 sub doterm {
-        print "Exiting...\n";
-	exit;
+  print "Exiting...\n";
+  exit;
 }
 
 sub daemonize {
-    #chdir '/'                 or croak "Can't chdir to /: $!";
-    #This causes more problems than it solves (e.g. sTeX setup)
-    open STDIN, '/dev/null'   or croak "Can't read /dev/null: $!";
-    open STDOUT, '>/dev/null' or croak "Can't write to /dev/null: $!";
-    defined(my $pid = fork)   or croak "Can't fork: $!";
-    exit if $pid;
-    setsid                    or croak "Can't start a new session: $!";
-    open STDERR, '>&STDOUT'   or croak "Can't dup stdout: $!";
+  #chdir '/'                 or croak "Can't chdir to /: $!";
+  #This causes more problems than it solves (e.g. sTeX setup)
+  open STDIN, '/dev/null'   or croak "Can't read /dev/null: $!";
+  open STDOUT, '>/dev/null' or croak "Can't write to /dev/null: $!";
+  defined(my $pid = fork)   or croak "Can't fork: $!";
+  exit if $pid;
+  setsid                    or croak "Can't start a new session: $!";
+  #open STDERR, '>&STDOUT'   or croak "Can't dup stdout: $!";
 }
 
 sub setup_server {
-    my $port = shift;
-    $port = 3334 unless $port;
-    my $server = IO::Socket::INET->new(
+  my $port = shift;
+  $port = 3334 unless $port;
+  my $server = IO::Socket::INET->new(
         'Proto'     => 'tcp',
         'LocalPort' => $port,
         'Listen'    => SOMAXCONN,
         'Reuse'     => 1,
     );
-    die "can't setup server" unless $server;
-    return $server;
+  die "can't setup server" unless $server;
+  return $server;
 }
 
 #**********************************************************************
