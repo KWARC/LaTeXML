@@ -27,7 +27,7 @@ use IO::Socket;
 #**********************************************************************
 # Parse command line
 my @ARGV_SAVED = @ARGV; #Save, so that we reinvoke when flushed
-my $identity = "latexmld (LaTeXML version $LaTeXML::VERSION)";
+my $identity = "latexmls (LaTeXML version $LaTeXML::VERSION)";
 #Since we allow runtime customization, we need two sets of the same
 # switch variables:
 #GLOBAL VARS
@@ -662,7 +662,7 @@ sub daemonize {
   defined(my $pid = fork)   or croak "Can't fork: $!";
   exit if $pid;
   setsid                    or croak "Can't start a new session: $!";
-  #open STDERR, '>&STDOUT'   or croak "Can't dup stdout: $!";
+  open STDERR, '>&STDOUT'   or croak "Can't dup stdout: $!";
 }
 
 sub setup_server {
@@ -885,14 +885,14 @@ fragment: Default, parses frontmatter and \begin{document}...\end{document} frag
           Assumes that the documentclass is fixed (if any), which achieves a big speedup,
           since no state reinitialization is necessary. Use the C<--preload> switch
           to load the document class when invoking the daemon.
-          Example:  latexmld --preload=LaTeX.pool --preload=article.cls
+          Example:  latexmls --preload=LaTeX.pool --preload=article.cls
 
 standard: Turns on the classic, unoptimized processing of documents as performed by latexml.
           This is suitable for processing sets of heterogeneous documents, but is slower in general.
-          Example:  latexmld --mode=standard
+          Example:  latexmls --mode=standard
 
 math:     Like latexmlmath, parses a single TeX formula per line.
-          Example:  latexmld --mode=math --pmml --keepTeX --parallelmath
+          Example:  latexmls --mode=math --pmml --keepTeX --parallelmath
 
 =item C<--post>
 

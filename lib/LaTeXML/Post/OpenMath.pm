@@ -232,7 +232,7 @@ sub findElements_internal {
    [$name, $attr, @children];
  }
  else {
-   map(findElements_internal($type,@$_),@children);
+   map(findElements_internal($type,@$_),grep(ref $_,@children));
  }}
 
 DefOpenMath('Apply:BINDER:?', sub {
