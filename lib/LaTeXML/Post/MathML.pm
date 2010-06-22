@@ -712,7 +712,7 @@ sub cmml {
   my $tag = getQName($node);
   if($tag eq 'ltx:XMath'){
     my($item,@rest)=  element_nodes($node);
-    print STDERR "Warning! got extra nodes for content!\n" if @rest;
+    print STDERR "Warning! got extra nodes for content!\n".$node->toString."\n\n" if @rest;
     cmml($item); }
   elsif($tag eq 'ltx:XMDual'){
     my($content,$presentation) = element_nodes($node);
