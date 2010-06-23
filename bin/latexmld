@@ -29,9 +29,7 @@ my $identity = "latexmld (LaTeXML version $LaTeXML::VERSION)";
 my($verbosity,$strict,$comments,$noparse,$includestyles,
    $errlog,$post,$parallelmath,$input_counter,$input_limit,
    $timeout)=(0,0,1,0,0,0,0,0,0,0,60);
-my ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet,$preamble)=('xml','fragment','','',{});# *****************************
-  # Mode: STANDARD and FRAGMENT
-  # *****************************
+my ($format,$mode,$destination,$log,$procs_post,$help,$showversion,$stylesheet,$preamble)=('xml','standard','','',{});
 my ($documentid);
 my $inputencoding;
 my $type = 'auto';
@@ -536,7 +534,7 @@ latexmld [options]
  --noparse          suppresses parsing math (default: off)
  --mode=modename    Specify daemon parsing mode
                     Supported: standard|math|fragment
-                    (default: fragment)
+                    (default: standard)
  --post             requests a followup postprocessing
  --stylesheet       specifies a stylesheet,
                     to be used by the postprocessor.
@@ -668,13 +666,13 @@ and the result is printed.
 
 =item C<--mode>
 
-fragment: Default, parses frontmatter and \begin{document}...\end{document} fragments.
+fragment: Parses frontmatter and \begin{document}...\end{document} fragments.
           Assumes that the documentclass is fixed (if any), which achieves a big speedup,
           since no state reinitialization is necessary. Use the C<--preload> switch
           to load the document class when invoking the daemon.
           Example:  latexmld --preload=LaTeX.pool --preload=article.cls
 
-standard: Turns on the classic, unoptimized processing of documents as performed by latexml.
+standard: Default, turns on the classic, unoptimized processing of documents as performed by latexml.
           This is suitable for processing sets of heterogeneous documents, but is slower in general.
           Example:  latexmld --mode=standard
 

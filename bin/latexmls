@@ -24,6 +24,9 @@ use LWP::Simple;
 use LWP;
 use IO::Socket;
 
+#Setting up Daemon
+daemonize();
+
 #**********************************************************************
 # Parse command line
 my @ARGV_SAVED = @ARGV; #Save, so that we reinvoke when flushed
@@ -33,8 +36,8 @@ my $identity = "latexmls (LaTeXML version $LaTeXML::VERSION)";
 #GLOBAL VARS
 my($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
-   $_timeout,$_port,$_local)=(0,0,1,0,0,0,0,0,0,0,60,3334,0);
-my ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble,$_preamble_loaded)=('xml','fragment','','','',{},undef,undef,undef,undef,'');
+   $_timeout,$_local)=(0,0,1,0,0,0,0,0,0,0,60,0);
+my ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble,$_preamble_loaded)=('xml','standard','','','',{},undef,undef,undef,undef,'');
 my ($_documentid);
 my $_inputencoding;
 my $_type = 'auto';
@@ -44,13 +47,14 @@ my (@preload_,@debugs_);
 #LOCAL VARS
 my($verbosity,$strict,$comments,$noparse,$includestyles,
    $errlog,$post,$parallelmath,$input_counter,$input_limit,
-   $timeout,$port,$local)=
+   $timeout,$local)=
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
-   $_timeout,$_port,$_local);
+   $_timeout,$_local);
 my ($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
   ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
-my ($documentid);
+my ($documentid,$port);
+my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
 my $inputencoding;
 my $type = $_type;
 my @paths = @paths_;
@@ -74,7 +78,7 @@ GetOptions("destination=s" => \$_destination,
 	   "mode=s"  => \$_mode,
 	   "autoflush=s" => \$_input_limit,
            "timeout=s"   => \$_timeout,
-           "port=s"      => \$_port,
+           "port=s"      => \$port,
            "local"       => \$_local,
 	   "log=s"       => \$_log,
 	   "includestyles"=> \$_includestyles,
@@ -98,9 +102,8 @@ if($_showversion){ print STDERR "$identity\n"; exit(1); }
 
 #**********************************************************************
 #Set up the server
-my $server = setup_server($_port);
-#Setting up Daemon
-daemonize();
+$port = $portlist{$_mode} unless $port;
+my $server = setup_server($port);
 
 #**********************************************************************
 # Set up the processing.
@@ -109,15 +112,15 @@ $_mode = lc($_mode);
 $_input_limit=50000
   if (($_mode eq "math") && (!$_input_limit || $_input_limit<1)); #50k if not set and math or if wrong
 $_input_limit=10000 unless ($_input_limit && $_input_limit>0); #Else, 10k
-$$_procs_post{'pmml'}=1 unless (scalar(keys %$_procs_post));
+$$_procs_post{'pmml'}=1 unless (scalar(keys %$_procs_post)||(!$_post));
 
 #Setup LOCAL VARS
 ($verbosity,$strict,$comments,$noparse,$includestyles,
  $errlog,$post,$parallelmath,$input_limit,
- $timeout,$port,$local)=
+ $timeout,$local)=
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_limit,
-   $_timeout,$_port,$_local);
+   $_timeout,$_local);
 ($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
         ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
 $documentid=$_documentid;
@@ -187,12 +190,12 @@ while ( my $client = $server->accept() ) {
       #Setup LOCAL VARS
       ($verbosity,$strict,$comments,$noparse,$includestyles,
        $errlog,$post,$parallelmath,$input_limit,
-       $timeout,$port,$local)=
+       $timeout,$local)=
          ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
           $_errlog,$_post,$_parallelmath,$_input_limit,
-          $_timeout,$_port,$_local);
+          $_timeout,$_local);
       ($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
-        ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
+        ($_format,$_mode,$_destination,$_log,$_basedir,{},$_help,$_showversion,$_stylesheet,$_preamble);
       $documentid=$_documentid;
       $inputencoding=$_inputencoding;
       $type = $_type;
@@ -237,6 +240,7 @@ while ( my $client = $server->accept() ) {
 	   "help"      => \$help,
       );
       pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
+      $procs_post = $_procs_post unless scalar(keys(%$procs_post));
       $source.=join(" ",grep($_ !~ /^--/,@$args));
       $sockstart=0; next;
     }
@@ -667,7 +671,6 @@ sub daemonize {
 
 sub setup_server {
   my $port = shift;
-  $port = 3334 unless $port;
   my $server = IO::Socket::INET->new(
         'Proto'     => 'tcp',
         'LocalPort' => $port,
@@ -710,7 +713,8 @@ latexmls [options]
                     jobs. (default: 10000)
  --timeout=secs     Set a timeout value for inactivity.
                     Default is 60 seconds, set 0 to disable.
- --port=number      Specify server port (default: 3334)
+ --port=number      Specify server port (default: 3334 for math, 
+                    3344 for fragment and 3354 for standard)
  --local            Request a local server (default: off)
                     Required for the --log and --destination switches
                     Required for processing filenames on input
@@ -726,7 +730,7 @@ latexmls [options]
  --noparse          suppresses parsing math (default: off)
  --mode=modename    Specify daemon parsing mode
                     Supported: standard|math|fragment
-                    (default: fragment)
+                    (default: standard)
  --post             requests a followup postprocessing
  --stylesheet       specifies a stylesheet,
                     to be used by the postprocessor.
@@ -821,7 +825,7 @@ The default value is 60 seconds, set to 0 to disable.
 
 =item C<--port>=I<number>
 
-Specify server port (default: 3334)
+Specify server port (default: 3334 for math, 3344 for fragment and 3354 for standard)
 
 =item C<--local>
 
@@ -881,13 +885,13 @@ and the result is printed.
 
 =item C<--mode>
 
-fragment: Default, parses frontmatter and \begin{document}...\end{document} fragments.
+fragment: Parses frontmatter and \begin{document}...\end{document} fragments.
           Assumes that the documentclass is fixed (if any), which achieves a big speedup,
           since no state reinitialization is necessary. Use the C<--preload> switch
           to load the document class when invoking the daemon.
-          Example:  latexmls --preload=LaTeX.pool --preload=article.cls
+          Example:  latexmls --preload=LaTeX.pool --preload=article.cls --mode=fragment
 
-standard: Turns on the classic, unoptimized processing of documents as performed by latexml.
+standard: Default, turns on the classic, unoptimized processing of documents as performed by latexml.
           This is suitable for processing sets of heterogeneous documents, but is slower in general.
           Example:  latexmls --mode=standard
 
