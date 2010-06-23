@@ -112,7 +112,7 @@ $_mode = lc($_mode);
 $_input_limit=50000
   if (($_mode eq "math") && (!$_input_limit || $_input_limit<1)); #50k if not set and math or if wrong
 $_input_limit=10000 unless ($_input_limit && $_input_limit>0); #Else, 10k
-$$_procs_post{'pmml'}=1 unless (scalar(keys %$_procs_post)||(!$_post));
+$$_procs_post{'pmml'}=1 unless (scalar(keys %$_procs_post)||(!$_post && ($_mode ne "math")));
 
 #Setup LOCAL VARS
 ($verbosity,$strict,$comments,$noparse,$includestyles,
@@ -240,7 +240,7 @@ while ( my $client = $server->accept() ) {
 	   "help"      => \$help,
       );
       pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
-      $procs_post = $_procs_post unless scalar(keys(%$procs_post));
+      $$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post)||(!$_post && ($_mode ne "math")));
       $source.=join(" ",grep($_ !~ /^--/,@$args));
       $sockstart=0; next;
     }
