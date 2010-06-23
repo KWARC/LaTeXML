@@ -18,13 +18,12 @@ my @args = grep ($_ !~ /^-/,@ARGV);
 
 #Need to make all paths absolute
 
-my ($port) = map {$_=~/(\d+)/; $1;} grep {$_ =~ /^--port=(\d+)$/;} @opts;
-my ($mode) = map {$_=~/(\w+)/; $1;} grep {$_ =~ /^--mode=(\w+)$/;} @opts;
+my ($port) = map {$_=~/(\d+)/; $1;} grep {$_ =~ /^--port=(\d+)/;} @opts;
+my ($mode) = map {$_=~/--mode=(\w+)/; $1;} grep {$_ =~ /^--mode=(\w+)/;} @opts;
 $mode="standard" unless $mode; #Default is standard
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
 $port = $portlist{$mode} unless $port;
 $port = 3334 unless $port; #Fall back to 3334 if all fails...
-
 #***************************************************************************
 #Add some basedir, so that relative paths work
 my $cdir = cwd();
