@@ -241,6 +241,7 @@ while ( my $client = $server->accept() ) {
       );
       pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
       $$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post)||(!$_post && ($_mode ne "math")));
+      if ($basedir) { chdir "$basedir" or croak "Can't chdir to $basedir: $!";};
       $source.=join(" ",grep($_ !~ /^--/,@$args));
       $sockstart=0; next;
     }
@@ -272,6 +273,7 @@ while ( my $client = $server->accept() ) {
     $source = pathname_find($source,types=>['tex','']);
     $source = pathname_canonical($source);
   }
+
   my ($dir,$name,$ext) = pathname_split($source) unless ($isURL || ($mode eq "math")) ;
   #Redirect to logfile, if requested:
   my $clog;
@@ -295,8 +297,6 @@ while ( my $client = $server->accept() ) {
   } else { #Output to client
     $cdest = $client;
   }
-  if ($basedir) { chdir "$basedir" or croak "Can't chdir to $basedir: $!";};
-
   ###########################################################################
   #   Start of conversion
   #
