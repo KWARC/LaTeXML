@@ -599,6 +599,7 @@ sub outputXML {
   my($xml,$destination,$isStream)=@_;
   # Need to move the node to a new document to set up namespaces
   my $newdoc = XML::LibXML::Document->new("1.0","UTF-8");
+  return unless ref $xml;
   $newdoc->setDocumentElement($xml->cloneNode(1));
   my $serialized = $newdoc->toString(1);
   if ($destination eq '-') {
