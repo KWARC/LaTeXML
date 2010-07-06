@@ -126,17 +126,17 @@ $$_procs_post{'pmml'}=1 unless (scalar(keys %$_procs_post)||(!$_post && ($_mode 
 $documentid=$_documentid;
 $inputencoding=$_inputencoding;
 $type = $_type;
+#When in math mode, preload math packages:
+if ($mode eq "math") {
+    my  @mathpreload = ("LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
+    @preload_=(@preload_,@mathpreload);
+}
 @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
 
 #Setup browser for URI requests
 my $browser = LWP::UserAgent->new;
 my $response;
 
-#When in math mode, preload math packages:
-if ($mode eq "math") {
-    my  @mathpreload = ("LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
-    @preload=(@preload,@mathpreload);
-}
 @paths = map(pathname_canonical($_),@paths);
 my $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
 			  verbosity=>$verbosity, strict=>$strict,
@@ -161,7 +161,7 @@ $latexml->withState(sub {
 });
 print STDERR "\n"; #Sanitize log.
 # Preload the preamble if any (and not loaded)
-if ($preamble && $mode eq "fragment") {
+if ($preamble) {
   #TODO: It is difficult to digest 2 files via LaTeXML right now...
   $response=$browser->get($preamble);
   if ($response->is_success) {
@@ -253,28 +253,20 @@ while ( my $client = $server->accept() ) {
   alarm(0);                    #We are processing, ignore timeout here
   $input_counter++;
   chomp $source;
-  $source =~ s/^\s+//;                     #Cleanup space
-  $source =~ s/\s+$//;                     #Cleanup space
+  $source =~ s/^\s+//m;                     #Cleanup space
+  $source =~ s/\s+$//m;                     #Cleanup space
   last if (!$source || ($source eq ":q"));   #:q marks we're done
   $response = $browser->get($source);
   my $isURL = $response->is_success;
   #Instantiate targets for current input
-  if ($source eq '-' && ($mode ne "math")) {
-    print STDERR "Invalid source file:\n"
-      ." latexms requires a filepath per line as arguments\n";
-    #TODO: Rethink this in server mode
-    #Move to next...
-    exec($0,@ARGV_SAVED) 
-      or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
-    alarm($timeout);              #Timeout if inactive for too long...
-    next;
-  }
+  my $isFile;
   unless ($isURL || ($mode eq "math")) {
-    $source = pathname_find($source,types=>['tex','']);
-    $source = pathname_canonical($source);
+    $isFile = pathname_find($source,types=>['tex','']);
+    $isFile = pathname_canonical($isFile);
+    $source = $isFile if $isFile;
   }
 
-  my ($dir,$name,$ext) = pathname_split($source) unless ($isURL || ($mode eq "math")) ;
+  my ($dir,$name,$ext) = pathname_split($source) if $isFile;
   #Redirect to logfile, if requested:
   my $clog;
   if ($log && $local) {
@@ -300,78 +292,7 @@ while ( my $client = $server->accept() ) {
   ###########################################################################
   #   Start of conversion
   #
-  if ($mode eq "math") {
-    # *******************
-    # Mode: MATH
-    # *******************
-    my $texdoc = mathdoc($source);
-    my $dom;
-    $latexml->withState(sub {
-                          my($state)=@_; #Sandbox state
-                          $state->pushFrame; });
-    eval {
-      my $digested = $latexml->digestStringDaemonized($texdoc,$mode);
-      $dom = $latexml->convertDocument($digested);
-    };
-    if ($@) {                   #Fatal occured!
-      print STDERR "$@\n";
-      print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
-      #Need to reset latexml in these cases
-      if ($log) {
-        close(LOG); *STDERR = *ERRORIG;
-      }                         #Close log file
-      undef $latexml;
-      $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
-                             verbosity=>$verbosity, strict=>$strict,
-                             includeComments=>$comments,inputencoding=>$inputencoding,
-                             includeStyles=>$includestyles,
-                             documentid=>$documentid,
-                             nomathparse=>$noparse);
-      $latexml->withState(sub {
-                            my($state)=@_;
-                            $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
-                          });
-      # Preload the preamble if any
-      if ($preamble && $mode eq "fragment" && ($preamble ne $_preamble_loaded)) {
-        #TODO: It is difficult to digest 2 files via LaTeXML right now...
-        $response=$browser->get($preamble);
-        if ($response->is_success) {
-          $latexml->digestURLDaemonized($preamble,"standard");
-        } else {
-          $latexml->digestFileDaemonized($preamble,"standard");
-        }
-        $_preamble_loaded = $preamble;
-      }
-      print STDERR "\n";        #Again, flush log
-      #Move to next...
-      exec($0,@ARGV_SAVED)
-        or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
-      alarm($timeout);          #Timeout if inactive for too long...
-      next;                     #Move on, no body to be produced.
-    }
-    $latexml->withState(sub {
-                          my($state)=@_; #Remove current state frame
-                          $state->popFrame;
-                          $state->setStatus("warning",0);
-                          $state->setStatus("error",0);
-                          $state->setStatus("fatal",0);
-                          $state->setStatus("undefined",0);
-                          $state->setStatus("missing",0);
-                        });
-    doPost(log=>$clog,dest=>$cdest,stylesheet=>$stylesheet,dom=>$dom,
-           mode=>"math",parallel=>$parallelmath,procs=>$procs_post,isStream=>($cdest eq $client));
 
-    undef $texdoc;
-    #Move to next...
-    exec($0,@ARGV_SAVED) 
-      or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
-    alarm($timeout);              #Timeout if inactive for too long...
-    next;
-  }
-
-  # *****************************
-  # Mode: STANDARD and FRAGMENT
-  # *****************************
   $type = 'bibtex' if ($type eq 'auto') && ($source =~ /\.bib$/);
   # ========================================
   # First read and digest whatever we're given.
@@ -392,9 +313,9 @@ while ( my $client = $server->accept() ) {
                         });
     print STDERR "\n";          #Again, flush log
   }
-  #Continue with processing in standard and fragment cases:
+
   # Preload the preamble if any
-  if ($preamble && $mode eq "fragment" && ($preamble ne $_preamble_loaded)) {
+  if ($preamble && ($preamble ne $_preamble_loaded)) {
     #TODO: It is difficult to digest 2 files via LaTeXML right now...
     $response=$browser->get($preamble);
     if ($response->is_success) {
@@ -411,15 +332,18 @@ while ( my $client = $server->accept() ) {
   my $serialized;
   my $dom;
   eval {
-    if ($type eq 'bibtex') {
-      #TODO: Do we want URL support here?
-      $digested = $latexml->digestBibTeXFileDaemonized($source,$mode);
-    } else {
-      if ($isURL) {
-        $digested = $latexml->digestURLDaemonized($source,$mode); 
+    if ($isURL) {
+      $digested = $latexml->digestURLDaemonized($source,$mode); 
+    } elsif ($isFile) {
+      if ($type eq 'bibtex') {
+        #TODO: Do we want URL support here?
+        $digested = $latexml->digestBibTeXFileDaemonized($source,$mode);
       } else {
         $digested = $latexml->digestFileDaemonized($source,$mode); 
-      }
+      }}
+    else {
+      $source = mathdoc($source) if ($mode eq "math");
+      $digested = $latexml->digestStringDaemonized($source,$mode); 
     }
     # ========================================
     # Now, convert to DOM and output, if desired.
@@ -491,6 +415,9 @@ while ( my $client = $server->accept() ) {
     #  binmode(STDOUT,":utf8");
     *OUT = *STDOUT;
   }
+  #Math mode means post 
+  #(TODO: Rethink this, maybe we want more flexibility e.g. noparse XMath)
+  $post=1 if ($mode eq "math");
   print OUT $serialized if ($serialized && (!$post || $cdest ne $client));
   if ($cdest && $local && ($cdest ne $client)) { 
     close(OUT);
