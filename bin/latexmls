@@ -260,7 +260,8 @@ while ( my $client = $server->accept() ) {
   chomp $source;
   $source =~ s/^\s+//m;                     #Cleanup space
   $source =~ s/\s+$//m;                     #Cleanup space
-  last if (!$source || ($source eq ":q"));   #:q marks we're done
+  next if (!$source);
+  last if ($source eq ":q");   #:q marks we're done
   $response = $browser->get($source);
   my $isURL = $response->is_success;
   #Instantiate targets for current input
