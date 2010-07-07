@@ -19,13 +19,11 @@ use LaTeXML::Post::Writer;
 use LaTeXML::Post::Scan;
 
 use Carp;
+use Clone qw(clone);
 use POSIX qw( setsid );
 use LWP::Simple;
 use LWP;
 use IO::Socket;
-
-#Setting up Daemon
-daemonize();
 
 #**********************************************************************
 # Parse command line
@@ -144,7 +142,6 @@ my $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
 			  includeStyles=>$includestyles,
 			  documentid=>$documentid,
 			  nomathparse=>$noparse);
-
 if(my @baddirs = grep(! -d $_, @paths)){
     warn "$identity: these path directories do not exist: ".join(', ',@baddirs)."\n"; }
 binmode(STDERR,":utf8");
@@ -170,6 +167,14 @@ if ($preamble) {
     $latexml->digestFileDaemonized($preamble,"standard");
   }
   $_preamble_loaded = $preamble;
+}
+
+#Setting up Daemon
+my $init_status = $latexml->getStatusMessage;
+if ($init_status !~ /error/i) {
+  daemonize();
+} else {
+  Croak($init_status);
 }
 
 #Flush daemon, every $input_limit files:
@@ -325,9 +330,10 @@ while ( my $client = $server->accept() ) {
     }
     $_preamble_loaded = $preamble;
   }
-
+  my $stateRestore;
   $latexml->withState(sub {
                         my($state)=@_; #Sandbox state
+                        $stateRestore = clone $$state{table};
                         $state->pushFrame; });
   my $serialized;
   my $dom;
@@ -400,6 +406,7 @@ while ( my $client = $server->accept() ) {
   $latexml->withState(sub {
                         my($state)=@_; #Remove current state frame
                         $state->popFrame;
+                        $$state{table} = $stateRestore;
                         $state->setStatus("warning",0);
                         $state->setStatus("error",0);
                         $state->setStatus("fatal",0);
