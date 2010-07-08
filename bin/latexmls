@@ -189,6 +189,7 @@ while ( my $client = $server->accept() ) {
   my $source = '';
   my $sockstart=1;
   while (my $line = <$client>) {
+    chomp $line if $line; #We don't need the trailing empty line
     $sockstart=0 unless $line=~/^--/;#Assume no options will be given if the line does not start with --
     if ($sockstart) {
       #Accept customizations for each input:
@@ -206,7 +207,6 @@ while ( my $client = $server->accept() ) {
       $type = $_type;
       @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
       #Parse overwrites from current input:
-      chomp($line);
       my ($ret,$args) = GetOptionsFromString($line,
            "destination=s" => \$destination,
 	   "output=s"  => \$destination,
@@ -262,16 +262,21 @@ while ( my $client = $server->accept() ) {
   $source =~ s/\s+$//m;                     #Cleanup space
   next if (!$source);
   last if ($source eq ":q");   #:q marks we're done
-  $response = $browser->get($source);
-  my $isURL = $response->is_success;
-  #Instantiate targets for current input
-  my $isFile;
-  unless ($isURL || ($mode eq "math")) {
+  # Determine input type:
+  my ($isURL,$isString,$isFile);  
+  my @source_lines = split(/\n/,$source);
+  $isString = $source if (scalar(@source_lines)>1 || $mode eq "math");
+  unless ($isString) {
     $isFile = pathname_find($source,types=>['tex','']);
     $isFile = pathname_canonical($isFile);
     $source = $isFile if $isFile;
+    unless($isFile) {
+      $response = $browser->get($source);
+      $isURL = $response->is_success;
+    }
   }
-
+  $isString = $source unless ($isFile || $isURL); #Not file or URL - then process as string
+  #Instantiate targets for current input
   my ($dir,$name,$ext) = pathname_split($source) if $isFile;
   #Redirect to logfile, if requested:
   my $clog;
@@ -322,7 +327,7 @@ while ( my $client = $server->accept() ) {
 
   # Preload the preamble if any
   if ($preamble && ($preamble ne $_preamble_loaded)) {
-    #TODO: It is difficult to digest 2 files via LaTeXML right now...
+    #TODO: It is difficult to digest 2 preamble files via LaTeXML right now...
     $response=$browser->get($preamble);
     if ($response->is_success) {
       $latexml->digestURLDaemonized($preamble,"standard");
@@ -348,7 +353,7 @@ while ( my $client = $server->accept() ) {
       } else {
         $digested = $latexml->digestFileDaemonized($source,$mode); 
       }}
-    else {
+    elsif ($isString) {
       $source = mathdoc($source) if ($mode eq "math");
       $digested = $latexml->digestStringDaemonized($source,$mode); 
     }
