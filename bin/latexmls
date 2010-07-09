@@ -341,7 +341,7 @@ while ( my $client = $server->accept() ) {
   my $stateRestore;
   $latexml->withState(sub {
                         my($state)=@_; #Sandbox state
-                        $stateRestore = clone $$state{table};
+                        $stateRestore = clone $$state{table} unless $mode eq "math";
                         $state->pushFrame; });
   my $serialized;
   my $dom;
@@ -414,7 +414,7 @@ while ( my $client = $server->accept() ) {
   $latexml->withState(sub {
                         my($state)=@_; #Remove current state frame
                         $state->popFrame;
-                        $$state{table} = $stateRestore;
+                        $$state{table} = $stateRestore unless $mode eq "math";
                         $state->setStatus("warning",0);
                         $state->setStatus("error",0);
                         $state->setStatus("fatal",0);
