@@ -262,20 +262,22 @@ while ( my $client = $server->accept() ) {
   $source =~ s/\s+$//m;                     #Cleanup space
   next if (!$source);
   last if ($source eq ":q");   #:q marks we're done
-  # Determine input type:
-  my ($isURL,$isString,$isFile);  
-  my @source_lines = split(/\n/,$source);
-  $isString = $source if (scalar(@source_lines)>1 || $mode eq "math");
-  unless ($isString) {
-    $isFile = pathname_find($source,types=>['tex','']);
-    $isFile = pathname_canonical($isFile);
-    $source = $isFile if $isFile;
-    unless($isFile) {
-      $response = $browser->get($source);
-      $isURL = $response->is_success;
+  # Determine input type if local, otherwise only socket exchange:
+  my ($isURL,$isString,$isFile);
+  if ($local) {
+    my @source_lines = split(/\n/,$source);
+    $isString = $source if (scalar(@source_lines)>1 || $mode eq "math");
+    unless ($isString) {
+      $isFile = pathname_find($source,types=>['tex','']);
+      $isFile = pathname_canonical($isFile);
+      $source = $isFile if $isFile;
+      unless($isFile) {
+        $response = $browser->get($source);
+        $isURL = $response->is_success;
+      }
     }
-  }
-  $isString = $source unless ($isFile || $isURL); #Not file or URL - then process as string
+    $isString = $source unless ($isFile || $isURL); #Not file or URL - then process as string
+  } else { $isString=$source; }
   #Instantiate targets for current input
   my ($dir,$name,$ext) = pathname_split($source) if $isFile;
   #Redirect to logfile, if requested:
