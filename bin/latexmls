@@ -159,7 +159,7 @@ $latexml->withState(sub {
 print STDERR "\n"; #Sanitize log.
 # Preload the preamble if any (and not loaded)
 if ($preamble) {
-  #TODO: It is difficult to digest 2 files via LaTeXML right now...
+  #TODO: It is difficult to digest 2 files via LaTeXML into 1 XML output right now...
   $response=$browser->get($preamble);
   if ($response->is_success) {
     $latexml->digestURLDaemonized($preamble,"standard");
@@ -173,9 +173,14 @@ if ($preamble) {
 my $init_status = $latexml->getStatusMessage;
 if ($init_status !~ /error/i) {
   daemonize();
-} else {
-  Croak($init_status);
-}
+} else {  die $init_status; } #Demand errorless initialization
+
+#Create restore point
+my $stateRestore;
+$latexml->withState(sub {
+  my($state)=@_;
+  $stateRestore = clone $$state{table} unless $mode eq "math";
+});
 
 #Flush daemon, every $input_limit files:
 exec($0,@ARGV_SAVED) 
@@ -338,10 +343,9 @@ while ( my $client = $server->accept() ) {
     }
     $_preamble_loaded = $preamble;
   }
-  my $stateRestore;
+
   $latexml->withState(sub {
                         my($state)=@_; #Sandbox state
-                        $stateRestore = clone $$state{table} unless $mode eq "math";
                         $state->pushFrame; });
   my $serialized;
   my $dom;
@@ -394,7 +398,7 @@ while ( my $client = $server->accept() ) {
                         });
     # Preload the preamble if any
     if ($preamble && $mode eq "fragment") {
-      #TODO: It is difficult to digest 2 files via LaTeXML right now...
+      #TODO: It is difficult to digest 2 files via LaTeXML into 1 XML output right now...
       $response=$browser->get($preamble);
       if ($response->is_success) {
         $latexml->digestURLDaemonized($preamble,"standard");
@@ -414,7 +418,7 @@ while ( my $client = $server->accept() ) {
   $latexml->withState(sub {
                         my($state)=@_; #Remove current state frame
                         $state->popFrame;
-                        $$state{table} = $stateRestore unless $mode eq "math";
+                        $$state{table} = clone $stateRestore unless $mode eq "math";
                         $state->setStatus("warning",0);
                         $state->setStatus("error",0);
                         $state->setStatus("fatal",0);
@@ -597,7 +601,7 @@ sub dotimeout {
 }
 
 sub doterm {
-  print "Exiting...\n";
+  print STDERR "Exiting...\n";
   exit;
 }
 
@@ -775,7 +779,8 @@ Specify server port (default: 3334 for math, 3344 for fragment and 3354 for stan
 Request a local server (default: off)
 Required for the --log and --destination switches
 Required for processing filenames on input
-
+If switched off, the only means of communication with the server is via the respective socket.
+Expect an empty output on fatal error, since logs are hard to provide at the moment.
 
 =item C<--documentid>=I<id>
 
