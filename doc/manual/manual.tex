@@ -481,7 +481,27 @@ a single, handy, command \ltxcmd{latexmlmath}.  For example,
 will print the \MathML\ to standard output.  
 To convert the formula to a \texttt{png} image, say \texttt{quad.png},
 use the option \code{--mathimage=quad.png}.
+%%%----------------------------------------------------------------------
+\section[Daemon]{Optimized Processing}\label{usage.daemon}\index{latexmls!basic usage}
+%TODO: Add content , rethink index
+When one is interested in processing jobs beyond a single document,
+efficiency and convenience of processing are held in greater
+value. Two such scenarios are processing jobs converting large
+collections of documents, as well as multi-user web applications,
+building on {\LaTeXML} as a core service.
 
+The \ltxcmd{latexmld} daemon, as well as the
+\ltxcmd{latexmls} and \ltxcmd{latexmlc} server-client setup can
+facilitate such purposes. Note that these binaries are in \textbf{beta
+  stage} and are currently under heavy development.
+
+\paragraph{latexmld}
+\begin{lstlisting}[style=shell]
+latexmld {options} --destination={doc}.xhtml {doc}
+\end{lstlisting}
+
+\paragraph{latexmls}
+\paragraph{latexmlc}
 %%%======================================================================
 \chapter{Architecture}\label{architecture}
 As has been said, \LaTeXML\ consists of two main programs:
