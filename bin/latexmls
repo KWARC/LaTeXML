@@ -50,7 +50,7 @@ my($verbosity,$strict,$comments,$noparse,$includestyles,
    $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
    $_timeout,$_local);
 my ($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
-  ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
+  ($_format,$_mode,$_destination,$_log,$_basedir,{},$_help,$_showversion,$_stylesheet,$_preamble);
 my ($documentid,$port);
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
 my $inputencoding;
@@ -110,7 +110,6 @@ $_mode = lc($_mode);
 $_input_limit=50000
   if (($_mode eq "math") && (!$_input_limit || $_input_limit<1)); #50k if not set and math or if wrong
 $_input_limit=10000 unless ($_input_limit && $_input_limit>0); #Else, 10k
-$$_procs_post{'pmml'}=1 unless (scalar(keys %$_procs_post)||(!$_post && ($_mode ne "math")));
 
 #Setup LOCAL VARS
 ($verbosity,$strict,$comments,$noparse,$includestyles,
@@ -119,11 +118,10 @@ $$_procs_post{'pmml'}=1 unless (scalar(keys %$_procs_post)||(!$_post && ($_mode 
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_limit,
    $_timeout,$_local);
-($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
-        ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble);
-$documentid=$_documentid;
-$inputencoding=$_inputencoding;
-$type = $_type;
+($format,$mode,$destination,$log,$basedir,$help,$showversion,$stylesheet,$preamble,$documentid,$inputencoding,$type)=
+        ($_format,$_mode,$_destination,$_log,$_basedir,$_help,$_showversion,$_stylesheet,$_preamble,$_documentid,$_inputencoding,$_type);
+%$procs_post = %$_procs_post;
+
 #When in math mode, preload math packages:
 if ($mode eq "math") {
     my  @mathpreload = ("LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
@@ -193,24 +191,22 @@ alarm($timeout);              #Timeout if inactive for too long...
 while ( my $client = $server->accept() ) {
   my $source = '';
   my $sockstart=1;
+  #Accept customizations for each input:
+  #Setup LOCAL VARS
+  ($verbosity,$strict,$comments,$noparse,$includestyles,
+   $errlog,$post,$parallelmath,$input_limit,
+   $timeout,$local)=
+     ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
+      $_errlog,$_post,$_parallelmath,$_input_limit,
+      $_timeout,$_local);
+  ($format,$mode,$destination,$log,$basedir,$help,$showversion,$stylesheet,$preamble,$documentid,$inputencoding,$type)=
+    ($_format,$_mode,$_destination,$_log,$_basedir,$_help,$_showversion,$_stylesheet,$_preamble,$_documentid,$_inputencoding,$_type);
+  %$procs_post = %$_procs_post;
+  @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
   while (my $line = <$client>) {
     chomp $line if $line; #We don't need the trailing empty line
     $sockstart=0 unless $line=~/^--/;#Assume no options will be given if the line does not start with --
     if ($sockstart) {
-      #Accept customizations for each input:
-      #Setup LOCAL VARS
-      ($verbosity,$strict,$comments,$noparse,$includestyles,
-       $errlog,$post,$parallelmath,$input_limit,
-       $timeout,$local)=
-         ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
-          $_errlog,$_post,$_parallelmath,$_input_limit,
-          $_timeout,$_local);
-      ($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
-        ($_format,$_mode,$_destination,$_log,$_basedir,{},$_help,$_showversion,$_stylesheet,$_preamble);
-      $documentid=$_documentid;
-      $inputencoding=$_inputencoding;
-      $type = $_type;
-      @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
       #Parse overwrites from current input:
       my ($ret,$args) = GetOptionsFromString($line,
            "destination=s" => \$destination,
@@ -227,7 +223,7 @@ while ( my $client = $server->accept() ) {
 	   "box"       => sub { $format = 'box'; },
 	   "bibtex"    => sub { $type='bibtex'; },
 	   "noparse"   => \$noparse,
-	   "mode=s"  => \$mode,
+#	   "mode=s"  => \$mode, # TODO: Customizing mode leads to problems...
 	   "autoflush=s" => \$input_limit,
            "timeout=s"   => \$timeout,
            "port=s"      => \$port,
@@ -250,7 +246,6 @@ while ( my $client = $server->accept() ) {
 	   "help"      => \$help,
       );
       pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
-      $$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post)||(!$_post && ($_mode ne "math")));
       if ($basedir) { chdir "$basedir" or croak "Can't chdir to $basedir: $!";};
       $source.=join(" ",grep($_ !~ /^--/,@$args));
       $sockstart=0; next;
@@ -437,6 +432,7 @@ while ( my $client = $server->accept() ) {
   #Math mode means post 
   #(TODO: Rethink this, maybe we want more flexibility e.g. noparse XMath)
   $post=1 if ($mode eq "math");
+  $$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post)||(!$_post && ($_mode ne "math")));
   print OUT $serialized if ($serialized && (!$post || $cdest ne $client));
   if ($cdest && $local && ($cdest ne $client)) { 
     close(OUT);
@@ -484,6 +480,7 @@ sub doPost {
   require 'LaTeXML/Post/MathML.pm';
   require 'LaTeXML/Post/PurgeXMath.pm';
   my @mprocs=();
+
   push (@mprocs, LaTeXML::Post::MathML::Presentation->new(%PostOPS)) if $$proctypes{'pmml'};
   push (@mprocs, LaTeXML::Post::MathML::Content->new(%PostOPS)) if $$proctypes{'cmml'};
   my $main = shift(@mprocs);
