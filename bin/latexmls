@@ -120,7 +120,7 @@ $_input_limit=10000 unless ($_input_limit && $_input_limit>0); #Else, 10k
    $_timeout,$_local);
 ($format,$mode,$destination,$log,$basedir,$help,$showversion,$stylesheet,$preamble,$documentid,$inputencoding,$type)=
         ($_format,$_mode,$_destination,$_log,$_basedir,$_help,$_showversion,$_stylesheet,$_preamble,$_documentid,$_inputencoding,$_type);
-%$procs_post = %$_procs_post;
+$procs_post = {};
 
 #When in math mode, preload math packages:
 if ($mode eq "math") {
@@ -201,7 +201,7 @@ while ( my $client = $server->accept() ) {
       $_timeout,$_local);
   ($format,$mode,$destination,$log,$basedir,$help,$showversion,$stylesheet,$preamble,$documentid,$inputencoding,$type)=
     ($_format,$_mode,$_destination,$_log,$_basedir,$_help,$_showversion,$_stylesheet,$_preamble,$_documentid,$_inputencoding,$_type);
-  %$procs_post = %$_procs_post;
+  $procs_post = {};
   @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
   while (my $line = <$client>) {
     chomp $line if $line; #We don't need the trailing empty line
@@ -432,9 +432,10 @@ while ( my $client = $server->accept() ) {
   #Math mode means post 
   #(TODO: Rethink this, maybe we want more flexibility e.g. noparse XMath)
   $post=1 if ($mode eq "math");
-  $$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post)||(!$_post && ($_mode ne "math")));
+  %$procs_post=%$_procs_post unless (scalar(keys %$procs_post)); #Fall back to defaults if no preferences
+  $$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post)); #Fall back to pmml as default
   print OUT $serialized if ($serialized && (!$post || $cdest ne $client));
-  if ($cdest && $local && ($cdest ne $client)) { 
+  if ($cdest && $local && ($cdest ne $client)) {
     close(OUT);
   }
   if ($log) { #Close log file
