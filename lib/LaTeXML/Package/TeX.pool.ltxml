@@ -4009,25 +4009,6 @@ DefConstructorI('\WildCardC',undef,"<_WildCard_/>");
 DefConstructor('\@hidden{}','',reversion=>'');
 
 #**********************************************************************
-#DG: Rewrite rule for \mathrel-defined operators (should be native? TeX.pool ?)
-# This can easily be extended (and probably should) to support METARELOP, etc. roles
-# and from there, the respective \math* TeX macros
-DefMathRewrite(xpath=>'descendant-or-self::ltx:XMWrap[(@role="RELOP")'
-                   .  ' or (@role="BIGOP") or (@role="OP") or (@role="ADDOP")'
-                   .  ' or (@role="OPEN") or (@role="CLOSE") or (@role="PUNCT")]',
-	  replace=>sub { my($document,$app)=@_;
-                         my $tokenbody = $app->textContent;
-                         my $node = XML::LibXML::Element->new('XMTok');
-                         my $role = $app->getAttribute('role')||"UNKNOWN";
-                         my $meaning =  $app->getAttribute('meaning')||"";
-                         $node->appendText($tokenbody);
-                         $node->setAttribute('role',$role) if $role;
-                         $node->setAttribute('meaning',$meaning) if $meaning;
-                         $node->setNamespace("http://dlmf.nist.gov/LaTeXML", "ltx");
-                         $document->getNode->appendChild($node);
-                       });
-
-#**********************************************************************
 # After all other rewrites have acted, a little cleanup 
 
 DefRewrite(xpath=>'descendant-or-self::ltx:XMWrap[count(child::*)=1]',
