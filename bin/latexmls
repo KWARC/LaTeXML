@@ -679,9 +679,9 @@ latexmls [options]
  --mode=modename    Specify daemon parsing mode
                     Supported: standard|math|fragment
                     (default: standard)
- --post             requests a followup postprocessing
+ --post             requests a followup post-processing
  --stylesheet       specifies a stylesheet,
-                    to be used by the postprocessor.
+                    to be used by the post-processor.
  --pmml             converts math to Presentation MathML
                     (default for xhtml format)
  --cmml             converts math to Content MathML
@@ -702,7 +702,7 @@ latexmls [options]
 In I<math> C<mode>, latexmls accepts one TeX formula on input.
 In I<standard> and I<fragment> C<mode>, latexmls accepts one I<texfile>
 filename per line on input, but only when --local is specified.
-If I<texfile> has an explicit extention of C<.bib>, it is processed
+If I<texfile> has an explicit extension of C<.bib>, it is processed
 as a BibTeX bibliography.
 
 Each communication session allows local option overwriting on the first sent line.
@@ -814,7 +814,7 @@ selects and formats a subset of the bibliographic entries; the
 actual TeX expansion is carried out when the result is included
 in a LaTeX document.  In contrast, latexml processes and expands
 the entire bibliography; the selection of entries is done
-during postprocessing.  This also means that any packages
+during post-processing.  This also means that any packages
 that define macros used in the bibliography must be
 specified using the C<--preload> option.
 
@@ -849,7 +849,7 @@ math:     Like latexmlmath, parses a single TeX formula per line.
 
 =item C<--post>
 
-Request postprocessing of converted XML to XHTML. Default behaviour is
+Request post-processing of converted XML to XHTML. Default behavior is
 creating XHTML output with Presentational MathML.
 
 =item C<--pmml>
