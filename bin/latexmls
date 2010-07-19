@@ -7,6 +7,7 @@
 eval 'exec /usr/bin/perl -w -S $0 ${1+"$@"}'
     if 0; # not running under some shell
 use strict;
+use warnings;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use Getopt::Long qw(GetOptionsFromString :config no_ignore_case);
@@ -34,12 +35,13 @@ my $identity = "latexmls (LaTeXML version $LaTeXML::VERSION)";
 #GLOBAL VARS
 my($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
-   $_timeout,$_local)=(0,0,1,0,0,0,0,0,0,0,60,0);
-my ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble,$_preamble_loaded)=('xml','standard','','','',{},undef,undef,undef,undef,'');
+   $_local)=(0,0,1,0,0,0,0,0,0,0,0);
+my $_timeout = 60;
+my ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble,$_preamble_loaded)=('xml','standard',q{},q{},q{},{},undef,undef,undef,undef,q{});
 my ($_documentid);
 my $_inputencoding;
 my $_type = 'auto';
-my @paths_ = ('.');
+my @paths_ = (q{.});
 my (@preload_,@debugs_);
 
 #LOCAL VARS
@@ -82,11 +84,11 @@ GetOptions("destination=s" => \$_destination,
 	   "includestyles"=> \$_includestyles,
 	   "inputencoding=s"=>\$_inputencoding,
 	   "post"      => \$_post,
-	   "pmml"      => sub {$$_procs_post{'pmml'}=1;},
-	   "cmml"      => sub {$$_procs_post{'cmml'}=1;},
-	   "openmath"  => sub {$$_procs_post{'openmath'}=1;},
-	   "keepTeX"   => sub {$$_procs_post{'keepTeX'}=1;},
-	   "keepXMath" => sub {$$_procs_post{'keepXMath'}=1;},
+	   "pmml"      => sub {$_procs_post->{'pmml'}=1;},
+	   "cmml"      => sub {$_procs_post->{'cmml'}=1;},
+	   "openmath"  => sub {$_procs_post->{'openmath'}=1;},
+	   "keepTeX"   => sub {$_procs_post->{'keepTeX'}=1;},
+	   "keepXMath" => sub {$_procs_post->{'keepXMath'}=1;},
 	   "parallelmath" => \$_parallelmath,
 	   "stylesheet=s"=>\$_stylesheet,
 	   "comments!" => \$_comments,
@@ -96,6 +98,9 @@ GetOptions("destination=s" => \$_destination,
 	   "help"      => \$_help,
 	  ) or pod2usage(-message => $identity, -exitval=>1, -verbose=>0, -output=>\*STDERR);
 pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $_help;
+if (!$_local && ($_destination || $_log)) {carp "I/O from filesystem not allowed without --local!\n".
+                                          " Will revert to sockets!\n";
+                                         undef $_destination; undef $_log;}
 if($_showversion){ print STDERR "$identity\n"; exit(1); }
 
 #**********************************************************************
@@ -105,11 +110,11 @@ my $server = setup_server($port);
 
 #**********************************************************************
 # Set up the processing.
-print STDERR "$identity\n" unless $verbosity < 0;
+print STDERR "$identity\n" if $verbosity >= 0;
 $_mode = lc($_mode);
-$_input_limit=50000
+$_input_limit=50_000
   if (($_mode eq "math") && (!$_input_limit || $_input_limit<1)); #50k if not set and math or if wrong
-$_input_limit=10000 unless ($_input_limit && $_input_limit>0); #Else, 10k
+$_input_limit=10_000 if (!$_input_limit || $_input_limit<=0); #Else, 10k
 
 #Setup LOCAL VARS
 ($verbosity,$strict,$comments,$noparse,$includestyles,
@@ -133,21 +138,21 @@ if ($mode eq "math") {
 my $browser = LWP::UserAgent->new;
 my $response;
 
-@paths = map(pathname_canonical($_),@paths);
+@paths = map {pathname_canonical($_)} @paths;
 my $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
 			  verbosity=>$verbosity, strict=>$strict,
 			  includeComments=>$comments,inputencoding=>$inputencoding,
 			  includeStyles=>$includestyles,
 			  documentid=>$documentid,
 			  nomathparse=>$noparse);
-if(my @baddirs = grep(! -d $_, @paths)){
+if(my @baddirs = grep {! -d $_} @paths){
     warn "$identity: these path directories do not exist: ".join(', ',@baddirs)."\n"; }
 binmode(STDERR,":utf8");
 
 # install signal-handlers
-$SIG{'ALRM'} = 'dotimeout';
-$SIG{'TERM'} = 'doterm';
-$SIG{'INT'} = 'doterm';
+local $SIG{'ALRM'} = 'dotimeout';
+local $SIG{'TERM'} = 'doterm';
+local $SIG{'INT'} = 'doterm';
 
 #Initialize state:
 $latexml->withState(sub {
@@ -171,7 +176,7 @@ if ($preamble) {
 my $init_status = $latexml->getStatusMessage;
 if ($init_status !~ /error/i) {
   daemonize();
-} else {  die $init_status; } #Demand errorless initialization
+} else {  croak $init_status; } #Demand errorless initialization
 
 #Create restore point
 my $stateRestore;
@@ -189,7 +194,7 @@ alarm($timeout);              #Timeout if inactive for too long...
 #**********************************************************************
 # Daemon has been set up, now process files on demand:grep($_ !~ /^--/,
 while ( my $client = $server->accept() ) {
-  my $source = '';
+  my $source = q{};
   my $sockstart=1;
   #Accept customizations for each input:
   #Setup LOCAL VARS
@@ -223,11 +228,11 @@ while ( my $client = $server->accept() ) {
 	   "box"       => sub { $format = 'box'; },
 	   "bibtex"    => sub { $type='bibtex'; },
 	   "noparse"   => \$noparse,
-#	   "mode=s"  => \$mode, # TODO: Customizing mode leads to problems...
+	   "mode=s"  => sub {return;}, # TODO: Customizing mode leads to problems...ignore for now
 	   "autoflush=s" => \$input_limit,
            "timeout=s"   => \$timeout,
            "port=s"      => \$port,
-           "local!"       => \$local,
+           "local!"       => sub {carp "Local only possible to set on first server invocation!\n";},
 	   "log=s"       => \$log,
 	   "includestyles"=> \$includestyles,
 	   "inputencoding=s"=>\$inputencoding,
@@ -247,7 +252,10 @@ while ( my $client = $server->accept() ) {
       );
       pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
       if ($basedir) { chdir "$basedir" or croak "Can't chdir to $basedir: $!";};
-      $source.=join(" ",grep($_ !~ /^--/,@$args));
+      if (!$local && ($destination || $log)) {carp "I/O from filesystem not allowed without --local!\n".
+                                                " Will revert to sockets!\n";
+                                            undef $destination; undef $log;}
+      $source.=join(" ", grep {$_ !~ /^--/} @$args);
       $sockstart=0; next;
     }
     last if ($line =~ /^(\s*)END REQUEST(\s*)$/);
@@ -268,7 +276,7 @@ while ( my $client = $server->accept() ) {
     my @source_lines = split(/\n/,$source);
     $isString = $source if (scalar(@source_lines)>1 || $mode eq "math");
     unless ($isString) {
-      $isFile = pathname_find($source,types=>['tex','']);
+      $isFile = pathname_find($source,types=>['tex',q{}]);
       $isFile = pathname_canonical($isFile);
       $source = $isFile if $isFile;
       unless($isFile) {
@@ -278,19 +286,21 @@ while ( my $client = $server->accept() ) {
     }
     $isString = $source unless ($isFile || $isURL); #Not file or URL - then process as string
   } else { $isString=$source; }
+  if (!$local && ($isFile)) {carp "I/O from filesystem not allowed without --local!\n".
+                                                " Will revert to sockets!\n";}
   #Instantiate targets for current input
   my ($dir,$name,$ext);
   ($dir,$name,$ext) = pathname_split($source) if $isFile;
   #Redirect to logfile, if requested:
-  my ($clog,$LOG);
+  my ($clog);
   if ($log && $local) {
     $clog = $log;
     $clog=~s/#name/$name/eg;
     $clog=~s/#dir/$dir/eg;
     $clog=~s/#ext/$ext/eg;
-    open($LOG,">",$clog) or die "Couldn't open log file $clog : $!\n";
+    open(LOG,">",$clog) or croak "Couldn't open log file $clog : $!\n";
     *ERRORIG=*STDERR;
-    *STDERR = *$LOG;
+    *STDERR = *LOG;
   } else {
     #No log if not local (STDERR redirects to /dev/null)
   }
@@ -373,13 +383,13 @@ while ( my $client = $server->accept() ) {
         $serialized = $dom->toString(1);
       }
     }
-  };
-  if ($@) {                     #Fatal occured!
+    1;
+  } or do {                     #Fatal occured!
     print STDERR "$@\n";
     print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
     #Need to reset latexml in these cases
     if ($log) {
-      close($LOG); *STDERR = *ERRORIG;
+      close(LOG); *STDERR = *ERRORIG;
     }                           #Close log file
     undef $latexml;
     $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
@@ -409,7 +419,7 @@ while ( my $client = $server->accept() ) {
       or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
     alarm($timeout);              #Timeout if inactive for too long...
     next;                       #Move on, no body to be produced.
-  }
+  };
   print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
   $latexml->withState(sub {
                         my($state)=@_; #Remove current state frame
@@ -421,43 +431,46 @@ while ( my $client = $server->accept() ) {
                         $state->setStatus("undefined",0);
                         $state->setStatus("missing",0);
                       });
-  my $OUT;
   if ($cdest && $local && ($cdest ne $client)) {
-    open($OUT,">",$cdest) or die "Couldn't open output file $cdest: $!";
+    open(OUT,">",$cdest) or croak "Couldn't open output file $cdest: $!";
   } elsif ($cdest==$client) {
-    *$OUT = *$cdest;
+    *OUT = *$cdest;
   }
   else {
     #  binmode(STDOUT,":utf8");
-    *$OUT = *STDOUT;
+    *OUT = *STDOUT;
   }
   #Math mode means post 
   #(TODO: Rethink this, maybe we want more flexibility e.g. noparse XMath)
   $post=1 if ($mode eq "math");
   %$procs_post=%$_procs_post unless (scalar(keys %$procs_post)); #Fall back to defaults if no preferences
   $$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post)); #Fall back to pmml as default
-  print $OUT $serialized if ($serialized && (!$post || $cdest ne $client));
+  print OUT $serialized if ($serialized && (!$post || $cdest ne $client));
   if ($cdest && $local && ($cdest ne $client)) {
-    close($OUT);
+    close(OUT);
   }
-  if ($log) { #Close log file
-    close($LOG); *STDERR = *ERRORIG;
+  if ($log && $local) { #Close log file
+    close(LOG); *STDERR = *ERRORIG;
   }
   if ($post && $dom && $cdest && (!$noparse)) {
     #Postprocess
-    my ($postlog,$PLOG) = ($clog);
-    if ($postlog) {
+    my $postlog = $clog;
+    if ($postlog && $local) {
       #Add .post. to log name
       $postlog=~s/\.(\w+)$/".post.".$1/e;
-      open($PLOG,">",$postlog) or die "Couldn't open log file $postlog: $!";
+      open(PLOG,">",$postlog) or croak "Couldn't open log file $postlog: $!";
       *ERRORIG = *STDERR;
-      *STDERR = *$PLOG;
+      *STDERR = *PLOG;
     }
     my $postdest = $cdest;
     $postdest.=".xhtml" unless
-      (($postdest eq $client) || $postdest=~s/\.tex\.xml$/.xhtml/ || $postdest=~s/\.xml$/.xhtml/);
-    doPost(log=>$postlog,dest=>$postdest,stylesheet=>$stylesheet,dom=>$dom,mode=>$mode,
+      (($postdest eq $client) || $postdest=~/\.xhtml$/ || 
+       $postdest=~s/\.tex\.xml$/.xhtml/ || $postdest=~s/\.xml$/.xhtml/); #Some heuristics
+    doPost(dest=>$postdest,stylesheet=>$stylesheet,dom=>$dom,mode=>$mode,
            parallel=>$parallelmath,procs=>$procs_post,isStream=>($postdest eq $client));
+    if ($postlog) { #Close log file
+      close(PLOG); *STDERR = *ERRORIG;
+    }
   }
   close $client;
   #Move to next...
@@ -469,16 +482,16 @@ while ( my $client = $server->accept() ) {
 #======================================================================
 # Helpers
 #======================================================================
-our %PostOPS = (verbosity=>$verbosity||0,siteDirectory=>".");
 sub doPost {
   my (%options)=@_;
-  my ($postlog,$postdest,$stylesheet,$dom,$extract,$parallelmath,$proctypes,$isStream)= 
-    map ($options{$_},qw(log dest stylesheet dom mode parallel procs isStream));
+  my %PostOPS = (verbosity=>$verbosity||0,siteDirectory=>".");
+  my ($postdest,$style,$dom,$extract,$parallel,$proctypes,$isStream)= 
+    map {$options{$_}} qw(dest stylesheet dom mode parallel procs isStream);
   #Postprocess
-  $stylesheet = "LaTeXML-xhtml.xsl" unless $stylesheet;
+  $style = "LaTeXML-xhtml.xsl" unless $style;
   my @css=();
   unshift (@css,"core.css") unless ($extract eq "math");
-  $parallelmath = $parallelmath||0;
+  $parallel = $parallel||0;
   my $doc = LaTeXML::Post::Document->newFromString($dom->toString(1),nocache=>1,destination=>$postdest);
   require LaTeXML::Post::MathML;
   require LaTeXML::Post::PurgeXMath;
@@ -487,8 +500,8 @@ sub doPost {
   push (@mprocs, LaTeXML::Post::MathML::Presentation->new(%PostOPS)) if $$proctypes{'pmml'};
   push (@mprocs, LaTeXML::Post::MathML::Content->new(%PostOPS)) if $$proctypes{'cmml'};
   my $main = shift(@mprocs);
-  $main->setParallel(@mprocs) if $parallelmath;
-  $main->keepTeX if ($$proctypes{'keepTeX'} && $parallelmath);
+  $main->setParallel(@mprocs) if $parallel;
+  $main->keepTeX if ($$proctypes{'keepTeX'} && $parallel);
   my @procs=();
   push(@procs,$main); #If not parallel, only the first one goes through.
   push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $$proctypes{'keepXMath'};
@@ -498,10 +511,10 @@ sub doPost {
     foreach my $css (@css) {
       $css .= '.css' unless $css =~ /\.css$/;
       # Dance, if dest is current dir, we'll find the old css before the new one!
-      my @csssources = map(pathname_canonical($_),
+      my @csssources = map {pathname_canonical($_)}
                            pathname_findall($css,types=>['css'],
                                             (),
-                                            installation_subdir=>'style'));
+                                            installation_subdir=>'style');
       my $csspath = pathname_absolute($css,pathname_directory('.'));
       while (@csssources && ($csssources[0] eq $csspath)) {
         shift(@csssources);
@@ -510,28 +523,30 @@ sub doPost {
       pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
       push(@csspaths,$csspath);
     }}
-  push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$stylesheet,
+  push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
                                        css=>[@csspaths],
 					 parameters=>{number_sections
 						      =>("true()")},
-                                       %PostOPS)) if $stylesheet;
+                                       %PostOPS)) if $style;
   push(@procs,LaTeXML::Post::Writer->new(format=>"xhtml",omit_doctype=>0,%PostOPS))
-    unless (($extract eq "math") || !$postdest || $isStream);
+    if ($postdest && !$isStream);
   my $postdoc;
-  eval { ($postdoc) = LaTeXML::Post::ProcessChain($doc,@procs); };
-  if ($@) {                     #Fatal occured!
+  eval { ($postdoc) = LaTeXML::Post::ProcessChain($doc,@procs); }
+  or do {                     #Fatal occured!
     #Since this is postprocessing, we don't need to do anything
-    #   just avoid crashing...
-    print STDERR "$@\n";
-  } elsif ($extract eq "math") {
+    #   just avoid crashing... and exit
+    print STDERR "Post-processor crashed: $@\n";
+    return;
+  };
+  if ($extract eq "math") {
     #Output to destination:
     my $mnodes = $postdoc->findnodes('//m:math');
     if ($mnodes->size <= 1) {
-      outputXML($postdoc->findnode('//m:math'),$postdest||"-",$isStream);
+      outputXML($postdoc->findnode('//m:math'),$postdest||q{-},$isStream);
     } else {
       my $ancestor = $postdoc->findnode('//m:math')->parentNode;
       $ancestor = $ancestor->parentNode while ($ancestor->findnodes('.//m:math')->size != $mnodes->size);
-      outputXML($ancestor,$postdest||"-",$isStream);
+      outputXML($ancestor,$postdest||q{-},$isStream);
     }
   }
   elsif ($isStream) {
@@ -539,29 +554,30 @@ sub doPost {
     my $serialized = $postdoc->toString(1);
     print $postdest $serialized;
   }
+  return;
 }
 
 sub outputXML {
-  my($xml,$destination,$isStream)=@_;
+  my($xml,$destxml,$isStream)=@_;
   # Need to move the node to a new document to set up namespaces
   my $newdoc = XML::LibXML::Document->new("1.0","UTF-8");
   return unless ref $xml;
   $newdoc->setDocumentElement($xml->cloneNode(1));
   my $serialized = $newdoc->toString(1);
-  if ($destination eq '-') {
+  if ($destxml eq q{-}) {
       print $serialized;
   }
   elsif ($isStream) {
-    print $destination $serialized;
+    print $destxml $serialized;
   }
   else {
-      my $OUT;
-      open($OUT,">",$destination) or die "Couldn't open output file $destination: $!";
-      print $OUT $serialized;
-      close $OUT;
+      open(OUT,">",$destxml) or croak "Couldn't open output file $destxml: $!";
+      print OUT $serialized;
+      close OUT;
   }
   undef $serialized; 
   undef $newdoc;
+  return;
 }
 
 sub mathdoc {
@@ -578,27 +594,28 @@ sub mathdoc {
 our $MATHENVS = 'math|displaymath|equation*?|eqnarray*?'
   .'|multline*?|align*?|falign*?|alignat*?|xalignat*?|xxalignat*?|gather*?';
 
-if(($tex =~ /^\$/) && ($tex =~ /\$$/)){} # Wrapped in $'s
-elsif(($tex =~ /^\\\(/) && ($tex =~ /\\\)$/)){} # Wrapped in \(...\)
-elsif(($tex =~ /^\\\[/) && ($tex =~ /\\\]$/)){} # Wrapped in \[...\]
-elsif(($tex =~ /^\\begin\{($MATHENVS)\}/) && ($tex =~ /\\end\{$1\}$/)){}
+if(($tex =~ /\A\$/m) && ($tex =~ /\$\z/m)){} # Wrapped in $'s
+elsif(($tex =~ /\A\\\(/m) && ($tex =~ /\\\)\z/m)){} # Wrapped in \(...\)
+elsif(($tex =~ /\A\\\[/m) && ($tex =~ /\\\]\z/m)){} # Wrapped in \[...\]
+elsif(($tex =~ /\A\\begin\{($MATHENVS)\}/m) && ($tex =~ /\\end\{$1\}\z/m)){}
 else {
   $tex = '\[ '.$tex.' \]'; }
 
-my $texdoc = <<EODoc;
+my $texdoc = <<"EODOC";
 \\begin{document}
 \\newcounter{equation}
 \\newcounter{Unequation}
 $tex
 \\end{document}
-EODoc
-$texdoc;
+EODOC
+return $texdoc;
 }
 
 sub dotimeout {
   print "Daemon timed out after inactivity.\n";
   print "Self destructing...\n";
-  kill 'TERM', $$
+  kill 'TERM', $$;
+  return;
 }
 
 sub doterm {
@@ -614,19 +631,20 @@ sub daemonize {
   defined(my $pid = fork)   or croak "Can't fork: $!";
   exit if $pid;
   setsid                    or croak "Can't start a new session: $!";
-  #open STDERR, '>', '&STDOUT'   or croak "Can't dup stdout: $!";
+  *STDERR = *STDOUT         or croak "Can't dup stdout: $!";
+  return;
 }
 
 sub setup_server {
-  my $port = shift;
-  my $server = IO::Socket::INET->new(
+  my $localport = shift;
+  my $sock_server = IO::Socket::INET->new(
         'Proto'     => 'tcp',
-        'LocalPort' => $port,
+        'LocalPort' => $localport,
         'Listen'    => SOMAXCONN,
         'Reuse'     => 1,
     );
-  die "can't setup server" unless $server;
-  return $server;
+  croak "can't setup server" unless $sock_server;
+  return $sock_server;
 }
 
 #**********************************************************************
@@ -849,7 +867,7 @@ math:     Like latexmlmath, parses a single TeX formula per line.
 
 =item C<--post>
 
-Request post-processing of converted XML to XHTML. Default behavior is
+Request post-processing of converted XML to XHTML. Default behaviour is
 creating XHTML output with Presentational MathML.
 
 =item C<--pmml>
