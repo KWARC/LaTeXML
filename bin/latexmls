@@ -279,17 +279,18 @@ while ( my $client = $server->accept() ) {
     $isString = $source unless ($isFile || $isURL); #Not file or URL - then process as string
   } else { $isString=$source; }
   #Instantiate targets for current input
-  my ($dir,$name,$ext) = pathname_split($source) if $isFile;
+  my ($dir,$name,$ext);
+  ($dir,$name,$ext) = pathname_split($source) if $isFile;
   #Redirect to logfile, if requested:
-  my $clog;
+  my ($clog,$LOG);
   if ($log && $local) {
     $clog = $log;
     $clog=~s/#name/$name/eg;
     $clog=~s/#dir/$dir/eg;
     $clog=~s/#ext/$ext/eg;
-    open(LOG,">$clog") or die "Couldn't open log file $clog : $!\n";
+    open($LOG,">",$clog) or die "Couldn't open log file $clog : $!\n";
     *ERRORIG=*STDERR;
-    *STDERR = *LOG;
+    *STDERR = *$LOG;
   } else {
     #No log if not local (STDERR redirects to /dev/null)
   }
@@ -378,7 +379,7 @@ while ( my $client = $server->accept() ) {
     print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
     #Need to reset latexml in these cases
     if ($log) {
-      close(LOG); *STDERR = *ERRORIG;
+      close($LOG); *STDERR = *ERRORIG;
     }                           #Close log file
     undef $latexml;
     $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
@@ -420,36 +421,37 @@ while ( my $client = $server->accept() ) {
                         $state->setStatus("undefined",0);
                         $state->setStatus("missing",0);
                       });
+  my $OUT;
   if ($cdest && $local && ($cdest ne $client)) {
-    open(OUT,">",$cdest) or die "Couldn't open output file $cdest: $!";
+    open($OUT,">",$cdest) or die "Couldn't open output file $cdest: $!";
   } elsif ($cdest==$client) {
-    *OUT = *$cdest;
+    *$OUT = *$cdest;
   }
   else {
     #  binmode(STDOUT,":utf8");
-    *OUT = *STDOUT;
+    *$OUT = *STDOUT;
   }
   #Math mode means post 
   #(TODO: Rethink this, maybe we want more flexibility e.g. noparse XMath)
   $post=1 if ($mode eq "math");
   %$procs_post=%$_procs_post unless (scalar(keys %$procs_post)); #Fall back to defaults if no preferences
   $$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post)); #Fall back to pmml as default
-  print OUT $serialized if ($serialized && (!$post || $cdest ne $client));
+  print $OUT $serialized if ($serialized && (!$post || $cdest ne $client));
   if ($cdest && $local && ($cdest ne $client)) {
-    close(OUT);
+    close($OUT);
   }
   if ($log) { #Close log file
-    close(LOG); *STDERR = *ERRORIG;
+    close($LOG); *STDERR = *ERRORIG;
   }
   if ($post && $dom && $cdest && (!$noparse)) {
     #Postprocess
-    my $postlog = $clog;
+    my ($postlog,$PLOG) = ($clog);
     if ($postlog) {
       #Add .post. to log name
       $postlog=~s/\.(\w+)$/".post.".$1/e;
-      open(PLOG,">$postlog") or die "Couldn't open log file $postlog: $!";
+      open($PLOG,">",$postlog) or die "Couldn't open log file $postlog: $!";
       *ERRORIG = *STDERR;
-      *STDERR = *PLOG;
+      *STDERR = *$PLOG;
     }
     my $postdest = $cdest;
     $postdest.=".xhtml" unless
@@ -478,8 +480,8 @@ sub doPost {
   unshift (@css,"core.css") unless ($extract eq "math");
   $parallelmath = $parallelmath||0;
   my $doc = LaTeXML::Post::Document->newFromString($dom->toString(1),nocache=>1,destination=>$postdest);
-  require 'LaTeXML/Post/MathML.pm';
-  require 'LaTeXML/Post/PurgeXMath.pm';
+  require LaTeXML::Post::MathML;
+  require LaTeXML::Post::PurgeXMath;
   my @mprocs=();
 
   push (@mprocs, LaTeXML::Post::MathML::Presentation->new(%PostOPS)) if $$proctypes{'pmml'};
@@ -490,7 +492,7 @@ sub doPost {
   my @procs=();
   push(@procs,$main); #If not parallel, only the first one goes through.
   push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $$proctypes{'keepXMath'};
-  require 'LaTeXML/Post/XSLT.pm';
+  require LaTeXML::Post::XSLT;
   my @csspaths=();
   if (@css) {
     foreach my $css (@css) {
@@ -553,9 +555,10 @@ sub outputXML {
     print $destination $serialized;
   }
   else {
-      open(OUT,">$destination") or die "Couldn't open output file $destination: $!";
-      print OUT $serialized;
-      close OUT;
+      my $OUT;
+      open($OUT,">",$destination) or die "Couldn't open output file $destination: $!";
+      print $OUT $serialized;
+      close $OUT;
   }
   undef $serialized; 
   undef $newdoc;
@@ -606,12 +609,12 @@ sub doterm {
 sub daemonize {
   #chdir '/'                 or croak "Can't chdir to /: $!";
   #This causes more problems than it solves (e.g. sTeX setup)
-  open STDIN, '/dev/null'   or croak "Can't read /dev/null: $!";
-  open STDOUT, '>/dev/null' or croak "Can't write to /dev/null: $!";
+  open STDIN, '<', '/dev/null'   or croak "Can't read /dev/null: $!";
+  open STDOUT, '>', '/dev/null' or croak "Can't write to /dev/null: $!";
   defined(my $pid = fork)   or croak "Can't fork: $!";
   exit if $pid;
   setsid                    or croak "Can't start a new session: $!";
-  open STDERR, '>&STDOUT'   or croak "Can't dup stdout: $!";
+  #open STDERR, '>', '&STDOUT'   or croak "Can't dup stdout: $!";
 }
 
 sub setup_server {
