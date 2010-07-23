@@ -193,12 +193,6 @@ sub compileClause {
       $op='ignore'; $pattern=[]; }}
   elsif($op eq 'xpath'){
     $op='select'; $pattern=[$pattern,1]; }
-  elsif($op eq 'active'){
-    foreach my $scope(@$pattern) {
-      $STATE->activateScope($scope);
-    }
-    $op='ignore'; $pattern=[];
-  }
   elsif($op eq 'match'){
     if(ref $pattern eq 'CODE'){
       $op='test'; }
