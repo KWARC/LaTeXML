@@ -498,7 +498,7 @@ sub doPost {
     or do {                     #Fatal occured!
       #Since this is postprocessing, we don't need to do anything
       #   just avoid crashing... and exit
-      print STDERR "Post-processor crashed: $@\n";
+      print STDERR "FATAL: Post-processor crashed! $@\n";
       return;
     };
   require LaTeXML::Post::MathML;
@@ -543,7 +543,7 @@ sub doPost {
   or do {                     #Fatal occured!
     #Since this is postprocessing, we don't need to do anything
     #   just avoid crashing... and exit
-    print STDERR "Post-processor crashed: $@\n";
+    print STDERR "FATAL: Post-processor crashed! $@\n";
     return;
   };
   if ($extract eq "math") {
