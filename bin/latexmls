@@ -492,7 +492,15 @@ sub doPost {
   my @css=();
   unshift (@css,"core.css") unless ($extract eq "math");
   $parallel = $parallel||0;
-  my $doc = LaTeXML::Post::Document->newFromString($dom->toString(1),nocache=>1,destination=>$postdest);
+  my $doc;
+  eval {
+    $doc = LaTeXML::Post::Document->newFromString($dom->toString(1),nocache=>1,destination=>$postdest); }
+    or do {                     #Fatal occured!
+      #Since this is postprocessing, we don't need to do anything
+      #   just avoid crashing... and exit
+      print STDERR "Post-processor crashed: $@\n";
+      return;
+    };
   require LaTeXML::Post::MathML;
   require LaTeXML::Post::PurgeXMath;
   my @mprocs=();
@@ -631,7 +639,7 @@ sub daemonize {
   defined(my $pid = fork)   or croak "Can't fork: $!";
   exit if $pid;
   setsid                    or croak "Can't start a new session: $!";
-  *STDERR = *STDOUT         or croak "Can't dup stdout: $!";
+  # *STDERR = *STDOUT         or croak "Can't dup stdout: $!";
   return;
 }
 
