@@ -34,7 +34,7 @@ my $identity = "latexmls (LaTeXML version $LaTeXML::VERSION)";
 # switch variables:
 #GLOBAL VARS
 my($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
-   $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
+   $_errlog,$_post,$_parallelmath,$input_counter,$_input_limit,
    $_local)=(0,0,1,0,0,0,0,0,0,0,0);
 my $_timeout = 60;
 my ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble,$_preamble_loaded)=('xml','standard',q{},q{},q{},{},undef,undef,undef,undef,q{});
@@ -46,10 +46,10 @@ my (@preload_,@debugs_);
 
 #LOCAL VARS
 my($verbosity,$strict,$comments,$noparse,$includestyles,
-   $errlog,$post,$parallelmath,$input_counter,$input_limit,
+   $errlog,$post,$parallelmath,$input_limit,
    $timeout,$local)=
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
-   $_errlog,$_post,$_parallelmath,$_input_counter,$_input_limit,
+   $_errlog,$_post,$_parallelmath,$_input_limit,
    $_timeout,$_local);
 my ($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
   ($_format,$_mode,$_destination,$_log,$_basedir,{},$_help,$_showversion,$_stylesheet,$_preamble);
@@ -114,7 +114,8 @@ print STDERR "$identity\n" if $verbosity >= 0;
 $_mode = lc($_mode);
 $_input_limit=50_000
   if (($_mode eq "math") && (!$_input_limit || $_input_limit<1)); #50k if not set and math or if wrong
-$_input_limit=10_000 if (!$_input_limit || $_input_limit<=0); #Else, 10k
+$_input_limit=10_000 if (($_mode eq "fragment") && (!$_input_limit || $_input_limit<=0)); #Fragment - 10k
+$_input_limit=1_000 if (!$_input_limit || $_input_limit<=0); #Standard - 1k
 
 #Setup LOCAL VARS
 ($verbosity,$strict,$comments,$noparse,$includestyles,
@@ -639,7 +640,7 @@ sub daemonize {
   defined(my $pid = fork)   or croak "Can't fork: $!";
   exit if $pid;
   setsid                    or croak "Can't start a new session: $!";
-  # *STDERR = *STDOUT         or croak "Can't dup stdout: $!";
+  *STDERR = *STDOUT         or croak "Can't dup stdout: $!";
   return;
 }
 
