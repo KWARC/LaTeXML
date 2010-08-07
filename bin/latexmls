@@ -183,7 +183,7 @@ if ($init_status !~ /error/i) {
 my $stateRestore;
 $latexml->withState(sub {
   my($state)=@_;
-  $stateRestore = clone $$state{table} unless $mode eq "math";
+  $stateRestore = clone $$state{table} if $mode eq "fragment";
 });
 
 #Flush daemon, every $input_limit files:
@@ -392,7 +392,14 @@ while ( my $client = $server->accept() ) {
     if ($log) {
       close(LOG); *STDERR = *ERRORIG;
     }                           #Close log file
+    #Undef variables
     undef $latexml;
+    undef $digested;
+    undef $dom;
+    undef $serialized;
+    undef $source;
+    undef $stateRestore;
+    #Init:
     $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
                            verbosity=>$verbosity, strict=>$strict,
                            includeComments=>$comments,inputencoding=>$inputencoding,
@@ -402,6 +409,7 @@ while ( my $client = $server->accept() ) {
     $latexml->withState(sub {
                           my($state)=@_;
                           $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
+                          $stateRestore = clone $$state{table} if $mode eq "fragment";
                         });
     # Preload the preamble if any
     if ($preamble && $mode eq "fragment") {
@@ -425,7 +433,7 @@ while ( my $client = $server->accept() ) {
   $latexml->withState(sub {
                         my($state)=@_; #Remove current state frame
                         $state->popFrame;
-                        $$state{table} = clone $stateRestore unless $mode eq "math";
+                        $$state{table} = clone $stateRestore if $mode eq "fragment";
                         $state->setStatus("warning",0);
                         $state->setStatus("error",0);
                         $state->setStatus("fatal",0);
@@ -474,6 +482,15 @@ while ( my $client = $server->accept() ) {
     }
   }
   close $client;
+  #Undef variables
+  undef $latexml if $mode eq "standard";
+  undef $digested;
+  undef $dom;
+  undef $serialized;
+  undef $source;
+  undef $clog;
+  undef $cdest;
+  undef $source;
   #Move to next...
   exec($0,@ARGV_SAVED) 
       or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
@@ -499,6 +516,7 @@ sub doPost {
     or do {                     #Fatal occured!
       #Since this is postprocessing, we don't need to do anything
       #   just avoid crashing... and exit
+      undef $doc;
       print STDERR "FATAL: Post-processor crashed! $@\n";
       return;
     };
@@ -544,6 +562,16 @@ sub doPost {
   or do {                     #Fatal occured!
     #Since this is postprocessing, we don't need to do anything
     #   just avoid crashing... and exit
+    undef $doc;
+    undef $postdoc;
+    foreach (@procs) {
+      undef $_;
+    }
+    foreach (@mprocs) {
+      undef $_;
+    }
+    undef @procs;
+    undef @mprocs;
     print STDERR "FATAL: Post-processor crashed! $@\n";
     return;
   };
@@ -563,6 +591,14 @@ sub doPost {
     my $serialized = $postdoc->toString(1);
     print $postdest $serialized;
   }
+  undef $doc;
+  undef $postdoc;
+  foreach (@procs) { undef $_; }
+  foreach (@mprocs) { undef $_; }
+  undef @procs;
+  undef @mprocs;
+  undef %options;
+  undef %PostOPS;
   return;
 }
 
