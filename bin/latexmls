@@ -512,7 +512,8 @@ sub doPost {
   $parallel = $parallel||0;
   my $doc;
   eval {
-    $doc = LaTeXML::Post::Document->newFromString($dom->toString(1),nocache=>1,destination=>$postdest); }
+    $doc = LaTeXML::Post::Document->newFromString($dom->toString(1),nocache=>1,destination=>$postdest); 
+    1;}
     or do {                     #Fatal occured!
       #Since this is postprocessing, we don't need to do anything
       #   just avoid crashing... and exit
@@ -558,7 +559,7 @@ sub doPost {
   push(@procs,LaTeXML::Post::Writer->new(format=>"xhtml",omit_doctype=>0,%PostOPS))
     if ($postdest && !$isStream);
   my $postdoc;
-  eval { ($postdoc) = LaTeXML::Post::ProcessChain($doc,@procs); }
+  eval { ($postdoc) = LaTeXML::Post::ProcessChain($doc,@procs); 1;}
   or do {                     #Fatal occured!
     #Since this is postprocessing, we don't need to do anything
     #   just avoid crashing... and exit
