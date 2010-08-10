@@ -561,7 +561,8 @@ sub doPost {
   $main->setParallel(@mprocs) if $parallel;
   $main->keepTeX if ($$proctypes{'keepTeX'} && $parallel);
   my @procs=();
-  push(@procs,$main); #If not parallel, only the first one goes through.
+  push(@procs,$main);
+  push(@procs,@mprocs) unless $parallelmath;
   push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $$proctypes{'keepXMath'};
   require LaTeXML::Post::XSLT;
   my @csspaths=();
