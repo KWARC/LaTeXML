@@ -37,7 +37,7 @@ my($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$input_counter,$_input_limit,
    $_local)=(0,0,1,0,0,0,0,0,0,0,0);
 my $_timeout = 60;
-my ($_format,$_mode,$_destination,$_log,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble,$_preamble_loaded)=('xml','standard',q{},q{},q{},{},undef,undef,undef,undef,q{});
+my ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble,$_preamble_loaded)=('xml','standard',q{},q{},q{},q{},{},undef,undef,undef,undef,q{});
 my ($_documentid);
 my $_inputencoding;
 my $_type = 'auto';
@@ -51,8 +51,8 @@ my($verbosity,$strict,$comments,$noparse,$includestyles,
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_limit,
    $_timeout,$_local);
-my ($format,$mode,$destination,$log,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
-  ($_format,$_mode,$_destination,$_log,$_basedir,{},$_help,$_showversion,$_stylesheet,$_preamble);
+my ($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
+  ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,{},$_help,$_showversion,$_stylesheet,$_preamble);
 my ($documentid,$port);
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
 my $inputencoding;
@@ -62,6 +62,7 @@ my (@preload,@debugs);
 
 #Read global variables
 GetOptions("destination=s" => \$_destination,
+           "postdest=s" => \$_postdest,
 	   "output=s"  => \$_destination,
 	   "preload=s" => \@preload_,
 	   "preamble=s" => \$_preamble,
@@ -81,6 +82,7 @@ GetOptions("destination=s" => \$_destination,
            "port=s"      => \$port,
            "local!"       => \$_local,
 	   "log=s"       => \$_log,
+           "postlog=s"   => \$_postlog,
 	   "includestyles"=> \$_includestyles,
 	   "inputencoding=s"=>\$_inputencoding,
 	   "post"      => \$_post,
@@ -98,9 +100,10 @@ GetOptions("destination=s" => \$_destination,
 	   "help"      => \$_help,
 	  ) or pod2usage(-message => $identity, -exitval=>1, -verbose=>0, -output=>\*STDERR);
 pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $_help;
-if (!$_local && ($_destination || $_log)) {carp "I/O from filesystem not allowed without --local!\n".
+if (!$_local && ($_destination || $_log || $_postdest || $_postlog)) {carp "I/O from filesystem not allowed without --local!\n".
                                           " Will revert to sockets!\n";
-                                         undef $_destination; undef $_log;}
+                                         undef $_destination; undef $_log;
+                                         undef $_postdest; undef $_postlog;}
 if($_showversion){ print STDERR "$identity\n"; exit(1); }
 
 #**********************************************************************
@@ -119,13 +122,11 @@ $_input_limit=1_000 if (!$_input_limit || $_input_limit<=0); #Standard - 1k
 
 #Setup LOCAL VARS
 ($verbosity,$strict,$comments,$noparse,$includestyles,
- $errlog,$post,$parallelmath,$input_limit,
- $timeout,$local)=
+ $errlog,$post,$parallelmath,$input_limit,$timeout,$local)=
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
-   $_errlog,$_post,$_parallelmath,$_input_limit,
-   $_timeout,$_local);
-($format,$mode,$destination,$log,$basedir,$help,$showversion,$stylesheet,$preamble,$documentid,$inputencoding,$type)=
-        ($_format,$_mode,$_destination,$_log,$_basedir,$_help,$_showversion,$_stylesheet,$_preamble,$_documentid,$_inputencoding,$_type);
+   $_errlog,$_post,$_parallelmath,$_input_limit,$_timeout,$_local);
+($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$help,$showversion,$stylesheet,$preamble,$documentid,$inputencoding,$type)=
+        ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_help,$_showversion,$_stylesheet,$_preamble,$_documentid,$_inputencoding,$_type);
 $procs_post = {};
 
 #When in math mode, preload math packages:
@@ -175,6 +176,7 @@ if ($preamble) {
 
 #Setting up Daemon
 my $init_status = $latexml->getStatusMessage;
+print STDERR "\n"; #Flush log
 if ($init_status !~ /error/i) {
   daemonize();
 } else {  croak $init_status; } #Demand errorless initialization
@@ -205,8 +207,8 @@ while ( my $client = $server->accept() ) {
      ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
       $_errlog,$_post,$_parallelmath,$_input_limit,
       $_timeout,$_local);
-  ($format,$mode,$destination,$log,$basedir,$help,$showversion,$stylesheet,$preamble,$documentid,$inputencoding,$type)=
-    ($_format,$_mode,$_destination,$_log,$_basedir,$_help,$_showversion,$_stylesheet,$_preamble,$_documentid,$_inputencoding,$_type);
+  ($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$help,$showversion,$stylesheet,$preamble,$documentid,$inputencoding,$type)=
+    ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_help,$_showversion,$_stylesheet,$_preamble,$_documentid,$_inputencoding,$_type);
   $procs_post = {};
   @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
   while (my $line = <$client>) {
@@ -217,6 +219,7 @@ while ( my $client = $server->accept() ) {
       my ($ret,$args) = GetOptionsFromString($line,
            "destination=s" => \$destination,
 	   "output=s"  => \$destination,
+           "postdest=s" => \$postdest,
 	   "preload=s" => \@preload,
 	   "preamble=s" => \$preamble,
            "basedir=s" => \$basedir,
@@ -235,6 +238,7 @@ while ( my $client = $server->accept() ) {
            "port=s"      => \$port,
            "local!"       => sub {carp "Local only possible to set on first server invocation!\n";},
 	   "log=s"       => \$log,
+           "postlog=s"   => \$postlog,
 	   "includestyles"=> \$includestyles,
 	   "inputencoding=s"=>\$inputencoding,
 	   "post"      => \$post,
@@ -253,9 +257,10 @@ while ( my $client = $server->accept() ) {
       );
       pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
       if ($basedir) { chdir "$basedir" or croak "Can't chdir to $basedir: $!";};
-      if (!$local && ($destination || $log)) {carp "I/O from filesystem not allowed without --local!\n".
+      if (!$local && ($destination || $log || $postdest || $postlog)) {carp "I/O from filesystem not allowed without --local!\n".
                                                 " Will revert to sockets!\n";
-                                            undef $destination; undef $log;}
+                                            undef $destination; undef $log;
+                                            undef $postdest; undef $postlog; }
       $source.=join(" ", grep {$_ !~ /^--/} @$args);
       $sockstart=0; next;
     }
@@ -314,6 +319,19 @@ while ( my $client = $server->accept() ) {
   } else { #Output to client
     $cdest = $client;
   }
+  my $cdestpost;
+  if ($postdest && $local) {
+    $cdestpost = $postdest;
+    $cdestpost =~ s/#name/$name/eg;
+    $cdestpost =~ s/#dir/$dir/eg;
+    $cdestpost =~ s/#ext/$ext/eg;
+  } else { #Output to $cdest!
+    $cdestpost = $cdest;
+    $cdestpost.=".xhtml" unless
+      (!$cdestpost || ($cdestpost eq $client) || $cdestpost=~/\.xhtml$/ || 
+       $cdestpost=~s/\.tex\.xml$/.xhtml/ || $cdestpost=~s/\.xml$/.xhtml/); #Some heuristics
+  }
+
   ###########################################################################
   #   Start of conversion
   #
@@ -449,7 +467,7 @@ while ( my $client = $server->accept() ) {
     #  binmode(STDOUT,":utf8");
     *OUT = *STDOUT;
   }
-  #Math mode means post 
+  #Math mode means post
   #(TODO: Rethink this, maybe we want more flexibility e.g. noparse XMath)
   $post=1 if ($mode eq "math");
   %$procs_post=%$_procs_post unless (scalar(keys %$procs_post)); #Fall back to defaults if no preferences
@@ -461,23 +479,27 @@ while ( my $client = $server->accept() ) {
   if ($log && $local) { #Close log file
     close(LOG); *STDERR = *ERRORIG;
   }
-  if ($post && $dom && $cdest && (!$noparse)) {
+
+  if ($post && $dom && (!$noparse)) {
     #Postprocess
-    my $postlog = $clog;
+    my $clogpost;
+    $postlog = $log unless $postlog;
     if ($postlog && $local) {
-      #Add .post. to log name
-      $postlog=~s/\.(\w+)$/".post.".$1/e;
-      open(PLOG,">",$postlog) or croak "Couldn't open log file $postlog: $!";
-      *ERRORIG = *STDERR;
+      $clogpost = $postlog;
+      $clogpost=~s/#name/$name/eg;
+      $clogpost=~s/#dir/$dir/eg;
+      $clogpost=~s/#ext/$ext/eg;
+      open(PLOG,">>",$clogpost) or croak "Couldn't open log file $clog : $!\n";
+      *ERRORIG=*STDERR;
       *STDERR = *PLOG;
+      print STDERR "---------\n";
+      print STDERR "LaTeXML Post-processing: \n";
+    } else {
+      #No log if not local (STDERR redirects to /dev/null)
     }
-    my $postdest = $cdest;
-    $postdest.=".xhtml" unless
-      (($postdest eq $client) || $postdest=~/\.xhtml$/ || 
-       $postdest=~s/\.tex\.xml$/.xhtml/ || $postdest=~s/\.xml$/.xhtml/); #Some heuristics
-    doPost(dest=>$postdest,stylesheet=>$stylesheet,dom=>$dom,mode=>$mode,
-           parallel=>$parallelmath,procs=>$procs_post,isStream=>($postdest eq $client));
-    if ($postlog) { #Close log file
+    doPost(dest=>$cdestpost,stylesheet=>$stylesheet,dom=>$dom,mode=>$mode,format=>$format,
+           parallel=>$parallelmath,procs=>$procs_post,isStream=>($cdestpost eq $client));
+    if ($postlog && $local) { #Close log file
       close(PLOG); *STDERR = *ERRORIG;
     }
   }
@@ -503,9 +525,12 @@ while ( my $client = $server->accept() ) {
 sub doPost {
   my (%options)=@_;
   my %PostOPS = (verbosity=>$verbosity||0,siteDirectory=>".");
-  my ($postdest,$style,$dom,$extract,$parallel,$proctypes,$isStream)= 
-    map {$options{$_}} qw(dest stylesheet dom mode parallel procs isStream);
+  my ($postdest,$style,$dom,$extract,$parallel,$proctypes,$isStream,$format)= 
+    map {$options{$_}} qw(dest stylesheet dom mode parallel procs isStream format);
   #Postprocess
+  #Default is XHTML, XML otherwise (TODO: Expand)
+  $format="xml" if ($style);
+  $format="xhtml" unless ($format eq "xml");
   $style = "LaTeXML-xhtml.xsl" unless $style;
   my @css=();
   unshift (@css,"core.css") unless ($extract eq "math");
@@ -522,11 +547,13 @@ sub doPost {
       return;
     };
   require LaTeXML::Post::MathML;
+  require LaTeXML::Post::OpenMath;
   require LaTeXML::Post::PurgeXMath;
   my @mprocs=();
 
   push (@mprocs, LaTeXML::Post::MathML::Presentation->new(%PostOPS)) if $$proctypes{'pmml'};
   push (@mprocs, LaTeXML::Post::MathML::Content->new(%PostOPS)) if $$proctypes{'cmml'};
+  push (@mprocs, LaTeXML::Post::OpenMath->new(%PostOPS)) if $$proctypes{'openmath'};
   my $main = shift(@mprocs);
   $main->setParallel(@mprocs) if $parallel;
   $main->keepTeX if ($$proctypes{'keepTeX'} && $parallel);
@@ -556,7 +583,7 @@ sub doPost {
 					 parameters=>{number_sections
 						      =>("true()")},
                                        %PostOPS)) if $style;
-  push(@procs,LaTeXML::Post::Writer->new(format=>"xhtml",omit_doctype=>0,%PostOPS))
+  push(@procs,LaTeXML::Post::Writer->new(format=>$format,omit_doctype=>0,%PostOPS))
     if ($postdest && !$isStream);
   my $postdoc;
   eval { ($postdoc) = LaTeXML::Post::ProcessChain($doc,@procs); 1;}
@@ -709,6 +736,8 @@ latexmls [options]
  Options:
  --destination=file specifies destination file, requires --local.
  --output=file      [obsolete synonym for --destination]
+ --postdest=file    specifies destination file for postprocessing,
+                    requires --local, --post
  --preload=module   requests loading of an optional module;
                     can be repeated
  --includestyles    allows latexml to load raw *.sty file;
@@ -720,6 +749,8 @@ latexmls [options]
  --path=dir         adds dir to the paths searched for files,
                     modules, etc; 
  --log=file         specifies log file, reuqires --local (default: STDERR)
+ --postlog=file     specifies log file for postprocessing, requires --local, --post
+                    default is appending to the --log file.
  --autoflush=count  Automatically restart the daemon after 
                     "count" inputs. Good practice for vast batch 
                     jobs. (default: 10000)
@@ -785,10 +816,19 @@ This is an early release, which has a list of future features planned. They incl
 
 =item C<--destination>=I<file>
 
+Requires: --local
+
 Specifies the destination file; by default the XML is written to stdout.
 The Daemon allows using the #name, #dir and #ext patterns as variables for
 the base of the source filename, the source directory and the source file extension.
 An example would be: --destination=#dir/#name.xml
+
+=item C<--postdest>=I<file>
+
+Requires: --local, --post
+
+Behaves like --destination, for the post-processing target.
+makes use of the #dir,#name,#ext patterns.
 
 =item C<--preload>=I<module>
 
@@ -823,6 +863,14 @@ Specifies the log file; be default any conversion messages are printed to stderr
 The Daemon allows using the #name, #dir and #ext patterns as variables for
 the base of the source filename, the source directory and the source file extension.
 An example would be: --log=#dir/#name.log
+
+=item C<--postlog>=I<file>
+
+Requires: --local, --post
+
+Behaves like --log, but reports on the status of the post-processing exclusively.
+The #name,#dir and #ext patterns can be used.
+Default is merging this log at the original --log target
 
 =item C<--autoflush>=I<count>
 
