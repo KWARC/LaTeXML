@@ -37,7 +37,8 @@ my($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$input_counter,$_input_limit,
    $_local)=(0,0,1,0,0,0,0,0,0,0,0);
 my $_timeout = 60;
-my ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble,$_preamble_loaded)=('xml','standard',q{},q{},q{},q{},{},undef,undef,undef,undef,q{});
+my ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble,$_preamble_loaded)=
+   ('xml','standard',q{},q{},q{},q{},q{},{},undef,undef,undef,undef,q{});
 my ($_documentid);
 my $_inputencoding;
 my $_type = 'auto';
@@ -479,7 +480,7 @@ while ( my $client = $server->accept() ) {
   if ($log && $local) { #Close log file
     close(LOG); *STDERR = *ERRORIG;
   }
-
+  
   if ($post && $dom && (!$noparse)) {
     #Postprocess
     my $clogpost;
@@ -489,11 +490,15 @@ while ( my $client = $server->accept() ) {
       $clogpost=~s/#name/$name/eg;
       $clogpost=~s/#dir/$dir/eg;
       $clogpost=~s/#ext/$ext/eg;
-      open(PLOG,">>",$clogpost) or croak "Couldn't open log file $clog : $!\n";
+      my $wmode = ">";
+      $wmode = ">>" if (($clogpost eq $clog) && (-e $clog));
+      open(PLOG,"$wmode",$clogpost) or croak "Couldn't open log file $clog : $!\n";
       *ERRORIG=*STDERR;
       *STDERR = *PLOG;
-      print STDERR "---------\n";
-      print STDERR "LaTeXML Post-processing: \n";
+      if ($clog eq $clogpost) {
+        print STDERR "---------\n";
+        print STDERR "LaTeXML Post-processing: \n";
+      }
     } else {
       #No log if not local (STDERR redirects to /dev/null)
     }
@@ -511,11 +516,9 @@ while ( my $client = $server->accept() ) {
   undef $serialized;
   undef $source;
   undef $clog;
-  undef $cdest;
-  undef $source;
   #Move to next...
   exec($0,@ARGV_SAVED) 
-      or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
+    or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
   alarm($timeout);              #Timeout if inactive for too long...
 }
 
