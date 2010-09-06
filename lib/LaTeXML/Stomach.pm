@@ -38,6 +38,7 @@ sub initialize {
   $STATE->assignValue(IN_MATH=>0,'global');
   $STATE->assignValue(PRESERVE_NEWLINES=>1,'global');
   $STATE->assignValue(afterGroup=>[],'global');
+  $STATE->assignValue(afterAssignment=>undef,'global');
   # Setup default fonts.
   $STATE->assignValue(font=>LaTeXML::Font->default(),'global');
   $STATE->assignValue(mathfont=>LaTeXML::MathFont->default(),'global');
@@ -81,7 +82,7 @@ sub digest {
   my $initdepth  = scalar(@{$$self{boxing}});
   my $depth=$initdepth;
   local @LaTeXML::LIST=();
-  while(defined(my $token=$$self{gullet}->readXToken())){ # Done if we run out of tokens
+  while(defined(my $token=$$self{gullet}->readXToken(1))){ # Done if we run out of tokens
     push(@LaTeXML::LIST, $self->invokeToken($token));
     my $depth  = scalar(@{$$self{boxing}});
     last if $initdepth > $depth; } # if we've closed the initial mode.
@@ -187,6 +188,7 @@ sub pushStackFrame {
   $STATE->pushFrame;
   $STATE->assignValue(beforeAfterGroup=>[],'local'); # ALWAYS bind this!
   $STATE->assignValue(afterGroup=>[],'local'); # ALWAYS bind this!
+  $STATE->assignValue(afterAssignment=>undef,'local'); # ALWAYS bind this!
   $STATE->assignValue(groupNonBoxing=>$nobox,'local'); # ALWAYS bind this!
   push(@{$$self{boxing}},$LaTeXML::CURRENT_TOKEN) unless $nobox; # For begingroup/endgroup
 }

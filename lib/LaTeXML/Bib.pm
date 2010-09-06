@@ -127,22 +127,18 @@ our %CLOSE=("{"=>"}","("=>")");
 # open = { or (  close is balancing } or )
 sub parsePreamble{
   my($self)=@_;
-  $self->skipWhite;
-  ($$self{line}=~ s/^([\(\{])//) or Fatal(":expected:({ Expected ( or {");
-  my $open = $1;
-  push(@{$$self{preamble}}, $self->parseValue());
-  $self->skipWhite;
-  ($$self{line}=~ s/^(\Q$CLOSE{$open}\E)//) or Fatal(":expected:$CLOSE{$open}");
-}
+  my $open = $self->parseMatch("({");
+  my($value,$rawvalue)=  $self->parseValue();
+  push(@{$$self{preamble}}, $value);
+  $self->parseMatch($CLOSE{$open}); }
 
 # @string open [name = value]* close
 # open = { or (  close is balancing } or )
 sub parseMacro {
   my($self)=@_;
-  $self->skipWhite;
-  ($$self{line}=~ s/^([\(\{])//) or Fatal(":expected:({ Expected ( or {");
-  my $open = $1;
-  foreach my $macro ($self->parseFields('@string',$open)){
+  my $open = $self->parseMatch("({");
+  my($fields,$rawfields)= $self->parseFields('@string',$open);
+  foreach my $macro (@$fields){
     $$self{macros}{$$macro[0]} = $$macro[1]; }}
 
 # @comment string
@@ -156,32 +152,30 @@ sub parseComment {
 # open = { or (  close is balancing } or )
 sub parseEntry{
   my($self,$type)=@_;
-  $self->skipWhite;
-  ($$self{line}=~ s/^([\(\{])//) or Fatal(":expected:({ Expected ( or {");
-  my $open = $1;
+  my $open = $self->parseMatch("({");
   my $key = $self->parseName();
-  $self->skipWhite;
-  $$self{line} =~ s/^,//;
+  $self->parseMatch(',');
   # NOTE: actually, the entry should be ignored if there already is one for $key!
-  push(@{$$self{entries}},LaTeXML::Bib::BibEntry->new($type,$key,$self->parseFields("$type $key",$open))); }
+  my($fields,$rawfields)= $self->parseFields('@string',$open);
+  push(@{$$self{entries}},LaTeXML::Bib::BibEntry->new($type,$key,$fields,$rawfields)); }
 
 sub parseFields {
   my($self,$for,$open)=@_;
   my @fields=();
+  my @rawfields=();
   my $closed;
   do {
     my $name = $self->parseName;
-    Warn(":unexpected:$name BibTeX field name \"$name\" has in $for awkward characters") unless $name =~ /^[a-z_].*$/;
+    Warn(":unexpected:$name BibTeX field name \"$name\" has awkward characters in $for at $$self{line}") unless $name =~ /^[a-z_].*$/;
+    $self->parseMatch('=');
+    my($value,$rawvalue)= $self->parseValue;
+    push(@fields,[$name,$value]);
+    push(@rawfields,[$name,$rawvalue]);
     $self->skipWhite;
-    ($$self{line}=~ s/^=//) or Fatal(":expected:= Expected an =");
-    push(@fields,[$name,$self->parseValue]);
-    $self->skipWhite;
-  } while ($$self{line} =~ s/^,//) && $self->skipWhite
-    && ! ($closed=($$self{line} =~ s/^(\Q$CLOSE{$open}\E)//));
-  if(!$closed){
-    $self->skipWhite;
-    ($$self{line}=~ s/^(\Q$CLOSE{$open}\E)//) or Fatal(":expected:$CLOSE{$open} Expected $CLOSE{$open} in $for"); }
-  @fields; }
+  } while( ($$self{line}=~ s/^,//) # like parseMatch, but we just end parsing fields if missing
+	   && $self->skipWhite && ($$self{line} !~ /^\Q$CLOSE{$open}\E/));
+  $self->parseMatch($CLOSE{$open});
+  ([@fields],[@rawfields]); }
 
 #==============================
 # Low level parsing
@@ -195,34 +189,47 @@ sub parseName {
   $$self{line} =~ s/^([a-zA-Z0-9\_\!\$&\*\+\-\.\/\:\;\<\>\?\[\]\^\`\|]*)//;
   lc($1); }
 
+sub parseMatch {
+  my($self,$delims)=@_;
+  $self->skipWhite;
+  if($$self{line}=~ s/^([\Q$delims\E])//){
+    $1; }
+  else {
+    Error(":expected:$delims Expected one of ".join(' ',split(//,$delims)));
+    undef; }}
+
 # A string is delimited with balanced {}, or ""
 sub parseString {
   my($self)=@_;
   $self->skipWhite;
   my $string;
   if   ($$self{line} =~ /^\"/){
-    while($$self{line} !~ /\".*\"/){ # minor optimization: make sure there's at least two ""
-      $self->extendLine; }
+    while(($$self{line} !~ /\".*\"/) && $self->extendLine) {} # minor optimization: make sure there's at least two ""
     # Hmmm.. apparently " is effectively quoted within the string as {"} ?
-    while(! defined($string = extract_delimited($$self{line},'\"'))){
-      $self->extendLine; }}	# Fetch another line if we haven't balanced, yet.
+    while((! defined($string = extract_delimited($$self{line},'\"'))) && $self->extendLine){} # extend till balanced.
+  }
   elsif($$self{line} =~ /^\{/){
-    while($$self{line} !~ /\}/){ # minor optimization: make sure there's at least a closing }
-      $self->extendLine; }
-    while(! defined($string = extract_bracketed($$self{line},'{}'))){
-      $self->extendLine; }}	# Fetch another line if we haven't balanced, yet.
+    while(($$self{line} !~ /\}/) && $self->extendLine){} # minor optimization: make sure there's at least a closing }
+    while((! defined($string = extract_bracketed($$self{line},'{}'))) && $self->extendLine){} # extend till balanced
+  }
   else {
-    Fatal(":expected:string Expected a string delimited by \"..\", (..) or {..}"); }
+    Error(":expected:string Expected a string delimited by \"..\", (..) or {..}"); }
   $string =~ s/^.//;		# Remove the delimiters.
   $string =~ s/.$//;
+  $string =~ s/^\s+//;		# and trim
+  $string =~ s/\s+$//;
   $string; }
 
 sub extendLine {
   my($self)=@_;
   my $nextline = shift(@{$$self{lines}});
-  Fatal(":unexpected:EOF Input ended while parsing string") unless defined $nextline;
-  $$self{line} .= $nextline;
-  $$self{lineno} ++; }
+  if(defined $nextline){
+    $$self{line} .= $nextline;
+    $$self{lineno} ++; 
+    1; }
+  else {
+    Error(":unexpected:EOF Input ended while parsing string");
+    undef; }}
 
 # value : simple_value ( HASH simple_value)*
 # simple_value : string | NAME
@@ -237,19 +244,19 @@ sub parseValue {
       my $macro = ($name =~ /^\d+$/ ? $name : $$self{macros}{$name});
       if(!defined $macro){
 	Error(":unexpected:$name The macro $name is not defined");
-	$macro=''; }
+	$macro=$name; }		# Default error handling is leave the text in?
       $value .= $macro; }
-    else { 
+    else {
       Error(":expected:value a value"); }
     $self->skipWhite;
-  } while $$self{line} =~ s/^#//;
+  } while ($$self{line} =~ s/^#//);
   $value; }
 
 sub skipWhite{
   my($self)=@_;
   my $nextline;
   do {
-    $$self{line} =~ s/^\s+//s;
+    $$self{line} =~ s/^(\s+)//s;
     return 1 if $$self{line};
     $nextline = shift(@{$$self{lines}});
     $$self{line} = $nextline || "";
@@ -274,10 +281,11 @@ sub skipJunk {
 package LaTeXML::Bib::BibEntry;
 
 sub new {
-  my($class,$type,$key,@fields)=@_;
-  my %hash;
-  map( $hash{$$_[0]} = $$_[1], @fields);
-  my $self = {type=>$type,key=>$key, fieldlist=>[@fields], fieldmap=>{%hash}};
+  my($class,$type,$key,$fields,$rawfields)=@_;
+  my $self = {type=>$type,key=>$key,
+	      fieldlist=>$fields, rawfieldlist=>$rawfields,
+	      fieldmap=>{   map( ($$_[0] => $$_[1]),   @$fields) },
+	      rawfieldmap=>{   map( ($$_[0] => $$_[1]), @$rawfields) }};
   bless $self,$class;
   $self; }
 
@@ -285,11 +293,24 @@ sub getType   { $_[0]->{type}; }
 sub getKey    { $_[0]->{key}; }
 sub getFields { @{$_[0]->{fieldlist}}; }
 sub getField  { $_[0]->{fieldmap}{$_[1]}; }
+sub getRawField { $_[0]->{rawfieldmap}{$_[1]}; }
 
 sub addField  {
   my($self,$field,$value)=@_;
   push(@{ $$self{fieldlist}},[$field,$value]);
   $$self{fieldmap}{$field} = $value; }
+
+sub addRawField  {
+  my($self,$field,$value)=@_;
+  push(@{ $$self{rawfieldlist}},[$field,$value]);
+  $$self{rawfieldmap}{$field} = $value; }
+
+sub prettyPrint {
+  my($self)=@_;
+  join(",\n",
+       "@".$$self{type}."{".$$self{key},
+       map(  (" "x(10-length($$_[0]))).$$_[0]." = {".$$_[1]."}",   @{$$self{fieldlist}})
+      )."}\n"; }
 
 #**********************************************************************
 1;
