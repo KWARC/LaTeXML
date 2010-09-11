@@ -276,7 +276,7 @@ sub getStatus {
 
 sub setStatus {
   my($self,$type,$value)=@_;
-  if ($type ne "missing") && ($type ne "undefined") {
+  if (($type ne "missing") && ($type ne "undefined")) {
   $$self{status}{$type} = $value; }}
 
 
