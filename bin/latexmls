@@ -452,12 +452,8 @@ while ( my $client = $server->accept() ) {
   $latexml->withState(sub {
                         my($state)=@_; #Remove current state frame
                         $state->popFrame;
-                        $$state{table} = clone $stateRestore if $mode eq "fragment";
-                        $state->setStatus("warning",0);
-                        $state->setStatus("error",0);
-                        $state->setStatus("fatal",0);
-                        $state->setStatus("undefined",0);
-                        $state->setStatus("missing",0);
+                        $$state{table} = clone $stateRestore if (($mode eq "fragment") && $stateRestore);
+                        $$state{status} = {};
                       });
   if ($cdest && $local && ($cdest ne $client)) {
     open(OUT,">",$cdest) or croak "Couldn't open output file $cdest: $!";
