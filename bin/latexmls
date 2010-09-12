@@ -579,9 +579,9 @@ sub doPost {
       push(@csspaths,$csspath);
     }}
   push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
-                                       css=>[@csspaths],
 					 parameters=>{number_sections
-						      =>("true()")},
+						      =>("true()"),
+                                                      (@csspaths ? (CSS=>[@csspaths]):()),},
                                        %PostOPS)) if $style;
   push(@procs,LaTeXML::Post::Writer->new(format=>$format,omit_doctype=>0,%PostOPS))
     if ($postdest && !$isStream);
