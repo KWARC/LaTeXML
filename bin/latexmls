@@ -342,8 +342,9 @@ while ( my $client = $server->accept() ) {
       (!$cdestpost || ($cdestpost eq $client) || $cdestpost=~/\.xhtml$/ || 
        $cdestpost=~s/\.tex\.xml$/.xhtml/ || $cdestpost=~s/\.xml$/.xhtml/); #Some heuristics
   }
-  my @deststat = stat($cdest) if ($summary && ($cdest ne $client));
-  my @destpoststat = stat($cdestpost) if ($summary && ($cdestpost ne $client));
+  $cdestpost = undef unless $post;
+  my @deststat = stat($cdest) if ($summary && $cdest && ($cdest ne $client));
+  my @destpoststat = stat($cdestpost) if ($summary && $cdestpost && ($cdestpost ne $client));
 
   ###########################################################################
   #   Start of conversion
@@ -740,18 +741,18 @@ sub setup_server {
 sub doSummary {
   my ($cdest,$cdestpost,$client,$deststat,$destpoststat,$summaryMessage)=@_;
   my $writesuccess = 0; 
-  $writesuccess = 1 if (($cdest ne $client) && (@$deststat != stat($cdest)));
+  $writesuccess = 1 if ($cdest && ($cdest ne $client) && (@$deststat != stat($cdest)));
   my $writesuccesspost = 0;
-  $writesuccesspost = 1 if (($cdestpost ne $client) && (@$destpoststat != stat($cdestpost)));
+  $writesuccesspost = 1 if ($cdestpost && ($cdestpost ne $client) && (@$destpoststat != stat($cdestpost)));
   print $client $summaryMessage."\n";
-  if ($writesuccess) {
+  if ($writesuccess && $cdest) {
     print $client "Wrote $cdest\n";
-  } elsif ($cdest ne $client) {
+  } elsif ($cdest && ($cdest ne $client)) {
     print $client "Error! Did not write file $cdest\n";
     }
-  if (($writesuccesspost) && ($cdestpost ne $cdest)) {
+  if (($writesuccesspost) && $cdestpost && ($cdestpost ne $cdest)) {
     print $client "Wrote $cdestpost\n";
-  } elsif (($cdestpost ne $client) && ($cdestpost ne $cdest)) {
+  } elsif ($cdestpost && ($cdestpost ne $client) && ($cdestpost ne $cdest)) {
     print $client "Error! Did not write file $cdestpost\n";
   }
 }
