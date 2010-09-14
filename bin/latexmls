@@ -37,8 +37,9 @@ my($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$input_counter,$_input_limit,
    $_local)=(0,0,1,0,0,0,0,0,0,0,0);
 my $_timeout = 60;
-my ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_procs_post,$_help,$_showversion,$_stylesheet,$_preamble,$_preamble_loaded)=
-   ('xml','standard',q{},q{},q{},q{},q{},{},undef,undef,undef,undef,q{});
+my ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_procs_post,$_help,$_showversion,$_preamble,$_preamble_loaded)=
+   ('xml','standard',q{},q{},q{},q{},q{},{},undef,undef,undef,q{});
+my($_stylesheet,$_defaultcss,$_summary,$_icon,@_css)=(undef,1,0);
 my ($_documentid);
 my $_inputencoding;
 my $_type = 'auto';
@@ -52,8 +53,9 @@ my($verbosity,$strict,$comments,$noparse,$includestyles,
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_limit,
    $_timeout,$_local);
-my ($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$procs_post,$help,$showversion,$stylesheet,$preamble)=
-  ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,{},$_help,$_showversion,$_stylesheet,$_preamble);
+my ($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$procs_post,$help,$showversion,$preamble)=
+  ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,{},$_help,$_showversion,$_preamble);
+my($stylesheet,$defaultcss,$summary,$icon,@css)=($_stylesheet,$_defaultcss,$_summary,$_icon,@_css);
 my ($documentid,$port);
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
 my $inputencoding;
@@ -84,6 +86,7 @@ GetOptions("destination=s" => \$_destination,
            "local!"       => \$_local,
 	   "log=s"       => \$_log,
            "postlog=s"   => \$_postlog,
+           "summary!"    => \$_summary,
 	   "includestyles"=> \$_includestyles,
 	   "inputencoding=s"=>\$_inputencoding,
 	   "post"      => \$_post,
@@ -94,6 +97,8 @@ GetOptions("destination=s" => \$_destination,
 	   "keepXMath" => sub {$_procs_post->{'keepXMath'}=1;},
 	   "parallelmath" => \$_parallelmath,
 	   "stylesheet=s"=>\$_stylesheet,
+	   "css=s"                 =>\@css,
+	   "defaultcss!"           =>\$defaultcss,
 	   "comments!" => \$_comments,
 	   "VERSION"   => \$_showversion,
 	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
@@ -126,8 +131,9 @@ $_input_limit=1_000 if (!$_input_limit || $_input_limit<=0); #Standard - 1k
  $errlog,$post,$parallelmath,$input_limit,$timeout,$local)=
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_limit,$_timeout,$_local);
-($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$help,$showversion,$stylesheet,$preamble,$documentid,$inputencoding,$type)=
-        ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_help,$_showversion,$_stylesheet,$_preamble,$_documentid,$_inputencoding,$_type);
+($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$help,$showversion,$preamble,$documentid,$inputencoding,$type)=
+        ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_help,$_showversion,$_preamble,$_documentid,$_inputencoding,$_type);
+($stylesheet,$defaultcss,$summary,$icon,@css)=($_stylesheet,$_defaultcss,$_summary,$_icon,@_css);
 $procs_post = {};
 
 #When in math mode, preload math packages:
@@ -208,8 +214,9 @@ while ( my $client = $server->accept() ) {
      ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
       $_errlog,$_post,$_parallelmath,$_input_limit,
       $_timeout,$_local);
-  ($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$help,$showversion,$stylesheet,$preamble,$documentid,$inputencoding,$type)=
-    ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_help,$_showversion,$_stylesheet,$_preamble,$_documentid,$_inputencoding,$_type);
+  ($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$help,$showversion,$preamble,$documentid,$inputencoding,$type)=
+    ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_help,$_showversion,$_preamble,$_documentid,$_inputencoding,$_type);
+  ($stylesheet,$defaultcss,$summary,$icon,@css)=($_stylesheet,$_defaultcss,$summary,$_icon,@_css);
   $procs_post = {};
   @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
   while (my $line = <$client>) {
@@ -240,6 +247,7 @@ while ( my $client = $server->accept() ) {
            "local!"       => sub {carp "Local only possible to set on first server invocation!\n";},
 	   "log=s"       => \$log,
            "postlog=s"   => \$postlog,
+           "summary!"    => \$summary,
 	   "includestyles"=> \$includestyles,
 	   "inputencoding=s"=>\$inputencoding,
 	   "post"      => \$post,
@@ -250,6 +258,8 @@ while ( my $client = $server->accept() ) {
 	   "keepXMath" => sub {$$procs_post{'keepXMath'}=1;},
 	   "parallelmath" => \$parallelmath,
 	   "stylesheet=s"=>\$stylesheet,
+	   "css=s"                 =>\@css,
+	   "defaultcss!"           =>\$defaultcss,
 	   "comments!" => \$comments,
 	   "VERSION"   => \$showversion,
 	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
@@ -332,6 +342,8 @@ while ( my $client = $server->accept() ) {
       (!$cdestpost || ($cdestpost eq $client) || $cdestpost=~/\.xhtml$/ || 
        $cdestpost=~s/\.tex\.xml$/.xhtml/ || $cdestpost=~s/\.xml$/.xhtml/); #Some heuristics
   }
+  my @deststat = stat($cdest) if ($summary && ($cdest ne $client));
+  my @destpoststat = stat($cdestpost) if ($summary && ($cdestpost ne $client));
 
   ###########################################################################
   #   Start of conversion
@@ -407,6 +419,7 @@ while ( my $client = $server->accept() ) {
   } or do {                     #Fatal occured!
     print STDERR "$@\n";
     print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
+    doSummary($cdest,$cdestpost,$client,\@deststat,\@destpoststat,$latexml->getStatusMessage) if ($summary);
     #Need to reset latexml in these cases
     if ($log) {
       close(LOG); *STDERR = *ERRORIG;
@@ -449,6 +462,7 @@ while ( my $client = $server->accept() ) {
     next;                       #Move on, no body to be produced.
   };
   print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
+  my $summaryMessage = $latexml->getStatusMessage;
   $latexml->withState(sub {
                         my($state)=@_; #Remove current state frame
                         $state->popFrame;
@@ -476,7 +490,7 @@ while ( my $client = $server->accept() ) {
   if ($log && $local) { #Close log file
     close(LOG); *STDERR = *ERRORIG;
   }
-  
+
   if ($post && $dom && (!$noparse)) {
     #Postprocess
     my $clogpost;
@@ -499,11 +513,13 @@ while ( my $client = $server->accept() ) {
       #No log if not local (STDERR redirects to /dev/null)
     }
     doPost(dest=>$cdestpost,stylesheet=>$stylesheet,dom=>$dom,mode=>$mode,format=>$format,
-           parallel=>$parallelmath,procs=>$procs_post,isStream=>($cdestpost eq $client));
+           parallel=>$parallelmath,procs=>$procs_post,isStream=>($cdestpost eq $client),
+           verbosity=>$verbosity,defaultcss=>$defaultcss);
     if ($postlog && $local) { #Close log file
       close(PLOG); *STDERR = *ERRORIG;
     }
   }
+  doSummary($cdest,$cdestpost,$client,\@deststat,\@destpoststat,$summaryMessage) if ($summary);
   close $client;
   #Undef variables
   undef $latexml if $mode eq "standard";
@@ -523,16 +539,17 @@ while ( my $client = $server->accept() ) {
 #======================================================================
 sub doPost {
   my (%options)=@_;
-  my %PostOPS = (verbosity=>$verbosity||0,siteDirectory=>".");
-  my ($postdest,$style,$dom,$extract,$parallel,$proctypes,$isStream,$format)= 
-    map {$options{$_}} qw(dest stylesheet dom mode parallel procs isStream format);
+  my ($postdest,$style,$dom,$extract,$parallel,$proctypes,$isStream,$format,$verbosity,$defaultcss)= 
+    map {$options{$_}} qw(dest stylesheet dom mode parallel procs isStream format verbosity defaultcss);
+  $verbosity = $verbosity||0;
+  my %PostOPS = (verbosity=>$verbosity,siteDirectory=>".");
   #Postprocess
   #Default is XHTML, XML otherwise (TODO: Expand)
   $format="xml" if ($style);
   $format="xhtml" unless ($format eq "xml");
   $style = "LaTeXML-xhtml.xsl" unless $style;
   my @css=();
-  unshift (@css,"core.css") unless ($extract eq "math");
+  unshift (@css,"core.css") if ($defaultcss && !($extract eq "math"));
   $parallel = $parallel||0;
   my $doc;
   eval {
@@ -720,6 +737,25 @@ sub setup_server {
   return $sock_server;
 }
 
+sub doSummary {
+  my ($cdest,$cdestpost,$client,$deststat,$destpoststat,$summaryMessage)=@_;
+  my $writesuccess = 0; 
+  $writesuccess = 1 if (($cdest ne $client) && (@$deststat != stat($cdest)));
+  my $writesuccesspost = 0;
+  $writesuccesspost = 1 if (($cdestpost ne $client) && (@$destpoststat != stat($cdestpost)));
+  print $client $summaryMessage."\n";
+  if ($writesuccess) {
+    print $client "Wrote $cdest\n";
+  } elsif ($cdest ne $client) {
+    print $client "Error! Did not write file $cdest\n";
+    }
+  if (($writesuccesspost) && ($cdestpost ne $cdest)) {
+    print $client "Wrote $cdestpost\n";
+  } elsif (($cdestpost ne $client) && ($cdestpost ne $cdest)) {
+    print $client "Error! Did not write file $cdestpost\n";
+  }
+}
+
 #**********************************************************************
 __END__
 
@@ -751,6 +787,7 @@ latexmls [options]
  --log=file         specifies log file, reuqires --local (default: STDERR)
  --postlog=file     specifies log file for postprocessing, requires --local, --post
                     default is appending to the --log file.
+ --summary          write a one line summary message of the conversion outcome
  --autoflush=count  Automatically restart the daemon after 
                     "count" inputs. Good practice for vast batch 
                     jobs. (default: 10000)
@@ -777,6 +814,9 @@ latexmls [options]
  --post             requests a followup post-processing
  --stylesheet       specifies a stylesheet,
                     to be used by the post-processor.
+ --css=cssfile           adds a css stylesheet to html/xhtml
+                         (can be repeated)
+ --nodefaultcss          disables the default css stylesheet
  --pmml             converts math to Presentation MathML
                     (default for xhtml format)
  --cmml             converts math to Content MathML
@@ -871,6 +911,11 @@ Requires: --local, --post
 Behaves like --log, but reports on the status of the post-processing exclusively.
 The #name,#dir and #ext patterns can be used.
 Default is merging this log at the original --log target
+
+=item C<--summary>
+
+Return a one line summary message of the conversion outcome. The message is always sent back
+via the socket, strictly after any other return values possible.
 
 =item C<--autoflush>=I<count>
 
@@ -1013,6 +1058,22 @@ representations are simply stored as separate children of the C<Math> element.
 =item C<--stylesheet>=I<file>
 
 Sets a stylesheet of choice to be used by the postprocessor. Requires C<--post>
+
+=item C<--css>=I<cssfile>
+
+Adds I<cssfile> as a css stylesheet to be used in the transformed html/xhtml.
+Multiple stylesheets can be used; they are included in the html in the
+order given, following the default C<core.css>
+(but see C<--nodefaultcss>). Some stylesheets included in the distribution are
+  --css=navbar-left   Puts a navigation bar on the left.
+                      (default omits navbar)
+  --css=navbar-right  Puts a navigation bar on the left.
+  --css=theme-blue    A blue coloring theme for headings.
+  --css=amsart        A style suitable for journal articles.
+
+=item C<--nodefaultcss>
+
+Disables the inclusion of the default C<core.css> stylesheet.
 
 =item C<--nocomments>
 
