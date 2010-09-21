@@ -774,6 +774,7 @@ sub pmml_decoratedOperator {
   my $cr  = (ref $head ? $head->getAttribute("cr") : "fun");
   $head->setAttribute("role","SKIP");
   my $operator=pmml(@args);
+  return undef unless $operator; #bootstrap
   if ($$operator[0] =~ /^m:m[io]$/) { #Unwrap if only a mi or mo
     $operator=$$operator[2];
     ['m:mo',{'cr'=>$cr},
