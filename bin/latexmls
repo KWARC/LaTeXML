@@ -343,8 +343,8 @@ while ( my $client = $server->accept() ) {
        $cdestpost=~s/\.tex\.xml$/.xhtml/ || $cdestpost=~s/\.xml$/.xhtml/); #Some heuristics
   }
   $cdestpost = undef unless $post;
-  my @deststat = stat($cdest) if ($summary && $cdest && ($cdest ne $client));
-  my @destpoststat = stat($cdestpost) if ($summary && $cdestpost && ($cdestpost ne $client));
+  my $deststat = (stat($cdest))[9] if ($summary && $cdest && ($cdest ne $client));
+  my $destpoststat = (stat($cdestpost))[9] if ($summary && $cdestpost && ($cdestpost ne $client));
 
   ###########################################################################
   #   Start of conversion
@@ -420,7 +420,7 @@ while ( my $client = $server->accept() ) {
   } or do {                     #Fatal occured!
     print STDERR "$@\n";
     print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
-    doSummary($cdest,$cdestpost,$client,\@deststat,\@destpoststat,$latexml->getStatusMessage) if ($summary);
+    doSummary($cdest,$cdestpost,$client,$deststat,$destpoststat,$latexml->getStatusMessage) if ($summary);
     #Need to reset latexml in these cases
     if ($log) {
       close(LOG); *STDERR = *ERRORIG;
@@ -520,7 +520,7 @@ while ( my $client = $server->accept() ) {
       close(PLOG); *STDERR = *ERRORIG;
     }
   }
-  doSummary($cdest,$cdestpost,$client,\@deststat,\@destpoststat,$summaryMessage) if ($summary);
+  doSummary($cdest,$cdestpost,$client,$deststat,$destpoststat,$summaryMessage) if ($summary);
   close $client;
   #Undef variables
   undef $latexml if $mode eq "standard";
@@ -741,9 +741,9 @@ sub setup_server {
 sub doSummary {
   my ($cdest,$cdestpost,$client,$deststat,$destpoststat,$summaryMessage)=@_;
   my $writesuccess = 0; 
-  $writesuccess = 1 if ($cdest && ($cdest ne $client) && (@$deststat != stat($cdest)));
+  $writesuccess = 1 if ($cdest && ($cdest ne $client) && ($deststat != (stat($cdest))[9]));
   my $writesuccesspost = 0;
-  $writesuccesspost = 1 if ($cdestpost && ($cdestpost ne $client) && (@$destpoststat != stat($cdestpost)));
+  $writesuccesspost = 1 if ($cdestpost && ($cdestpost ne $client) && ($destpoststat != (stat($cdestpost))[9]));
   print $client $summaryMessage."\n";
   if ($writesuccess && $cdest) {
     print $client "Wrote $cdest\n";
