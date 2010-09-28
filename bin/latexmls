@@ -722,7 +722,7 @@ sub daemonize {
   defined(my $pid = fork)   or croak "Can't fork: $!";
   exit if $pid;
   setsid                    or croak "Can't start a new session: $!";
-  #*STDERR = *STDOUT         or croak "Can't dup stdout: $!";
+  *STDERR = *STDOUT         or croak "Can't dup stdout: $!";
   return;
 }
 
