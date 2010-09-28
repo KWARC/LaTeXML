@@ -502,7 +502,7 @@ sub openMathText_internal {
 sub openElement {
   my($self,$qname,%attributes)=@_;
   NoteProgress('.') if ($$self{progress}++ % 25)==0;
-  print STDERR "Open element $qname at ".Stringify($$self{node})."\n" ;#if $LaTeXML::Document::DEBUG;
+  print STDERR "Open element $qname at ".Stringify($$self{node})."\n" if $LaTeXML::Document::DEBUG;
   my $point = $self->find_insertion_point($qname);
   my($ns,$tag) = $$self{model}->decodeQName($qname);
   my $node;
