@@ -36,7 +36,7 @@ sub stringify {
   my($self)=@_;
   my $type = ref $self;
   $type =~ s/^LaTeXML:://;
-  $type.'['.$$self[0].']'; }
+  $type.'['.(defined $$self[0] ? $$self[0] : '').']'; }
 
 # Should this compare fonts too?
 sub equals {

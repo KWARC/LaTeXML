@@ -148,6 +148,7 @@ sub toString {
   foreach my $token (@$self){
     next if $token->getCatcode == CC_COMMENT;
     my $s = $token->toString();
+    $s='' unless defined $s;
     $string .= ' ' if $prevmac && ($s =~ /^\w/);
     $string .= $s;
     $prevmac = ($s  =~ /^\\/) if $s; }
