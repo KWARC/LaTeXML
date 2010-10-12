@@ -305,6 +305,9 @@ while ( my $client = $server->accept() ) {
   } else { $isString=$source; }
   if (!$local && ($isFile)) {carp "I/O from filesystem not allowed without --local!\n".
                                                 " Will revert to sockets!\n";}
+  #Math mode means post
+  #(TODO: Rethink this, maybe we want more flexibility e.g. noparse XMath)
+  $post=1 if ($mode eq "math");
   #Instantiate targets for current input
   my ($dir,$name,$ext);
   ($dir,$name,$ext) = pathname_split($source) if $isFile;
@@ -479,9 +482,7 @@ while ( my $client = $server->accept() ) {
     #  binmode(STDOUT,":utf8");
     *OUT = *STDOUT;
   }
-  #Math mode means post
-  #(TODO: Rethink this, maybe we want more flexibility e.g. noparse XMath)
-  $post=1 if ($mode eq "math");
+
   %$procs_post=%$_procs_post unless (scalar(keys %$procs_post)); #Fall back to defaults if no preferences
   $$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post)); #Fall back to pmml as default
   print OUT $serialized if ($serialized && (!$post || $cdest ne $client));
