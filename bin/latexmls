@@ -121,10 +121,10 @@ my $server = setup_server($port);
 # Set up the processing.
 print STDERR "$identity\n" if $verbosity >= 0;
 $_mode = lc($_mode);
-$_input_limit=50_000
-  if (($_mode eq "math") && (!$_input_limit || $_input_limit<1)); #50k if not set and math or if wrong
-$_input_limit=10_000 if (($_mode eq "fragment") && (!$_input_limit || $_input_limit<=0)); #Fragment - 10k
-$_input_limit=1_000 if (!$_input_limit || $_input_limit<=0); #Standard - 1k
+$_input_limit=5000
+  if (($_mode eq "math") && (!$_input_limit || $_input_limit<1)); #if not set and math mode or if value not admissible
+$_input_limit=1000 if (($_mode eq "fragment") && (!$_input_limit || $_input_limit<=0)); #Fragment mode
+$_input_limit=100 if (!$_input_limit || $_input_limit<=0); #Standard mode
 
 #Setup LOCAL VARS
 ($verbosity,$strict,$comments,$noparse,$includestyles,
@@ -286,7 +286,6 @@ while ( my $client = $server->accept() ) {
   $source =~ s/^\s+//m;                     #Cleanup space
   $source =~ s/\s+$//m;                     #Cleanup space
   next if (!$source);
-  last if ($source eq ":q");   #:q marks we're done
   # Determine input type if local, otherwise only socket exchange:
   my ($isURL,$isString,$isFile);
   if ($local) {
@@ -307,7 +306,7 @@ while ( my $client = $server->accept() ) {
                                                 " Will revert to sockets!\n";}
   #Math mode means post
   #(TODO: Rethink this, maybe we want more flexibility e.g. noparse XMath)
-  $post=1 if ($mode eq "math");
+  #$post=1 if ($mode eq "math");
   #Instantiate targets for current input
   my ($dir,$name,$ext);
   ($dir,$name,$ext) = pathname_split($source) if $isFile;
@@ -764,8 +763,7 @@ __END__
 =head1 NAME
 
 C<latexmls> - A server for latexml, latexmlpost and latexmlmath.
-Remains initialized in memory until ":q" is given on input or an
-inactivity timeout occurs.
+Remains initialized in memory until an inactivity timeout occurs.
 
 =head1 SYNOPSIS
 
@@ -858,19 +856,28 @@ This is an early release, which has a list of future features planned. They incl
 
 =item C<--destination>=I<file>
 
-Requires: --local
+Requires: C<--local>
 
 Specifies the destination file; by default the XML is written to stdout.
 The Daemon allows using the #name, #dir and #ext patterns as variables for
 the base of the source filename, the source directory and the source file extension.
-An example would be: --destination=#dir/#name.xml
+An example would be: C<--destination=#dir/#name.xml>
 
 =item C<--postdest>=I<file>
 
-Requires: --local, --post
+Requires: C<--local>, C<--post>
 
-Behaves like --destination, for the post-processing target.
-makes use of the #dir,#name,#ext patterns.
+Behaves like C<--destination>, for the post-processing target.
+makes use of the C<#dir>,C<#name>,C<#ext> patterns. 
+
+If omitted and C<--destination> is not provided, but C<--post> is specified, 
+the output will be returned via the socket. If C<--destination> is present, 
+but C<--postdest> is omitted, the default will substitute the extension 
+from C<.tex.xml> or C<.xml> to C<.xhtml>. If the C<--destination> extension is different, 
+C<.xhtml> will be simply appended.
+
+Note that for output formats different from .xhtml one should always specify
+the C<--postdest> option.
 
 =item C<--preload>=I<module>
 
@@ -899,20 +906,20 @@ somewhat like TEXINPUTS.  This option can be repeated.
 
 =item C<--log>=I<file>
 
-Requires: --local
+Requires: C<--local>
 
 Specifies the log file; be default any conversion messages are printed to stderr.
-The Daemon allows using the #name, #dir and #ext patterns as variables for
+The Daemon allows using the C<#name>, C<#dir> and C<#ext> patterns as variables for
 the base of the source filename, the source directory and the source file extension.
-An example would be: --log=#dir/#name.log
+An example would be: C<--log=#dir/#name.log>
 
 =item C<--postlog>=I<file>
 
-Requires: --local, --post
+Requires: C<--local>, C<--post>
 
-Behaves like --log, but reports on the status of the post-processing exclusively.
-The #name,#dir and #ext patterns can be used.
-Default is merging this log at the original --log target
+Behaves like C<--log>, but reports on the status of the post-processing exclusively.
+The C<#name>,C<#dir> and C<#ext> patterns can be used.
+Default is merging this log at the original C<--log> target
 
 =item C<--summary>
 
@@ -937,10 +944,10 @@ Specify server port (default: 3334 for math, 3344 for fragment and 3354 for stan
 =item C<--local>
 
 Request a local server (default: off)
-Required for the --log and --destination switches
-Required for processing filenames on input
+Required for the C<--log> and C<--destination> switches
+Required for processing filenames on input, as well as for any filesystem access.
 If switched off, the only means of communication with the server is via the respective socket.
-Expect an empty output on fatal error, since logs are hard to provide at the moment.
+Caveat: When C<--local> is disabled, fatal errors cause an empty output at the moment.
 
 =item C<--documentid>=I<id>
 
@@ -962,7 +969,7 @@ Can be useful for getting more details when errors occur.
 
 Specifies a strict processing mode. By default, undefined control sequences and
 invalid document constructs (that violate the DTD) give warning messages, but attempt
-to continue processing.  Using --strict makes them generate fatal errors.
+to continue processing.  Using C<--strict> makes them generate fatal errors.
 
 =item C<--bibtex>
 
@@ -997,14 +1004,14 @@ fragment: Parses frontmatter and \begin{document}...\end{document} fragments.
           Assumes that the documentclass is fixed (if any), which achieves a big speedup,
           since no state reinitialization is necessary. Use the C<--preload> switch
           to load the document class when invoking the daemon.
-          Example:  latexmls --preload=LaTeX.pool --preload=article.cls --mode=fragment
+          Example: C<latexmls --preload=LaTeX.pool --preload=article.cls --mode=fragment>
 
 standard: Default, turns on the classic, unoptimized processing of documents as performed by latexml.
           This is suitable for processing sets of heterogeneous documents, but is slower in general.
-          Example:  latexmls --mode=standard
+          Example: C<latexmls --mode=standard>
 
 math:     Like latexmlmath, parses a single TeX formula per line.
-          Example:  latexmls --mode=math --pmml --keepTeX --parallelmath
+          Example: C<latexmls --mode=math --pmml --keepTeX --parallelmath>
 
 =item C<--post>
 
@@ -1026,7 +1033,7 @@ B<Note> that this conversion is only partially implemented.
 
 Requests or disables conversion of math to OpenMath.
 Conversion is disabled by default.
-B<Note> that this conversion is not yet implemented in the Daemon.
+B<Note> that this conversion is not yet supported in C<latexmls>.
 
 =item C<--keepTeX>
 
