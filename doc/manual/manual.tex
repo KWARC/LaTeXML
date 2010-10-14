@@ -60,7 +60,7 @@ where there is a tendency for the markup to focus on appearance rather than mean
 The choice of \LaTeX\ for authoring, and \XML\ for delivery were natural and uncontroversial
 choices for the \URL[Digital Library of Mathematical Functions]{http://dlmf.nist.gov}.
 Faced with the need to perform this conversion and the lack of suitable tools to perform it, 
-the DLMF project proceeded to develop thier own tool, \LaTeXML, for this purpose.
+the DLMF project proceeded to develop their own tool, \LaTeXML, for this purpose.
 %This document describes a \emph{preview} release of \LaTeXML.
 
 \paragraph{Design Goals} The idealistic goals of \LaTeXML\ are:
@@ -75,7 +75,7 @@ the DLMF project proceeded to develop thier own tool, \LaTeXML, for this purpose
 
 As these goals are not entirely practical, or even somewhat contradictory,
 they are implicitly modified by \emph{as much as possible}.
-Completely mimicing \TeX's, and \LaTeX's, behaviour would seem to require the
+Completely mimicking \TeX's, and \LaTeX's, behaviour would seem to require the
 sneakiest modifications to \TeX, itself; redefining \LaTeX's internals does 
 not really guarantee compatibility. ``Ease of use'' is, of course, in the eye of the beholder.
 More significantly, few documents are likely to have completely unambiguous
@@ -163,7 +163,7 @@ It loads any required definition bindings (see below),
 reads, tokenizes, expands and digests the document creating an \XML\ structure.
 It then performs some document rewriting, parses the mathematical content
 and writes the result, in this case, to \texttt{doc.xml};
-if no \shellcode|--destination| is suppplied, it writes the result to standard output.
+if no \shellcode|--destination| is supplied, it writes the result to standard output.
 For details on the processing, see Chapter \ref{architecture},
 and Chapter \ref{math} for more information about math parsing.
 
@@ -320,7 +320,7 @@ This leads to a more complete, but possibly rather silly, index,
 depending on how the terms have been written.
 
 \paragraph{Bibliography}
-Bibilographic data from BibTeX can be provided with the option
+Bibliographic data from BibTeX can be provided with the option
 \begin{lstlisting}[style=shell]
 --bibliography={bibfile}.xml
 \end{lstlisting}
@@ -491,13 +491,13 @@ building on {\LaTeXML} as a conversion backend.
 
 The \ltxcmd{latexmld} daemon, as well as the
 \ltxcmd{latexmls} and \ltxcmd{latexmlc} server-client setup facilitate such purposes. Note that these executables are in \textbf{beta
-  stage} and are currently under heavy development.
+  stage} and are currently under heavy development. Notable lapses in the current beta stage are the unsupported  website and bibliography features, originally provided in \ltxcmd{latexml} and \ltxcmd{latexmlpost}, as well as missing some of the more advanced customization options relateed to graphics and scanning.
 
 \begin{lstlisting}[style=shell]
   latexmls {options}
 \end{lstlisting}
 
-The \ltxcmd{latexmls} server invokes a TCP/IP server daemon on a designated port (a set of default ports is assumed). The server can be then queried via standard socket communication, which facilitates the input/output flow. The setup is highly customizable, both on startup and during runtime. Customizations include three modes of operation, output representation, destination and log targets\footnote{now with support for pattern specifications, such as \#dir/\#name.xhtml}, preloaded libraries, timeout and autovivification tresholds, etc. 
+The \ltxcmd{latexmls} server invokes a TCP/IP server daemon on a designated port (a set of default ports is assumed). The server can be then queried via standard socket communication, which facilitates the input/output flow. The setup is highly customizable, both on startup and during runtime. Customizations include three modes of operation, output representation, destination and log targets\footnote{now with support for pattern specifications, such as \#dir/\#name.xhtml}, preloaded libraries, timeout and autovivification thresholds, etc. 
 
 
 The \textit{math}, \textit{fragment} and \textit{standard} modes facilitate three types of processing jobs, with specially tuned optimizations. The \textit{math} mode operators analogously to \ltxcmd{latexmlmath}, expecting a single mathematical expression on input. The \textit{standard} mode is the analog to the standard \ltxcmd{latexml} processing. The new feature of \textit{fragment} processing is particularly useful to processing libraries of controlled {\LaTeX} syntax, such as ZentralBlatt Math's journals of mathematical reviews. Given a standard preamble, specified by a set of \code{--preload=\textit{package}} options, it becomes possible to avoid both Perl's and {\LaTeXML}'s reinitializations, making batch conversions of such documents faster by over a magnitude.
@@ -507,7 +507,7 @@ Two important options are \code{--local} and \code{--port=\textit{number}}, as t
 
 
 In order to enable out-of-the-box server use for external applications, the two-step conversion process of {\LaTeXML}-proper and postprocessing can be merged into a single step, via the \code{--post} trigger. Once enabled, it becomes possible to use the full range of options available to \ltxcmd{latexmlpost}.
-%, with the additional \code{--keepTeX} switch, which preserves the original syntax of the formula sa a parallel annotation.
+%, with the additional \code{--keepTeX} switch, which preserves the original syntax of the formula as a parallel annotation.
 
 
 The in-built support for \textit{runtime customization}, allows for great versatility of a single daemon process. This becomes important in web-services which allow users to customize their document preambles or their desired output representations. Being able to reuse the same process is also a big efficiency boost when converting large jobs of heterogeneous {\LaTeX} documents, which would otherwise require either a separate {\LaTeXML} process or a specially designated daemon server.
