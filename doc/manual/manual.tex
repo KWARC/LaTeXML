@@ -482,13 +482,12 @@ will print the \MathML\ to standard output.
 To convert the formula to a \texttt{png} image, say \texttt{quad.png},
 use the option \code{--mathimage=quad.png}.
 %%%----------------------------------------------------------------------
-\section[Daemon]{Optimized Processing}\label{usage.daemon}\index{latexmls!basic usage}
+\section{Optimized Processing}\label{usage.daemon}\index{latexmls!basic usage}
 %TODO: Add content , rethink index
 When one is interested in processing jobs beyond a single document,
-efficiency and convenience of processing are held in greater
-value. Two such scenarios are processing jobs converting large
-collections of documents, as well as multi-user web applications,
-building on {\LaTeXML} as a core service.
+conversion efficiency, adaptability and throughput are of highest importance. Two such scenarios are processing jobs converting large
+collections of documents and multi-user web applications,
+building on {\LaTeXML} as a conversion backend.
 
 The \ltxcmd{latexmld} daemon, as well as the
 \ltxcmd{latexmls} and \ltxcmd{latexmlc} server-client setup can
@@ -505,21 +504,26 @@ latexmld {options} --destination={doc}.xhtml {doc}
 \subsection{Use cases}
 A few examples of possible start-up invocations for setting up off-the-shelf services:
 \begin{description}
-\item[Formula Conversion Web Server]
+\item[Formula Conversion Web Server]\\
 \begin{lstlisting}[style=shell]
 latexmls --mode=math --post --parallelmath --pmml --cmml --keepTeX --port=3334 --timeout=0 --autoflush=5000
 \end{lstlisting}
-\item[LaTeX Fragment Web Server]
+\item[LaTeX Fragment Web Server]\\
 \begin{lstlisting}[style=shell]
 latexmls --mode=fragment --preload=LaTeX.pool --preload=article.cls
  --preload=amsmath.sty --preload=amsthm.sty --preload=amstext.sty --preload=amssymb.sty 
  --post --pmml --port=3344 --timeout=0 --autoflush=1000
 \end{lstlisting}
 \item[Document Conversion Web Server]
+
+
 \begin{lstlisting}[style=shell]
 latexmls --mode=standard --post --pmml  --port=3354 --timeout=0 --autoflush=500
 \end{lstlisting}
+
 \item[Batch conversion server for PlanetMath]
+
+
 \begin{lstlisting}[style=shell]
 latexmls --mode=standard --local
  --post --pmml --cmml --keepTeX --parallelmath
@@ -529,6 +533,8 @@ latexmls --mode=standard --local
  --path=./sty/ --preload=pmath.sty
 \end{lstlisting}
 \item[Batch conversion server for ZentrallBlatt Math]
+
+
 \begin{lstlisting}[style=shell]
 latexmls --mode=fragment --preload=zbl.cls
  --post --pmml --cmml --keepTeX --parallelmath
@@ -539,6 +545,8 @@ latexmls --mode=fragment --preload=zbl.cls
  --timeout=0 --autoflush=5000
 \end{lstlisting}
 \item[Simple User Client]
+
+
 \begin{lstlisting}
 
 \end{lstlisting}
