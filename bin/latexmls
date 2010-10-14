@@ -780,14 +780,17 @@ latexmls [options]
                     by default it avoids this.
  --preamble=file    loads a tex file containing document frontmatter.
                     Useful for fragment mode.
- --basedir=dir      Specifies the base directory that the server works in
-                    Useful when employing relative paths.
+ --basedir=dir      Specifies the base directory that the server
+                    operates in. Useful when converting documents 
+                    that employ relative paths.
  --path=dir         adds dir to the paths searched for files,
                     modules, etc; 
  --log=file         specifies log file, reuqires --local (default: STDERR)
- --postlog=file     specifies log file for postprocessing, requires --local, --post
+ --postlog=file     specifies log file for postprocessing, 
+                    requires --local, --post 
                     default is appending to the --log file.
- --summary          write a one line summary message of the conversion outcome
+ --summary          print a one line summary message of 
+                    the conversion outcome
  --autoflush=count  Automatically restart the daemon after 
                     "count" inputs. Good practice for vast batch 
                     jobs. (default: 10000)

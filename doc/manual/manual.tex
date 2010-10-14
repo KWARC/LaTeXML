@@ -497,31 +497,38 @@ The \ltxcmd{latexmld} daemon, as well as the
   latexmls {options}
 \end{lstlisting}
 
-The \ltxcmd{latexmls} server invokes a TCP/IP server on a designated port (a set of default ports is assumed). The server can be then queried via standard socket communication, which facilitates the input/output flow. The setup is highly customizable, both on startup and during runtime. Customizations include three modes of operation, output representation, destination and log targets\footnote{now with support for pattern specifications, such as \#dir/\#name.xhtml}, preloaded libraries, timeout and autovivification tresholds, etc. 
+The \ltxcmd{latexmls} server invokes a TCP/IP server daemon on a designated port (a set of default ports is assumed). The server can be then queried via standard socket communication, which facilitates the input/output flow. The setup is highly customizable, both on startup and during runtime. Customizations include three modes of operation, output representation, destination and log targets\footnote{now with support for pattern specifications, such as \#dir/\#name.xhtml}, preloaded libraries, timeout and autovivification tresholds, etc. 
 
 
 The \textit{math}, \textit{fragment} and \textit{standard} modes facilitate three types of processing jobs, with specially tuned optimizations. The \textit{math} mode operators analogously to \ltxcmd{latexmlmath}, expecting a single mathematical expression on input. The \textit{standard} mode is the analog to the standard \ltxcmd{latexml} processing. The new feature of \textit{fragment} processing is particularly useful to processing libraries of controlled {\LaTeX} syntax, such as ZentralBlatt Math's journals of mathematical reviews. Given a standard preamble, specified by a set of \code{--preload=\textit{package}} options, it becomes possible to avoid both Perl's and {\LaTeXML}'s reinitializations, making batch conversions of such documents faster by over a magnitude.
 
 
-Two important options are \code{--local} and \code{--port=\textit{number}}, as they can be set only during the startup of the server. The \code{--local} switch permits the read/write use of the filesystem the server is running on, while by default (or by specifying \code{--nolocal}), it is forbidden access and can communicate only via the respective socket. 
+Two important options are \code{--local} and \code{--port=\textit{number}}, as they can be set only during the startup of the server. The \code{--local} switch permits the read/write use of the filesystem the server is running on, while by default (or by specifying \code{--nolocal}), it is forbidden access and can communicate only via the respective socket. Multiple {\LaTeXML} servers can coexist simultaneously, if started on different ports, which helps utilize the parallel computing capabilities of multi-core processors.
 
 
 In order to enable out-of-the-box server use for external applications, the two-step conversion process of {\LaTeXML}-proper and postprocessing can be merged into a single step, via the \code{--post} trigger. Once enabled, it becomes possible to use the full range of options available to \ltxcmd{latexmlpost}.
 %, with the additional \code{--keepTeX} switch, which preserves the original syntax of the formula sa a parallel annotation.
+
+
+The in-built support for \textit{runtime customization}, allows for great versatility of a single daemon process. This becomes important in web-services which allow users to customize their document preambles or their desired output representations. Being able to reuse the same process is also a big efficiency boost when converting large jobs of heterogeneous {\LaTeX} documents, which would otherwise require either a separate {\LaTeXML} process or a specially designated daemon server.
+
 \begin{lstlisting}[style=shell]
   latexmlc {options} {doc}
 \end{lstlisting}
 
-The \ltxcmd{latexmlc} executable is a simple client interface to the \ltxcmd{latexmls} server. It accepts the same set of options as the server, if desired. If no server is present when the client is invoked, it will start its own server with the default timeout and the default port for that mode, unless otherwise specified by the user. It  
+The \ltxcmd{latexmlc} executable is a simple client interface to a local {\LaTeXML} server, invoked by \ltxcmd{latexmls}. It accepts the full set of options of the server. If no server is present when the client is invoked, it will start its own server with the default timeout and the default port for that mode, unless otherwise specified by the user.
+
+
+If an active server is found on the designated port, its startup options are used for the conversion in the case that no options are specified by the client. All client options (except \code{--local} and \code{--port=\textit{number}}) take precedence and overwrite the startup options of the server during the runtime. The client can also be invoked without any options, in which case it will assume the default mode and port and start/connect to the respective server.
 
 \begin{lstlisting}[style=shell]
-  latexmld {options} --destination={doc}.xhtml {doc}
+  latexmld {options}
 \end{lstlisting}
 
 \textbf{Warning:} The \ltxcmd{latexmld} executable has been deprecated and will soon be rendered obsolete. It was the first prototype of a \LaTeXML daemon, that used pipes for IO. The follow-up \ltxcmd{latexmls} prototype based on sockets has proven more scalable and general. The pipe-based \ltxcmd{latexmld} daemon shares a subset of the processing options of \ltxcmd{latexmls} and is always out of date in terms of feature enhancements and bug fixes.
 
 \subsection{Use cases}\label{usacases.daemon}
-Some examples of possible start-up invocations for setting up off-the-shelf services:
+Some examples of possible start-up invocations for setting up off-the-shelf services include:
 \begin{description}
 \item[Web Server: Formula Conversion] One possible setup for a formula conversion web server\\
 \begin{lstlisting}[style=shell]
@@ -529,7 +536,6 @@ latexmls --mode=math --post
 --parallelmath --pmml --cmml --keepTeX 
 --port=3334 --timeout=0 --autoflush=5000
 \end{lstlisting}
-\newpage
 \item[Web Server: LaTeX Fragment] One possible setup for a conversion web server of {\LaTeX} fragments\\
 \begin{lstlisting}[style=shell]
 latexmls --mode=fragment --preload=LaTeX.pool 
@@ -562,7 +568,7 @@ latexmls --mode=fragment --local --preload=zbl.cls
  --stylesheet=zbl2html.xsl
  --timeout=0 --autoflush=5000
 \end{lstlisting}
-\item[Simple User Client] A sample invocation to an active local formula conversion server.
+\item[Simple User Client] A minimal invocation to an active local formula conversion server.
 \begin{lstlisting}[style=shell]
 latexmlc --mode=math "\frac{a}{b}"
 \end{lstlisting}
