@@ -72,6 +72,9 @@
 \def\@@latexmlcmd{latexml}
 \def\@@latexmlpostcmd{latexmlpost}
 \def\@@latexmlmathcmd{latexmlmath}
+\def\@@latexmldaemoncmd{latexmld}
+\def\@@latexmldaemonservercmd{latexmls}
+\def\@@latexmldaemonclientcmd{latexmlc}
 \newcommand{\pod}[1]{%
   {\edef\@prefix{\@@pkgprefix#1::\end}
    \edef\@podcmd{#1}
@@ -83,9 +86,15 @@
      \htmlref{\texttt{#1}}{#1}%
   \else\ifx\@podcmd\@@latexmlmathcmd
      \htmlref{\texttt{#1}}{#1}%
+  \else\ifx\@podcmd\@@latexmldaemoncmd
+     \htmlref{\texttt{#1}}{#1}%
+  \else\ifx\@podcmd\@@latexmldaemonservercmd
+     \htmlref{\texttt{#1}}{#1}%
+  \else\ifx\@podcmd\@@latexmldaemonclientcmd
+     \htmlref{\texttt{#1}}{#1}%
   \else
      \href{http://search.cpan.org/search?query=#1&mode=module}{\texttt{#1}}%
-  \fi\fi\fi\fi}}
+  \fi\fi\fi\fi\fi\fi\fi}}
 
 \newcommand{\ltxpod}[1]{%
   \htmlref{\texttt{#1}}{LaTeXML::#1}}

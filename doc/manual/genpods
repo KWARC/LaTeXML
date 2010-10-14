@@ -22,13 +22,14 @@ GetOptions("force!"    => \$force,
 pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
 
 #======================================================================
-my @exes = (qw(latexml latexmlpost latexmlmath));
+my @exes = (qw(latexml latexmlpost latexmlmath latexmls latexmld latexmlc));
 # would be nice to automatically discover documentable modules
 # Actually, we Can, by looking in ../blib/man1 and ../blib/man3
 # However, we'd still need to manually add them to the appropriate Appendx!
 my @modules = (
 	       # Core modules
 	       qw(LaTeXML
+                  LaTeXML::Daemon
 		  LaTeXML::Object
 		  LaTeXML::Definition
 		  LaTeXML::Global

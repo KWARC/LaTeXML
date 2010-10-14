@@ -74,7 +74,7 @@ if($dopdf){
 	   indexoptions=>[],
 	   force=>$force);
   copy("$MANDIR/manual.pdf","$LATEXMLDIR/manual.pdf");
-  copy("$MANDIR/manual.pdf","$WEBDEST/manual.pdf");
+  #copy("$MANDIR/manual.pdf","$WEBDEST/manual.pdf");
 }
 
 if($doxhtml){

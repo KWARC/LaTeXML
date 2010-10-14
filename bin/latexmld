@@ -765,7 +765,7 @@ Shows this help message.
 
 =head1 SEE ALSO
 
-L<latexml>, L<latexmlpost>, L<latexmlmath>, L<LaTeXML>
+L<latexmls>, L<latexml>, L<latexmlpost>, L<latexmlmath>, L<LaTeXML>
 
 =cut
 #**********************************************************************

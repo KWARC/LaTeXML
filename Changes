@@ -1,3 +1,5 @@
+Branch 2010-30-07 
+ - Note: Clone can be installed via the libclone-perl Debian package
 Branch 2010-11-05 (rev 1135)
  - Fragments must not have \begin{document}\end{document} wrappers,
    included automatically. TODO: Make this smarter

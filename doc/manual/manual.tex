@@ -6,7 +6,7 @@
 \usepackage{tocbibind}
 % Should the additional keywords be indexed?
 \lstdefinestyle{shell}{language=bash,escapechar=@,basicstyle=\ttfamily\small,%
-   morekeywords={latexml,latexmlpost,latexmlmath},
+   morekeywords={latexml,latexmlpost,latexmlmath,latexmls,latexmld,latexmlc},
    moredelim=[is][\itshape]{\{}{\}}}
 % Can (should?) I make $ prefix give \itshape ?
 \lstdefinestyle{latexml}{basicstyle=\small\ttfamily,language=Perl,%
@@ -483,7 +483,7 @@ To convert the formula to a \texttt{png} image, say \texttt{quad.png},
 use the option \code{--mathimage=quad.png}.
 %%%----------------------------------------------------------------------
 \section{Optimized Processing}\label{usage.daemon}\index{latexmls!basic usage}
-%TODO: Add content , rethink index
+%TODO: Rethink index
 When one is interested in processing jobs beyond a single document,
 conversion efficiency, adaptability and throughput are of highest importance. Two such scenarios are processing jobs converting large
 collections of documents and multi-user web applications,
@@ -494,36 +494,52 @@ The \ltxcmd{latexmld} daemon, as well as the
 facilitate such purposes. Note that these binaries are in \textbf{beta
   stage} and are currently under heavy development.
 
-\paragraph{latexmld}
 \begin{lstlisting}[style=shell]
-latexmld {options} --destination={doc}.xhtml {doc}
+  latexmls {options}
 \end{lstlisting}
 
-\paragraph{latexmls}
-\paragraph{latexmlc}
-\subsection{Use cases}
-A few examples of possible start-up invocations for setting up off-the-shelf services:
+The \ltxcmd{latexmls} server invokes a TCP/IP server on a designated port (a set of default ports is given). The server can be then queried via standard socket communication, which facilitates the input/output flow. The setup is highly customizable, both on startup and during runtime. Customizations include different modes of operation, output representation, destination and log targets\footnote{now with support for pattern specifications, such as \#dir/\#name.xhtml}, preloaded libraries, timeout and autovivification tresholds, etc. 
+
+
+Two important options are \code{--local} and \code{--port=\textit{number}}, as they can be set only during the startup of the server. The \code{--local} switch permits the read/write use of the filesystem the server is running on, while by default (or by specifying \code{--nolocal}), it is forbidden access and can communicate only via the respective socket. 
+
+
+In order to enable using this server out-of-the-box for external applications, the two-step conversion process of {\LaTeXML}-proper and postprocessing can be merged into a single step, via the \code{--post} trigger. 
+\begin{lstlisting}[style=shell]
+  latexmlc {options} {doc}
+\end{lstlisting}
+
+The \ltxcmd{latexmlc} binary is a simple client interface to the \ltxcmd{latexmls} server. It accepts the same set of options as the server, if desired. If no server is present when the client is invoked, it will start its own server with the default timeout and the default port for that mode, unless otherwise specified by the user. It  
+
+\begin{lstlisting}[style=shell]
+  latexmld {options} --destination={doc}.xhtml {doc}
+\end{lstlisting}
+
+\textbf{Warning:} The \ltxcmd{latexmld} executable has been deprecated and will soon be rendered obsolete. It was the first prototype of a \LaTeXML daemon, that used pipes for IO. The follow-up \ltxcmd{latexmls} prototype based on sockets has proven more scalable and general. The pipe-based \ltxcmd{latexmld} daemon shares a subset of the processing options of \ltxcmd{latexmls} and is always out of date in terms of feature enhancements and bug fixes.
+
+\subsection{Use cases}\label{usacases.daemon}
+Some examples of possible start-up invocations for setting up off-the-shelf services:
 \begin{description}
-\item[Formula Conversion Web Server]\\
+\item[Web Server: Formula Conversion] A minimal setup for a formula conversion web server\\
 \begin{lstlisting}[style=shell]
-latexmls --mode=math --post --parallelmath --pmml --cmml --keepTeX --port=3334 --timeout=0 --autoflush=5000
+latexmls --mode=math --post 
+--parallelmath --pmml --cmml --keepTeX 
+--port=3334 --timeout=0 --autoflush=5000
 \end{lstlisting}
-\item[LaTeX Fragment Web Server]\\
+\item[Web Server: LaTeX Fragment] A minimal setup for a conversion web server of {\LaTeX} fragments\\
 \begin{lstlisting}[style=shell]
-latexmls --mode=fragment --preload=LaTeX.pool --preload=article.cls
- --preload=amsmath.sty --preload=amsthm.sty --preload=amstext.sty --preload=amssymb.sty 
- --post --pmml --port=3344 --timeout=0 --autoflush=1000
+latexmls --mode=fragment --preload=LaTeX.pool 
+ --preload=article.cls --preload=amsmath.sty 
+ --preload=amsthm.sty --preload=amstext.sty
+ --preload=amssymb.sty --post --pmml 
+ --port=3344 --timeout=0 --autoflush=1000
 \end{lstlisting}
-\item[Document Conversion Web Server]
-
-
+\item[Web Server: Document Conversion] A minimal setup for a conversion web server of {\LaTeX} documents\\
 \begin{lstlisting}[style=shell]
-latexmls --mode=standard --post --pmml  --port=3354 --timeout=0 --autoflush=500
+latexmls --mode=standard --post --pmml  
+--port=3354 --timeout=0 --autoflush=500
 \end{lstlisting}
-
-\item[Batch conversion server for PlanetMath]
-
-
+\item[Batch Conversion: Server for PlanetMath] A setup for a batch conversion server of 8000+ articles from PlanetMath.org\\
 \begin{lstlisting}[style=shell]
 latexmls --mode=standard --local
  --post --pmml --cmml --keepTeX --parallelmath
@@ -532,11 +548,9 @@ latexmls --mode=standard --local
  --port=4454 --timeout=100 --autoflush=200
  --path=./sty/ --preload=pmath.sty
 \end{lstlisting}
-\item[Batch conversion server for ZentrallBlatt Math]
-
-
+\item[Batch Conversion Server for ZBL] A setup for a batch conversion server of 1.5+ million articles from the journal ZentrallBlat Math\\
 \begin{lstlisting}[style=shell]
-latexmls --mode=fragment --preload=zbl.cls
+latexmls --mode=fragment --local --preload=zbl.cls
  --post --pmml --cmml --keepTeX --parallelmath
  --log=#dir/stderr.log
  --destination=#dir/#name.tex.xml 
@@ -1510,7 +1524,9 @@ and Catalin David for testing help and for implementing additional packages.
 \input{pods/latexml}
 \include{pods/latexmlpost}
 \include{pods/latexmlmath}
-
+\include{pods/latexmld}
+\include{pods/latexmls}
+\include{pods/latexmlc}
 %%%======================================================================
 \chapter[Bindings]{Implemented Bindings}\label{included.bindings}
 Bindings for the following classes and packages are supplied with the distribution:

@@ -81,7 +81,7 @@ If such server already exists, the client proceeds to communicate normally.
 
 =head1 SEE ALSO
 
-L<latexmlc>, L<latexmld>, L<latexml>, L<latexmlpost>, L<latexmlmath>, L<LaTeXML>
+L<latexmls>, L<latexmld>
 
 =cut
 #**********************************************************************
