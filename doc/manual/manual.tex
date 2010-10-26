@@ -489,9 +489,15 @@ conversion efficiency, adaptability and throughput are of highest importance. Tw
 collections of documents and multi-user web applications,
 building on {\LaTeXML} as a conversion backend.
 
-The \ltxcmd{latexmld} daemon, as well as the
-\ltxcmd{latexmls} and \ltxcmd{latexmlc} server-client setup facilitate such purposes. Note that these executables are in \textbf{beta
-  stage} and are currently under heavy development. Notable lapses in the current beta stage are the unsupported  website and bibliography features, originally provided in \ltxcmd{latexml} and \ltxcmd{latexmlpost}, as well as missing some of the more advanced customization options relateed to graphics and scanning.
+The \ltxcmd{latexmld} daemon, as well as the \ltxcmd{latexmls} and \ltxcmd{latexmlc}
+server-client setup facilitate such purposes. Note that these executables are in
+\textbf{beta stage} and are currently under heavy development. Notable limitations in the
+current beta stage are that website and bibliography features, originally provided in
+\ltxcmd{latexml} and \ltxcmd{latexmlpost} remain unsupported, furthermore some of the more
+advanced customization options relateed to graphics and scanning are still missing as
+well.
+
+\subsection{The {\LaTeXML} Server \texttt{latexmls}}
 
 \begin{lstlisting}[style=shell]
   latexmls {options}
@@ -506,26 +512,44 @@ The \textit{math}, \textit{fragment} and \textit{standard} modes facilitate thre
 Two important options are \code{--local} and \code{--port=\textit{number}}, as they can be set only during the startup of the server. The \code{--local} switch permits the read/write use of the filesystem the server is running on, while by default (or by specifying \code{--nolocal}), it is forbidden access and can communicate only via the respective socket. Multiple {\LaTeXML} servers can coexist simultaneously, if started on different ports, which helps utilize the parallel computing capabilities of multi-core processors.
 
 
-In order to enable out-of-the-box server use for external applications, the two-step conversion process of {\LaTeXML}-proper and postprocessing can be merged into a single step, via the \code{--post} trigger. Once enabled, it becomes possible to use the full range of options available to \ltxcmd{latexmlpost}.
+To enable out-of-the-box server use for external applications, the two-step conversion
+process of {\LaTeXML}-proper and postprocessing can be merged into a single step, via the
+\code{--post} trigger. Once enabled, it becomes possible to use the full range of options
+available to \ltxcmd{latexmlpost}.
 %, with the additional \code{--keepTeX} switch, which preserves the original syntax of the formula as a parallel annotation.
 
 
 The in-built support for \textit{runtime customization}, allows for great versatility of a single daemon process. This becomes important in web-services which allow users to customize their document preambles or their desired output representations. Being able to reuse the same process is also a big efficiency boost when converting large jobs of heterogeneous {\LaTeX} documents, which would otherwise require either a separate {\LaTeXML} process or a specially designated daemon server.
 
+\subsection{The {\LaTeXML} Client \texttt{latexmlc}}
+
+The \ltxcmd{latexmlc} executable is a simple client interface to a local {\LaTeXML}
+server, invoked by \ltxcmd{latexmls}.It accepts the full set of options of the server.
+
 \begin{lstlisting}[style=shell]
   latexmlc {options} {doc}
 \end{lstlisting}
 
-The \ltxcmd{latexmlc} executable is a simple client interface to a local {\LaTeXML} server, invoked by \ltxcmd{latexmls}. It accepts the full set of options of the server. If no server is present when the client is invoked, it will start its own server with the default timeout and the default port for that mode, unless otherwise specified by the user.
+If no server is present when the client is invoked, it will start its own server with the
+default timeout and the default port for that mode, unless otherwise specified by the
+user. If an active server is found on the designated port, its startup options are used
+for the conversion in the case that no options are specified by the client. All client
+options (except \code{--local} and \code{--port=\textit{number}}) take precedence and
+overwrite the startup options of the server during the runtime. The client can also be
+invoked without any options, in which case it will assume the default mode and port and
+start/connect to the respective server.
 
-
-If an active server is found on the designated port, its startup options are used for the conversion in the case that no options are specified by the client. All client options (except \code{--local} and \code{--port=\textit{number}}) take precedence and overwrite the startup options of the server during the runtime. The client can also be invoked without any options, in which case it will assume the default mode and port and start/connect to the respective server.
+\textbf{Warning:} The \ltxcmd{latexmld} executable has been deprecated and will soon be
+rendered obsolete. 
 
 \begin{lstlisting}[style=shell]
   latexmld {options}
 \end{lstlisting}
-
-\textbf{Warning:} The \ltxcmd{latexmld} executable has been deprecated and will soon be rendered obsolete. It was the first prototype of a \LaTeXML daemon, that used pipes for IO. The follow-up \ltxcmd{latexmls} prototype based on sockets has proven more scalable and general. The pipe-based \ltxcmd{latexmld} daemon shares a subset of the processing options of \ltxcmd{latexmls} and is always out of date in terms of feature enhancements and bug fixes.
+It was the first prototype of a \LaTeXML daemon, that used pipes for IO. The follow-up
+\ltxcmd{latexmls} prototype based on sockets has proven more scalable and general. The
+pipe-based \ltxcmd{latexmld} daemon shares a subset of the processing options of
+\ltxcmd{latexmls} and is always out of date in terms of feature enhancements and bug
+fixes.
 
 \subsection{Use cases}\label{usacases.daemon}
 Some examples of possible start-up invocations for setting up off-the-shelf services include:
