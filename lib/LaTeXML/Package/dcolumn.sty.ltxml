@@ -18,7 +18,7 @@ RequirePackage('array');
 sub absorbedString {
   my($tokens)=@_;
   my $capdocument = LaTeXML::Document->new($STATE->getModel);
-  my $capture = $capdocument->openElement('_Capture_', font=>LaTeXML::Font->new());
+  my $capture = $capdocument->openElement('ltx:_Capture_', font=>LaTeXML::Font->new());
   $capdocument->absorb(Digest($tokens));
   if(my @nodes= $capdocument->findnodes("//ltx:XMath/*",$capture)){
     $nodes[0]->textContent; }
@@ -30,7 +30,7 @@ DefMacro('\DC@{}{}{}',sub {
   $delim=ToString($delim);
   if($delim ne ToString($todelim)){
     AssignCatcode('math:$delim'=>1);
-    DefMacroI(T_CS($delim),undef,'\ROLE{PERIOD}{'.join('',map(ToString($_),$todelim->revert)).'}');
+    DefMacroI(T_CS($delim),undef,'\ROLE{PERIOD}{'.UnTeX($todelim).'}');
   }
   if(LookupValue('IN_MATH') || $gullet->ifNext(T_MATH)){ # Not really good enough, but...
     (); }

@@ -39,7 +39,7 @@ sub new {
 # is probably only important for latexml implementations?
 sub input {
   my($self,$name,$types,%options)=@_;
-  $name = $name->toString if ref $name;
+  $name = ToString($name) if ref $name;
   # Try to find a Package implementing $name.
   $name = $1 if $name =~ /^\{(.*)\}$/; # just in case
   my $filecontents = $STATE->lookupValue($name.'_contents');
@@ -169,7 +169,12 @@ sub getLocator {
 
 sub getSource {
   my($self)=@_;
-  defined $$self{mouth} && $$self{mouth}->getSource; }
+  my $source = defined $$self{mouth} && $$self{mouth}->getSource; 
+  if(!$source){
+    foreach my $frame ( @{$$self{mouthstack}} ){
+      $source = $$frame[0]->getSource;
+      last if $source; }}
+  $source; }
 
 sub show_pushback {
   my($pb)=@_;
@@ -209,7 +214,10 @@ sub neutralizeTokens {
 # So, be Fast & Clean!  This method only reads from the current input stream (Mouth).
 sub readToken {
   my($self)=@_;
-  my $token = shift(@{$$self{pushback}});
+#  my $token = shift(@{$$self{pushback}});
+  my $token;
+  while(defined($token = shift(@{$$self{pushback}})) && ($$token[1] == CC_COMMENT)){ # NOTE: Inlined ->getCatcode
+    push(@{$$self{pending_comments}},$token); }
   return $token if defined $token;
   while(defined($token = $$self{mouth}->readToken()) && ($$token[1] == CC_COMMENT)){ # NOTE: Inlined ->getCatcode
     push(@{$$self{pending_comments}},$token); } # What to do with comments???
@@ -325,7 +333,7 @@ sub readKeyword {
   my($self,@keywords)=@_;
   $self->skipSpaces;
   foreach my $keyword (@keywords){
-    $keyword = $keyword->toString if ref $keyword;
+    $keyword = ToString($keyword) if ref $keyword;
     my @tomatch=split('',uc($keyword));
     my @matched=();
     my $tok;

@@ -513,8 +513,8 @@ DefPrimitive('\pagestyle{}',    undef);
 DefPrimitive('\thispagestyle{}',undef);
 DefPrimitive('\markright{}',    undef);
 DefPrimitive('\markboth{}{}',   undef);
-DefConstructorI('\leftmark',    undef,  '');
-DefConstructorI('\rightmark',   undef,  '');
+DefPrimitiveI('\leftmark',      undef,undef);
+DefPrimitiveI('\rightmark',     undef,undef);
 DefPrimitive('\pagenumbering{}',undef);
 DefPrimitive('\twocolumn[]',    undef);
 DefPrimitiveI('\onecolumn',      undef, undef);
@@ -552,17 +552,6 @@ DefConstructor('\@personname{}', "<ltx:personname>#1</ltx:personname>",
 	      bounded=>1, mode=>'text');
 
 DefConstructorI('\and',undef,  " and ");
-sub andSplit {
-  my($cs,$tokens)=@_;
-  my @items = ();
-  my @toks=();
-  if($tokens){
-    foreach my $t ($tokens->unlist){
-      if(Equals($t,T_CS('\and'))){
-	push(@items,[@toks]); @toks=();}
-      else {
-	push(@toks,$t); }}}
-  map( ($cs,T_BEGIN,@$_,T_END), @items,[@toks]); }
 
 DefMacro('\@author{}', '\@add@frontmatter{ltx:creator}[role=author]{\@personname{#1}}');
 DefMacro('\author{}', sub { andSplit(T_CS('\@author'),$_[1]); });
@@ -668,113 +657,6 @@ DefMacroI('\@evenfoot',undef,   Tokens());
 #**********************************************************************
 # C.6 Displayed Paragraphs
 #**********************************************************************
-# This is a somewhat strange situation; There are commands and environments
-# that do some interesting thing to their contents. This include things like
-# center, flushleft, or rotate, or ...
-# Naively one is tempted to create a containing block with appropriate type & attributes.
-# However, since these things can be allowed in so many places by LaTeX, that
-# one has a difficult time creating a sensible document model.
-# The purpose of transformingBlock is to set the contents (possibly creating a
-# consistent <p> around them, if called for), and returning the list of newly
-# created nodes. These nodes can then have appropriate attributes added as needed
-# for each specific case.
-
-# HACKERY!!!  This seems to require too much knowledge about inline vs block and such.
-# Perhaps this really should be done as a daemon that runs when the current node is closed?
-# Or perhaps even better, it should temporarily modify the Model such that the current node
-# only accepts block level markup; that would automagically elevate stuff to <p> when needed!(?)
-our $INLINE_TAGS = "ltx:text|ltx:emph|ltx:acronym|ltx:rule|ltx:anchor|ltx:ref|ltx:cite|ltx:bibref|ltx:Math";
-sub insertBlock {
-  my($document,$body)=@_;
-  # Make sure we're starting the current insertion at block level, bu closing any open p (is ltx:p enough?)
-  $document->maybeCloseElement('ltx:p');
-
-  my $prev = $document->getNode->lastChild; # and remember the last node before insertion.
-  $document->absorb($body);	    # Now insert.
-  $document->maybeCloseElement('ltx:p');
-
-  my $current = $document->getNode; # Watch that Current node makes sense after surgery.
-  my $model   = $document->getModel;
-  my $parent  = $document->getElement;
-  return () unless $parent;
-  # These nodes were inserted
-  my @nodes = $parent->childNodes;
-  # but remove any that precede $prev
-  if($prev && grep($$prev == $$_, @nodes)){ # IF $prev is sibling of added nodes
-    while( ${$nodes[0]} != $$prev){ shift(@nodes); } # then strip away $prev, and preceding, from list
-    shift(@nodes); }
-
-  # Wrap any "inline" nodes in a ltx:p, but delete any pure whitespace text nodes
-  my @new = ();
-  if ($model->canContain($parent,'ltx:p')) {
-    while (@nodes) {
-      my @x=();		 # Collect up the next group of "inline" nodes
-      my $moved_current = 0; # whether we have affected the document's current node.
-      while (@nodes && (($nodes[0]->nodeType == XML_TEXT_NODE)
-			|| (($nodes[0]->nodeType == XML_ELEMENT_NODE) && ($model->getNodeQName($nodes[0]) =~ /^($INLINE_TAGS)$/)))) {
-	$moved_current = 1 if ${$nodes[0]} == $$current;
-	push(@x,shift(@nodes));
-      }
-
-      if (@x && !grep(($_->nodeType != XML_TEXT_NODE) || ($_->textContent =~ /\S/), @x)) { # Only whitespace text nodes?
-	map($parent->removeChild($_),@x); # just remove them
-	$document->setNode($new[-1]) if $moved_current;
-      }		   # Watch out if we've deleted the current node!
-      elsif (@x) { # Some worthwhile inline nodes to wrap in a <ltx:p>
-	my $para = addNewChildLate($document,$parent,'ltx:p');
-	$parent->removeChild($para);
-	$parent->replaceChild($para,$x[0]); # replace 1st child by the <ltx:p>
-	$document->setNode($para) if $moved_current; # This new <ltx:p> will be current if we've wrapped current.
-	foreach my $c (@x) {
-	  if ($c->nodeType == XML_TEXT_NODE) {
-	    my $t = $c->textContent;
-	    $para->appendTextNode($t) if $t =~ /\S/;
-	  }			# append if more than just whitespace.
-	  else {
-	    $para->appendChild($c);
-	  }
-	  $parent->removeChild($c);
-	}
-	push(@new,$para);
-      } elsif ($nodes[0]->nodeType == XML_ELEMENT_NODE) { # other element (block or similar), just move to new list
-	if ($model->getNodeQName($nodes[0]) eq 'ltx:break') { # except for <break>!
-	  $parent->removeChild(shift(@nodes));
-	  $document->setNode($new[-1]) if $moved_current;
-	}		# Watch out if we've deleted the current node!
-	else {
-	  push(@new,shift(@nodes));
-	}
-      } else {
-	shift(@nodes);
-      }
-    }
-  }
-
-  @new = ($parent) unless @new;	#  ???
-
-  # NOW, what we probably REALLY should do is return the parent of these
-  # IFF there are no further insertions into that node... ????
-  @new; }
-
-sub aligningEnvironment {
-  my($align,$class,$document,%props)=@_;
-  map(setAlignOrClass($document,$_,$align,$class), insertBlock($document,$props{body}));	  # Add class attribute to new nodes.
-}
-
-sub addClass {
-  my($node,$class)=@_;
-  if($node->hasAttribute('class')){
-    $node->setAttribute(class=>$node->getAttribute('class').' '.$class); }
-  else {
-    $node->setAttribute(class=>$class); }}
-
-sub setAlignOrClass {
-  my($document,$node,$align,$class)=@_;
-  my $model = $document->getModel;
-  if($model->canHaveAttribute($model->getNodeQName($node),'align')){
-    $node->setAttribute(align=>$align); }
-  else {
-    addClass($node,$class); }}
 
 DefEnvironment('{center}',sub { aligningEnvironment('center','centering',@_); },
 	       beforeDigest=>sub{ Let(T_CS('\\\\'),T_CS('\@block@cr')); Let(T_CS('\par'),T_CS('\@block@cr'))});
@@ -1003,7 +885,7 @@ DefConstructorI(T_CS('\begin{verbatim}'),undef,
 				my $end = "\\end{verbatim}";
 				my @lines = $stomach->getGullet->getMouth->readRawLines($end);
 				# Note last line ends up as Whatsit's "trailer"
-				$whatsit->setBody(map(LaTeXML::Box->new($_,$font,$loc,T_OTHER($_)),
+				$whatsit->setBody(map(Box($_,$font,$loc,T_OTHER($_)),
 						      @lines, $end));
 				return; }],
 		beforeConstruct=>sub { $_[0]->maybeCloseElement('ltx:p'); });
@@ -1274,8 +1156,8 @@ sub eqnarrayBindings {
 	  closeContainer=>sub{ $_[0]->closeElement('ltx:equationgroup'); },
 	  openRow       =>sub{ $_[0]->openElement('ltx:equation',@_[1..$#_]); },
 	  closeRow      =>sub{ $_[0]->closeElement('ltx:equation'); },
-	  openColumn    =>sub{ $_[0]->openElement('_Capture_',@_[1..$#_]); },
-	  closeColumn   =>sub{ $_[0]->closeElement('_Capture_'); });
+	  openColumn    =>sub{ $_[0]->openElement('ltx:_Capture_',@_[1..$#_]); },
+	  closeColumn   =>sub{ $_[0]->closeElement('ltx:_Capture_'); });
 
   AssignValue(Alignment=>$alignment);
   $alignment->setTemplate($template);
@@ -1428,8 +1310,10 @@ sub eqnarrayJoinRows {
 sub addNewChildLate {
   my($document,$node,$tag)=@_;
   my ($nsuri,$localname) = (undef,$tag);
-  ($nsuri,$localname)= $document->getModel->decodeQName($tag) unless $tag eq '_Capture_';
-  my $newnode = $node->addNewChild($nsuri,$localname);
+  ($nsuri,$localname)= $document->getModel->decodeQName($tag);
+  my $newnode = 
+    ($nsuri ? $node->addNewChild($nsuri,$localname)
+     : $node->appendChild($document->createElement($localname)));
   # Copy essentials to new node.
   if(my $font = $node->getAttribute('_font')){
     $newnode->setAttribute(_font=>$font); }
@@ -1444,7 +1328,7 @@ sub equationgroupJoinCols {
   my($document,$ncols,$equation)=@_;
   my ($col,$main,$branch)=(0,undef,undef);
   foreach my $cell ($document->getChildElements($equation)){
-    next unless $document->getNodeQName($cell) eq '_Capture_';
+    next unless $document->getNodeQName($cell) =~ /(.*?:)?_Capture_$/;
     if(($col++ % $ncols) == 0){	# Create new MathFork every $ncols cells.
       ($main,$branch)=addMathFork($document,$equation); }
     addColumnToMathFork($document,$main,$branch,$cell); }}
@@ -1705,7 +1589,7 @@ DefPrimitive('\DeclareSymbolFont{}{}{}{}{}', sub {
 DefPrimitive('\DeclareSymbolFontAlphabet{}{}', sub {
   my ($stomach, $cs, $name) = @_;
   my $font = LookupValue('fontdeclarations@'.ToString($name)) || {};
-  DefConstructorI(T_CS(ToString($cs)),undef,'', font=>$font); });
+  DefPrimitiveI(T_CS(ToString($cs)),undef,undef, font=>$font); });
 
 DefPrimitive('\DeclareMathSizes{}{}{}{}',undef);
 DefPrimitive('\DeclareMathAlphabet{}{}{}{}{}', sub {
@@ -1714,7 +1598,7 @@ DefPrimitive('\DeclareMathAlphabet{}{}{}{}{}', sub {
   if(my $ffam = lookupFontFamily($family)){ map($font{$_} = $$ffam{$_}, keys %$ffam); }
   if(my $fser = lookupFontSeries($series)){ map($font{$_} = $$fser{$_}, keys %$fser); }
   if(my $fsh  = lookupFontShape($shape))  { map($font{$_} = $$fsh{$_}, keys %$fsh); }
-  DefConstructorI(T_CS(ToString($cs)),undef, '', font=>{%font}); });
+  DefPrimitiveI(T_CS(ToString($cs)),undef, undef, font=>{%font}); });
 
 
 DefMacro('\newmathalphabet{}{}{}',Tokens()); # or expand int DeclareMathAlphabet?
@@ -1867,11 +1751,11 @@ DefPrimitive('\@addtoreset{}{}',sub {
   return; });
 
 DefMacro('\value{}',   sub {  Explode(CounterValue($_[1])->valueOf);});
-DefMacro('\@arabic{}', sub {  Explode(LookupValue(ToString($_[1]))->valueOf); });
+DefMacro('\@arabic{}', sub {  Explode(ToString($_[1])); });
 DefMacro('\arabic{}',  sub {  Explode(CounterValue($_[1])->valueOf); });
-DefMacro('\@roman{}',  sub {  roman(LookupValue(ToString($_[1]))->valueOf); });
+DefMacro('\@roman{}',  sub {  roman(ToString($_[1])); });
 DefMacro('\roman{}',   sub {  roman(CounterValue($_[1])->valueOf); });
-DefMacro('\@Roman{}',  sub {  Roman(LookupValue(ToString($_[1]))->valueOf); });
+DefMacro('\@Roman{}',  sub {  Roman(ToString($_[1])); });
 DefMacro('\Roman{}',   sub {  Roman(CounterValue($_[1])->valueOf); });
 DefMacro('\@alph{}',  sub {
   T_OTHER(chr(LookupValue(ToString($_[1]))->valueOf+ord('a')-1));});
@@ -2689,7 +2573,7 @@ DefPrimitive('\typein[]{}',undef);
 DefPrimitive('\linebreak[]',undef);
 DefPrimitive('\nolinebreak[]',undef);
 # \\ already defined
-DefConstructorI('\newline',undef, "\n");
+DefPrimitiveI('\newline',undef, "\n");
 DefPrimitiveI('\-',undef, undef);	# We don't do hyphenation.
 # \hyphenation in TeX.pool
 
@@ -2849,7 +2733,7 @@ DefPrimitive('\@begin@lrbox Token', sub {
   AssignValue('box'.ToString($token), $box); });
 
 DefPrimitive('\usebox DefToken', sub { 
-  LookupValue('box'.ToString($_[1])) || LaTeXML::Box->new();});
+  LookupValue('box'.ToString($_[1])) || Box();});
 
 # NOTE: There are 2 extra arguments (See LaTeX Companion, p.866)
 # for height and inner-pos.  We're ignoring them, for now, though.
@@ -3155,20 +3039,20 @@ Tag('ltx:g', afterClose=> sub {
 
 # What about \f@family, etc....?
 # These are not allowed in math.
-DefConstructorI('\mdseries', undef, '',  forbidMath=>1, font=>{series=>'medium'});
-DefConstructorI('\bfseries', undef, '',  forbidMath=>1, font=>{series=>'bold'});
+DefPrimitiveI('\mdseries', undef, undef,  forbidMath=>1, font=>{series=>'medium'});
+DefPrimitiveI('\bfseries', undef, undef,  forbidMath=>1, font=>{series=>'bold'});
 
-DefConstructorI('\rmfamily', undef, '',  forbidMath=>1, font=>{family=>'serif'});
-DefConstructorI('\sffamily', undef, '',  forbidMath=>1, font=>{family=>'sansserif'});
-DefConstructorI('\ttfamily', undef, '',  forbidMath=>1, font=>{family=>'typewriter'});
+DefPrimitiveI('\rmfamily', undef, undef,  forbidMath=>1, font=>{family=>'serif'});
+DefPrimitiveI('\sffamily', undef, undef,  forbidMath=>1, font=>{family=>'sansserif'});
+DefPrimitiveI('\ttfamily', undef, undef,  forbidMath=>1, font=>{family=>'typewriter'});
 
-DefConstructorI('\upshape',  undef, '', forbidMath=>1, font=>{shape=>'upright'});
-DefConstructorI('\itshape',  undef, '', forbidMath=>1, font=>{shape=>'italic'});
-DefConstructorI('\slshape',  undef, '', forbidMath=>1, font=>{shape=>'slanted'});
-DefConstructorI('\scshape',  undef, '', forbidMath=>1, font=>{shape=>'smallcaps'});
+DefPrimitiveI('\upshape',  undef, undef, forbidMath=>1, font=>{shape=>'upright'});
+DefPrimitiveI('\itshape',  undef, undef, forbidMath=>1, font=>{shape=>'italic'});
+DefPrimitiveI('\slshape',  undef, undef, forbidMath=>1, font=>{shape=>'slanted'});
+DefPrimitiveI('\scshape',  undef, undef, forbidMath=>1, font=>{shape=>'smallcaps'});
 
-DefConstructorI('\normalfont',    undef, '', font=>{family=>'serif', series=>'medium', shape=>'upright'});
-DefConstructorI('\verbatim@font', undef, '', font=>{family=>'typewriter', series=>'medium', shape=>'upright'});
+DefPrimitiveI('\normalfont',    undef, undef, font=>{family=>'serif', series=>'medium', shape=>'upright'});
+DefPrimitiveI('\verbatim@font', undef, undef, font=>{family=>'typewriter', series=>'medium', shape=>'upright'});
 Let(T_CS('\reset@font'),T_CS('\normalfont'));
 
 DefMacroI('\rmdefault',undef,'cmr');
@@ -3259,46 +3143,46 @@ Let(T_CS('\normalcolor'),T_CS('\relax'));
 #======================================================================
 # C.15.3 Special Symbol
 #======================================================================
-# \symbol{num} ????
+DefMacro('\symbol{}','\char#1\relax');
 
 # These in LaTeX, but not in the book...
-DefConstructorI('\textdollar',       undef, "\$");
-DefConstructorI('\textemdash',       undef, "\x{2014}"); # EM DASH
-DefConstructorI('\textendash',       undef, "\x{2013}"); # EN DASH
-DefConstructorI('\textexclamdown',   undef, UTF(0xA1)); # INVERTED EXCLAMATION MARK
-DefConstructorI('\textquestiondown', undef, UTF(0xBF));	# INVERTED QUESTION MARK
-DefConstructorI('\textquotedblleft', undef, "\x{201C}"); # LEFT DOUBLE QUOTATION MARK
-DefConstructorI('\textquotedblright',undef, "\x{201D}"); # RIGHT DOUBLE QUOTATION MARK
-DefConstructorI('\textquotedbl',     undef, "\"");       # plain ascii DOUBLE QUOTATION
-DefConstructorI('\textquoteleft',    undef, "\x{2018}");     # LEFT SINGLE QUOTATION MARK
-DefConstructorI('\textquoteright',   undef, "\x{2019}");    # RIGHT SINGLE QUOTATION MARK
-DefConstructorI('\textsterling',     undef, UTF(0xA3));	 # POUND SIGN
-DefConstructorI('\textasteriskcentered',undef, "*");
-DefConstructorI('\textbackslash',    undef, UTF(0x5C)); # REVERSE SOLIDUS
-DefConstructorI('\textbar',          undef, "|");
-DefConstructorI('\textbraceleft',    undef, "{");
-DefConstructorI('\textbraceright',   undef, "}");
-DefConstructorI('\textbullet',       undef, "\x{2022}");    # BULLET
-DefConstructorI('\textdaggerdbl',    undef, "\x{2020}"); # DOUBLE DAGGER
-DefConstructorI('\textdagger',       undef, "\x{2021}");    # DAGGER
-DefConstructorI('\textparagraph',    undef, UTF(0xB6)); # PILCROW SIGN
-DefConstructorI('\textperiodcentered',undef, "\x{22C5}"); # DOT OPERATOR
-DefConstructorI('\textsection',      undef, UTF(0xA7));	      # SECTION SIGN
+DefPrimitiveI('\textdollar',       undef, "\$");
+DefPrimitiveI('\textemdash',       undef, "\x{2014}"); # EM DASH
+DefPrimitiveI('\textendash',       undef, "\x{2013}"); # EN DASH
+DefPrimitiveI('\textexclamdown',   undef, UTF(0xA1)); # INVERTED EXCLAMATION MARK
+DefPrimitiveI('\textquestiondown', undef, UTF(0xBF));	# INVERTED QUESTION MARK
+DefPrimitiveI('\textquotedblleft', undef, "\x{201C}"); # LEFT DOUBLE QUOTATION MARK
+DefPrimitiveI('\textquotedblright',undef, "\x{201D}"); # RIGHT DOUBLE QUOTATION MARK
+DefPrimitiveI('\textquotedbl',     undef, "\"");       # plain ascii DOUBLE QUOTATION
+DefPrimitiveI('\textquoteleft',    undef, "\x{2018}");     # LEFT SINGLE QUOTATION MARK
+DefPrimitiveI('\textquoteright',   undef, "\x{2019}");    # RIGHT SINGLE QUOTATION MARK
+DefPrimitiveI('\textsterling',     undef, UTF(0xA3));	 # POUND SIGN
+DefPrimitiveI('\textasteriskcentered',undef, "*");
+DefPrimitiveI('\textbackslash',    undef, UTF(0x5C)); # REVERSE SOLIDUS
+DefPrimitiveI('\textbar',          undef, "|");
+DefPrimitiveI('\textbraceleft',    undef, "{");
+DefPrimitiveI('\textbraceright',   undef, "}");
+DefPrimitiveI('\textbullet',       undef, "\x{2022}");    # BULLET
+DefPrimitiveI('\textdaggerdbl',    undef, "\x{2021}"); # DOUBLE DAGGER
+DefPrimitiveI('\textdagger',       undef, "\x{2020}");    # DAGGER
+DefPrimitiveI('\textparagraph',    undef, UTF(0xB6)); # PILCROW SIGN
+DefPrimitiveI('\textperiodcentered',undef, "\x{22C5}"); # DOT OPERATOR
+DefPrimitiveI('\textsection',      undef, UTF(0xA7));	      # SECTION SIGN
 DefAccent('\textcircled',UTF(0x20DD),UTF(0x25EF)); # Defined in TeX.pool
-DefConstructorI('\textless',         undef, "<");
-DefConstructorI('\textgreater',      undef, ">");
-DefConstructorI('\textcopyright',    undef, UTF(0xA9)); # COPYRIGHT SIGN
-DefConstructorI('\textasciicircum',  undef, "^");
-DefConstructorI('\textasciitilde',   undef, "~");
-DefConstructorI('\textcompwordmark', undef, ""); # ???
-DefConstructorI('\textunderscore',   undef, "_");
-DefConstructorI('\textvisiblespace', undef, "\x{2420}"); # SYMBOL FOR SPACE;  Not really the right symbol!
-DefConstructorI('\textellipsis',     undef, "\x{2026}"); # HORIZONTAL ELLIPSIS
-DefConstructorI('\textregistered',   undef, UTF(0xAE)); # REGISTERED SIGN
-DefConstructorI('\texttrademark',    undef, "\x{2122}");  # TRADE MARK SIGN
+DefPrimitiveI('\textless',         undef, "<");
+DefPrimitiveI('\textgreater',      undef, ">");
+DefPrimitiveI('\textcopyright',    undef, UTF(0xA9)); # COPYRIGHT SIGN
+DefPrimitiveI('\textasciicircum',  undef, "^");
+DefPrimitiveI('\textasciitilde',   undef, "~");
+DefPrimitiveI('\textcompwordmark', undef, ""); # ???
+DefPrimitiveI('\textunderscore',   undef, "_");
+DefPrimitiveI('\textvisiblespace', undef, "\x{2420}"); # SYMBOL FOR SPACE;  Not really the right symbol!
+DefPrimitiveI('\textellipsis',     undef, "\x{2026}"); # HORIZONTAL ELLIPSIS
+DefPrimitiveI('\textregistered',   undef, UTF(0xAE)); # REGISTERED SIGN
+DefPrimitiveI('\texttrademark',    undef, "\x{2122}");  # TRADE MARK SIGN
 DefConstructor('\textsuperscript{}', "<ltx:text yoffset='0.5em' _noautoclose='1'>#1</ltx:text>");
-DefConstructorI('\textordfeminine',  undef, UTF(0xAA)); # FEMININE ORDINAL INDICATOR
-DefConstructorI('\textordmasculine', undef, UTF(0xBA)); # MASCULINE ORDINAL INDICATOR
+DefPrimitiveI('\textordfeminine',  undef, UTF(0xAA)); # FEMININE ORDINAL INDICATOR
+DefPrimitiveI('\textordmasculine', undef, UTF(0xBA)); # MASCULINE ORDINAL INDICATOR
 DefMacroI('\SS',undef, 'SS');			       # ?
 
 
@@ -3306,22 +3190,22 @@ DefConstructor('\sqrtsign Digested',
 	       "<ltx:XMApp><ltx:XMTok meaning='square-root'/><ltx:XMArg>#1</ltx:XMArg></ltx:XMApp>");
 
 
-DefConstructorI('\mathparagraph',undef,UTF(0xB6));
-DefConstructorI('\mathsection',undef,UTF(0xA7));
-DefConstructorI('\mathdollar',undef,'$');
-DefConstructorI('\mathsterling',undef,UTF(0xA3));
-DefConstructorI('\mathunderscore',undef,'_');
-DefConstructorI('\mathellipsis',undef,"\x{2026}");
+DefPrimitiveI('\mathparagraph',undef,UTF(0xB6));
+DefPrimitiveI('\mathsection',  undef,UTF(0xA7));
+DefPrimitiveI('\mathdollar',   undef,'$');
+DefPrimitiveI('\mathsterling', undef,UTF(0xA3));
+DefPrimitiveI('\mathunderscore',undef,'_');
+DefPrimitiveI('\mathellipsis', undef,"\x{2026}");
 
 # Are these glyph "pieces" or use alone?
 DefMathI('\arrowvert', undef, "|",       role=>'VERTBAR');
 DefMathI('\Arrowvert', undef, "\x{2225}",role=>'VERTBAR');
 
 # The following are glyph "pieces"...
-DefConstructorI('\braceld',undef,"\x{239D}");#   left brace down part
-DefConstructorI('\bracelu',undef,"\x{239B}");#   left brace up part
-DefConstructorI('\bracerd',undef,"\x{23A0}");#   right brace down part
-DefConstructorI('\braceru',undef,"\x{239E}");#   right brace up part
+DefPrimitiveI('\braceld',undef,"\x{239D}");#   left brace down part
+DefPrimitiveI('\bracelu',undef,"\x{239B}");#   left brace up part
+DefPrimitiveI('\bracerd',undef,"\x{23A0}");#   right brace down part
+DefPrimitiveI('\braceru',undef,"\x{239E}");#   right brace up part
 
 DefMathI('\cdotp',      undef,"\x{22C5}", role=>'MULOP');
 DefMathI('\ldotp',      undef,".",        role=>'MULOP');
@@ -3333,8 +3217,8 @@ DefMathI('\ointop',     undef,"\x{222E}", role=>'INTOP', scriptpos=>\&doScriptpo
 # \rhook
 Let(T_CS('\gets'),T_CS('\leftarrow'));
 
-DefConstructorI('\lmoustache',undef,"\x{23B0}");
-DefConstructorI('\rmoustache',undef,"\x{23B1}");
+DefPrimitiveI('\lmoustache',undef,"\x{23B0}");
+DefPrimitiveI('\rmoustache',undef,"\x{23B1}");
 DefMathI('\mapstochar',  undef,"\x{21A6}", role=>'ARROW', meaning=>'maps-to');
 DefMathI('\owns',        undef,"\x{220B}", role=>'RELOP', meaning=>'contains');
 
@@ -3566,7 +3450,7 @@ DefPrimitiveI('\makeatother', undef, sub { AssignCatcode('@'=>CC_OTHER, 'local')
 #**********************************************************************
 #**********************************************************************
 # Sundry (is this ams ?)
-DefConstructor('\textprime',UTF(0xB4)); # ACUTE ACCENT
+DefPrimitiveI('\textprime',undef,UTF(0xB4)); # ACUTE ACCENT
 
 Let(T_CS('\endgraf'),T_CS('\par'));
 Let(T_CS('\endline'),T_CS('\cr'));
@@ -3613,6 +3497,6 @@ DefMacroI('\mathalpha',undef,Tokens());
 
 #\def\mathhexbox#1#2#3{\mbox{$\m@th \mathchar"#1#2#3$}}
 DefMacroI('\nocorrlist',undef,',.');
-
+Let(T_CS('\nocorr'),T_CS('\relax'));
 #**********************************************************************
 1;
