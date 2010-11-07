@@ -14,7 +14,7 @@
 \def\URL{\@ifnextchar[{\@URL}{\@@URL}}%]
 \def\@@URL{\begingroup\url}
 %%\def\@URL[#1]{#1\begingroup\def\UrlLeft##1\UrlRight{\footnote{\texttt{##1}}}\Url}
-\def\@URL[#1]{#1}%\begingroup\def\UrlLeft##1\UrlRight{\footnote{\Url{##1}}}\Url}
+\def\@URL[#1]{#1\begingroup\def\UrlLeft##1\UrlRight{\footnote{\Url{##1}}}\Url}
 
 \let\@title\@empty
 \def\subtitle#1{\gdef\@subtitle{#1}}
