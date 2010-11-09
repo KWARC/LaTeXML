@@ -125,6 +125,8 @@ sub Expr {
     &$sub($node); }
   elsif($tag eq 'ltx:XMHint'){
     (); }
+  elsif($tag eq 'ltx:XMArg'){	# Only present if parsing failed!
+    (grep($_,map(Expr($_),element_nodes($node)))); }
   else {
     ['om:OMSTR',{},$node->textContent]; }}
 
