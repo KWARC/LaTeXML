@@ -387,6 +387,8 @@ while ( my $client = $server->accept() ) {
 
   $latexml->withState(sub {
                         my($state)=@_; #Sandbox state
+                        #Save preamble information for further use:
+                        $state->assignValue('_preamble_loaded',$_preamble_loaded,'global');
                         $state->pushFrame; });
   my $serialized;
   my $dom;
