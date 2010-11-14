@@ -22,14 +22,8 @@ Inline.class |=
 ## and can appear in inline and block contexts.
 Meta.class   |= note |  indexmark | ERROR
 
-\text =
-## General container for styled text.
-## Attributes cover a variety of styling and position shifting properties.
-element text {
-  Common.attributes,
-  Positionable.attributes,
-
-  ## Indicates the font to use. It consists of a space separated sequence
+text.attribs = Common.attributes,Positionable.attributes,
+ ## Indicates the font to use. It consists of a space separated sequence
   ## of values representing the
   ## family (\texttt{serif}, \texttt{sansserif}, \texttt{math}, \texttt{typewriter},
   ##     \texttt{caligraphic}, \texttt{fraktur}, \texttt{script}, \ldots),
@@ -41,7 +35,6 @@ element text {
   ## In postprocessing, these values are carried to the \attr{class} attribute,
   ## and can thus be effected by CSS.
   attribute font { text }?,
-
   ## Indicates the text size to use. The values are modeled after the
   ## more abstract \LaTeX\ font size switches, rather than point-sizes.
   ## The values are open-ended for extensibility;
@@ -49,53 +42,36 @@ element text {
   ## and can thus be effected by CSS.
   attribute size { "Huge" | "huge" | "LARGE" | "Large" | "large" | "normal"
                  | "small" | "footnote" | "tiny" | text }?,
-
-  ## the color to use; any CSS compatible color specification.
+ ## the color to use; any CSS compatible color specification.
   ## In postprocessing, these values are carried to the \attr{class} attribute,
   ## and can thus be effected by CSS.
   attribute color { text }?,
+ ## the kind of frame or outline for the text.
+  attribute framed { "rectangle" | "underline" | text }?
+text.model = Inline.model
+## General container for styled text.
+## Attributes cover a variety of styling and position shifting properties.
+\text = element text {text.attribs,text.model}
 
-  ## the kind of frame or outline for the text.
-  attribute framed { "rectangle" | "underline" | text }?,
-
-  Inline.model }
-
-emph =
+emph.attribs = Common.attributes
+emph.model = Inline.model
 ## Emphasized text.
-element emph {
-  Common.attributes,
+emph = element emph {emph.attribs,emph.model}
 
-  Inline.model }
-
-acronym =
+acronym.attribs = Common.attributes,
+ ## should be used to indicate the expansion of the acronym.
+  attribute name { text }
+acronym.model = Inline.model
 ## Represents an acronym.
-element acronym {
-  Common.attributes,
+acronym = element acronym {acronym.attribs,acronym.model}
 
-  ## should be used to indicate the expansion of the acronym.
-  attribute name { text },
-  Inline.model }
-
-rule =
+rule.attribs = Common.attributes,Positionable.attributes
+rule.model = empty
 ## A Rule.
-element rule {
-  Common.attributes,
+rule = element rule {rule.attribs,rule.model}
 
-  Positionable.attributes,
-
-  empty }
-
-ref =
-## A hyperlink reference to some other object. 
-## When converted to HTML, the content would be the content of the anchor.
-## The destination can be specified by one of the 
-## attributes \attr{labelref}, \attr{idref} or \attr{href};
-## Missing fields will usually be filled in during postprocessing,
-## based on data extracted from the document(s).
-element ref {
-  Common.attributes,
-
-  ## reference to an internal identifier.
+ref.attribs = Common.attributes,
+ ## reference to an internal identifier.
   IDREF.attributes,
 
   ## reference to a LaTeX labelled object;
@@ -118,99 +94,85 @@ element ref {
   ## gives a longer form description of the target,
   ## this would typically appear as a tooltip in HTML.
   ## Typically filled in by postprocessor.
-  attribute title { text }?,
+  attribute title { text }?
+ref.model = Inline.model
+## A hyperlink reference to some other object. 
+## When converted to HTML, the content would be the content of the anchor.
+## The destination can be specified by one of the 
+## attributes \attr{labelref}, \attr{idref} or \attr{href};
+## Missing fields will usually be filled in during postprocessing,
+## based on data extracted from the document(s).
+ref = element ref {ref.attribs,ref.model}
 
-  Inline.model }
-
-anchor =
+anchor.attribs = Common.attributes,ID.attributes
+anchor.model = Inline.model
 ## Inline anchor.
-element anchor {
-  Common.attributes,
-  ID.attributes,
+anchor = element anchor {anchor.attribs,anchor.model}
 
-  Inline.model }
-
-cite =
+cite.attribs = Common.attributes
+cite.model = Inline.model
 ## A container for a bibliographic citation. The model is inline to
 ## allow arbitrary comments before and after the expected \elementref{bibref}(s)
 ## which are the specific citation.
-element cite {
-  Common.attributes,
+cite = element cite {cite.attribs,cite.model}
 
-  Inline.model }
-
-bibref =
-## A bibliographic citation refering to a specific bibliographic item.
-element bibref {
-  Common.attributes,
-  IDREF.attributes,
-
+bibref.attribs = Common.attributes,IDREF.attributes,
   ## a comma separated list of bibliographic keys.
   ## (See the \attr{key} attribute of \elementref{bibitem} and \elementref{bibentry})
   attribute bibrefs { text }?,
-
   ## a pattern encoding how the text content (of an empty bibref) will be filled in.
   ## Consists of strings \texttt{author}, \texttt{fullauthor}, \texttt{year},
   ## \texttt{number} and \texttt{title}
   ## (to be replaced by data from the bibliographic item)
   ## mixed with arbitrary characters.
   attribute show { text }?,
-
   ## separator between formatted references
   attribute separator { text }?,
-
   ## separator between formatted years when duplicate authors are combined.
-  attribute yyseparator { text }?,
+  attribute yyseparator { text }?
+bibref.model = Inline.model
+## A bibliographic citation refering to a specific bibliographic item.
+bibref = element bibref {bibref.attribs, bibref.model}
 
-  Inline.model }
-
-note =
-## Metadata that covers several `out of band' annotations.
-## It's content allows both inline and block-level content.
-element note {
-  Common.attributes,
-
+note.attribs = Common.attributes,
   ## indicates the desired visible marker to be linked to the note.
   attribute mark { text }?,
-
   ## indicates the kind of note
-  attribute role { "footnote" | text }?,
-
-  Flow.model }
+  attribute role { "footnote" | text }?
+note.model = Flow.model
+## Metadata that covers several `out of band' annotations.
+## It's content allows both inline and block-level content.
+note = element note {note.attribs,note.model}
 
 # should mark be more like label/refnum ?
 
-ERROR =
+
+ERROR.attribs =  Common.attributes
+ERROR.model = text*
+
 ## error object for undefined control sequences, or whatever
-element ERROR {
-  Common.attributes,
+ERROR = element ERROR {ERROR.attribs,ERROR.model}
 
-  text* }
-
-indexmark =
-## Metadata to record an indexing position. The content is 
-## a sequence of \elementref{indexphrase}, each representing a level in
-## a multilevel indexing entry.
-element indexmark {
-  Common.attributes,
+indexmark.attribs = Common.attributes,
   ## a flattened form (like \attr{key}) of another \elementref{indexmark},
   ## used to crossreference.
   attribute see_also { text }?,
+ ## NOTE: describe this.
+  attribute style { text }?
+indexmark.model = indexphrase*
 
-  ## NOTE: describe this.
-  attribute style { text }?,
+## Metadata to record an indexing position. The content is 
+## a sequence of \elementref{indexphrase}, each representing a level in
+## a multilevel indexing entry.
+indexmark = element indexmark {indexmark.attribs,indexmark.model}
 
-  indexphrase* }
+indexphrase.attribs = Common.attributes,
+ ## a flattened form of the phrase for generating an \attr{ID}.
+  attribute key { text }?
+indexphrase.model = Inline.model
 
-indexphrase =
 ## A phrase within an \elementref{indexmark}
-element indexphrase {
-  Common.attributes,
-
-  ## a flattened form of the phrase for generating an \attr{ID}.
-  attribute key { text }?,
-
-  Inline.model }
+indexphrase = element indexphrase {indexphrase.attribs,indexphrase.model}
 
 # Test code
 #Inline.class |= special

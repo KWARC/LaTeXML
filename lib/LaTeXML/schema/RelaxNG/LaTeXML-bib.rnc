@@ -20,70 +20,63 @@ default namespace = "http://dlmf.nist.gov/LaTeXML"
 # bibitem  : which would be the formatted items in a latex bibliography environment.
 #	   This latter has typically lost much information during formatting.
 
-biblist =
-## A list of bibliographic \elementref{bibentry} or \elementref{bibitem}.
-element biblist {
-  Common.attributes,
-  (bibentry | bibitem)*  }
+biblist.attribs =   Common.attributes
+biblist.model =  (bibentry | bibitem)*
+
+## A list of bibliographic \elementref{bibentry} or \elementref{bibitem}. 
+biblist = element biblist {biblist.attribs,biblist.model}
 
 # ======================================================================
 # bibitem is the formatted, presentation, form, typically information has been lost;
 # it basically contains a biblabel and several bibblock's
 # ======================================================================
 
-bibitem =
+bibitem.attribs = Common.attributes, ID.attributes,
+  ## The unique key for this object; this key is referenced by the
+  ## \attr{bibrefs} attribute of \elementref{bibref}.
+  attribute key { text }?
+bibitem.model =  bibtag*, bibblock* 
 ## A formatted bibliographic item, typically as written explicit
 ## in a LaTeX article. This has generally lost most of the semantics
 ## present in the BibTeX data.
-element bibitem {
-  Common.attributes,
-  ID.attributes,
-  ## The unique key for this object; this key is referenced by the
-  ## \attr{bibrefs} attribute of \elementref{bibref}.
-  attribute key { text }?,
-  bibtag*, bibblock* }
+bibitem = element bibitem {bibitem.attribs,bibitem.model}
 
-bibtag =
-## Various formatted tags for bibliographic items.
-## Typically @role refnum is shown in the displayed bibliography,
-## as the beginning of the item.  Other roles 
-## (eg. number, authors, fullauthors, year, title) record formatted
-## info to be used for filling in citations (\elementref{bibref}).
-element bibtag {
+
+
+bibtag.attribs =  
+  ## Typically @role refnum is shown in the displayed bibliography, 
+  ## as the beginning of the item.  Other roles 
+  ## (eg. number, authors, fullauthors, year, title) record formatted
+  ## info to be used for filling in citations (\elementref{bibref}).
   attribute role { ("number"|"authors"|"fullauthors"|"key"|"year"|"bibtype"|"title"|text) }?,
   ## A delimiter for formatting the refnum in the bibliography
   attribute open { text }?,
   ## A delimiter for formatting the refnum in the bibliography
-  attribute close { text }?,
-  Inline.model }
+  attribute close { text }?
+bibtag.model = Inline.model
+## Various formatted tags for bibliographic items.
+bibtag = element bibtag {bibtag.attribs,bibtag.model}
 
-bibblock =
+bibblock.attribs = empty
+bibblock.model = Flow.model 
 ## A block of data appearing within a \elementref{bibitem}.
-element bibblock {
-  Flow.model }
-
-# bibblock's model was this:
-#  Inline.model }
+bibblock = element bibblock {bibblock.attribs,bibblock.model}
 
 # ======================================================================
 # bibentry is the (more) semantic form, typically extracted from bibtex.
 # ======================================================================
 
-bibentry =
-## Semantic representation of a bibliography entry, 
-## typically resulting from parsing BibTeX
-element bibentry {
-  Common.attributes,
-  ID.attributes,
-
-  ## The unique key for this object; this key is referenced by the
+bibentry.attribs = Common.attributes, ID.attributes,
+ ## The unique key for this object; this key is referenced by the
   ## \attr{bibrefs} attribute of \elementref{bibref}.
   attribute key { text },
-
-  ## The type of the referenced object. The values are a superset of
+ ## The type of the referenced object. The values are a superset of
   ## those types recognized by BibTeX, but is also open-ended for extensibility.
-  attribute type { bibentry.type },
-  Bibentry.class*  }
+  attribute type { bibentry.type }
+bibentry.model = Bibentry.class*  
+## Semantic representation of a bibliography entry, 
+## typically resulting from parsing BibTeX
+bibentry = element bibentry {bibentry.attribs,bibentry.model}
 
 bibentry.type =  "article" | "book" | "booklet" | "conference" | "inbook"
   	         | "incollection" | "inproceedings" | "manual" | "mastersthesis"
@@ -93,91 +86,76 @@ bibentry.type =  "article" | "book" | "booklet" | "conference" | "inbook"
 		 | text
 # ---------------------------------------------------------------------
 # Name related information
-bib-name =
-## Name of some participant in creating a bibliographic entry.
-element bib-name {
-  Common.attributes,
+bib-name.attribs =   Common.attributes,
   ## The role that this participant played in creating the entry.
-  attribute role { ("author" | "editor" | "translator" | text) }?,
-  Bibname.model }
+  attribute role { ("author" | "editor" | "translator" | text) }?
+bib-name.model  =   surname,  givenname?, lineage?
+## Name of some participant in creating a bibliographic entry.
+bib-name = element bib-name {bib-name.attribs,bib-name.model}
 
-## The content model of the bibliographic name fields (\elementref{bib-name})
-Bibname.model =
-  surname,  givenname?, lineage?
-
-surname =
+surname.attribs = empty
+surname.model = Inline.model
 ## Surname of a participant (\elementref{bib-name}).
-element surname {
-  Inline.model }
+surname = element surname {surname.attribs,surname.model}
 
-givenname =
+givenname.attribs = empty
+givenname.model = Inline.model
 ## Given name of a participant (\elementref{bib-name}).
-element givenname {
-  Inline.model }
-
-lineage =
+givenname = element givenname {givenname.attribs,givenname.model}
+  
+lineage.attribs = empty
+lineage.model = Inline.model
 ## Lineage of a participant (\elementref{bib-name}), eg. Jr. or similar.
-element lineage {
-  Inline.model }
+lineage = element lineage {lineage.attribs,lineage.model}
 
 # ---------------------------------------------------------------------
 # Title related information
-bib-title =
+
+bib-title.attribs = Common.attributes
+bib-title.model = Inline.model 
 ## Title of a bibliographic entry.
-element bib-title {
-  Common.attributes,
-  Inline.model }
+bib-title = element bib-title {bib-title.attribs,bib-title.model}
 
-bib-subtitle =
+bib-subtitle.attribs =   Common.attributes
+bib-subtitle.model =  Inline.model
 ## Subtitle of a bibliographic entry.
-element bib-subtitle {
-  Common.attributes,
-  Inline.model }
+bib-subtitle = element bib-subtitle {bib-subtitle.attribs,bib-subtitle.model}
 
-bib-key =
+bib-key.attribs = Common.attributes
+bib-key.model = Inline.model
 ## Unique key of a bibliographic entry.
-element bib-key {
-  Common.attributes,
-  Inline.model }
+bib-key = element bib-key {bib-key.attribs,bib-key.model}
 
-bib-type =
+bib-type.attribs = Common.attributes
+bib-type.model = Inline.model
 ## Type of a bibliographic entry.
-element bib-type {
-  Common.attributes,
-  Inline.model }
+bib-type = element bib-type {bib-type.attribs,bib-type.model}
 
-bib-date =
-## Date of a bibliographic entry.
-element bib-date {
-  Common.attributes,
+bib-date.attribs =   Common.attributes,
   ## characterizes what happened on the given date
-  attribute role { ("publication" | "copyright" | text) }?,
-  Inline.model }
+  attribute role { ("publication" | "copyright" | text) }?
+bib-date.model = Inline.model
+## Date of a bibliographic entry.
+bib-date = element bib-date {bib-date.attribs,bib-date.model}
 
-bib-publisher =
+bib-publisher.attribs = Common.attributes
+bib-publisher.model = Inline.model
 ## Publisher of a bibliographic entry.
-element bib-publisher {
-  Common.attributes,
-  Inline.model }
+bib-publisher = element bib-publisher {bib-publisher.attribs,bib-publisher.model}
 
-bib-organization =
+bib-organization.attribs = Common.attributes
+bib-organization.model = Inline.model
 ## Organization responsible for a bibliographic entry.
-element bib-organization {
-  Common.attributes,
-  Inline.model }
+bib-organization = element bib-organization{bib-organization.attribs,bib-organization.model}
 
-bib-place =
+bib-place.attribs = Common.attributes
+bib-place.model = Inline.model
 ## Location of publisher or event
-element bib-place {
-  Common.attributes,
-  Inline.model }
+bib-place = element bib-place {bib-place.attribs,bib-place.model}
 
 # ---------------------------------------------------------------------
-bib-related =
-## A Related bibliographic object, such as the book or journal
-## that the current item is related to.
-element bib-related {
-  Common.attributes,
+
+bib-related.attribs = Common.attributes,
   ## The type of this related entry.
   attribute type { bibentry.type }?,
   ## How this object relates to the containing object.
@@ -187,105 +165,99 @@ element bib-related {
   ## If the bibrefs attribute is given, it is the key of another object in the bibliography,
   ## and this element should be empty; otherwise the object should be described by
   ## the content of the element.
-  attribute bibrefs { text }?,
-  Bibentry.class* }
+  attribute bibrefs { text }?
+bib-related.model = Bibentry.class* 
+
+## A Related bibliographic object, such as the book or journal
+## that the current item is related to.
+bib-related = element bib-related {bib-related.attribs,bib-related.model}
 
 # ---------------------------------------------------------------------
-bib-part =
-## Describes how the current object is related to a related (\elementref{bib-related})
-## object, in particular page, part, volume numbers and similar.
-element bib-part {
-  Common.attributes,
+
+bib-part.attribs = Common.attributes,
   ## indicates how the value partitions the containing object.
   attribute role { ("pages" | "part" | "volume" | "issue" | "number"
-  	             | "chapter" | "section" | "paragraph" | text) }?,
-  Inline.model }
- 
+  	             | "chapter" | "section" | "paragraph" | text) }?
+bib-part.model = Inline.model
+## Describes how the current object is related to a related (\elementref{bib-related})
+## object, in particular page, part, volume numbers and similar.
+bib-part = element bib-part {bib-part.attribs,bib-part.model}
+
 # ---------------------------------------------------------------------
 # 
 
-bib-edition =
+bib-edition.attribs = Common.attributes
+bib-edition.model = Inline.model
 ## Edition of a bibliographic entry.
-element bib-edition {
-  Common.attributes,
-  Inline.model }
+bib-edition = element bib-edition {bib-edition.attribs,bib-edition.model}
 
-bib-status =
+
+bib-status.attribs = Common.attributes
+bib-status.model = Inline.model
 ## Status of a bibliographic entry.
-element bib-status {
-  Common.attributes,
-  Inline.model }
+bib-status = element bib-status {bib-status.attribs,bib-status.model}
 
-bib-identifier =
-## Some form of document identfier. The content is descriptive.
-element bib-identifier {
-  Common.attributes,
+bib-identifier.attribs =  Common.attributes,
   ## indicates what sort of identifier it is; it is open-ended for extensibility.
   attribute scheme { "doi" | "issn" | "isbn" | "mr" | text }?,
   ## the identifier.
   attribute id { text}?,
   ## a url to the document, if available
-  attribute href { text}?,
-  Inline.model }
+  attribute href { text}?
+bib-identifier.model = Inline.model
+## Some form of document identfier. The content is descriptive.
+bib-identifier = element bib-identifier {bib-identifier.attribs,bib-identifier.model}
 
-bib-review =
-## Review of a bibliographic entry. The content is descriptive.
-element bib-review {
-  Common.attributes,
+bib-review.attribs =   Common.attributes,
   ## indicates what sort of identifier it is; it is open-ended for extensibility.
   attribute scheme { "doi" | "issn" | "isbn" | "mr" | text }?,
   ## the identifier.
   attribute id { text}?,
   ## a url to the review, if available
-  attribute href { text}?,
-  Inline.model }
+  attribute href { text}?
+bib-review.model = Inline.model
+## Review of a bibliographic entry. The content is descriptive.
+bib-review = element bib-review {bib-review.attribs,bib-review.model}
 
-bib-links =
+bib-links.attribs = Common.attributes
+bib-links.model = Inline.model
 ## Links to other things like preprints, source code, etc.
-element bib-links {
-  Common.attributes,
-  Inline.model }
+bib-links = element bib-links {bib-links.attribs,bib-links.model}
 
-bib-language =
+bib-language.attribs = Common.attributes
+bib-language.model = Inline.model
 ## Language of a bibliographic entry.
-element bib-language {
-  Common.attributes,
-  Inline.model }
+bib-language = element bib-language {bib-language.attribs,bib-language.model}
 
-bib-url =
+bib-url.attribs = Common.attributes, attribute href { text }?
+bib-url.model = Inline.model
 ## A URL for a bibliographic entry. The content is descriptive
-element bib-url {
-  Common.attributes,
-  attribute href { text }?,
-  Inline.model }
+bib-url = element bib-url {bib-url.attribs,bib-url.model}
 
-bib-extract =
-## An extract from the referenced object.
-element bib-extract {
-  Common.attributes,
+bib-extract.attribs =   Common.attributes,
   ## Classify what kind of extract
-  attribute role { ("keywords" | "abstract" | "contents" | text) }?,
-  Inline.model }
+  attribute role { ("keywords" | "abstract" | "contents" | text) }?
+bib-extract.model = Inline.model
+## An extract from the referenced object.
+bib-extract = element bib-extract {bib-extract.attribs,bib-extract.model}
 
-bib-note =
-## Notes about a bibliographic entry.
-element bib-note {
-  Common.attributes,
+bib-note.attribs = Common.attributes,
   ## Classify the kind of note
-  attribute role { ("annotation" | "publication" | text) }?,
-  Inline.model }
+  attribute role { ("annotation" | "publication" | text) }?
+bib-note.model = Inline.model
+## Notes about a bibliographic entry.
+bib-note = element bib-note {bib-note.attribs,bib-note.model}
 
-bib-data =
-## Random data, not necessarily even text.
-## (future questions: should model be text or ANY? maybe should have encoding attribute?).
-element bib-data {
-  Common.attributes,
+bib-data.attribs= Common.attributes,
   ## Classify the relationship of the data to the entry.
   attribute role { text }?,
   ## Classify the type of the data.
-  attribute type { text }?,
-  Inline.model }
-
+  attribute type { text }?
+bib-data.model = Inline.model
+## Random data, not necessarily even text.
+## (future questions: should model be text or ANY? maybe should have encoding attribute?).
+bib-data = element bib-data {bib-data.attribs,bib-data.model}
+  
 Bibentry.class =
   bib-name
   | bib-title

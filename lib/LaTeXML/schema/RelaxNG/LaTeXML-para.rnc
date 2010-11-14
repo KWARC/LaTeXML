@@ -13,8 +13,7 @@
 default namespace = "http://dlmf.nist.gov/LaTeXML"
 
 ## This module defines the following `logical' block elements.
-Para.class |=
-     para
+Para.class |= para
    | theorem | proof
    | figure | table | listing
 
@@ -22,40 +21,28 @@ Para.class |=
 ## in both inline and block contexts.
 Misc.class  |= inline-para
 
-para =
+para.attribs = Common.attributes,ID.attributes
+para.model = Block.model
 ## A Logical paragraph. It has an \attr{id}, but not a \attr{label}.
-element para {
-  Common.attributes,
-  ID.attributes,
+para = element para {para.attribs,para.model}
 
-  Block.model }
-
-inline-para =
+inline-para.attribs =   Common.attributes,Positionable.attributes
+inline-para.model = Para.model
 ## An inline para. Actually, can appear in inline or block mode, but
 ## typesets its contents as para.
-element inline-para {
-  Common.attributes,
-  Positionable.attributes,
+inline-para = element inline-para {inline-para.attribs,inline-para.model}
 
-  Para.model }
-
-theorem =
+theorem.attribs = Common.attributes,Labelled.attributes
+theorem.model = title?, Para.model
 ## A theorem or similar object. The \attr{class} attribute can be used to distinguish
 ## different kinds of theorem.
-element theorem {
-  Common.attributes,
-  Labelled.attributes,
+theorem = element theorem {theorem.attribs,theorem.model}
 
-  title?, Para.model  }
-
-proof =
+proof.attribs = Common.attributes,Labelled.attributes
+proof.model = title?, Para.model
 ## A proof or similar object. The \attr{class} attribute can be used to distinguish
 ## different kinds of proof.
-element proof {
-  Common.attributes,
-  Labelled.attributes,
-
-  title?, Para.model }
+proof = element proof {proof.attribs,proof.model}
 
 ## These are the additional elements representing figure and
 ## table captions.
@@ -63,50 +50,34 @@ element proof {
 ## Or, should caption be used for theorem and proof?
 Caption.class = caption | toccaption
 
-figure =
+figure.attribs =  Common.attributes,Labelled.attributes,
+ ## the floating placement parameter that determines where the object is displayed.
+  attribute placement { text }?
+figure.model = (Block.model | Caption.class)*
 ## A  figure, possibly captioned.
-element figure {
-  Common.attributes,
-  Labelled.attributes,
+figure = element figure {figure.attribs,figure.model}
 
-  ## the floating placement parameter that determines where the object is displayed.
-  attribute placement { text }?,
-
-  (Block.model | Caption.class)* }
-
-table =
+table.attribs = Common.attributes,Labelled.attributes,
+ ## the floating placement parameter that determines where the object is displayed.
+  attribute placement { text }?
+table.model = (Block.model | Caption.class)*
 ## A  Table, possibly captioned. This is not necessarily a \elementref{tabular}.
-element table {
-  Common.attributes,
-  Labelled.attributes,
+table = element table {table.attribs,table.model}
 
+listing.attribs = Common.attributes,Labelled.attributes,
   ## the floating placement parameter that determines where the object is displayed.
-  attribute placement { text }?,
-
-  (Block.model | Caption.class)*  }
-
-listing =
+  attribute placement { text }?
+listing.model = (Block.model | Caption.class)* 
 ## A Listing, possibly captioned.
-element listing {
-  Common.attributes,
-  Labelled.attributes,
+listing = element listing {listing.attribs,listing.model}
 
-  ## the floating placement parameter that determines where the object is displayed.
-  attribute placement { text }?,
-
-  (Block.model | Caption.class)*  }
-
-caption =
+caption.attribs = Common.attributes
+caption.model = Inline.model
 ## A caption for a \elementref{table} or \elementref{figure}.
-element caption {
-  Common.attributes,
+caption = element caption {caption.attribs,caption.model}
 
-  Inline.model }
-
-toccaption =
+toccaption.attribs = Common.attributes
+toccaption.model = Inline.model
 ## A short form of \elementref{table} or \elementref{figure} caption,
 ## used for lists of figures or similar.
-element toccaption {
-  Common.attributes,
-
-  Inline.model }
+toccaption = element toccaption {toccaption.attribs,toccaption.model}

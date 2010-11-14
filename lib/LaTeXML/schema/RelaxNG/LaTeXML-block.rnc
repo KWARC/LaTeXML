@@ -13,9 +13,8 @@
 default namespace = "http://dlmf.nist.gov/LaTeXML"
 
 ## The block module defines the following `physical' block elements.
-Block.class |= 
-   p | equation | equationgroup | quote | block | listingblock
- | itemize | enumerate | description
+Block.class |= p | equation | equationgroup | quote | block | listingblock
+                          | itemize | enumerate | description
 
 
 ## Additionally, it defines these miscellaneous elements that can appear
@@ -25,174 +24,117 @@ Misc.class  |= inline-block | verbatim | break | graphics | picture
 ## Additional Metadata that can be present in equations.
 EquationMeta.class = constraint
 
-p =
+p.attribs = Common.attributes,ID.attributes,Positionable.attributes
+p.model = Inline.model
 ## A physical paragraph.
-element p {
-  Common.attributes,
-  ID.attributes,
-  Positionable.attributes,
+p = element p {p.attribs,p.model}
 
-  Inline.model  }
-
-constraint = 
+constraint.attribs = attribute hidden { xsd:boolean }?
+constraint.model = Inline.model
 ## A constraint upon an equation.
-element constraint {
-  attribute hidden { xsd:boolean }?,
-  Inline.model }
+constraint = element constraint {constraint.attribs,constraint.model}
 
-equation =
+equation.attribs = Common.attributes,Labelled.attributes
+equation.model = (Math | MathFork  | \text | tabular | Meta.class | EquationMeta.class)* 
 ## An Equation.  The model is just Inline which includes \elementref{Math},
 ## the main expected ingredient.
 ## However, other things can end up in display math, too, so we use Inline.
 ## Note that tabular is here only because it's a common, if misguided, idiom;
 ## the processor will lift such elements out of math, when possible
-element equation {
-  Common.attributes,
-  Labelled.attributes,
+equation = element equation {equation.attribs,equation.model}
 
-  (Math | MathFork  | \text | tabular | Meta.class | EquationMeta.class)*  }
 
-equationgroup =
+equationgroup.attribs = Common.attributes,Labelled.attributes
+equationgroup.model = (equationgroup | equation | block | Meta.class | EquationMeta.class)*
 ## A group of equations, perhaps aligned (Though this is nowhere recorded).
-element equationgroup {
-  Common.attributes,
-  Labelled.attributes,
+equationgroup = element equationgroup {equationgroup.attribs,equationgroup.model}
 
-  (equationgroup | equation | block | Meta.class | EquationMeta.class)* }
-
-MathFork =
+MathFork.attribs = Common.attributes
+MathFork.model = Math, MathBranch*
 ## A wrapper for Math that provides alternative,
 ## but typically less semantically meaningful,
 ## formatted representations.
 ## The first child is the meaningful form,
 ## the extra children provide formatted forms,
 ## for example being table rows or cells arising from an eqnarray.
-element MathFork {
-  Common.attributes,
+MathFork = element MathFork {MathFork.attribs,MathFork.model}
 
-  Math, MathBranch*}
-
-MathBranch =
+MathBranch.attribs = Common.attributes, attribute format { text }?
+MathBranch.model = (Math|tr|td)*
 ## A container for an alternatively formatted math representation.
-element MathBranch {
-  Common.attributes,
-  attribute format { text }?,
+MathBranch = element MathBranch {MathBranch.attribs,MathBranch.model}
 
-  (Math|tr|td)* }
-
-quote =
-## A quotation.
-element quote {
-  Common.attributes,
-  ID.attributes,
-
-  Block.model  }
+quote.attribs = Common.attributes,ID.attributes
+quote.model = Block.model
 # This was Inline.model, but since quotes can be arbitrarily complex
 # including equations, etc, not just verse, should be Block.model, perhaps even Para.model?
+## A quotation.
+quote = element quote {quote.attribs,quote.model}
 
-block =
+block.attribs = Common.attributes,ID.attributes,Positionable.attributes
+block.model = Inline.model
 ## A generic block (fallback).
-element block {
-  Common.attributes,
-  ID.attributes,
-  Positionable.attributes,
+block = element block {block.attribs,block.model}
 
-  Inline.model  }
-
-listingblock =
+listingblock.attribs = Common.attributes,Labelled.attributes
+listingblock.model = Block.model*
 ## An in-block Listing, without caption
-element listingblock {
-  Common.attributes,
-  Labelled.attributes,
+listingblock = element listingblock {listingblock.attribs,listingblock.model}
 
-  Block.model*  }
-
-break =
+break.attribs = Common.attributes
+break.model = empty 
 ## A forced line break.
-element break { 
-  Common.attributes,
+break = element break {break.attribs,break.model}
 
-  empty }
-
-inline-block =
+inline-block.attribs = Common.attributes,ID.attributes,Positionable.attributes
+inline-block.model = Block.model
 ## An inline block. Actually, can appear in inline or block mode, but
 ## typesets its contents as a block.
-element inline-block {
-  Common.attributes,
-  ID.attributes,
-  Positionable.attributes,
+inline-block = element inline-block {inline-block.attribs,inline-block.model}
 
-  Block.model }
-
-verbatim =
+verbatim.attribs = Common.attributes,ID.attributes,
+ ## the font to use; generally typewriter.
+  attribute font { text }?
+verbatim.model = Inline.model
 ## Verbatim content
-element verbatim {
-  Common.attributes,
-  ID.attributes,
+verbatim = element verbatim {verbatim.attribs,verbatim.model}
 
-  ## the font to use; generally typewriter.
-  attribute font { text }?,
-
-  Inline.model  }
-
-itemize =
+itemize.attribs = Common.attributes,ID.attributes
+itemize.model = item*
 ## An itemized list.
-element itemize {
-  Common.attributes,
-  ID.attributes,
+itemize = element itemize {itemize.attribs,itemize.model}
 
-  item* }
-
-enumerate =
+enumerate.attribs = Common.attributes,ID.attributes
+enumerate.model = item*
 ## An enumerated list.
-element enumerate {
-  Common.attributes,
-  ID.attributes,
+enumerate = element enumerate {enumerate.attribs,enumerate.model}
 
-  item* }
-
-description =
+description.attribs = Common.attributes,ID.attributes
+description.model = item*
 ## A description list. The \elementref{item}s within are expected to have a \elementref{tag}
 ## which represents the term being described in each \elementref{item}.
-element description {
-  Common.attributes,
-  ID.attributes,
+description =element description {description.attribs,description.model}
 
-  item* }
-
-item =
+item.attribs = Common.attributes,Labelled.attributes
+item.model = tag?, Para.model
 ## An item within a list.
-element item {
-  Common.attributes,
-  Labelled.attributes,
+item = element item {item.attribs,item.model}
 
-  tag?, Para.model }
-
-tag =
-## A tag within an item indicating the term or bullet for a given item.
-element tag {
-  Common.attributes,
-
-  ## specifies an open delimiters used to display the tag.
+tag.attribs = Common.attributes,
+ ## specifies an open delimiters used to display the tag.
   attribute open { text }?,
+ ## specifies an close delimiters used to display the tag.
+  attribute close { text }?
+tag.model = Inline.model
+## A tag within an item indicating the term or bullet for a given item.
+tag = element tag {tag.attribs,tag.model}
 
-  ## specifies an close delimiters used to display the tag.
-  attribute close { text }?,
-
-  Inline.model }
-
-graphics =
-## A graphical insertion of an external file.
-element graphics {
-  Common.attributes,
-  ID.attributes,
-  Imageable.attributes,
-
-  ## the path to the graphics file
+graphics.attribs = Common.attributes,ID.attributes,Imageable.attributes,
+ ## the path to the graphics file
   attribute graphic { text },
-
-  ## an encoding of the scaling and positioning options
+ ## an encoding of the scaling and positioning options
   ## to be used in processing the graphic.
-  attribute options { text }?,
-
-  empty  }
+  attribute options { text }?
+graphics.model = empty
+## A graphical insertion of an external file.
+graphics = element graphics {graphics.attribs,graphics.model}

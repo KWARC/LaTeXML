@@ -21,8 +21,7 @@ namespace a = "http://relaxng.org/ns/compatibility/annotations/1.0"
 ## NOTE: Consider whether it is sensible to drop this and incorporate SVG itself.
 Misc.class |= picture
 
-Picture.class =
-  g | rect | line | circle | path
+Picture.class = g | rect | line | circle | path
  | arc | wedge | ellipse | polygon | bezier
  | parabola | curve | dots | grid | clip
 
@@ -65,133 +64,97 @@ PictureGroup.attributes =
   attribute shadowbox {xsd:boolean}?,
   attribute doubleline {xsd:boolean}?
 
-picture =
-## A picture environment.
-element picture {
-  Common.attributes,
-  ID.attributes,
-  Picture.attributes,
-  Imageable.attributes,
+picture.attribs = Common.attributes,ID.attributes,Picture.attributes,Imageable.attributes,
   attribute clip {xsd:boolean}?,
   attribute baseline { text }?,
   attribute unitlength { text }?,
   attribute xunitlength { text }?,
   attribute yunitlength { text }?,
   attribute tex { text }?,
-  attribute content-tex { text }?,
-  (Picture.class | Inline.class | Misc.class | Meta.class)* }
+  attribute content-tex { text }?
+picture.model = (Picture.class | Inline.class | Misc.class | Meta.class)*
+## A picture environment.
+picture = element picture {picture.attribs,picture.model}
 
-g =
+g.attribs = Common.attributes,Picture.attributes,PictureGroup.attributes
+g.model = (Picture.class | Inline.class | Misc.class | Meta.class)*
 ## A graphical grouping; the content is inherits by the transformations, 
 ## positioning and other properties.
-element g {
-  Common.attributes,
-  Picture.attributes,
-  PictureGroup.attributes,
-  (Picture.class | Inline.class | Misc.class | Meta.class)* }
+g = element g {g.attribs,g.model}
 
-rect =
+rect.attribs = Common.attributes,Picture.attributes
+rect.model = empty
 ## A rectangle within a \elementref{picture}.
-element rect {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+rect = element rect {rect.attribs,rect.model}
 
-line =
+line.attribs = Common.attributes,Picture.attributes
+line.model = empty
 ## A line within a \elementref{picture}.
-element line {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+line = element line {line.attribs,line.model}
 
-polygon =
+polygon.attribs = Common.attributes,Picture.attributes
+polygon.model = empty
+
 ## A polygon within a \elementref{picture}.
-element polygon {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+polygon = element polygon {polygon.attribs,polygon.model}
 
-wedge =
+wedge.attribs = Common.attributes,Picture.attributes
+wedge.model =empty
 ## A wedge within a \elementref{picture}.
-element wedge {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+wedge = element wedge {wedge.attribs,wedge.model}
 
-arc =
+arc.attribs = Common.attributes,Picture.attributes
+arc.model = empty
 ## An arc within a \elementref{picture}.
-element arc {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+arc = element arc {arc.attribs,arc.model}
 
-circle =
+circle.attribs = Common.attributes,Picture.attributes
+circle.model = empty
 ## A circle within a \elementref{picture}.
-element circle {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+circle = element circle {circle.attribs,circle.model}
 
-ellipse =
+ellipse.attribs = Common.attributes,Picture.attributes
+ellipse.model =empty
 ## An ellipse within a \elementref{picture}.
-element ellipse {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+ellipse = element ellipse {ellipse.attribs,ellipse.model}
 
-path =
+path.attribs = Common.attributes,Picture.attributes
+path.model = empty
 ## A path within a \elementref{picture}.
-element path {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+path = element path {path.attribs,path.model}
 
-bezier =
+bezier.attribs = Common.attributes,Picture.attributes
+bezier.model = empty
 ## A bezier curve within a \elementref{picture}.
-element bezier {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+bezier = element bezier {bezier.attribs,bezier.model}
 
-curve =
+curve.attribs = Common.attributes,Picture.attributes
+curve.model = empty
 ## A curve within a \elementref{picture}.
-element curve {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+curve = element curve {curve.attribs,curve.model}
 
-parabola =
+parabola.attribs = Common.attributes,Picture.attributes
+parabola.model = empty
 ## A parabola curve within a \elementref{picture}.
-element parabola {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+parabola = element parabola {parabola.attribs,parabola.model}
 
-dots =
+dots.attribs = Common.attributes,Picture.attributes
+dots.model = empty
 ## A sequence of dots (?) within a \elementref{picture}.
-element dots {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+dots = element dots {dots.attribs,dots.model}
 
-grid =
+grid.attribs = Common.attributes,Picture.attributes
+grid.model = empty
 ## A grid within a \elementref{picture}.
-element grid {
-  Common.attributes,
-  Picture.attributes,
-  empty }
+grid = element grid {grid.attribs, grid.model}
 
-clip =
+clip.attribs = Common.attributes,Picture.attributes
+clip.model = clippath*
 ## Establishes a clipping region within a \elementref{picture}.
-element clip {
-  Common.attributes,
-  Picture.attributes,
-  clippath* }
+clip = element clip {clip.attribs,clip.model}
 
-clippath =
+clippath.attribs = Common.attributes,Picture.attributes
+clippath.model = (Picture.class | Inline.class | Misc.class | Meta.class)*
 ## Establishes a clipping region within a \elementref{picture}.
-element clippath {
-  Common.attributes,
-  Picture.attributes,
-  (Picture.class | Inline.class | Misc.class | Meta.class)* }
+clippath = element clippath {clippath.attribs,clippath.model}
 
