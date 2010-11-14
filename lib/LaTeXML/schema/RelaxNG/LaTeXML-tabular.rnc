@@ -44,7 +44,7 @@ tbody = element tbody {tbody.attribs,tbody.model}
 tr.attribs = Common.attributes
 tr.model = td*
 ## A row of a tabular.
-tr = element tr {td.attribs,td.model}
+tr = element tr {tr.attribs,tr.model}
 
 td.attribs = Common.attributes,
   ## indicates how many columns this cell spans or covers.
