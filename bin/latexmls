@@ -35,7 +35,7 @@ my $identity = "latexmls (LaTeXML version $LaTeXML::VERSION)";
 #GLOBAL VARS
 my($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$input_counter,$_input_limit,
-   $_local)=(0,0,1,0,0,0,0,0,0,0,0);
+   $_local,$_embed)=(0,0,1,0,0,0,0,0,0,0,0,0);
 my $_timeout = 60;
 my ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_procs_post,$_help,$_showversion,$_preamble,$_preamble_loaded)=
    ('xml','standard',q{},q{},q{},q{},q{},{},undef,undef,undef,q{});
@@ -53,8 +53,8 @@ my($verbosity,$strict,$comments,$noparse,$includestyles,
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_limit,
    $_timeout,$_local);
-my ($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$procs_post,$help,$showversion,$preamble)=
-  ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,{},$_help,$_showversion,$_preamble);
+my ($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$procs_post,$help,$showversion,$preamble,$embed)=
+  ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,{},$_help,$_showversion,$_preamble,$_embed);
 my($stylesheet,$defaultcss,$summary,$icon,@css)=($_stylesheet,$_defaultcss,$_summary,$_icon,@_css);
 my ($documentid,$port);
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
@@ -80,6 +80,7 @@ GetOptions("destination=s" => \$_destination,
 	   "bibtex"    => sub { $_type='bibtex'; },
 	   "noparse"   => \$_noparse,
 	   "mode=s"  => \$_mode,
+           "embed"   => \$_embed,
 	   "autoflush=s" => \$_input_limit,
            "timeout=s"   => \$_timeout,
            "port=s"      => \$port,
@@ -135,7 +136,7 @@ $_input_limit=100 if (!$_input_limit || $_input_limit<=0); #Standard mode
         ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_help,$_showversion,$_preamble,$_documentid,$_inputencoding,$_type);
 ($stylesheet,$defaultcss,$summary,$icon,@css)=($_stylesheet,$_defaultcss,$_summary,$_icon,@_css);
 $procs_post = {};
-
+$embed=$_embed;
 #When in math mode, preload math packages:
 if ($mode eq "math") {
     my  @mathpreload = ("LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
@@ -240,7 +241,8 @@ while ( my $client = $server->accept() ) {
 	   "box"       => sub { $format = 'box'; },
 	   "bibtex"    => sub { $type='bibtex'; },
 	   "noparse"   => \$noparse,
-	   "mode=s"  => sub {return;}, # TODO: Customizing mode leads to problems...ignore for now
+	   "mode=s"  => sub {return;},#Ignore mode switch in runtime for now TODO: FIXME
+           "embed"   => \$embed,
 	   "autoflush=s" => \$input_limit,
            "timeout=s"   => \$timeout,
            "port=s"      => \$port,
@@ -517,7 +519,7 @@ while ( my $client = $server->accept() ) {
     }
     doPost(dest=>$cdestpost,stylesheet=>$stylesheet,dom=>$dom,mode=>$mode,format=>$format,
            parallel=>$parallelmath,procs=>$procs_post,isStream=>($cdestpost eq $client),
-           verbosity=>$verbosity,defaultcss=>$defaultcss);
+           verbosity=>$verbosity,defaultcss=>$defaultcss,embed=>$embed);
     if ($postlog && $local) { #Close log file
       close(PLOG); *STDERR = *ERRORIG;
     }
@@ -542,8 +544,8 @@ while ( my $client = $server->accept() ) {
 #======================================================================
 sub doPost {
   my (%options)=@_;
-  my ($postdest,$style,$dom,$extract,$parallel,$proctypes,$isStream,$format,$verbosity,$defaultcss)= 
-    map {$options{$_}} qw(dest stylesheet dom mode parallel procs isStream format verbosity defaultcss);
+  my ($postdest,$style,$dom,$extract,$parallel,$proctypes,$isStream,$format,$verbosity,$defaultcss,$embed)= 
+    map {$options{$_}} qw(dest stylesheet dom mode parallel procs isStream format verbosity defaultcss embed);
   $verbosity = $verbosity||0;
   my %PostOPS = (verbosity=>$verbosity,siteDirectory=>".");
   #Postprocess
@@ -623,6 +625,18 @@ sub doPost {
     print STDERR "FATAL: Post-processor crashed! $@\n";
     return;
   };
+  # If we want an embedable snippet, unwrap to body's top div
+  if ($embed && ($mode eq "fragment")) {
+    my $bodyel = $postdoc->findnode('//*[local-name()="body"]');
+    my $topdiv;
+    foreach ($bodyel->childNodes) {
+      $topdiv=$_;
+      last if ($topdiv->nodeName eq 'div');
+    }
+    # Assign the top division to the post-document holder
+    $topdiv->unbindNode;
+    $postdoc = $topdiv;
+  }
   if ($extract eq "math") {
     #Output to destination:
     my $mnodes = $postdoc->findnodes('//m:math');
@@ -817,6 +831,8 @@ latexmls [options]
                     Supported: standard|math|fragment
                     (default: standard)
  --post             requests a followup post-processing
+ --embed            requests an embeddable XHTML div (= document body)
+                    (requires: --post,--mode=fragment, socket destination)
  --stylesheet       specifies a stylesheet,
                     to be used by the post-processor.
  --css=cssfile           adds a css stylesheet to html/xhtml
@@ -1022,6 +1038,14 @@ math:     Like latexmlmath, parses a single TeX formula per line.
 
 Request post-processing of converted XML to XHTML. Default behaviour is
 creating XHTML output with Presentational MathML.
+
+=item C<--embed>
+
+Requests an embeddable XHTML div (requires: --post, --mode=fragment), respectively the
+top division of the document's body.
+Caveat: This experimental mode is enabled only for fragment mode and post-processed
+documents (to XHTML). Also, this option can not be used if an explicit --destination
+or --postdest are provided.
 
 =item C<--pmml>
 
