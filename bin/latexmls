@@ -625,17 +625,24 @@ sub doPost {
     print STDERR "FATAL: Post-processor crashed! $@\n";
     return;
   };
-  # If we want an embedable snippet, unwrap to body's top div
+  # If we want an embedable snippet, unwrap to body's "main" div
   if ($embed && ($mode eq "fragment")) {
     my $bodyel = $postdoc->findnode('//*[local-name()="body"]');
     my $topdiv;
+    # Doing monkey hoops is very annoying, why won't LibXML
+    # just fix their XPath support already?!
     foreach ($bodyel->childNodes) {
       $topdiv=$_;
       last if ($topdiv->nodeName eq 'div');
     }
+    my $maindiv;
+    foreach ($topdiv->childNodes) {
+      $maindiv=$_;
+      last if ($maindiv->nodeName eq 'div');
+    }
     # Assign the top division to the post-document holder
-    $topdiv->unbindNode;
-    $postdoc = $topdiv;
+    $maindiv->unbindNode;
+    $postdoc = $maindiv;
   }
   if ($extract eq "math") {
     #Output to destination:
