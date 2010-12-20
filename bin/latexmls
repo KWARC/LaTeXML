@@ -635,8 +635,13 @@ sub doPost {
       $topdiv=$_;
       last if ($topdiv->nodeName eq 'div');
     }
-    my $maindiv;
+    my $contentdiv;
     foreach ($topdiv->childNodes) {
+      $contentdiv=$_;
+      last if ($contentdiv->nodeName eq 'div');
+    }
+    my $maindiv;
+    foreach ($contentdiv->childNodes) {
       $maindiv=$_;
       last if ($maindiv->nodeName eq 'div');
     }
