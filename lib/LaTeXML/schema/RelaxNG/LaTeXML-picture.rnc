@@ -21,11 +21,12 @@ namespace a = "http://relaxng.org/ns/compatibility/annotations/1.0"
 ## NOTE: Consider whether it is sensible to drop this and incorporate SVG itself.
 Misc.class |= picture
 
-Picture.class = g | rect | line | circle | path
+#======================================================================
+
+Picture.class =
+  g | rect | line | circle | path
  | arc | wedge | ellipse | polygon | bezier
  | parabola | curve | dots | grid | clip
-
-
 
 ## These attributes correspond roughly to SVG, but need documentation.
 Picture.attributes =
@@ -64,7 +65,18 @@ PictureGroup.attributes =
   attribute shadowbox {xsd:boolean}?,
   attribute doubleline {xsd:boolean}?
 
-picture.attribs = Common.attributes,ID.attributes,Picture.attributes,Imageable.attributes,
+#======================================================================
+
+picture =
+## A picture environment.
+element picture { picture_attributes, picture_model }
+
+## Attributes for \elementref{picture}.
+picture_attributes = 
+  Common.attributes,
+  ID.attributes,
+  Picture.attributes,
+  Imageable.attributes,
   attribute clip {xsd:boolean}?,
   attribute baseline { text }?,
   attribute unitlength { text }?,
@@ -72,89 +84,202 @@ picture.attribs = Common.attributes,ID.attributes,Picture.attributes,Imageable.a
   attribute yunitlength { text }?,
   attribute tex { text }?,
   attribute content-tex { text }?
-picture.model = (Picture.class | Inline.class | Misc.class | Meta.class)*
-## A picture environment.
-picture = element picture {picture.attribs,picture.model}
 
-g.attribs = Common.attributes,Picture.attributes,PictureGroup.attributes
-g.model = (Picture.class | Inline.class | Misc.class | Meta.class)*
+## Content model for \elementref{picture}.
+picture_model = (Picture.class | Inline.class | Misc.class | Meta.class)*
+
+#======================================================================
+
+g =
 ## A graphical grouping; the content is inherits by the transformations, 
 ## positioning and other properties.
-g = element g {g.attribs,g.model}
+element g { g_attributes, g_model }
 
-rect.attribs = Common.attributes,Picture.attributes
-rect.model = empty
+## Attributes for \elementref{g}.
+g_attributes = Common.attributes, Picture.attributes, PictureGroup.attributes
+
+## Content model for \elementref{g}.
+g_model = (Picture.class | Inline.class | Misc.class | Meta.class)*
+
+#======================================================================
+
+rect =
 ## A rectangle within a \elementref{picture}.
-rect = element rect {rect.attribs,rect.model}
+element rect { rect_attributes, rect_model }
 
-line.attribs = Common.attributes,Picture.attributes
-line.model = empty
+## Attributes for \elementref{rect}.
+rect_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{rect}.
+rect_model = empty
+
+#======================================================================
+
+line =
 ## A line within a \elementref{picture}.
-line = element line {line.attribs,line.model}
+element line { line_attributes, line_model }
 
-polygon.attribs = Common.attributes,Picture.attributes
-polygon.model = empty
+## Attributes for \elementref{line}.
+line_attributes = Common.attributes, Picture.attributes
 
+## Content model for \elementref{line}.
+line_model = empty
+
+#======================================================================
+
+polygon =
 ## A polygon within a \elementref{picture}.
-polygon = element polygon {polygon.attribs,polygon.model}
+element polygon { polygon_attributes, polygon_model }
 
-wedge.attribs = Common.attributes,Picture.attributes
-wedge.model =empty
+## Attributes for \elementref{polygon}.
+polygon_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{polygon}.
+polygon_model = empty
+
+#======================================================================
+
+wedge =
 ## A wedge within a \elementref{picture}.
-wedge = element wedge {wedge.attribs,wedge.model}
+element wedge { wedge_attributes, wedge_model }
 
-arc.attribs = Common.attributes,Picture.attributes
-arc.model = empty
+## Attributes for \elementref{wedge}.
+wedge_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{wedge}.
+wedge_model = empty
+
+#======================================================================
+
+arc =
 ## An arc within a \elementref{picture}.
-arc = element arc {arc.attribs,arc.model}
+element arc { arc_attributes, arc_model }
 
-circle.attribs = Common.attributes,Picture.attributes
-circle.model = empty
+## Attributes for \elementref{arc}.
+arc_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{arc}.
+arc_model = empty
+
+#======================================================================
+
+circle =
 ## A circle within a \elementref{picture}.
-circle = element circle {circle.attribs,circle.model}
+element circle { circle_attributes, circle_model }
 
-ellipse.attribs = Common.attributes,Picture.attributes
-ellipse.model =empty
+## Attributes for \elementref{circle}.
+circle_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{circle}.
+circle_model = empty
+
+#======================================================================
+
+ellipse =
 ## An ellipse within a \elementref{picture}.
-ellipse = element ellipse {ellipse.attribs,ellipse.model}
+element ellipse { ellipse_attributes, ellipse_model }
 
-path.attribs = Common.attributes,Picture.attributes
-path.model = empty
+## Attributes for \elementref{ellipse}.
+ellipse_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{ellipse}.
+ellipse_model = empty
+
+#======================================================================
+
+path =
 ## A path within a \elementref{picture}.
-path = element path {path.attribs,path.model}
+element path { path_attributes, path_model }
 
-bezier.attribs = Common.attributes,Picture.attributes
-bezier.model = empty
+## Attributes for \elementref{path}.
+path_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{path}.
+path_model = empty
+
+#======================================================================
+
+bezier =
 ## A bezier curve within a \elementref{picture}.
-bezier = element bezier {bezier.attribs,bezier.model}
+element bezier { bezier_attributes, bezier_model }
 
-curve.attribs = Common.attributes,Picture.attributes
-curve.model = empty
+## Attributes for \elementref{bezier}.
+bezier_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{bezier}.
+bezier_model = empty
+
+#======================================================================
+
+curve =
 ## A curve within a \elementref{picture}.
-curve = element curve {curve.attribs,curve.model}
+element curve { curve_attributes, curve_model }
 
-parabola.attribs = Common.attributes,Picture.attributes
-parabola.model = empty
+## Attributes for \elementref{curve}.
+curve_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{curve}.
+curve_model = empty
+
+#======================================================================
+
+parabola =
 ## A parabola curve within a \elementref{picture}.
-parabola = element parabola {parabola.attribs,parabola.model}
+element parabola { parabola_attributes, parabola_model }
 
-dots.attribs = Common.attributes,Picture.attributes
-dots.model = empty
+## Attributes for \elementref{parabola}.
+parabola_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{parabola}.
+parabola_model = empty
+
+#======================================================================
+
+dots =
 ## A sequence of dots (?) within a \elementref{picture}.
-dots = element dots {dots.attribs,dots.model}
+element dots { dots_attributes, dots_model }
 
-grid.attribs = Common.attributes,Picture.attributes
-grid.model = empty
+## Attributes for \elementref{dots}.
+dots_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{dots}.
+dots_model = empty
+
+#======================================================================
+
+grid =
 ## A grid within a \elementref{picture}.
-grid = element grid {grid.attribs, grid.model}
+element grid { grid_attributes, grid_model }
 
-clip.attribs = Common.attributes,Picture.attributes
-clip.model = clippath*
+## Attributes for \elementref{grid}.
+grid_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{grid}.
+grid_model = empty
+
+#======================================================================
+
+clip =
 ## Establishes a clipping region within a \elementref{picture}.
-clip = element clip {clip.attribs,clip.model}
+element clip { clip_attributes, clip_model }
 
-clippath.attribs = Common.attributes,Picture.attributes
-clippath.model = (Picture.class | Inline.class | Misc.class | Meta.class)*
+## Attributes for \elementref{clip}.
+clip_attributes = Common.attributes, Picture.attributes
+
+
+## Content model for \elementref{clip}.
+clip_model = clippath*
+
+#======================================================================
+
+clippath =
 ## Establishes a clipping region within a \elementref{picture}.
-clippath = element clippath {clippath.attribs,clippath.model}
+element clippath { clippath_attributes, clippath_model }
 
+## Attributes for \elementref{clippath}.
+clippath_attributes = Common.attributes, Picture.attributes
+
+## Content model for \elementref{clippath}.
+clippath_model = (Picture.class | Inline.class | Misc.class | Meta.class)*
+
+#======================================================================

@@ -1424,7 +1424,7 @@ sub alignmentBindings {
 #						rowElement=>$rowtype,
 #						colElement=>$coltype);
   my $alignment = LaTeXML::Util::Alignment
-    ->new(openContainer =>sub{ $_[0]->openElement($container,@_[1..$#_]); },
+    ->new(openContainer =>sub{ print STDERR "\n".$_[0]->getElement->parentNode->toString."\n\n"; $_[0]->openElement($container,@_[1..$#_]); print STDERR "\n".$_[0]->getElement->parentNode->toString."\n\n"; },
 	  closeContainer=>sub{ $_[0]->closeElement($container); },
 	  openRow       =>sub{ $_[0]->openElement($rowtype,@_[1..$#_]); },
 	  closeRow      =>sub{ $_[0]->closeElement($rowtype); },

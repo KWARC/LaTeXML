@@ -13,7 +13,8 @@
 default namespace = "http://dlmf.nist.gov/LaTeXML"
 
 ## This module defines the following `logical' block elements.
-Para.class |= para
+Para.class |=
+     para
    | theorem | proof
    | figure | table | listing
 
@@ -21,28 +22,59 @@ Para.class |= para
 ## in both inline and block contexts.
 Misc.class  |= inline-para
 
-para.attribs = Common.attributes,ID.attributes
-para.model = Block.model
-## A Logical paragraph. It has an \attr{id}, but not a \attr{label}.
-para = element para {para.attribs,para.model}
+#======================================================================
 
-inline-para.attribs =   Common.attributes,Positionable.attributes
-inline-para.model = Para.model
+para =
+## A Logical paragraph. It has an \attr{id}, but not a \attr{label}.
+element para { para_attributes, para_model }
+
+## Attributes for \elementref{para}.
+para_attributes = Common.attributes, ID.attributes
+
+
+## Content model for \elementref{para}.
+para_model = Block.model
+
+#======================================================================
+
+inline-para =
 ## An inline para. Actually, can appear in inline or block mode, but
 ## typesets its contents as para.
-inline-para = element inline-para {inline-para.attribs,inline-para.model}
+element inline-para { inline-para_attributes, inline-para_model }
 
-theorem.attribs = Common.attributes,Labelled.attributes
-theorem.model = title?, Para.model
+## Attributes for \elementref{inline-para}.
+inline-para_attributes = Common.attributes, Positionable.attributes
+
+## Content model for \elementref{inline-para}.
+inline-para_model = Para.model
+
+#======================================================================
+
+theorem =
 ## A theorem or similar object. The \attr{class} attribute can be used to distinguish
 ## different kinds of theorem.
-theorem = element theorem {theorem.attribs,theorem.model}
+element theorem { theorem_attributes, theorem_model }
 
-proof.attribs = Common.attributes,Labelled.attributes
-proof.model = title?, Para.model
+## Attributes for \elementref{theorem}.
+theorem_attributes = Common.attributes, Labelled.attributes
+
+## Content model for \elementref{theorem}.
+theorem_model = title?, Para.model
+
+#======================================================================
+
+proof =
 ## A proof or similar object. The \attr{class} attribute can be used to distinguish
 ## different kinds of proof.
-proof = element proof {proof.attribs,proof.model}
+element proof { proof_attributes, proof_model }
+
+## Attributes for \elementref{proof}.
+proof_attributes = Common.attributes, Labelled.attributes
+
+## Content model for \elementref{proof}.
+proof_model = title?, Para.model
+
+#======================================================================
 
 ## These are the additional elements representing figure and
 ## table captions.
@@ -50,34 +82,80 @@ proof = element proof {proof.attribs,proof.model}
 ## Or, should caption be used for theorem and proof?
 Caption.class = caption | toccaption
 
-figure.attribs =  Common.attributes,Labelled.attributes,
- ## the floating placement parameter that determines where the object is displayed.
-  attribute placement { text }?
-figure.model = (Block.model | Caption.class)*
+#======================================================================
+
+figure =
 ## A  figure, possibly captioned.
-figure = element figure {figure.attribs,figure.model}
+element figure { figure_attributes, figure_model }
 
-table.attribs = Common.attributes,Labelled.attributes,
- ## the floating placement parameter that determines where the object is displayed.
-  attribute placement { text }?
-table.model = (Block.model | Caption.class)*
-## A  Table, possibly captioned. This is not necessarily a \elementref{tabular}.
-table = element table {table.attribs,table.model}
+## Attributes for \elementref{figure}.
+figure_attributes = 
+  Common.attributes,
+  Labelled.attributes,
 
-listing.attribs = Common.attributes,Labelled.attributes,
   ## the floating placement parameter that determines where the object is displayed.
   attribute placement { text }?
-listing.model = (Block.model | Caption.class)* 
+
+## Content model for \elementref{figure}.
+figure_model = (Block.model | Caption.class)*
+
+#======================================================================
+
+table =
+## A  Table, possibly captioned. This is not necessarily a \elementref{tabular}.
+element table { table_attributes, table_model }
+
+## Attributes for \elementref{table}.
+table_attributes = 
+  Common.attributes,
+  Labelled.attributes,
+
+  ## the floating placement parameter that determines where the object is displayed.
+  attribute placement { text }?
+
+## Content model for \elementref{table}.
+table_model = (Block.model | Caption.class)*
+
+#======================================================================
+
+listing =
 ## A Listing, possibly captioned.
-listing = element listing {listing.attribs,listing.model}
+element listing { listing_attributes, listing_model }
 
-caption.attribs = Common.attributes
-caption.model = Inline.model
+## Attributes for \elementref{listing}.
+listing_attributes = 
+  Common.attributes,
+  Labelled.attributes,
+
+  ## the floating placement parameter that determines where the object is displayed.
+  attribute placement { text }?
+
+## Content model for \elementref{listing}.
+listing_model = (Block.model | Caption.class)*
+
+#======================================================================
+
+caption =
 ## A caption for a \elementref{table} or \elementref{figure}.
-caption = element caption {caption.attribs,caption.model}
+element caption { caption_attributes, caption_model }
 
-toccaption.attribs = Common.attributes
-toccaption.model = Inline.model
+## Attributes for \elementref{caption}.
+caption_attributes = Common.attributes
+
+## Content model for \elementref{caption}.
+caption_model = Inline.model
+
+#======================================================================
+
+toccaption =
 ## A short form of \elementref{table} or \elementref{figure} caption,
 ## used for lists of figures or similar.
-toccaption = element toccaption {toccaption.attribs,toccaption.model}
+element toccaption { toccaption_attributes, toccaption_model }
+
+## Attributes for \elementref{toccaption}.
+toccaption_attributes = Common.attributes
+
+## Content model for \elementref{toccaption}.
+toccaption_model = Inline.model
+
+#======================================================================

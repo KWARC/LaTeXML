@@ -14,227 +14,395 @@ default namespace = "http://dlmf.nist.gov/LaTeXML"
 
 #======================================================================
 
-document.attribs = Sectional.attributes
-document.model = (FrontMatter.class | SectionalFrontMatter.class | Meta.class | titlepage)*,
-  document.body.class*,
-  BackMatter.class*
+document =
 ## The document root.
-document = element document {document.attribs,document.model}
+element document { document_attributes, document_model }
+
 
 ## The content allowable as the main body of the document.
 document.body.class = Para.model | paragraph | subsubsection | subsection | section | chapter | part
 
-#----------------------------------------------------------------------
+## Attributes for \elementref{document}.
+document_attributes = Sectional.attributes
 
-part.attribs =  Sectional.attributes
-part.model = SectionalFrontMatter.class*,part.body.class*
+
+## Content model for \elementref{document}.
+document_model =
+ (FrontMatter.class | SectionalFrontMatter.class | Meta.class | titlepage)*,
+  document.body.class*,
+  BackMatter.class*
+
+#======================================================================
+
+part =
 ## A part within a document.
-part = element part {part.attribs,part.model}
+element part { part_attributes, part_model }
 
 ## The content allowable as the main body of a part.
 part.body.class = Para.model | chapter
 
+## Attributes for \elementref{part}.
+part_attributes = Sectional.attributes
+
+## Content model for \elementref{part}.
+part_model = SectionalFrontMatter.class*, part.body.class*
+
 #----------------------------------------------------------------------
 
-chapter.attribs = Sectional.attributes
-chapter.model = SectionalFrontMatter.class*,chapter.body.class*
+chapter =
 ## A Chapter within a document.
-chapter = element chapter {chapter.attribs, chapter.model}
+element chapter { chapter_attributes, chapter_model }
 
 ## The content allowable as the main body of a chapter.
 chapter.body.class = Para.model | subparagraph | paragraph | subsubsection | subsection | section
 
+## Attributes for \elementref{chapter}.
+chapter_attributes = Sectional.attributes
+
+## Content model for \elementref{chapter}.
+chapter_model = SectionalFrontMatter.class*, chapter.body.class*
+
 #----------------------------------------------------------------------
 
-section.attribs = Sectional.attributes
-section.model = SectionalFrontMatter.class*,section.body.class*
+section =
 ## A Section within a document.
-section = element section {section.attribs,section.model}
+element section { section_attributes, section_model }
 
 ## The content allowable as the main body of a section.
 section.body.class = Para.model | subparagraph | paragraph | subsubsection | subsection
 
-#----------------------------------------------------------------------
+## Attributes for \elementref{section}.
+section_attributes = Sectional.attributes
 
-appendix.attribs = Sectional.attributes
-appendix.model = SectionalFrontMatter.class*,appendix.body.class*
-## An Appendix within a document.
-appendix = element appendix {appendix.attribs,appendix.model}
-
-## The content allowable as the main body of a chapter.
-appendix.body.class = Para.model | subparagraph | paragraph | subsubsection | subsection | section
+## Content model for \elementref{section}.
+section_model = SectionalFrontMatter.class*, section.body.class*
 
 #----------------------------------------------------------------------
 
-subsection.attribs = Sectional.attributes
-subsection.model = SectionalFrontMatter.class*,subsection.body.class*
+subsection =
 ## A Subsection within a document.
-subsection = element subsection {subsection.attribs, subsection.model}
-
+element subsection { subsection_attributes, subsection_model }
+  
 ## The content allowable as the main body of a chapter.
 subsection.body.class = Para.model | subparagraph | paragraph | subsubsection
 
+## Attributes for \elementref{subsection}.
+subsection_attributes = Sectional.attributes
+
+## Content model for \elementref{subsection}.
+subsection_model = SectionalFrontMatter.class*, subsection.body.class*
+
 #----------------------------------------------------------------------
 
-subsubsection.attribs = Sectional.attributes
-subsubsection.model = SectionalFrontMatter.class*,subsubsection.body.class*
+subsubsection =
 ## A Subsubsection within a document.
-subsubsection = element subsubsection {subsubsection.attribs, subsubsection.model}
+element subsubsection { subsubsection_attributes, subsubsection_model }
 
 ## The content allowable as the main body of a chapter.
 subsubsection.body.class = Para.model | subparagraph | paragraph
 
+## Attributes for \elementref{subsubsection}.
+subsubsection_attributes = Sectional.attributes
+
+## Content model for \elementref{subsubsection}.
+subsubsection_model = SectionalFrontMatter.class*, subsubsection.body.class*
+
 #----------------------------------------------------------------------
 
-paragraph.attribs = Sectional.attributes
-paragraph.model = SectionalFrontMatter.class*,paragraph.body.class*
+paragraph =
 ## A Paragraph within a document. This corresponds to a `formal' marked, possibly labelled
 ## LaTeX Paragraph,  in distinction from an unlabelled logical paragraph.
-paragraph = element paragraph {paragraph.attribs,paragraph.model}
+element paragraph { paragraph_attributes, paragraph_model }
 
 ## The content allowable as the main body of a chapter.
 paragraph.body.class = Para.model | subparagraph
 
+## Attributes for \elementref{paragraph}.
+paragraph_attributes = Sectional.attributes
+
+## Content model for \elementref{paragraph}.
+paragraph_model = SectionalFrontMatter.class*, paragraph.body.class*
+
+
 #----------------------------------------------------------------------
 
-subparagraph.attribs = Sectional.attributes
-subparagraph.model = SectionalFrontMatter.class*,subparagraph.body.class*
+subparagraph =
 ## A Subparagraph within a document.
-subparagraph = element subparagraph {subparagraph.attribs,subparagraph.model}
+element subparagraph { subparagraph_attributes, subparagraph_model }
 
 ## The content allowable as the main body of a chapter.
 subparagraph.body.class = Para.model
 
-#----------------------------------------------------------------------
+## Attributes for \elementref{subparagraph}.
+subparagraph_attributes = Sectional.attributes
 
-bibliography.attribs = Sectional.attributes,
-  ## the list of bib files used to create the bibliograph.
-  attribute files { text }?
-bibliography.model = FrontMatter.class*,SectionalFrontMatter.class*,bibliography.body.class*
+## Content model for \elementref{subparagraph}.
+subparagraph_model = SectionalFrontMatter.class*, subparagraph.body.class*
+
+#======================================================================
+
+appendix =
+## An Appendix within a document.
+element appendix { appendix_attributes, appendix_model }
+
+## The content allowable as the main body of a chapter.
+appendix.body.class = Para.model | subparagraph | paragraph | subsubsection | subsection | section
+
+## Attributes for \elementref{appendix}.
+appendix_attributes = Sectional.attributes
+
+## Content model for \elementref{appendix}.
+appendix_model = SectionalFrontMatter.class*, appendix.body.class*
+
+#======================================================================
+
+bibliography =
 ## A Bibliography within a document.
-bibliography = element bibliography {bibliography.attribs,bibliography.model}
+element bibliography { bibliography_attributes, bibliography_model }
 
 ## The content allowable as the main body of a chapter.
 bibliography.body.class = Para.model | biblist
 
-#----------------------------------------------------------------------
+## Attributes for \elementref{bibliography}.
+bibliography_attributes = 
+  Sectional.attributes,
 
-index.attribs = Sectional.attributes
-index.model = SectionalFrontMatter.class*,index.body.class*
+  ## the list of bib files used to create the bibliograph.
+  attribute files { text }?
+
+## Content model for \elementref{bibliography}.
+bibliography_model = FrontMatter.class*, SectionalFrontMatter.class*, bibliography.body.class*
+
+#======================================================================
+
+index =
 ## An Index within a document.
-index = element index {index.attribs,index.model}
+element index { index_attributes, index_model }
 
 ## The content allowable as the main body of a chapter.
 index.body.class = Para.model | indexlist
 
-indexlist.attribs = Common.attributes,ID.attributes
-indexlist.model = indexentry*
-## A hierarchical index generated. Typically generated during postprocessing
+## Attributes for \elementref{index}.
+index_attributes = Sectional.attributes
+
+## Content model for \elementref{index}.
+index_model = SectionalFrontMatter.class*, index.body.class*
+
+#----------------------------------------------------------------------
+
+indexlist =
+## A heirarchical index generated. Typically generated during postprocessing
 ## from the collection of \elementref{indexmark} in the document
 ## (or document collection).
-indexlist = element indexlist {indexlist.attribs,indexlist.model}
+element indexlist { indexlist_attributes, indexlist_model }
 
-indexentry.attribs = Common.attributes,ID.attributes
-indexentry.model = indexphrase, indexrefs?, indexlist?
+## Attributes for \elementref{indexlist}.
+indexlist_attributes = Common.attributes, ID.attributes
+
+## Content model for \elementref{indexlist}.
+indexlist_model = indexentry*
+
+#----------------------------------------------------------------------
+
+indexentry =
 ## An entry in an \elementref{indexlist} consisting of a phrase, references to
 ## points in the document where the phrase was found, and possibly
 ## a nested \elementref{indexlist} represented index levels below this one.
-indexentry = element indexentry {indexentry.attribs,indexentry.model}
+element indexentry { indexentry_attributes, indexentry_model }
 
-indexrefs.attribs =  Common.attributes
-indexrefs.model = Inline.model
+## Attributes for \elementref{indexentry}.
+indexentry_attributes = Common.attributes, ID.attributes
+
+## Content model for \elementref{indexentry}.
+indexentry_model = indexphrase, indexrefs?, indexlist?
+
+#----------------------------------------------------------------------
+
+indexrefs =
 ## A container for the references (\elementref{ref}) to where an \elementref{indexphrase} was
 ## encountered in the document. The model is Inline to allow
 ## arbitrary text, in addition to the expected \elementref{ref}'s.
-indexrefs = element indexrefs {indexrefs.attribs,indexrefs.model}
+element indexrefs { indexrefs_attributes, indexrefs_model }
+
+## Attributes for \elementref{indexrefs}.
+indexrefs_attributes = Common.attributes
+
+## Content model for \elementref{indexrefs}.
+indexrefs_model = Inline.model
 
 #======================================================================
 
-title.attribs = Common.attributes
-title.model = Inline.model
+title =
 ## The title of a document, section or similar document structure container.
-title = element title {title.attribs,title.model}
+element title { title_attributes, title_model }
 
-toctitle.attribs = Common.attributes
-toctitle.model = Inline.model
+## Attributes for \elementref{title}.
+title_attributes = Common.attributes
+
+## Content model for \elementref{title}.
+title_model = Inline.model
+
+#----------------------------------------------------------------------
+
+toctitle =
 ## The short form of a title, for use in tables of contents or similar.
-toctitle = element toctitle {toctitle.attribs,toctitle.model}
+element toctitle { toctitle_attributes, toctitle_model }
 
-subtitle.attribs = Common.attributes
-subtitle.model = Inline.model
+## Attributes for \elementref{toctitle}.
+toctitle_attributes = Common.attributes
+
+## Content model for \elementref{toctitle}.
+toctitle_model = Inline.model
+
+#----------------------------------------------------------------------
+
+subtitle =
 ## A subtitle, or secondary title.
-subtitle = element subtitle {subtitle.attribs,subtitle.model}
+element subtitle { subtitle_attributes, subtitle_model }
 
-# NOTE: This should be aligned with Bibname.
+## Attributes for \elementref{subtitle}.
+subtitle_attributes = Common.attributes
 
-personname.attribs = Common.attributes
-personname.model = Inline.model
-## A person's name.
-personname = element personname {personname.attribs,personname.model}
+## Content model for \elementref{subtitle}.
+subtitle_model = Inline.model
 
-creator.attribs = Common.attributes,
-  ## indicates the role of the person in creating the docment.
-  ## Commonly useful values are specified, but is open-ended to support extension.
-  attribute role { "author" | "editor" | "translator" | "contributor" | "translator" | text }?
-creator.model = (Person.class | Misc.class)*
+#======================================================================
 
+creator =
 ## Generalized document creator.
-creator = element creator {creator.attribs,creator.model}
+element creator { creator_attributes, creator_model }
 
 ## The content allowed in authors, editors, etc.
 Person.class = personname | contact
 
-contact.attribs = Common.attributes,
+## Attributes for \elementref{creator}.
+creator_attributes = 
+  Common.attributes,
+
+  ## indicates the role of the person in creating the docment.
+  ## Commonly useful values are specified, but is open-ended to support extension.
+  attribute role { "author" | "editor" | "translator" | "contributor" | "translator" | text }?
+
+## Content model for \elementref{creator}.
+creator_model = (Person.class | Misc.class)*
+
+#----------------------------------------------------------------------
+# NOTE: This should be aligned with Bibname.
+
+personname =
+## A person's name.
+element personname { personname_attributes, personname_model }
+
+## Attributes for \elementref{personname}.
+personname_attributes = Common.attributes
+
+## Content model for \elementref{personname}.
+personname_model = Inline.model
+
+#----------------------------------------------------------------------
+
+contact =
+## Generalized contact information for a document creator.
+## Note that this element can be repeated to give different types 
+## of contact information (using \attr{role}) for the same creator.
+element contact { contact_attributes, contact_model }
+
+## Attributes for \elementref{contact}.
+contact_attributes = 
+  Common.attributes,
+
   ## indicates the type of contact information contained.
   ## Commonly useful values are specified, but is open-ended to support extension.
   attribute role { "affiliation" | "address" | "current_address" | "email" | "url"
                  | "thanks" | "dedicatory" | text }?
-contact.model = Inline.model
-## Generalized contact information for a document creator.
-## Note that this element can be repeated to give different types 
-## of contact information (using \attr{role}) for the same creator.
-contact = element contact {contact.attribs,contact.model}
 
-date.attribs = Common.attributes,
+## Content model for \elementref{contact}.
+contact_model = Inline.model
+
+#======================================================================
+
+date =
+## Generalized document date.
+## Note that this element can be repeated to give the dates
+## of different events (using \attr{role}) for the same document.
+element date { date_attributes, date_model }
+
+## Attributes for \elementref{date}.
+date_attributes = 
+  Common.attributes,
+
   ## indicates the relevance of the date to the document.
   ## Commonly useful values are specified, but is open-ended to support extension.
   attribute role { "creation" | "conversion" | "posted" | "received"
                  | "revised" | "accepted" | text }?
-date.model = Inline.model
-## Generalized document date.
-## Note that this element can be repeated to give the dates
-## of different events (using \attr{role}) for the same document.
-date = element date {date.attribs,date.model}
 
-abstract.attribs =   Common.attributes
-abstract.model = Block.model
+## Content model for \elementref{date}.
+date_model = Inline.model
+
+#======================================================================
+
+abstract =
 ## A document abstract.
-abstract = element abstract {abstract.attribs,abstract.model}
+element abstract { abstract_attributes, abstract_model }
 
-acknowledgements.attribs = Common.attributes
-acknowledgements.model = Inline.model
+## Attributes for \elementref{abstract}.
+abstract_attributes = Common.attributes
+
+## Content model for \elementref{abstract}.
+abstract_model = Block.model
+
+#======================================================================
+
+acknowledgements =
 ## Acknowledgements for the document.
-acknowledgements = element acknowledgements {acknowledgements.attribs,acknowledgements.model}
+element acknowledgements { acknowledgements_attributes, acknowledgements_model }
 
-keywords.attribs = Common.attributes
-keywords.model = Inline.model
+## Attributes for \elementref{acknowledgements}.
+acknowledgements_attributes = Common.attributes
+
+## Content model for \elementref{acknowledgements}.
+acknowledgements_model = Inline.model
+
+#======================================================================
+
+keywords =
 ## Keywords for the document. The content is freeform.
-keywords = element keywords {keywords.attribs,keywords.model}
+element keywords { keywords_attributes, keywords_model }
 
-classification.attribs = Common.attributes,
+## Attributes for \elementref{keywords}.
+keywords_attributes = Common.attributes
+
+## Content model for \elementref{keywords}.
+keywords_model = Inline.model
+
+#======================================================================
+
+classification =
+## A classification of the document.
+element classification { classification_attributes, classification_model }
+
+## Attributes for \elementref{classification}.
+classification_attributes = 
+  Common.attributes,
+
   ## indicates what classification scheme was used.
   attribute scheme { text }?
-classification.model = Inline.model
-## A classification of the document.
-classification = element classification {classification.attribs,classification.model}
+
+## Content model for \elementref{classification}.
+classification_model = Inline.model
 
 #======================================================================
 # Fallback
 
-titlepage.attribs = Sectional.attributes
-titlepage.model = (FrontMatter.class | SectionalFrontMatter.class | Block.class)*
+titlepage =
 ## block of random stuff marked as a titlepage
-titlepage = element titlepage {titlepage.attribs,titlepage.model}
+element titlepage { titlepage_attributes, titlepage_model }
+
+## Attributes for \elementref{titlepage}.
+titlepage_attributes = Sectional.attributes
+
+## Content model for \elementref{titlepage}.
+titlepage_model = (FrontMatter.class | SectionalFrontMatter.class | Block.class)*
 
 #======================================================================
 
@@ -242,9 +410,9 @@ titlepage = element titlepage {titlepage.attribs,titlepage.model}
 Sectional.attributes =
   Common.attributes,
   Labelled.attributes
+
 ## The content allowed for the front matter of each sectional unit,
 ## and the document.
-
 SectionalFrontMatter.class = title | toctitle | creator
 
 ## The content allowed (in addition to \patternref{SectionalFrontMatter.class})
@@ -258,3 +426,5 @@ FrontMatter.class =
 ## to support articles with figures and similar data appearing `at end'.
 BackMatter.class = bibliography | appendix | index | acknowledgements
 		 | Para.class | Meta.class
+
+#======================================================================
