@@ -432,8 +432,6 @@ sub simplify {
       my $qname = $parentbinding.":".$name;
       @args = map($self->simplify($_,$binding,$parentbinding,$container),@args);
       $$self{usesname}{$qname}{$container}=1 if $container;
-      print STDERR "Qname: $qname\n";
-      print STDERR "$binding $parentbinding $container\n";
       (['ref',$qname]); }
     elsif($op eq 'defchoice'){
       my $qname = $binding.":".$name;
