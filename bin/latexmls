@@ -111,6 +111,9 @@ if (!$_local && ($_destination || $_log || $_postdest || $_postlog)) {carp "I/O 
                                           " Will revert to sockets!\n";
                                          undef $_destination; undef $_log;
                                          undef $_postdest; undef $_postlog;}
+# HOWEVER, any post switch implies post:
+$_post=1 if (keys %$_procs_post);
+
 if($_showversion){ print STDERR "$identity\n"; exit(1); }
 
 #**********************************************************************
@@ -309,6 +312,8 @@ while ( my $client = $server->accept() ) {
   #Math mode means post
   #(TODO: Rethink this, maybe we want more flexibility e.g. noparse XMath)
   #$post=1 if ($mode eq "math");
+  # HOWEVER, any post switch implies post:
+  $post=1 if (keys %$procs_post);
   #Instantiate targets for current input
   my ($dir,$name,$ext);
   ($dir,$name,$ext) = pathname_split($source) if $isFile;
