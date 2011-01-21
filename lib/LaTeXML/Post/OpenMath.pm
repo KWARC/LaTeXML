@@ -127,7 +127,16 @@ sub Expr {
     (); }
   elsif($tag eq 'ltx:XMArg'){	# Only present if parsing failed!
     (grep($_,map(Expr($_),element_nodes($node)))); }
-  else {
+  #DG: Experimental support for ltx:XMText (sTeX ticket #1627)
+  elsif($tag eq 'ltx:XMText') { # Text may contain math inside
+    #always an extra <ltx:text> wrapper needs to be unwrapped
+    $node = $node->firstChild if getQName($node->firstChild) eq 'ltx:text';
+    ['om:OMSTR',{},(grep($_,map(Expr($_),$node->childNodes)))];}
+  elsif($tag eq 'ltx:Math') { # Bootstrap: recursive <Math> should get processed too
+    #Just unwrap to first child (hopefully XMath):
+    # TODO: Make sure this works in general
+    Expr($node->firstChild);
+  } else {
     ['om:OMSTR',{},$node->textContent]; }}
 
 # Experimental; for an XMApp with role=ID, we treat it as a ci
