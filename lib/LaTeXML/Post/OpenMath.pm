@@ -135,7 +135,11 @@ sub Expr {
   elsif($tag eq 'ltx:Math') { # Bootstrap: recursive <Math> should get processed too
     #Just unwrap to first child (hopefully XMath):
     # TODO: Make sure this works in general
-    Expr($node->firstChild);
+    Expr($node->firstChild); }
+  elsif($tag =~ /^ltx:XM(Array|Row|Cell)$/) {
+    my $msg = "$tag is presentational and has no direct OpenMath translation\n".
+      "Please consider improving your binding, e.g. with a DefEnvironment constructor\n";
+    ['om:OMERROR',{},$msg];
   } else {
     ['om:OMSTR',{},$node->textContent]; }}
 

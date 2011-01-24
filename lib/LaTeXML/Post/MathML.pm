@@ -261,6 +261,48 @@ sub pmml_internal {
     my $result = ['m:mtable',{rowspacing=>"0.2ex", columnspacing=>"0.4em"},@rows];
     $result = ['m:mstyle',{@$styleattr},$result] if $styleattr;
     $result; }
+  #Experimental XMRow and XMCell support.
+  #DG: We should accommodate XMRow and XMCell elements appearing out of Arrays (sTeX notations)
+  elsif($tag eq 'ltx:XMRow'){
+    my $style = $node->getAttribute('style');
+    my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
+    local $LaTeXML::MathML::STYLE 
+      = ($style && $stylestep{$style} ? $style : $LaTeXML::MathML::STYLE);
+    my @cols = ();
+    foreach my $col (element_nodes($node)){
+    my $a = $col->getAttribute('align');
+    my $b = $col->getAttribute('border');
+    my $h = (($col->getAttribute('thead')||'') eq 'true') && 'thead';
+    my $c = ($b ? ($h ? "$b $h" : $b) : $h);
+    my $cs = $col->getAttribute('colspan');
+    my $rs = $col->getAttribute('rowspan');
+    push(@cols,['m:mtd',{($a ? (columnalign=>$a):()),
+                        ($c ? (class=>$c):()),
+                        ($cs ? (columnspan=>$cs):()),
+                        ($rs ? (rowspan=>$rs):())},
+                      map(pmml($_),element_nodes($col))]); }
+    my $result = ['m:mtr',{},@cols];
+    $result = ['m:mstyle',{@$styleattr},$result] if $styleattr;
+    $result; }
+  elsif($tag eq 'ltx:XMCell'){
+    my $style = $node->getAttribute('style');
+    my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
+    local $LaTeXML::MathML::STYLE 
+      = ($style && $stylestep{$style} ? $style : $LaTeXML::MathML::STYLE);
+    my $col = $node;
+    my $a = $col->getAttribute('align');
+    my $b = $col->getAttribute('border');
+    my $h = (($col->getAttribute('thead')||'') eq 'true') && 'thead';
+    my $c = ($b ? ($h ? "$b $h" : $b) : $h);
+    my $cs = $col->getAttribute('colspan');
+    my $rs = $col->getAttribute('rowspan');
+    my $result = ['m:mtd',{($a ? (columnalign=>$a):()),
+                        ($c ? (class=>$c):()),
+                        ($cs ? (columnspan=>$cs):()),
+                        ($rs ? (rowspan=>$rs):())},
+                      map(pmml($_),element_nodes($col))];
+    $result = ['m:mstyle',{@$styleattr},$result] if $styleattr;
+    $result; }
   elsif($tag eq 'ltx:XMText'){
     pmml_row(map(pmml_text($_), $node->childNodes));
   }
