@@ -132,6 +132,10 @@ sub Expr {
     #always an extra <ltx:text> wrapper needs to be unwrapped
     $node = $node->firstChild if getQName($node->firstChild) eq 'ltx:text';
     ['om:OMSTR',{},(grep($_,map(Expr($_),$node->childNodes)))];}
+  elsif(!$tag) {
+    #leftover when we unwrap a ltx:XMText, we should simply add its text content
+    $node->textContent;
+  }
   elsif($tag eq 'ltx:Math') { # Bootstrap: recursive <Math> should get processed too
     #Just unwrap to first child (hopefully XMath):
     # TODO: Make sure this works in general
