@@ -14,6 +14,8 @@ package LaTeXML::Package::Pool;
 use strict;
 use LaTeXML::Package;
 use Unicode::Normalize;
+use URI;
+use LWP::Simple;
 use LaTeXML::Util::Alignment;
 use LaTeXML::Util::KeyVal;
 use LaTeXML::Util::Pathname;
@@ -449,6 +451,10 @@ DefMacro('\input TeXFileName',sub {
   $path = $1 if $path =~ /^\{(.*)\}$/; # just in case
   my ($dir,$name,$type) = pathname_split($path);
   my $newpath;
+  my $absuri = URI->new_abs( $path, $STATE->lookupValue('SOURCEFILE'));
+  unless (head($absuri)) {
+    $absuri=$absuri.".tex";
+  }
   if(my $file = FindFile($path)){
     $gullet->input($file); }
   # Possibly we should be trying for a style file (& we may end up in latex mode)
@@ -456,6 +462,9 @@ DefMacro('\input TeXFileName',sub {
      && ($newpath=FindFile($name,type=>'sty'))){	# and there IS such a style file
     Info(":override Overriding input of $path with $newpath");
     RequirePackage($name); }
+  elsif (head($absuri)) {
+    $gullet->input($path);
+  }
   else {
     $STATE->noteStatus(missing=>$path);
     Error(":missing_file:$path Cannot find $path in paths "
