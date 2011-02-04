@@ -103,8 +103,16 @@ and can thus be effected by CSS.</a:documentation>
     </optional>
   </define>
   <define name="text_model">
-    <a:documentation>Content model for \elementref{text}.</a:documentation>
-    <ref name="Inline.model"/>
+    <a:documentation>Content model for \elementref{text}.
+DG: Quick fix disallowing Misc elements in text:
+text_model = Inline.model</a:documentation>
+    <zeroOrMore>
+      <choice>
+        <text/>
+        <ref name="Inline.class"/>
+        <ref name="Meta.class"/>
+      </choice>
+    </zeroOrMore>
   </define>
   <!-- ====================================================================== -->
   <define name="emph">
