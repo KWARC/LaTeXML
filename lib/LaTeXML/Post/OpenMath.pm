@@ -96,7 +96,8 @@ sub DefOpenMath {
 sub Expr {
   my($node)=@_;
   return OMError("Missing Subexpression") unless $node;
-  my $tag = getQName($node);
+  my $tag = getQName($node)||''; #DG: Suppress warnings if not defined 
+                                 #(huh?! Possibly due to recursion of the OMSTR treatment!)
   if($tag eq 'ltx:XMath'){
     my($item,@rest)=  element_nodes($node);
     print STDERR "Warning! got extra nodes for content!\n".$node->toString."\n\n" if @rest;
@@ -130,7 +131,8 @@ sub Expr {
   #DG: Experimental support for ltx:XMText (sTeX ticket #1627)
   elsif($tag eq 'ltx:XMText') { # Text may contain math inside
     #always an extra <ltx:text> wrapper needs to be unwrapped
-    $node = $node->firstChild if getQName($node->firstChild) eq 'ltx:text';
+    my $qname = getQName($node->firstChild);
+    $node = $node->firstChild if ($qname && ($qname eq 'ltx:text'));
     ['om:OMSTR',{},(grep($_,map(Expr($_),$node->childNodes)))];}
   elsif(!$tag) {
     #leftover when we unwrap a ltx:XMText, we should simply add its text content
