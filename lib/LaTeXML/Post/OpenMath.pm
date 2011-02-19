@@ -118,8 +118,9 @@ sub Expr {
       return OMError("Missing Operator") unless $op;
       my $approle = $node->getAttribute('role')||$op->getAttribute('role');
       my $appmeaning = $node->getAttribute('role')||$op->getAttribute('meaning');
+      my $ic = $node->getAttribute('ic')||'variant:default'; #DF: Experiment with notation variants
       my $sub = lookupConverter('Apply',$approle,$appmeaning);
-      &$sub($op,@args); }
+      &$sub($ic,$op,@args); }
   }
   elsif($tag eq 'ltx:XMTok'){
     my $sub = lookupConverter('Token',$node->getAttribute('role'),$node->getAttribute('meaning'));
@@ -257,7 +258,7 @@ sub findElements_internal {
  }}
 
 DefOpenMath('Apply:BINDER:?', sub {
-  my($op,$bvars,$expr)=@_;
+  my($ic,$op,$bvars,$expr)=@_;
   my $bvarspost = Expr($bvars);
   #Recursively fish out all OMV elements:
   my @vars = findElements_internal('om:OMV',@$bvarspost);
@@ -267,17 +268,19 @@ DefOpenMath('Apply:BINDER:?', sub {
    Expr($expr)]});
 
 # Generic
-
+#DG: Adding support for IC Variants (see Christine Mueller's PhD thesis)
 DefOpenMath('Apply:?:?', sub {
-  my($op,@args)=@_;
-  ['om:OMA',{},map(Expr($_),$op,@args)]; });
+  my($ic,$op,@args)=@_;
+  ['om:OMA',
+   ($ic ne 'variant:default') ? {ic=>$ic}:{},
+   map(Expr($_),$op,@args)]; });
 
 # NOTE: No support for OMATTR here...
 
 # NOTE: Sketch of what OMBIND support might look like.
 # Currently, no such construct is created in LaTeXML...
 DefOpenMath('Apply:LambdaBinding:?', sub {
-  my($op,$expr,@vars)=@_;
+  my($ic,$op,$expr,@vars)=@_;
   ['om:OMBIND',{},
    ['om:OMS',{name=>"lambda", cd=>'fns1'},
     ['om:OMBVAR',{},map(Expr($_),@vars)], # Presumably, these yield OMV
