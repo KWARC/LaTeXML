@@ -330,6 +330,11 @@ It's content allows both inline and block-level content.</a:documentation>
       </attribute>
     </optional>
     <optional>
+      <attribute name="resource">
+        <a:documentation>indicates the RDFa relation.</a:documentation>
+      </attribute>
+    </optional>
+    <optional>
       <attribute name="about">
         <a:documentation>indicates the RDFa about.</a:documentation>
       </attribute>

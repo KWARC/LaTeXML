@@ -653,6 +653,11 @@ Commonly useful values are specified, but is open-ended to support extension.</a
       </attribute>
     </optional>
     <optional>
+      <attribute name="resource">
+        <a:documentation>indicates the RDFa relation.</a:documentation>
+      </attribute>
+    </optional>
+    <optional>
       <attribute name="about">
         <a:documentation>indicates the RDFa about.</a:documentation>
       </attribute>

@@ -230,6 +230,9 @@ note_attributes =
   ## indicates the RDFa relation.
   attribute rel { text }?,
 
+  ## indicates the RDFa relation.
+  attribute resource { text }?,
+
   ## indicates the RDFa about.
   attribute about { text }?,
 
