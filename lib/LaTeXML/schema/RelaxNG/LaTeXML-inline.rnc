@@ -221,6 +221,18 @@ note_attributes =
   ## indicates the desired visible marker to be linked to the note.
   attribute mark { text }?,
 
+  ## indicates the RDFa property.
+  attribute property { text }?,
+
+  ## indicates the RDFa content.
+  attribute content { text }?,
+
+  ## indicates the RDFa relation.
+  attribute rel { text }?,
+
+  ## indicates the RDFa about.
+  attribute about { text }?,
+
   ## indicates the kind of note
   attribute role { "footnote" | text }?
 
