@@ -637,6 +637,26 @@ Commonly useful values are specified, but is open-ended to support extension.</a
   <define name="keywords_attributes">
     <a:documentation>Attributes for \elementref{keywords}.</a:documentation>
     <ref name="Common.attributes"/>
+    <optional>
+      <attribute name="property">
+        <a:documentation>indicates the RDFa property.</a:documentation>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="content">
+        <a:documentation>indicates the RDFa content.</a:documentation>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="rel">
+        <a:documentation>indicates the RDFa relation.</a:documentation>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="about">
+        <a:documentation>indicates the RDFa about.</a:documentation>
+      </attribute>
+    </optional>
   </define>
   <define name="keywords_model">
     <a:documentation>Content model for \elementref{keywords}.</a:documentation>
