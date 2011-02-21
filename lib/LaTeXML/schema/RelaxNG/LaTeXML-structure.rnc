@@ -397,7 +397,7 @@ meta =
 ## A document-level metadata placeholder.
 element meta { meta_attributes, meta_model }
 
-## Attributes for \elementref{abstract}.
+## Attributes for \elementref{meta}.
 meta_attributes = 
   Common.attributes,
 
@@ -413,7 +413,7 @@ meta_attributes =
   ## indicates the RDFa about.
   attribute about { text }?
 
-## Content model for \elementref{abstract}.
+## Content model for \elementref{meta}.
 meta_model = Inline.model
 
 #======================================================================
@@ -444,7 +444,7 @@ SectionalFrontMatter.class = title | toctitle | creator
 ## for the front matter of a document.
 FrontMatter.class =
   subtitle | date | abstract | acknowledgements
-  | keywords | classification
+  | keywords | classification | meta
 
 ## The content allowed a the end of a document.
 ## Note that this includes random trailing Block and Para material,
