@@ -1,4 +1,4 @@
-# /=====================================================================\ 
+ /=====================================================================\ 
 # |  LaTeXML-structure.rnc                                              |
 # | RelaxNG model for LaTeXML generated documents                       |
 # |=====================================================================|
@@ -390,6 +390,31 @@ classification_attributes =
 
 ## Content model for \elementref{classification}.
 classification_model = Inline.model
+
+#======================================================================
+
+meta =
+## A document-level metadata placeholder.
+element meta { meta_attributes, meta_model }
+
+## Attributes for \elementref{abstract}.
+meta_attributes = 
+  Common.attributes,
+
+  ## indicates the RDFa property.
+  attribute property { text }?,
+
+  ## indicates the RDFa content.
+  attribute content { text }?,
+
+  ## indicates the RDFa relation.
+  attribute rel { text }?,
+
+  ## indicates the RDFa about.
+  attribute about { text }?
+
+## Content model for \elementref{abstract}.
+meta_model = Inline.model
 
 #======================================================================
 # Fallback
