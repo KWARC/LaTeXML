@@ -195,6 +195,12 @@ sub getDocumentNamespace {
     Error(":model No namespace registered for document prefix $docprefix (using $ns)"); }
   $ns; }
 
+#DG: Allow to request all document namespaces
+sub getDocumentNamespaces {
+  my($self)=@_;
+  (keys %{$$self{document_namespace_prefixes}});
+}
+
 # Given a Qualified name, possibly prefixed with a namespace prefix,
 # as defined by the code namespace mapping,
 # return the NamespaceURI and localname.

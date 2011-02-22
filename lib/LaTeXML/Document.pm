@@ -524,7 +524,14 @@ sub openElement {
       my $attprefix = $$self{model}->getDocumentNamespacePrefix($ns,1,1);
       if(!$prefix && $attprefix){
 	$node->setNamespace($ns,$attprefix, 0); }
-      $node->setNamespace($ns,$prefix, 1); }}
+      $node->setNamespace($ns,$prefix, 1); }
+    #DG: Force document namespaces to be spec-ed out in <document>
+    my @allns = $$self{model}->getDocumentNamespaces;
+    foreach (@allns) {
+      if(! defined $point->lookupNamespacePrefix($_)){	# namespace not already declared?
+	$self->getDocument->documentElement
+	  ->setNamespace($_,$$self{model}->getDocumentNamespacePrefix($_),0); }}
+  }
   else {
     if($ns){
       if(! defined $point->lookupNamespacePrefix($ns)){	# namespace not already declared?

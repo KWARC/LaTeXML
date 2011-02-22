@@ -381,6 +381,9 @@ keywords_attributes = Common.attributes,
   ## indicates the RDFa relation.
   attribute rel { text }?,
 
+  ## indicates the RDFa content datatype.
+  attribute datatype { text }?,
+
   ## indicates the RDFa relation.
   attribute resource { text }?,
 

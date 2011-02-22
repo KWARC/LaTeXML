@@ -72,6 +72,11 @@
     </div>
   </xsl:template>
 
+  <xsl:template match="ltx:keywords[not(string(.))]" xml:space="preserve">
+    <div class="RDFa"><xsl:copy-of select="@*"/></div>
+  </xsl:template>
+
+
   <xsl:template match="ltx:keywords" xml:space="preserve">
     <div class='{f:classes(.)}'><i>Keywords: </i><xsl:apply-templates/></div>
   </xsl:template>

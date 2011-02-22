@@ -335,6 +335,11 @@ It's content allows both inline and block-level content.</a:documentation>
       </attribute>
     </optional>
     <optional>
+      <attribute name="datatype">
+        <a:documentation>indicates the RDFa content datatype.</a:documentation>
+      </attribute>
+    </optional>
+    <optional>
       <attribute name="about">
         <a:documentation>indicates the RDFa about.</a:documentation>
       </attribute>
