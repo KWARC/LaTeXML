@@ -37,7 +37,7 @@ my($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$input_counter,$_input_limit,
    $_local,$_embed)=(0,0,1,0,0,0,0,0,0,0,0,0);
 my $_timeout = 60;
-my ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_procs_post,$_help,$_showversion,$_preamble,$_preamble_loaded)=
+my ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_base,$_procs_post,$_help,$_showversion,$_preamble,$_preamble_loaded)=
    ('xml','standard',q{},q{},q{},q{},q{},{},undef,undef,undef,q{});
 my($_stylesheet,$_defaultcss,$_summary,$_icon,@_css)=(undef,1,0);
 my ($_documentid);
@@ -53,8 +53,8 @@ my($verbosity,$strict,$comments,$noparse,$includestyles,
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_limit,
    $_timeout,$_local);
-my ($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$procs_post,$help,$showversion,$preamble,$embed)=
-  ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,{},$_help,$_showversion,$_preamble,$_embed);
+my ($format,$mode,$destination,$postdest,$log,$postlog,$base,$procs_post,$help,$showversion,$preamble,$embed)=
+  ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_base,{},$_help,$_showversion,$_preamble,$_embed);
 my($stylesheet,$defaultcss,$summary,$icon,@css)=($_stylesheet,$_defaultcss,$_summary,$_icon,@_css);
 my ($documentid,$port);
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
@@ -69,7 +69,7 @@ GetOptions("destination=s" => \$_destination,
 	   "output=s"  => \$_destination,
 	   "preload=s" => \@preload_,
 	   "preamble=s" => \$_preamble,
-           "basedir=s"  => \$_basedir,
+           "base=s"  => \$_base,
 	   "path=s"    => \@paths_,
 	   "quiet"     => sub { $_verbosity--; },
 	   "verbose"   => sub { $_verbosity++; },
@@ -135,8 +135,8 @@ $_input_limit=100 if (!$_input_limit || $_input_limit<=0); #Standard mode
  $errlog,$post,$parallelmath,$input_limit,$timeout,$local)=
   ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
    $_errlog,$_post,$_parallelmath,$_input_limit,$_timeout,$_local);
-($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$help,$showversion,$preamble,$documentid,$inputencoding,$type)=
-        ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_help,$_showversion,$_preamble,$_documentid,$_inputencoding,$_type);
+($format,$mode,$destination,$postdest,$log,$postlog,$base,$help,$showversion,$preamble,$documentid,$inputencoding,$type)=
+        ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_base,$_help,$_showversion,$_preamble,$_documentid,$_inputencoding,$_type);
 ($stylesheet,$defaultcss,$summary,$icon,@css)=($_stylesheet,$_defaultcss,$_summary,$_icon,@_css);
 $procs_post = {};
 $embed=$_embed;
@@ -218,8 +218,8 @@ while ( my $client = $server->accept() ) {
      ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
       $_errlog,$_post,$_parallelmath,$_input_limit,
       $_timeout,$_local);
-  ($format,$mode,$destination,$postdest,$log,$postlog,$basedir,$help,$showversion,$preamble,$documentid,$inputencoding,$type)=
-    ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_basedir,$_help,$_showversion,$_preamble,$_documentid,$_inputencoding,$_type);
+  ($format,$mode,$destination,$postdest,$log,$postlog,$base,$help,$showversion,$preamble,$documentid,$inputencoding,$type)=
+    ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_base,$_help,$_showversion,$_preamble,$_documentid,$_inputencoding,$_type);
   ($stylesheet,$defaultcss,$summary,$icon,@css)=($_stylesheet,$_defaultcss,$summary,$_icon,@_css);
   $procs_post = {};
   @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
@@ -234,7 +234,7 @@ while ( my $client = $server->accept() ) {
            "postdest=s" => \$postdest,
 	   "preload=s" => \@preload,
 	   "preamble=s" => \$preamble,
-           "basedir=s" => \$basedir,
+           "base=s" => \$base,
 	   "path=s"    => \@paths,
 	   "quiet"     => sub { $verbosity--; },
 	   "verbose"   => sub { $verbosity++; },
@@ -272,7 +272,7 @@ while ( my $client = $server->accept() ) {
 	   "help"      => \$help,
       );
       pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
-      if ($basedir) { chdir "$basedir" or croak "Can't chdir to $basedir: $!";};
+      if ($base) { chdir "$base" or croak "Can't chdir to $base: $!";};
       if (!$local && ($destination || $log || $postdest || $postlog)) {carp "I/O from filesystem not allowed without --local!\n".
                                                 " Will revert to sockets!\n";
                                             undef $destination; undef $log;
@@ -813,7 +813,7 @@ latexmls [options]
                     by default it avoids this.
  --preamble=file    loads a tex file containing document frontmatter.
                     Useful for fragment mode.
- --basedir=dir      Specifies the base directory that the server
+ --base=dir         Specifies the base directory that the server
                     operates in. Useful when converting documents 
                     that employ relative paths.
  --path=dir         adds dir to the paths searched for files,

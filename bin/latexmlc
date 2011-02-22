@@ -25,11 +25,11 @@ $port = $portlist{$mode} unless $port;
 $port = 3334 unless $port; #Fall back to 3334 if all fails...
 
 #***************************************************************************
-#Add some basedir, so that relative paths work
+#Add some base, so that relative paths work
 my $cdir = abs_path(cwd());
 $cdir =~ s/ /\\ /g;
-my ($basedir) = map {$_=~/(\S+)/; $1;} grep {$_ =~ /^--basedir=(\S+)$/;} @opts;
-push(@opts,'--basedir='.$cdir) unless $basedir;
+my ($base) = map {$_=~/(\S+)/; $1;} grep {$_ =~ /^--base=(\S+)$/;} @opts;
+push(@opts,'--base='.$cdir) unless $base;
 
 #***************************************************************************
 #Setup client and communicate
