@@ -38,10 +38,11 @@
     </xsl:if>
   </xsl:template>
 
-  <xsl:template match="/">
+  <xsl:template match="/"> 
     <html xmlns     = "http://www.w3.org/1999/xhtml"
 	  xmlns:m   = "http://www.w3.org/1998/Math/MathML"
 	  xmlns:svg = "http://www.w3.org/2000/svg">
+      <xsl:copy-of select="/ltx:document/namespace::*[not(local-name() = 'ltx')]"/>
       <xsl:call-template name="head"/>
       <xsl:call-template name="body"/><xsl:text>
     </xsl:text>
@@ -61,3 +62,5 @@
 <xsl:include href="LaTeXML-webpage-xhtml.xsl"/>
 
 </xsl:stylesheet>
+
+
