@@ -2315,9 +2315,12 @@ DefPrimitive('\input', sub {
   elsif(my $file = FindFile($path)){
     $gullet->input($file); }
   else {
-    $STATE->noteStatus(missing=>$path);
-    Error(":missing_file:$path Cannot find file $path in paths "
-	  .join(', ',@{$STATE->lookupValue('SEARCHPATHS')})); }
+    $gullet->input($path); #Assume URL here, errors can be given by Gullet as well.
+  }
+#  else {
+#    $STATE->noteStatus(missing=>$path);
+#    Error(":missing_file:$path Cannot find file $path in paths "
+#	  .join(', ',@{$STATE->lookupValue('SEARCHPATHS')})); }
   return; });
 
 # Note that even excluded files SHOULD have the effects of their inclusion

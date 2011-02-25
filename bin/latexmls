@@ -15,6 +15,7 @@ use Pod::Usage;
 use LaTeXML::Daemon;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::ObjectDB;
+use LaTeXML::Util::WWW;
 use LaTeXML::Post;
 use LaTeXML::Post::Writer;
 use LaTeXML::Post::Scan;
@@ -25,6 +26,8 @@ use POSIX qw( setsid );
 use LWP::Simple;
 use LWP;
 use IO::Socket;
+use IO::Prompt; #Authorization
+our $authlist={};
 
 #**********************************************************************
 # Parse command line
@@ -147,8 +150,7 @@ if ($mode eq "math") {
 }
 @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
 
-#Setup browser for URI requests
-my $browser = LWP::UserAgent->new;
+#Setup HTTP::Response var for URI requests
 my $response;
 
 @paths = map {pathname_canonical($_)} @paths;
@@ -176,9 +178,10 @@ print STDERR "\n"; #Sanitize log.
 # Preload the preamble if any (and not loaded)
 if ($preamble) {
   #TODO: It is difficult to digest 2 files via LaTeXML into 1 XML output right now...
-  $response=$browser->get($preamble);
+  $response=auth_get($preamble,$authlist);
   if ($response->is_success) {
-    $latexml->digestURLDaemonized($preamble,"standard");
+    my $content = $response->content;
+    $latexml->digestStringDaemonized($content,"standard",$preamble);
   } else {
     $latexml->digestFileDaemonized($preamble,"standard");
   }
@@ -196,6 +199,7 @@ if ($init_status !~ /error/i) {
 my $stateRestore;
 $latexml->withState(sub {
   my($state)=@_;
+  $state->assignValue('_authlist',$authlist,'global');
   $stateRestore = clone $$state{table} if $mode eq "fragment";
 });
 
@@ -204,7 +208,7 @@ exec($0,@ARGV_SAVED)
   or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
 #Set timeout, if wanted:
 alarm($timeout);              #Timeout if inactive for too long...
-
+print STDERR "\n\nInitialization complete...\n";
 #**********************************************************************
 # Daemon has been set up, now process files on demand:grep($_ !~ /^--/,
 while ( my $client = $server->accept() ) {
@@ -272,7 +276,7 @@ while ( my $client = $server->accept() ) {
 	   "help"      => \$help,
       );
       pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
-      if ($base) { chdir "$base" or croak "Can't chdir to $base: $!";};
+      if ($base && $base!~/(\w+):\/\//) { chdir "$base" or croak "Can't chdir to $base: $!";};
       if (!$local && ($destination || $log || $postdest || $postlog)) {carp "I/O from filesystem not allowed without --local!\n".
                                                 " Will revert to sockets!\n";
                                             undef $destination; undef $log;
@@ -301,7 +305,7 @@ while ( my $client = $server->accept() ) {
       $isFile = pathname_canonical($isFile);
       $source = $isFile if $isFile;
       unless($isFile) {
-        $response = $browser->get($source);
+        $response = auth_get($source,$authlist);
         $isURL = $response->is_success;
       }
     }
@@ -377,31 +381,42 @@ while ( my $client = $server->accept() ) {
                           my($state)=@_;
                           $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
                         });
+    # Preload the preamble if any (and not loaded)
+    if ($_preamble) {
+      #TODO: It is difficult to digest 2 files via LaTeXML into 1 XML output right now...
+      $response=auth_get($_preamble,$authlist);
+      if ($response->is_success) {
+        my $content = $response->content;
+        $latexml->digestStringDaemonized($content,"standard",$preamble);
+      } else {
+        $latexml->digestFileDaemonized($preamble,"standard");
+      }
+    }
     print STDERR "\n";          #Again, flush log
-  }
+  } # End of standard use case
 
-  # Preload the preamble if any
+  # Preload the preamble if any (and not loaded)
   if ($preamble && ($preamble ne $_preamble_loaded)) {
     #TODO: It is difficult to digest 2 preamble files via LaTeXML right now...
-    $response=$browser->get($preamble);
+    $response=auth_get($preamble,$authlist);
     if ($response->is_success) {
-      $latexml->digestURLDaemonized($preamble,"standard");
+      $latexml->digestStringDaemonized($response->content,"standard",$preamble);
     } else {
       $latexml->digestFileDaemonized($preamble,"standard");
     }
-    $_preamble_loaded = $preamble;
   }
 
   $latexml->withState(sub {
                         my($state)=@_; #Sandbox state
                         #Save preamble information for further use:
-                        $state->assignValue('_preamble_loaded',$_preamble_loaded,'global');
+                        $state->assignValue('_preamble_loaded',$preamble,'global');
+                        $state->assignValue('_authlist',$authlist,'global');
                         $state->pushFrame; });
   my $serialized;
   my $dom;
   eval {
     if ($isURL) {
-      $digested = $latexml->digestURLDaemonized($source,$mode); 
+      $digested = $latexml->digestStringDaemonized($response->content,$mode,$source);
     } elsif ($isFile) {
       if ($type eq 'bibtex') {
         #TODO: Do we want URL support here?
@@ -411,7 +426,7 @@ while ( my $client = $server->accept() ) {
       }}
     elsif ($isString) {
       $source = mathdoc($source) if ($mode eq "math");
-      $digested = $latexml->digestStringDaemonized($source,$mode); 
+      $digested = $latexml->digestStringDaemonized($source,$mode);
     }
     # ========================================
     # Now, convert to DOM and output, if desired.
@@ -458,13 +473,12 @@ while ( my $client = $server->accept() ) {
     # Preload the preamble if any
     if ($preamble && $mode eq "fragment") {
       #TODO: It is difficult to digest 2 files via LaTeXML into 1 XML output right now...
-      $response=$browser->get($preamble);
+      $response=auth_get($preamble,$authlist);
       if ($response->is_success) {
-        $latexml->digestURLDaemonized($preamble,"standard");
+        $latexml->digestStringDaemonized($response->content,"standard",$preamble);
       } else {
         $latexml->digestFileDaemonized($preamble,"standard");
       }
-      $_preamble_loaded = $preamble;
     }
     print STDERR "\n";          #Again, flush log
     #Move to next...

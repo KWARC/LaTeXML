@@ -16,8 +16,9 @@ use LaTeXML::Global;
 use LaTeXML::Mouth;
 use LaTeXML::Number;
 use LaTeXML::Util::Pathname;
+use LaTeXML::Util::WWW;
 use URI;
-use LWP::Simple;
+use LWP;
 use base qw(LaTeXML::Object);
 #**********************************************************************
 sub new {
@@ -46,23 +47,34 @@ sub input {
   my $file = ($filecontents ? $name
 	      : pathname_find($name,paths=>$STATE->lookupValue('SEARCHPATHS'),
 			      types=>$types, installation_subdir=>'Package'));
-  #DG TODO: This is an ad-hoc URI treatment for a demon, needs reworking
+  # Discover input, either on the filesystem or on the web:
    if(! $file) {
      my $absuri = URI->new_abs( $name, $STATE->lookupValue('SOURCEFILE'));
-     unless (head($absuri)) {
-       $absuri=$absuri.".tex";
-       if (head($absuri)) {
-         $file = $absuri;
+     my $authlist = $STATE->lookupValue('_authlist')||{};
+     my $response= auth_get($absuri,$authlist);
+     my $content;
+     $types=['tex'] unless ($types && scalar(@$types));
+     unless ($response->is_success) {
+       foreach (@$types) {
+         $response=auth_get($absuri.".$_",$authlist);
+         if ($response->is_success) {
+           $content = $response->content;
+           last;
+         }
        }
-     } else { $file = $absuri;}
-     if ($file) {
+     } else { $content = $response->content; }
+     $STATE->assignValue('_authlist',$authlist);
+     if ($content) {
        #URI Case:
-       my $content = get($absuri);
-       NoteBegin("Processing $file");
-       $self->openMouth(LaTeXML::Mouth->new($content), 0);
+       $file=1; # Something got found!
+       NoteBegin("Processing $absuri...");
+       my $urimouth = LaTeXML::Mouth->new($content);
+       $$urimouth{source} = $absuri;
+       $self->openMouth($urimouth, 0);
        return;
      }
    }
+
   ###############################
   if(! $file) {
     $STATE->noteStatus(missing=>$name);
