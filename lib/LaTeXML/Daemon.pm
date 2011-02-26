@@ -45,9 +45,9 @@ sub digestFileDaemonized {
      $state->pushValue(SEARCHPATHS=>$dir);
      $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
 							Tokens(Explode($name))));
-    #Note that we first open the \end and then the \begin
-    #Since we have a stack and not a queue.
-     if ($mode eq "fragment" && $state->lookupDefinition(T_CS("\\begin{document}"))) {
+     #Note that we first open the \end and then the \begin
+     #Since we have a stack and not a queue.
+     if (($mode eq "fragment") && $state->lookupDefinition(T_CS("\\begin{document}"))) {
        #End {document}
        my $edoc = '\\end{document}';
        $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($edoc),0);
@@ -55,7 +55,7 @@ sub digestFileDaemonized {
      #Digest input
      $state->getStomach->getGullet->input($pathname);
      #Wrap LaTeX fragments in a {document} environment
-     if ($mode eq "fragment" && $state->lookupDefinition(T_CS("\\begin{document}"))) {
+     if (($mode eq "fragment") && $state->lookupDefinition(T_CS("\\begin{document}"))) {
        my $bdoc = '\\begin{document}';
        $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($bdoc),0);
      }
@@ -109,7 +109,7 @@ sub digestStringDaemonized {
      }
      #Note that we first open the \end and then the \begin
      #Since we have a stack and not a queue.
-     if ($mode eq "fragment" && $state->lookupDefinition(T_CS("\\begin{document}"))) {
+     if (($mode eq "fragment") && $state->lookupDefinition(T_CS("\\begin{document}"))) {
        #End {document}
        my $edoc = '\\end{document}';
        $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($edoc),0);
@@ -119,7 +119,7 @@ sub digestStringDaemonized {
      $$mouth{source} = $sourceuri if $sourceuri;
      $state->getStomach->getGullet->openMouth($mouth,0);
      #Wrap LaTeX fragments in a {document} environment
-     if ($mode eq "fragment" && $state->lookupDefinition(T_CS("\\begin{document}"))) {
+     if (($mode eq "fragment") && $state->lookupDefinition(T_CS("\\begin{document}"))) {
        my $bdoc = '\\begin{document}';
        $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($bdoc),0);
      }
