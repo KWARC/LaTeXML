@@ -54,6 +54,7 @@ WriteMakefile(NAME => 'LaTeXML',
                             'URI' => 0,
                             'LWP' => 0,
                             'LWP::Simple' => 0,
+                            'IO::Prompt' => 0,
                             'IO::Socket' => 0,
                             'Clone' => 0
 			   },
