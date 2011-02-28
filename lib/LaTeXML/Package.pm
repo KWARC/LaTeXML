@@ -28,7 +28,7 @@ our @EXPORT = (qw(&DefExpandable
 		  &convertLaTeXArgs),
 
 	       # Class, Package and File loading.
-	       qw(&RequirePackage &LoadClass &LoadPool &FindFile
+	       qw(&RequirePackage &LoadClass &LoadPool &LoadedPool &FindFile
 		  &DeclareOption &PassOptions &ProcessOptions &ExecuteOptions
 		  &AddToMacro),
 
@@ -1134,6 +1134,16 @@ sub LoadPool {
     $STATE->getStomach->getGullet->input($poolfile); }
   else {
     Fatal(":missing_file:$mode.pool.ltxml Installation error: Cannot find $mode pool module!"); }}
+
+#DG: Check if loaded
+sub LoadedPool {
+  my($mode)=@_;
+  $mode = ToString($mode) if ref $mode;
+  $mode =~ s/^\s*//;  $mode =~ s/\s*$//;
+  if(my $poolfile = FindFile($mode.".pool")){
+    $STATE->lookupValue($poolfile.'_loaded'); }
+  else {0;}}
+
 
 #======================================================================
 # Defining Rewrite rules that act on the DOM

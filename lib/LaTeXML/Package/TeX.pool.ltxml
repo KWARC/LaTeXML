@@ -3941,7 +3941,9 @@ foreach my $ltxtrigger (qw(documentclass
 			NeedsTeXFormat ProvidesPackage RequirePackage
 			makeatletter makeatother
 			typeout begin)){
-  DefMacroI("\\".$ltxtrigger, undef, sub { LoadPool("LaTeX"); (T_CS("\\$ltxtrigger")); }); }
+  DefMacroI("\\".$ltxtrigger, undef, sub {
+     if (!LoadedPool('LaTeX')) { LoadPool("LaTeX"); (T_CS("\\$ltxtrigger")); }
+     else {Error('Daemon error: Malformed document scoping has dropped all LaTeX definitions - mayhem could follow!'); }}); }
 
 # Seemingly good candidates to trigger AmSTeX ??
 foreach my $amstrigger (qw(BlackBoxes NoBlackBoxes
