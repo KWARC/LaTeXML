@@ -670,9 +670,12 @@ sub doPost {
     $htmlel->unbindNode;
     $htmlel->removeChildNodes;
     $htmlel->setNodeName('div');
-    $htmlel->setAttribute('class','content');
+    $htmlel->setAttribute('class','document');
     $maindiv->unbindNode;
-    $htmlel->addChild($maindiv);
+    foreach ($maindiv->childNodes) {
+      $_->unbindNode;
+      $htmlel->addChild($_);
+    }
     $postdoc = $htmlel;
   }
   if ($extract eq "math") {
