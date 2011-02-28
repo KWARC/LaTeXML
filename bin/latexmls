@@ -665,8 +665,15 @@ sub doPost {
       last if ($maindiv->nodeName eq 'div');
     }
     # Assign the top division to the post-document holder
+    # Copy over all <html> attributes to the maindiv, so that we keep namespaces:
+    my $htmlel = $postdoc->findnode('//*[local-name()="html"]');
+    $htmlel->unbindNode;
+    $htmlel->removeChildNodes;
+    $htmlel->setNodeName('div');
+    $htmlel->setAttribute('class','content');
     $maindiv->unbindNode;
-    $postdoc = $maindiv;
+    $htmlel->addChild($maindiv);
+    $postdoc = $htmlel;
   }
   if ($extract eq "math") {
     #Output to destination:
