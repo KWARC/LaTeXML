@@ -285,7 +285,7 @@ while ( my $client = $server->accept() ) {
       $sockstart=0; next;
     }
     last if ($line =~ /^(\s*)END REQUEST(\s*)$/);
-    $source .= $line."\n" if $line;
+    $source .= $line if $line;
   }
   next unless $source;
   #Bookkeeping...
