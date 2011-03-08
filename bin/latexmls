@@ -200,7 +200,6 @@ my $stateRestore;
 $latexml->withState(sub {
   my($state)=@_;
   $state->assignValue('_authlist',$authlist,'global');
-  $stateRestore = clone $$state{table} if $mode eq "fragment";
 });
 
 #Flush daemon, every $input_limit files:
@@ -411,7 +410,7 @@ while ( my $client = $server->accept() ) {
                         #Save preamble information for further use:
                         $state->assignValue('_preamble_loaded',$preamble,'global');
                         $state->assignValue('_authlist',$authlist,'global');
-                        $state->pushFrame; });
+                        $state->pushDaemonFrame; });
   my $serialized;
   my $dom;
   eval {
@@ -430,7 +429,6 @@ while ( my $client = $server->accept() ) {
     }
     # ========================================
     # Now, convert to DOM and output, if desired.
-    #use Encode;
     if ($digested) {
       local $LaTeXML::Global::STATE = $$latexml{state};
       if ($format eq 'tex') {
@@ -457,7 +455,6 @@ while ( my $client = $server->accept() ) {
     undef $dom;
     undef $serialized;
     undef $source;
-    undef $stateRestore;
     #Init:
     $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
                            verbosity=>$verbosity, strict=>$strict,
@@ -468,7 +465,6 @@ while ( my $client = $server->accept() ) {
     $latexml->withState(sub {
                           my($state)=@_;
                           $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
-                          $stateRestore = clone $$state{table} if $mode eq "fragment";
                         });
     # Preload the preamble if any
     if ($preamble && $mode eq "fragment") {
@@ -491,8 +487,7 @@ while ( my $client = $server->accept() ) {
   my $summaryMessage = $latexml->getStatusMessage;
   $latexml->withState(sub {
                         my($state)=@_; #Remove current state frame
-                        $state->popFrame;
-                        $$state{table} = clone $stateRestore if (($mode eq "fragment") && $stateRestore);
+                        $state->popDaemonFrame;
                         $$state{status} = {};
                       });
   if ($cdest && $local && ($cdest ne $client)) {

@@ -106,18 +106,24 @@ sub assign_internal {
   my($self,$subtable,$key,$value,$scope)=@_;
   my $table = $$self{table};
   $scope = ($$self{prefixes}{global} ? 'global' : 'local') unless defined $scope;
+
   if($scope eq 'global'){
 ## This was was sufficient before having lockable frames
 ##    foreach my $undo (@{$$self{undo}}){ # remove ALL bindings of $key in $subtable's
 ##      delete $$undo{$subtable}{$key}; }
 ##    $$table{$subtable}{$key} = [$value]; } # And place SINGLE value in table.
     # Remove bindings made in all frames down-to & including the next lower locked frame
-    foreach my $undo (@{$$self{undo}}){ # remove ALL bindings of $key in $subtable's
-      if(my $n = $$undo{$subtable}{$key}){ # Undo the bindings, if $key was bound in this frame
-	map( shift(@{$$table{$subtable}{$key}}), 1..$n) if $n;
-	delete $$undo{$subtable}{$key}; }
-      last if $$undo{_FRAME_LOCK_}; }
+###    foreach my $undo (@{$$self{undo}}){ # remove ALL bindings of $key in $subtable's
+    my $frame;
+    my @frames = @{$$self{undo}};
+    while(@frames){
+      $frame = shift(@frames);
+      if(my $n = $$frame{$subtable}{$key}){ # Undo the bindings, if $key was bound in this frame
+    map( shift(@{$$table{$subtable}{$key}}), 1..$n) if $n;
+    delete $$frame{$subtable}{$key}; }
+      last if $$frame{_FRAME_LOCK_}; }
     # whatever is left -- if anything -- should be bindings below the locked frame.
+    $$frame{$subtable}{$key}++; # Note that this many values -- ie. one more -- must be undone
     unshift(@{$$table{$subtable}{$key}},$value); }
   elsif($scope eq 'local'){
     $$self{undo}[0]{$subtable}{$key}++; # Note that this many values -- ie. one more -- must be undone
@@ -275,7 +281,9 @@ sub pushDaemonFrame {
 sub daemon_copy {
   my($ob)=@_;
   if(ref $ob eq 'HASH'){
-    { map( ($_ => daemon_copy($$ob{$_})), keys %$ob) }; }
+    my %hob = map( ($_ => daemon_copy($$ob{$_})), keys %$ob);
+    \%hob;
+  }
   elsif(ref $ob eq 'ARRAY'){
     [ map( daemon_copy($_), @$ob) ]; }
   else {
@@ -285,7 +293,7 @@ sub popDaemonFrame {
   my($self)=@_;
   while(! $$self{undo}[0]{_FRAME_LOCK_}){
     $self->popFrame; }
-  if(scalar( @{$$self{undo}} > 1)){
+  if(scalar(@{$$self{undo}}) > 1){
     delete $$self{undo}[0]{_FRAME_LOCK_};
     $self->popFrame; }
   else {
