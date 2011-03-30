@@ -44,48 +44,47 @@
   </div>
 </xsl:template>
 
-<xsl:template match="ltx:theorem/ltx:title | ltx:proof/ltx:title" xml:space="preserve">
-  <h6 class='{f:classes(.)}'><xsl:apply-templates/></h6>
-</xsl:template>
-
 <!-- ======================================================================
      Figures & Tables
      ====================================================================== -->
 
+<!--
 <xsl:template match="ltx:figure | ltx:table | ltx:listing" xml:space="preserve">
   <div class='{f:classes(.)}'><xsl:call-template name="add_id"/><xsl:apply-templates/></div>
 </xsl:template>
+-->
 
-<xsl:template match="ltx:figure/ltx:caption" xml:space="preserve">
-  <div class='{f:classes(.)}'>
-    <xsl:if test="../@refnum">
-      Figure <xsl:apply-templates select="../@refnum"/><xsl:text>. </xsl:text>
-    </xsl:if>
-    <xsl:apply-templates/>
+<xsl:template match="ltx:figure | ltx:table | ltx:float | ltx:listing">
+  <div class='{f:classes(.)}'  style="{f:positioning(.)}">
+    <xsl:call-template name="add_id"/>
+    <xsl:choose>
+      <xsl:when test="count(ltx:figure | ltx:table | ltx:float | ltx:listing | ltx:graphics) > 1">
+	<table style="width:100%;">
+	  <tr>
+	    <xsl:for-each select="ltx:figure | ltx:table | ltx:float | ltx:listing | ltx:graphics">
+	      <td><xsl:apply-templates select="."/></td>
+	    </xsl:for-each>
+	  </tr>
+	</table>
+	<xsl:apply-templates select="ltx:caption"/>
+      </xsl:when>
+      <xsl:otherwise>
+	<xsl:apply-templates/>
+      </xsl:otherwise>
+    </xsl:choose>
   </div>
 </xsl:template>
 
-<xsl:template match="ltx:table/ltx:caption" xml:space="preserve">
-  <div class='{f:classes(.)}'>  
-    <xsl:if test="../@refnum">
-      Table <xsl:apply-templates select="../@refnum"/><xsl:text>. </xsl:text>
-    </xsl:if>
-    <xsl:apply-templates/>
-  </div>
-</xsl:template>
-
-<xsl:template match="ltx:listing/ltx:caption" xml:space="preserve">
-  <div class='{f:classes(.)}'>
-    <xsl:if test="../@refnum">
-      Listing <xsl:apply-templates select="../@refnum"/><xsl:text>. </xsl:text>
-    </xsl:if>
-    <xsl:apply-templates/>
-  </div>
-</xsl:template>
 <xsl:template match="ltx:listing/ltx:tabular" xml:space="preserve">
   <table class="{f:classes(.)}">
     <xsl:apply-templates/>
   </table>
+</xsl:template>
+
+<xsl:template match="ltx:caption" xml:space="preserve">
+  <div class='{f:classes(.)}'>
+    <xsl:apply-templates/>
+  </div>
 </xsl:template>
 
 <xsl:template match="ltx:toccaption"/>

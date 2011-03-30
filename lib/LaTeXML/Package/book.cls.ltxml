@@ -68,6 +68,7 @@ NewCounter('table',    'chapter', idprefix=>'T');
 DefMacro('\theequation', '\thechapter.\arabic{equation}');
 DefMacro('\thefigure',   '\thechapter.\arabic{figure}');
 DefMacro('\thetable',    '\thechapter.\arabic{table}');
+SetCounter(tocdepth=>Number(2));
 
 NewCounter('@itemizei',   'chapter',    idprefix=>'I');
 NewCounter('@itemizeii',  '@itemizei',  idprefix=>'I');
@@ -89,6 +90,8 @@ DefMacro('\theenumii',          '\alph{enumii}');
 DefMacro('\theenumiii',         '\roman{enumiii}');
 DefMacro('\theenumiv',          '\Alph{enumiv}');
 
+DefMacro('\bibname','Bibliography');
+
 Tag('ltx:appendix',autoClose=>1);
 AssignValue(counter_for_appendix=>'chapter');
 DefMacro('\appendix@chapter', '\@startsection{appendix}{}{}{}{}{}');
@@ -96,9 +99,13 @@ DefMacro('\appendix','\@appendix');
 DefPrimitive('\@appendix',sub{
   NewCounter('chapter', 'document', idprefix=>'A',nested=>['section']);
   DefMacro('\thechapter', '\Alph{chapter}',scope=>'global');
+  DefMacroI('\theappendix',undef,'\thechapter');
   Let(T_CS('\chapter'),T_CS('\appendix@chapter'),'global');
   Let(T_CS('\@appendix'),T_CS('\relax'),'global');
- });
+
+  if(LookupDefinition(T_CS('\appendixname'))){
+    Let(T_CS('\chaptername'),T_CS('\appendixname')); }
+  return; });
 
 # General document structure:
 # \documentclass{..}

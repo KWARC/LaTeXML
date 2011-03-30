@@ -45,9 +45,13 @@ ProcessOptions();
 DefMacro('\subtitle{}', '\@add@frontmatter{ltx:subtitle}{#1}');
 
 # Authors and addresses
+# They seem to allow commas?
+DefMacro('\author{}', sub { SplitTokens(T_CS('\@author'),$_[1],T_CS('\and'),T_OTHER(',')); });
+
 DefConstructor('\@institutemark{}',"<ltx:contact role='institutemark' mark='#1'/>");
 # \inst typically appears INSIDE \author, so @add@to@frontmatter doesn't sync them
-DefConstructor('\inst{}',"^<ltx:contact role='institutemark' mark='#1'/>");
+DefConstructor('\@inst{}',"^<ltx:contact role='institutemark' mark='#1'/>");
+DefMacro('\inst{}',sub { SplitTokens(T_CS('\@inst'),$_[1],T_OTHER(',')); });
 NewCounter('inst','document');
 DefMacro('\institute{}','\bgroup\setcounter{inst}{1}\let\and\institute@and\@new@institute#1\@end@institute\egroup');
 DefMacro('\institute@and','\@end@institute\stepcounter{inst}\@new@institute');
@@ -74,13 +78,14 @@ sub relocateInstitute {
 # NOT an environment!!!
 DefConstructor('\abstract@old{}', '<ltx:abstract>#1</ltx:abstract>');
 DefConstructor('\abstract@new{}{}{}{}{}',
-	       "<ltx:abstract>"
+	       "<ltx:abstract name='#name'>"
 	       ."  <ltx:p><ltx:text>Context:</ltx:text>#1</ltx:p>"
 	       ."  <ltx:p><ltx:text>Aims:</ltx:text>#2</ltx:p>"
 	       ."  <ltx:p><ltx:text>Methods:</ltx:text>#3</ltx:p>"
 	       ."  <ltx:p><ltx:text>Results:</ltx:text>#4</ltx:p>"
 	       ."  <ltx:p><ltx:text>Conclusions:</ltx:text>#5</ltx:p>"
-	       ."</ltx:abstract>");
+	       ."</ltx:abstract>",
+	      properties=>sub { (name=>DigestIf('\abstractname')); });
 
 DefMacro('\abstract{}', sub {
    my($gullet,$arg1)=@_;
@@ -90,7 +95,8 @@ DefMacro('\abstract{}', sub {
      T_BEGIN,$arg1->unlist,T_END; });
 
 # Keywords
-DefMacro('\keywords{}', '\@add@frontmatter{ltx:keywords}{#1}');
+DefMacroI('\keywordname',undef,'\sffamily\bfseries Key Words.');
+DefMacro('\keywords{}', '\@add@frontmatter{ltx:keywords}[name={\keywordname}]{#1}');
 
 # Formatting the header and running title
 DefMacro('\titlerunning{}','');	# Ignorable
@@ -102,7 +108,8 @@ DefMacro('\titrun','');
 
 # undocumented ?
 DefMacro('\offprints{}','\@add@frontmatter{ltx:note}[role=offprints]{#1}');
-DefMacro('\email Semiverbatim','e-mail: #1');
+DefConstructor('\@@@email{}',"^ <ltx:contact role='email'>#1</ltx:contact>");
+DefMacro('\email Semiverbatim', '\@add@to@frontmatter{ltx:creator}{\@@@email{#1}}');
 
 DefMacro('\journalname{}','');
 DefMacro('\rnotename','(Research Note)');
@@ -111,8 +118,8 @@ DefMacro('\rnotname','(RN)');
 # should add a note?
 DefMacro('\headnote{}','\@add@frontmatter{ltx:note}{#1}');
 DefMacro('\dedication{}','\@add@frontmatter{ltx:contact}[role=dedicatory]{#1}');
-DefConstructor('\@mail{}',"^ <ltx:contact role='email'>#1</ltx:contact>");
-DefMacro('\mail Semiverbatim', '\@add@to@frontmatter{ltx:creator}{\@mail{#1}}');
+DefConstructor('\@@@mail{}',"^ <ltx:contact role='email'>#1</ltx:contact>");
+DefMacro('\mail Semiverbatim', '\@add@to@frontmatter{ltx:creator}{\@@@mail{#1}}');
 DefMacro('\mailname','\it Correspondence to \/');
 DefMacro('\doi{}','\@add@frontmatter{ltx:classification}[scheme=doi]{#1}');
 
@@ -125,9 +132,11 @@ DefMacro('\AALogo','Astronomy and Astrophysics');
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # The main text
 
-DefConstructor('\acknowledgements',"<ltx:acknowledgements>");
+DefConstructor('\acknowledgements',"<ltx:acknowledgements name='#name'>",
+	       properties=>sub{ (name=>Digest(T_CS('\acknowledgmentsname'))); });
 DefConstructor('\endacknowledgements',"</ltx:acknowledgements>");
-DefConstructor('\acknowledgement',"<ltx:acknowledgements>");
+DefConstructor('\acknowledgement',"<ltx:acknowledgements name='#name'>",
+	       properties=>sub{ (name=>Digest(T_CS('\acknowledgmentsname'))); });
 DefConstructor('\endacknowledgement',"</ltx:acknowledgements>");
 Tag("ltx:acknowledgements", autoClose=>1);
 DefMacro('\acknowledgmentsname','Acknowledgements');
@@ -310,7 +319,6 @@ DefMacro('\setitemitemindent{}','');
 DefMacro('\andname','and');
 #DefMacro('\lastand','');
 DefMacro('\lastandname',', and');
-DefMacro('\keywordname','\sffamily\bfseries Key Words.');
 
 DefMacro('\AASection{}','');	# Ignorable
 DefMacro('\Online','');

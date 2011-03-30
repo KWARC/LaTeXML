@@ -90,7 +90,7 @@ element acronym { acronym_attributes, acronym_model }
 acronym_attributes =
   Common.attributes,
   ## should be used to indicate the expansion of the acronym.
-  attribute name { text }
+  attribute name { text }?
 
 ## Content model for \elementref{acronym}.
 acronym_model = Inline.model
@@ -278,7 +278,7 @@ indexmark_attributes =
   attribute style { text }?
 
 ## Content model for \elementref{indexmark}.
-indexmark_model = indexphrase*
+indexmark_model = indexphrase*, indexsee*
 
 #======================================================================
 
@@ -295,5 +295,23 @@ indexphrase_attributes =
 
 ## Content model for \elementref{indexphrase}.
 indexphrase_model = Inline.model
+
+indexsee =
+## A see-also phrase within an \elementref{indexmark}
+element indexsee { indexsee_attributes, indexsee_model }
+
+## Attributes for \elementref{indexsee}.
+indexsee_attributes =
+  Common.attributes,
+
+  ## a flattened form of the phrase for generating an \attr{ID}.
+  attribute key { text }?,
+
+  ## a name for the see phrase, such as "see also".
+  attribute name { text }?
+
+
+## Content model for \elementref{indexsee}.
+indexsee_model = Inline.model
 
 #======================================================================

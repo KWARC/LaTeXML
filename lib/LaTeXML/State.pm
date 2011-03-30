@@ -46,7 +46,7 @@ use LaTeXML::Global;
 # The undo list indicates how many values have been assigned for $key in
 # the $frame'th frame (usually 0 is the one of interest).
 # [Would be simpler to store boolean in undo, but see deactivateScope]
-# [All keys for $$self{undo}[$frame} are subtable names, EXCEPT "_FRAME_LOCK_"!!]
+# [All keys fo $$self{undo}[$frame} are subtable names, EXCEPT "_FRAME_LOCK_"!!]
 #
 # So, in handwaving form, the algorithms are as follows:
 # push-frame == bgroup == begingroup:
@@ -119,8 +119,8 @@ sub assign_internal {
     while(@frames){
       $frame = shift(@frames);
       if(my $n = $$frame{$subtable}{$key}){ # Undo the bindings, if $key was bound in this frame
-    map( shift(@{$$table{$subtable}{$key}}), 1..$n) if $n;
-    delete $$frame{$subtable}{$key}; }
+	map( shift(@{$$table{$subtable}{$key}}), 1..$n) if $n;
+	delete $$frame{$subtable}{$key}; }
       last if $$frame{_FRAME_LOCK_}; }
     # whatever is left -- if anything -- should be bindings below the locked frame.
     $$frame{$subtable}{$key}++; # Note that this many values -- ie. one more -- must be undone
@@ -281,9 +281,9 @@ sub pushDaemonFrame {
 sub daemon_copy {
   my($ob)=@_;
   if(ref $ob eq 'HASH'){
-    my %hob = map( ($_ => daemon_copy($$ob{$_})), keys %$ob);
-    \%hob;
-  }
+###    { map( ($_ => daemon_copy($$ob{$_})), keys %$ob) }; }
+    my %hash = map( ($_ => daemon_copy($$ob{$_})), keys %$ob);
+    \%hash; }
   elsif(ref $ob eq 'ARRAY'){
     [ map( daemon_copy($_), @$ob) ]; }
   else {
@@ -293,7 +293,7 @@ sub popDaemonFrame {
   my($self)=@_;
   while(! $$self{undo}[0]{_FRAME_LOCK_}){
     $self->popFrame; }
-  if(scalar(@{$$self{undo}}) > 1){
+  if(scalar( @{$$self{undo}} > 1)){
     delete $$self{undo}[0]{_FRAME_LOCK_};
     $self->popFrame; }
   else {

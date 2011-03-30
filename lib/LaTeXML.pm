@@ -46,6 +46,7 @@ sub new {
   $state->assignValue(DOCUMENTID=>(defined $options{documentid} ? $options{documentid} : ''),
 		      'global');
   $state->assignValue(SEARCHPATHS=> [ @{$options{searchpaths} || []} ],'global');
+  $state->assignValue(GRAPHICSPATHS=> [ @{$options{graphicspaths} || []} ],'global');
   $state->assignValue(INCLUDE_STYLES=>$options{includeStyles}|| 0,'global');
   $state->assignValue(INPUT_ENCODING=>$options{inputencoding}) if $options{inputencoding};
   bless {state   => $state, 
@@ -96,6 +97,8 @@ sub digestFile {
      my($dir,$name,$ext)=pathname_split($pathname);
      $state->assignValue(SOURCEBASE=>$name,'global');
      $state->pushValue(SEARCHPATHS=>$dir);
+     $state->pushValue(GRAPHICSPATHS=>$dir);
+
      $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
 							Tokens(Explode($name))));
      $state->getStomach->getGullet->input($pathname);
@@ -132,6 +135,8 @@ sub digestBibTeXFile {
      my $bib = LaTeXML::Bib->newFromFile($file);
      my($dir,$name,$ext)=pathname_split($pathname);
      $state->pushValue(SEARCHPATHS=>$dir);
+     $state->pushValue(GRAPHICSPATHS=>$dir);
+
      $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
 							Tokens(Explode($name))));
      # This is handled by the gullet for TeX files, but we're doing a batch of string processing first.

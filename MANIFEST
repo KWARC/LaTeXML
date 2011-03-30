@@ -196,6 +196,8 @@ lib/LaTeXML/Package/euscript.sty.ltxml
 lib/LaTeXML/Package/exscale.sty.ltxml
 lib/LaTeXML/Package/fixltx2e.sty.ltxml
 lib/LaTeXML/Package/float.sty.ltxml
+lib/LaTeXML/Package/floatfig.sty.ltxml
+lib/LaTeXML/Package/floatflt.sty.ltxml
 lib/LaTeXML/Package/fontenc.sty.ltxml
 lib/LaTeXML/Package/fourier.sty.ltxml
 lib/LaTeXML/Package/gen-j-l.cls.ltxml
@@ -212,6 +214,9 @@ lib/LaTeXML/Package/inputenc.sty.ltxml
 lib/LaTeXML/Package/iopams.sty.ltxml
 lib/LaTeXML/Package/iopart.cls.ltxml
 lib/LaTeXML/Package/iopart_support.sty.ltxml
+lib/LaTeXML/Package/JHEP.cls.ltxml
+lib/LaTeXML/Package/JHEP2.cls.ltxml
+lib/LaTeXML/Package/JHEP3.cls.ltxml
 lib/LaTeXML/Package/keyval.sty.ltxml
 lib/LaTeXML/Package/latexml.sty.ltxml
 lib/LaTeXML/Package/LaTeX.pool.ltxml
@@ -375,6 +380,9 @@ t/expansion/testif.xml
 t/expansion/testinput.dvi
 t/expansion/testinput.tex
 t/expansion/testinput.xml
+t/expansion/testinput.foo
+t/expansion/fragment1.tex
+t/expansion/fragment2.tex
 t/fonts/accents.dvi
 t/fonts/accents.xml
 t/fonts/accents.tex
@@ -477,9 +485,15 @@ t/structure/article.xml
 t/structure/authors.dvi
 t/structure/authors.tex
 t/structure/authors.xml
+t/structure/beforeafter.dvi
+t/structure/beforeafter.tex
+t/structure/beforeafter.xml
 t/structure/book.dvi
 t/structure/book.tex
 t/structure/book.xml
+t/structure/figures.dvi
+t/structure/figures.tex
+t/structure/figures.xml
 t/structure/itemize.dvi
 t/structure/itemize.tex
 t/structure/itemize.xml
