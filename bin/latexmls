@@ -283,6 +283,7 @@ while ( my $client = $server->accept() ) {
       $sockstart=0; next;
     }
     last if ($line =~ /^(\s*)END REQUEST(\s*)$/);
+    $line .= "\n" unless ($line =~ /\n$/);
     $source .= $line if $line;
   }
   next unless $source;
