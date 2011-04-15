@@ -283,17 +283,13 @@ while ( my $client = $server->accept() ) {
       $sockstart=0; next;
     }
     last if ($line =~ /^(\s*)END REQUEST(\s*)$/);
-    $line .= "\n" unless ((!$line) || ($line =~ /\n$/));
+    $line .= "\n" unless ((! defined $line) || ($line =~ /\n$/));
     $source .= $line if (defined $line);
   }
-  next unless $source;
+  next unless defined $source;
   #Bookkeeping...
   alarm(0);                    #We are processing, ignore timeout here
   $input_counter++;
-  chomp $source;
-  $source =~ s/^\s+//m;                     #Cleanup space
-  $source =~ s/\s+$//m;                     #Cleanup space
-  next if (!$source);
   # Determine input type if local, otherwise only socket exchange:
   my ($isURL,$isString,$isFile);
   if ($local) {
