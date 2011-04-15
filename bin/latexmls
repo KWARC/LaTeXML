@@ -227,7 +227,6 @@ while ( my $client = $server->accept() ) {
   $procs_post = {};
   @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
   while (my $line = <$client>) {
-    chomp $line if $line; #We don't need the trailing empty line
     $sockstart=0 unless $line=~/^--/;#Assume no options will be given if the line does not start with --
     if ($sockstart) {
       #Parse overwrites from current input:
