@@ -35,7 +35,10 @@
       <xsl:if test="@*[namespace-uri() = 'http://www.w3.org/1999/xlink'] and not(@xlink:type)">
 	<xsl:attribute name="type" namespace='http://www.w3.org/1999/xlink'>simple</xsl:attribute>
       </xsl:if>
-
+      <!-- copy the ltx:Math xml:id -->
+      <xsl:if test="parent::ltx:Math/@xml:id">
+        <xsl:attribute name="xml:id"><xsl:value-of select="parent::ltx:Math/@xml:id"/></xsl:attribute>
+      </xsl:if>
       <xsl:apply-templates/>
     </xsl:element>
   </xsl:template>
