@@ -196,7 +196,6 @@ if ($init_status !~ /error/i) {
 } else {  croak $init_status; } #Demand errorless initialization
 
 #Create restore point
-my $stateRestore;
 $latexml->withState(sub {
   my($state)=@_;
   $state->assignValue('_authlist',$authlist,'global');
@@ -293,6 +292,7 @@ while ( my $client = $server->accept() ) {
   # Determine input type if local, otherwise only socket exchange:
   my ($isURL,$isString,$isFile);
   if ($local) {
+    $source=~s/\n$//g; #eliminate trailing new lines
     my @source_lines = split(/\n/,$source);
     $isString = $source if (scalar(@source_lines)>1 || $mode eq "math");
     unless ($isString) {

@@ -28,7 +28,7 @@ our @ISA = (qw(LaTeXML::Object));
 #use LaTeXML::Document;
 
 use vars qw($VERSION);
-$VERSION = "0.7.0";
+$VERSION = "0.7.9alpha";
 
 #**********************************************************************
 
@@ -45,8 +45,10 @@ sub new {
 		      'global');
   $state->assignValue(DOCUMENTID=>(defined $options{documentid} ? $options{documentid} : ''),
 		      'global');
-  $state->assignValue(SEARCHPATHS=> [ @{$options{searchpaths} || []} ],'global');
-  $state->assignValue(GRAPHICSPATHS=> [ @{$options{graphicspaths} || []} ],'global');
+  $state->assignValue(SEARCHPATHS=> [ map(pathname_absolute(pathname_canonical($_)),
+					  @{$options{searchpaths} || []})], 'global');
+  $state->assignValue(GRAPHICSPATHS=> [ map(pathname_absolute(pathname_canonical($_)),
+					    @{$options{graphicspaths} || []}) ],'global');
   $state->assignValue(INCLUDE_STYLES=>$options{includeStyles}|| 0,'global');
   $state->assignValue(INPUT_ENCODING=>$options{inputencoding}) if $options{inputencoding};
   bless {state   => $state, 
@@ -83,59 +85,82 @@ sub getStatusMessage {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Mid-level API.
 
+# options are currently being evolved to accomodate the Daemon:
+#    noinitialize : if defined, it does not initialize State.
+#    preamble = names a tex file (or standard_preamble.tex)
+#    postamble = names a tex file (or standard_postamble.tex)
 sub digestFile {
-  my($self,$file)=@_;
+  my($self,$file,%options)=@_;
   $file =~ s/\.tex$//;
   $self->withState(sub {
      my($state)=@_;
      NoteBegin("Digesting $file");
-     $self->initializeState('TeX.pool', @{$$self{preload} || []});
+     $self->initializeState('TeX.pool', @{$$self{preload} || []}) unless $options{noinitialize};
 
      my $pathname = pathname_find($file,types=>['tex','']);
      Fatal(":missing_file:$file Cannot find TeX file $file") unless $pathname;
-     $state->assignValue(SOURCEFILE=>$pathname,'global');
+     $state->assignValue(SOURCEFILE=>$pathname);
      my($dir,$name,$ext)=pathname_split($pathname);
-     $state->assignValue(SOURCEBASE=>$name,'global');
-     $state->pushValue(SEARCHPATHS=>$dir);
-     $state->pushValue(GRAPHICSPATHS=>$dir);
+     $state->unshiftValue(SEARCHPATHS=>$dir) unless grep($_ eq $dir, @{$state->lookupValue('SEARCHPATHS')});
+     $state->unshiftValue(GRAPHICSPATHS=>$dir) unless grep($_ eq $dir, @{$state->lookupValue('GRAPHICSPATHS')});
 
      $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
 							Tokens(Explode($name))));
-     $state->getStomach->getGullet->input($pathname);
-     my $list = $self->finishDigestion;
+     my $stomach=$state->getStomach;
+     my @stuff=();
+     push(@stuff,$self->loadPreamble($options{preamble})) if $options{preamble};
+
+     $stomach->getGullet->input($pathname);
+     while($stomach->getGullet->getMouth->hasMoreInput){
+       push(@stuff,$stomach->digestNextBody); }
+
+     push(@stuff,$self->loadPreamble($options{postamble})) if $options{postamble};
+#     my $list = $self->finishDigestion;
+     my $list = LaTeXML::List->new(@stuff);
      NoteEnd("Digesting $file");
      $list; });
 }
-
 sub digestString {
-  my($self,$string,$sourcebase)=@_;
+  my($self,$string, %options)=@_;
   $self->withState(sub {
      my($state)=@_;
      NoteBegin("Digesting string");
-     $self->initializeState('TeX.pool', @{$$self{preload} || []});
-     $state->assignValue(SOURCEBASE=>$sourcebase,'global') if $sourcebase;
-     $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($string),0);
-###     $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
-###						       Tokens(Explode("Unknown"))));
-     my $line = $self->finishDigestion;
+     $self->initializeState('TeX.pool', @{$$self{preload} || []})  unless $options{noinitialize};
+
+     my $stomach=$state->getStomach;
+     my @stuff=();
+
+     push(@stuff,$self->loadPreamble($options{preamble})) if $options{preamble};
+
+     $stomach->getGullet->openMouth(LaTeXML::Mouth->new($string),0);
+     while($stomach->getGullet->getMouth->hasMoreInput){
+       push(@stuff,$stomach->digestNextBody); }
+
+     push(@stuff,$self->loadPreamble($options{postamble})) if $options{postamble};
+
+     # my $list = $self->finishDigestion;
+     my $list = LaTeXML::List->new(@stuff);
      NoteEnd("Digesting string");
-     $line; });
+     $list; });
 }
 
+# pre/postamble ????
+
 sub digestBibTeXFile {
-  my($self,$file)=@_;
+  my($self,$file, %options)=@_;
   $file =~ s/\.bib$//;
   $self->withState(sub {
      my($state)=@_;
      NoteBegin("Digesting bibliography $file");
      # NOTE: This is set up to do BibTeX for LaTeX (not other flavors, if any)
-     $self->initializeState('TeX.pool','LaTeX.pool', 'BibTeX.pool', @{$$self{preload} || []});
+     $self->initializeState('TeX.pool','LaTeX.pool', 'BibTeX.pool', @{$$self{preload} || []})
+       unless $options{noinitialize};
      my $pathname = pathname_find($file,types=>['bib','']);
      Fatal(":missing_file:$file Cannot find TeX file $file") unless $pathname;
      my $bib = LaTeXML::Bib->newFromFile($file);
      my($dir,$name,$ext)=pathname_split($pathname);
-     $state->pushValue(SEARCHPATHS=>$dir);
-     $state->pushValue(GRAPHICSPATHS=>$dir);
+     $state->unshiftValue(SEARCHPATHS=>$dir) unless grep($_ eq $dir, @{$state->lookupValue('SEARCHPATHS')});
+     $state->unshiftValue(GRAPHICSPATHS=>$dir) unless grep($_ eq $dir, @{$state->lookupValue('GRAPHICSPATHS')});
 
      $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
 							Tokens(Explode($name))));
@@ -159,6 +184,32 @@ sub finishDigestion {
     Error(":expected:\\end{$env} Input ended while environment $env was open"); } 
   $stomach->getGullet->flush;
   $list; }
+
+sub loadPreamble {
+  my($self,$preamble)=@_;
+  my $state = $$self{state};
+  my $stomach  = $state->getStomach; # The current Stomach;
+  my @stuff = ();
+  if($preamble eq 'standard_preamble.tex'){
+     $stomach->getGullet->openMouth(LaTeXML::Mouth->new('\documentclass{article}\begin{document}'),0); }
+  else {
+     $stomach->getGullet->input($preamble); }
+  while($stomach->getGullet->getMouth->hasMoreInput){
+    push(@stuff,$stomach->digestNextBody); }
+  LaTeXML::List->new(@stuff); }
+
+sub loadPostamble {
+  my($self,$postamble)=@_;
+  my $state = $$self{state};
+  my $stomach  = $state->getStomach; # The current Stomach;
+  my @stuff = ();
+  if($postamble eq 'standard_postamble.tex'){
+     $stomach->getGullet->openMouth(LaTeXML::Mouth->new('\end{document}'),0); }
+  else {
+     $stomach->getGullet->input($postamble); }
+  while($stomach->getGullet->getMouth->hasMoreInput){
+    push(@stuff,$stomach->digestNextBody); }
+  LaTeXML::List->new(@stuff); }
 
 sub convertDocument {
   my($self,$digested)=@_;

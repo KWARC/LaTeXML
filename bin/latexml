@@ -78,6 +78,7 @@ elsif($mode eq 'bibtex'){
   $digested = $latexml->digestBibTeXFile($source); }
 else {
   # ===============================================
+  # TODO: This has long become obsolete, remove entirely (possibly merge native latexml)
   #Deyan: adding support for multiple file on input,
   # where the assumption is that we are given several pieces of the same document
   # Basic idea - write a temp file which \input{}s the ARGV collection of file pieces.
@@ -91,8 +92,8 @@ else {
       my ($dir,$name,$ext) = pathname_split($piece);
       push(@bases,$name);
     }
-    my $sourcebase = join("-",@bases);
-    $digested = $latexml->digestString($multicontent,$sourcebase);
+    #my $sourcebase = join("-",@bases);
+    $digested = $latexml->digestString($multicontent);#,$sourcebase);
   }
   else {
     $digested = $latexml->digestFile($source); 
