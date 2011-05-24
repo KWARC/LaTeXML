@@ -375,7 +375,7 @@ keywords =
 element keywords { keywords_attributes, keywords_model }
 
 ## Attributes for \elementref{keywords}.
-keywords_attributes = Common.attributes, FrontMatter.attributes
+keywords_attributes = Common.attributes, FrontMatter.attributes,
 
   ## indicates the RDFa property.
   attribute property { text }?,
