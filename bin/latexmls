@@ -110,10 +110,11 @@ GetOptions("destination=s" => \$_destination,
 	   "help"      => \$_help,
 	  ) or pod2usage(-message => $identity, -exitval=>1, -verbose=>0, -output=>\*STDERR);
 pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $_help;
-if (!$_local && ($_destination || $_log || $_postdest || $_postlog)) {carp "I/O from filesystem not allowed without --local!\n".
-                                          " Will revert to sockets!\n";
-                                         undef $_destination; undef $_log;
-                                         undef $_postdest; undef $_postlog;}
+if (!$_local && ($_destination || $_log || $_postdest || $_postlog)) 
+  {carp "I/O from filesystem not allowed without --local!\n".
+     " Will revert to sockets!\n";
+   undef $_destination; undef $_log;
+   undef $_postdest; undef $_postlog;}
 # HOWEVER, any post switch implies post:
 $_post=1 if (keys %$_procs_post);
 
@@ -154,7 +155,7 @@ if ($mode eq "math") {
 my $response;
 
 @paths = map {pathname_canonical($_)} @paths;
-my $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
+my $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths], graphicspaths=>['.'],
 			  verbosity=>$verbosity, strict=>$strict,
 			  includeComments=>$comments,inputencoding=>$inputencoding,
 			  includeStyles=>$includestyles,
@@ -202,8 +203,10 @@ $latexml->withState(sub {
 });
 
 #Flush daemon, every $input_limit files:
-exec($0,@ARGV_SAVED) 
-  or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
+if ($input_counter>=$input_limit) {
+  exec($0,@ARGV_SAVED) 
+    or croak ("Daemon autoflush Failed!\n");
+}
 #Set timeout, if wanted:
 alarm($timeout);              #Timeout if inactive for too long...
 print STDERR "\n\nInitialization complete...\n";
@@ -285,7 +288,7 @@ while ( my $client = $server->accept() ) {
     $line .= "\n" unless ((! defined $line) || ($line =~ /\n$/));
     $source .= $line if (defined $line);
   }
-  next unless defined $source;
+  next unless ((defined $source) && (length( $source ) > 0));
   #Bookkeeping...
   alarm(0);                    #We are processing, ignore timeout here
   $input_counter++;
@@ -350,6 +353,7 @@ while ( my $client = $server->accept() ) {
       (!$cdestpost || ($cdestpost eq $client) || $cdestpost=~/\.xhtml$/ || 
        $cdestpost=~s/\.tex\.xml$/.xhtml/ || $cdestpost=~s/\.xml$/.xhtml/); #Some heuristics
   }
+
   $cdestpost = undef unless $post;
   my $deststat = (stat($cdest))[9] if ($summary && $cdest && ($cdest ne $client));
   my $destpoststat = (stat($cdestpost))[9] if ($summary && $cdestpost && ($cdestpost ne $client));
@@ -366,7 +370,7 @@ while ( my $client = $server->accept() ) {
     #In the classic case, we need to reinitialize latexml
     # on every input
     undef $latexml;
-    $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
+    $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths], 
                            verbosity=>$verbosity, strict=>$strict,
                            includeComments=>$comments,inputencoding=>$inputencoding,
                            includeStyles=>$includestyles,
@@ -474,8 +478,10 @@ while ( my $client = $server->accept() ) {
     }
     print STDERR "\n";          #Again, flush log
     #Move to next...
-    exec($0,@ARGV_SAVED) 
-      or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
+    if ($input_counter>=$input_limit){ 
+      exec($0,@ARGV_SAVED) 
+        or croak ("Daemon autoflush Failed!\n");
+    }
     alarm($timeout);              #Timeout if inactive for too long...
     next;                       #Move on, no body to be produced.
   };
@@ -544,8 +550,10 @@ while ( my $client = $server->accept() ) {
   undef $source;
   undef $clog;
   #Move to next...
-  exec($0,@ARGV_SAVED) 
-    or die ("Daemon autoflush Failed!\n") if $input_counter>=$input_limit;
+  if ($input_counter>=$input_limit) {
+    exec($0,@ARGV_SAVED) 
+      or croak ("Daemon autoflush Failed!\n");
+  }
   alarm($timeout);              #Timeout if inactive for too long...
 }
 
