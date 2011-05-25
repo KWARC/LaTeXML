@@ -248,11 +248,13 @@ sub candidate_pathnames {
 
   my @paths = ();
   # Now, combine; precedence to leading directories.
+  my ($filepath,$filename) = pathname_split($pathname);
   foreach my $dir (@dirs){
     foreach my $ext (@exts){
       if($ext eq '.*'){		# Unfortunately, we've got to test the file system NOW...
+        $dir = pathname_concat($dir,$filepath);
 	opendir(DIR,$dir) or next; # ???
-	push(@paths,map(pathname_concat($dir,$_), grep( /^\Q$pathname\E\.\w+$/, readdir(DIR))));
+	push(@paths,map(pathname_concat($dir,$_), grep( /^\Q$filename\E\.\w+$/, readdir(DIR))));
 	closedir(DIR); }
       else {
 	push(@paths,pathname_concat($dir,$pathname.$ext)); }}}
