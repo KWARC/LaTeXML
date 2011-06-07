@@ -108,14 +108,17 @@ sub digestFile {
 							Tokens(Explode($name))));
      my $stomach=$state->getStomach;
      my @stuff=();
-     push(@stuff,$self->loadPreamble($options{preamble})) if $options{preamble};
+     #push(@stuff,$self->loadPreamble($options{preamble})) if $options{preamble};
+     $self->loadPostamble($options{postamble}) if $options{postamble};
 
      $stomach->getGullet->input($pathname);
+
+     $self->loadPreamble($options{preamble}) if $options{preamble};
+     #push(@stuff,$self->loadPostamble($options{postamble})) if $options{postamble};
+#     my $list = $self->finishDigestion;
+
      while($stomach->getGullet->getMouth->hasMoreInput){
        push(@stuff,$stomach->digestNextBody); }
-
-     push(@stuff,$self->loadPreamble($options{postamble})) if $options{postamble};
-#     my $list = $self->finishDigestion;
      my $list = LaTeXML::List->new(@stuff);
      NoteEnd("Digesting $file");
      $list; });
@@ -130,13 +133,16 @@ sub digestString {
      my $stomach=$state->getStomach;
      my @stuff=();
 
-     push(@stuff,$self->loadPreamble($options{preamble})) if $options{preamble};
+     #push(@stuff,$self->loadPreamble($options{preamble})) if $options{preamble};
+     $self->loadPostamble($options{postamble}) if $options{postamble};
 
      $stomach->getGullet->openMouth(LaTeXML::Mouth->new($string),0);
+
+     $self->loadPreamble($options{preamble}) if $options{preamble};
+     #push(@stuff,$self->loadPostamble($options{postamble})) if $options{postamble};
+
      while($stomach->getGullet->getMouth->hasMoreInput){
        push(@stuff,$stomach->digestNextBody); }
-
-     push(@stuff,$self->loadPreamble($options{postamble})) if $options{postamble};
 
      # my $list = $self->finishDigestion;
      my $list = LaTeXML::List->new(@stuff);
@@ -189,27 +195,29 @@ sub loadPreamble {
   my($self,$preamble)=@_;
   my $state = $$self{state};
   my $stomach  = $state->getStomach; # The current Stomach;
-  my @stuff = ();
+  #my @stuff = ();
   if($preamble eq 'standard_preamble.tex'){
-     $stomach->getGullet->openMouth(LaTeXML::Mouth->new('\documentclass{article}\begin{document}'),0); }
+    $stomach->getGullet->openMouth(LaTeXML::Mouth->new('\begin{document}'),0); }
   else {
-     $stomach->getGullet->input($preamble); }
-  while($stomach->getGullet->getMouth->hasMoreInput){
-    push(@stuff,$stomach->digestNextBody); }
-  LaTeXML::List->new(@stuff); }
+    $stomach->getGullet->input($preamble); }
+  #while($stomach->getGullet->getMouth->hasMoreInput){
+  #push(@stuff,$stomach->digestNextBody); }
+  #LaTeXML::List->new(@stuff); 
+}
 
 sub loadPostamble {
   my($self,$postamble)=@_;
   my $state = $$self{state};
   my $stomach  = $state->getStomach; # The current Stomach;
-  my @stuff = ();
+  #my @stuff = ();
   if($postamble eq 'standard_postamble.tex'){
      $stomach->getGullet->openMouth(LaTeXML::Mouth->new('\end{document}'),0); }
   else {
      $stomach->getGullet->input($postamble); }
-  while($stomach->getGullet->getMouth->hasMoreInput){
-    push(@stuff,$stomach->digestNextBody); }
-  LaTeXML::List->new(@stuff); }
+  #while($stomach->getGullet->getMouth->hasMoreInput){
+  #push(@stuff,$stomach->digestNextBody); }
+  #LaTeXML::List->new(@stuff); 
+}
 
 sub convertDocument {
   my($self,$digested)=@_;

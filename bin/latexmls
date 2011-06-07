@@ -12,7 +12,7 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use Getopt::Long qw(GetOptionsFromString :config no_ignore_case);
 use Pod::Usage;
-use LaTeXML::Daemon;
+use LaTeXML;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::ObjectDB;
 use LaTeXML::Util::WWW;
@@ -23,264 +23,113 @@ use LaTeXML::Post::Scan;
 use Carp;
 use Clone qw(clone);
 use POSIX qw( setsid );
-use LWP::Simple;
-use LWP;
 use IO::Socket;
-use IO::Prompt; #Authorization
-our $authlist={};
 
 #**********************************************************************
-# Parse command line
-my @ARGV_SAVED = @ARGV; #Save, so that we reinvoke when flushed
-my $identity = "latexmls (LaTeXML version $LaTeXML::VERSION)";
-#Since we allow runtime customization, we need two sets of the same
-# switch variables:
-#GLOBAL VARS
-my($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
-   $_errlog,$_post,$_parallelmath,$input_counter,$_input_limit,
-   $_local,$_embed)=(0,0,1,0,0,0,0,0,0,0,0,0);
-my $_timeout = 60;
-my ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_base,$_procs_post,$_help,$_showversion,$_preamble,$_preamble_loaded)=
-   ('xml','standard',q{},q{},q{},q{},q{},{},undef,undef,undef,q{});
-my($_stylesheet,$_defaultcss,$_summary,$_icon,@_css)=(undef,1,0);
-my ($_documentid);
-my $_inputencoding;
-my $_type = 'auto';
-my @paths_ = (q{.});
-my (@preload_,@debugs_);
-
-#LOCAL VARS
-my($verbosity,$strict,$comments,$noparse,$includestyles,
-   $errlog,$post,$parallelmath,$input_limit,
-   $timeout,$local)=
-  ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
-   $_errlog,$_post,$_parallelmath,$_input_limit,
-   $_timeout,$_local);
-my ($format,$mode,$destination,$postdest,$log,$postlog,$base,$procs_post,$help,$showversion,$preamble,$embed)=
-  ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_base,{},$_help,$_showversion,$_preamble,$_embed);
-my($stylesheet,$defaultcss,$summary,$icon,@css)=($_stylesheet,$_defaultcss,$_summary,$_icon,@_css);
-my ($documentid,$port);
+# Ports
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
-my $inputencoding;
-my $type = $_type;
-my @paths = @paths_;
-my (@preload,@debugs);
+# Auto-flush / restart process on how many processed sources:
+my %flushlist = ( math=> 5000, fragment=>1000, standard=>100, default=>100);
 
-#Read global variables
-GetOptions("destination=s" => \$_destination,
-           "postdest=s" => \$_postdest,
-	   "output=s"  => \$_destination,
-	   "preload=s" => \@preload_,
-	   "preamble=s" => \$_preamble,
-           "base=s"  => \$_base,
-	   "path=s"    => \@paths_,
-	   "quiet"     => sub { $_verbosity--; },
-	   "verbose"   => sub { $_verbosity++; },
-	   "strict"    => \$_strict,
-	   "xml"       => sub { $_format = 'xml'; },
-	   "tex"       => sub { $_format = 'tex'; },
-	   "box"       => sub { $_format = 'box'; },
-	   "bibtex"    => sub { $_type='bibtex'; },
-	   "noparse"   => \$_noparse,
-	   "mode=s"  => \$_mode,
-           "embed"   => \$_embed,
-	   "autoflush=s" => \$_input_limit,
-           "timeout=s"   => \$_timeout,
-           "port=s"      => \$port,
-           "local!"       => \$_local,
-	   "log=s"       => \$_log,
-           "postlog=s"   => \$_postlog,
-           "summary!"    => \$_summary,
-	   "includestyles"=> \$_includestyles,
-	   "inputencoding=s"=>\$_inputencoding,
-	   "post"      => \$_post,
-	   "pmml"      => sub {$_procs_post->{'pmml'}=1;},
-	   "cmml"      => sub {$_procs_post->{'cmml'}=1;},
-	   "openmath"  => sub {$_procs_post->{'openmath'}=1;},
-	   "keepTeX"   => sub {$_procs_post->{'keepTeX'}=1;},
-	   "keepXMath" => sub {$_procs_post->{'keepXMath'}=1;},
-	   "parallelmath" => \$_parallelmath,
-	   "stylesheet=s"=>\$_stylesheet,
-	   "css=s"                 =>\@css,
-	   "defaultcss!"           =>\$defaultcss,
-	   "comments!" => \$_comments,
-	   "VERSION"   => \$_showversion,
-	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
-	   "documentid=s" => \$_documentid,
-	   "help"      => \$_help,
-	  ) or pod2usage(-message => $identity, -exitval=>1, -verbose=>0, -output=>\*STDERR);
-pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $_help;
-if (!$_local && ($_destination || $_log || $_postdest || $_postlog)) 
-  {carp "I/O from filesystem not allowed without --local!\n".
-     " Will revert to sockets!\n";
-   undef $_destination; undef $_log;
-   undef $_postdest; undef $_postlog;}
-# HOWEVER, any post switch implies post:
-$_post=1 if (keys %$_procs_post);
+# Global Options
+my $g_opts = {
+ identity => "latexmls (LaTeXML version $LaTeXML::VERSION)",
+ verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
+ errlog=>0, post=>0, parallelmath=>0, input_counter=>0, input_limit=>0,
+ local=>0, embed=>0, timeout=>60, format=>'xml', mode=>'standard',
+ destination=>q{}, postdest=>q{}, log=>q{}, postlog=>q{}, base=>q{},
+ procs_post=>{}, help=>0, showversion=>0, preamble=>q{}, preamble_loaded=>q{},
+ stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{}, 
+ documentid =>q{}, type=>'auto', css => [], paths => [q{.}], preload=>[], debugs=>[],
+ authlist=>{}, port=>q{}, ARGV_SAVED => [@ARGV] #Save, so that we reinvoke when flushed
+};
 
-if($_showversion){ print STDERR "$identity\n"; exit(1); }
+# Read global options
+
+read_options($g_opts,join(" ",@ARGV));
 
 #**********************************************************************
-#Set up the server
-$port = $portlist{$_mode} unless $port;
-my $server = setup_server($port);
+# Set up the server
+$g_opts->{port} = $portlist{$g_opts->{mode}} unless $g_opts->{port};
+my $server = setup_server($g_opts->{port});
 
 #**********************************************************************
 # Set up the processing.
-print STDERR "$identity\n" if $verbosity >= 0;
-$_mode = lc($_mode);
-$_input_limit=5000
-  if (($_mode eq "math") && (!$_input_limit || $_input_limit<1)); #if not set and math mode or if value not admissible
-$_input_limit=1000 if (($_mode eq "fragment") && (!$_input_limit || $_input_limit<=0)); #Fragment mode
-$_input_limit=100 if (!$_input_limit || $_input_limit<=0); #Standard mode
+print STDERR $g_opts->{identity}."\n" if $g_opts->{verbosity} >= 0;
+$g_opts->{mode} = lc($g_opts->{mode});
 
-#Setup LOCAL VARS
-($verbosity,$strict,$comments,$noparse,$includestyles,
- $errlog,$post,$parallelmath,$input_limit,$timeout,$local)=
-  ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
-   $_errlog,$_post,$_parallelmath,$_input_limit,$_timeout,$_local);
-($format,$mode,$destination,$postdest,$log,$postlog,$base,$help,$showversion,$preamble,$documentid,$inputencoding,$type)=
-        ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_base,$_help,$_showversion,$_preamble,$_documentid,$_inputencoding,$_type);
-($stylesheet,$defaultcss,$summary,$icon,@css)=($_stylesheet,$_defaultcss,$_summary,$_icon,@_css);
-$procs_post = {};
-$embed=$_embed;
-#When in math mode, preload math packages:
-if ($mode eq "math") {
-    my  @mathpreload = ("LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
-    @preload_=(@preload_,@mathpreload);
+# Configure auto-flush limit, if needed:
+if (!$g_opts->{input_limit} || $g_opts->{input_limit}<1) {
+  $g_opts->{input_limit}=$flushlist{$g_opts->{mode}}||$flushlist{default};
 }
-@paths = @paths_; @preload=@preload_; @debugs=@debugs_;
 
-#Setup HTTP::Response var for URI requests
+# When in math mode, preload math packages:
+if ($g_opts->{mode} eq "math") {
+    my  @mathpreload = ("LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", "amssymb.sty", "eucal.sty");
+    @{$g_opts->{preload}}=(@{$g_opts->{preload}},@mathpreload);
+}
+
+# Make paths canonical:
+@{$g_opts->{paths}} = map {pathname_canonical($_)} @{$g_opts->{paths}};
+
+# Setup Local Options
+my $opts = {};
+$opts = clone($g_opts);
+
+# Setup HTTP::Response var for URI requests
 my $response;
 
-@paths = map {pathname_canonical($_)} @paths;
-my $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths], graphicspaths=>['.'],
-			  verbosity=>$verbosity, strict=>$strict,
-			  includeComments=>$comments,inputencoding=>$inputencoding,
-			  includeStyles=>$includestyles,
-			  documentid=>$documentid,
-			  nomathparse=>$noparse);
-if(my @baddirs = grep {! -d $_} @paths){
-    warn "$identity: these path directories do not exist: ".join(', ',@baddirs)."\n"; }
-binmode(STDERR,":utf8");
-
-# install signal-handlers
+# Install signal-handlers
 local $SIG{'ALRM'} = 'dotimeout';
 local $SIG{'TERM'} = 'doterm';
 local $SIG{'INT'} = 'doterm';
 
-#Initialize state:
-$latexml->withState(sub {
-  my($state)=@_;
-  $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
-});
-print STDERR "\n"; #Sanitize log.
-# Preload the preamble if any (and not loaded)
-if ($preamble) {
-  #TODO: It is difficult to digest 2 files via LaTeXML into 1 XML output right now...
-  $response=auth_get($preamble,$authlist);
-  if ($response->is_success) {
-    my $content = $response->content;
-    $latexml->digestStringDaemonized($content,"standard",$preamble);
-  } else {
-    $latexml->digestFileDaemonized($preamble,"standard");
-  }
-  $_preamble_loaded = $preamble;
-}
+binmode(STDERR,":utf8");
+# Prepare LaTeXML object
+my $latexml= new_latexml($g_opts);
+init_state($latexml);
 
-#Setting up Daemon
+print STDERR "\n"; #Sanitize log.
+my $digested_preamble = load_preamble($g_opts,$latexml,undef);
+
+# Setting up Daemon
 my $init_status = $latexml->getStatusMessage;
-print STDERR "\n"; #Flush log
+print STDERR "\n"; #Sanitize log.
 if ($init_status !~ /error/i) {
   daemonize();
-} else {  croak $init_status; } #Demand errorless initialization
+} else {  croak $init_status; } # Demand errorless initialization
 
-#Create restore point
+# Pass on authlist:
 $latexml->withState(sub {
   my($state)=@_;
-  $state->assignValue('_authlist',$authlist,'global');
+  $state->assignValue('_authlist',$opts->{authlist},'global');
 });
 
-#Flush daemon, every $input_limit files:
-if ($input_counter>=$input_limit) {
-  exec($0,@ARGV_SAVED) 
-    or croak ("Daemon autoflush Failed!\n");
-}
-#Set timeout, if wanted:
-alarm($timeout);              #Timeout if inactive for too long...
+# Set timeout, if wanted:
+alarm($g_opts->{timeout});              # Timeout if inactive for too long...
 print STDERR "\n\nInitialization complete...\n";
+
 #**********************************************************************
-# Daemon has been set up, now process files on demand:grep($_ !~ /^--/,
+# Daemon has been set up, now process files on demand:
 while ( my $client = $server->accept() ) {
   my $source = q{};
   my $sockstart=1;
-  #Accept customizations for each input:
-  #Setup LOCAL VARS
-  ($verbosity,$strict,$comments,$noparse,$includestyles,
-   $errlog,$post,$parallelmath,$input_limit,
-   $timeout,$local)=
-     ($_verbosity,$_strict,$_comments,$_noparse,$_includestyles,
-      $_errlog,$_post,$_parallelmath,$_input_limit,
-      $_timeout,$_local);
-  ($format,$mode,$destination,$postdest,$log,$postlog,$base,$help,$showversion,$preamble,$documentid,$inputencoding,$type)=
-    ($_format,$_mode,$_destination,$_postdest,$_log,$_postlog,$_base,$_help,$_showversion,$_preamble,$_documentid,$_inputencoding,$_type);
-  ($stylesheet,$defaultcss,$summary,$icon,@css)=($_stylesheet,$_defaultcss,$summary,$_icon,@_css);
-  $procs_post = {};
-  @paths = @paths_; @preload=@preload_; @debugs=@debugs_;
+  # Accept customizations for each input:
+  # Setup Local Options
+  $opts = clone($g_opts);
   while (my $line = <$client>) {
-    $sockstart=0 unless $line=~/^--/;#Assume no options will be given if the line does not start with --
+    $sockstart=0 unless $line=~/^--/;# Assume no options will be given if the line does not start with --
     if ($sockstart) {
-      #Parse overwrites from current input:
-      my ($ret,$args) = GetOptionsFromString($line,
-           "destination=s" => \$destination,
-	   "output=s"  => \$destination,
-           "postdest=s" => \$postdest,
-	   "preload=s" => \@preload,
-	   "preamble=s" => \$preamble,
-           "base=s" => \$base,
-	   "path=s"    => \@paths,
-	   "quiet"     => sub { $verbosity--; },
-	   "verbose"   => sub { $verbosity++; },
-	   "strict"    => \$strict,
-	   "xml"       => sub { $format = 'xml'; },
-	   "tex"       => sub { $format = 'tex'; },
-	   "box"       => sub { $format = 'box'; },
-	   "bibtex"    => sub { $type='bibtex'; },
-	   "noparse"   => \$noparse,
-	   "mode=s"  => sub {return;},#Ignore mode switch in runtime for now TODO: FIXME
-           "embed"   => \$embed,
-	   "autoflush=s" => \$input_limit,
-           "timeout=s"   => \$timeout,
-           "port=s"      => \$port,
-           "local!"       => sub {carp "Local only possible to set on first server invocation!\n";},
-	   "log=s"       => \$log,
-           "postlog=s"   => \$postlog,
-           "summary!"    => \$summary,
-	   "includestyles"=> \$includestyles,
-	   "inputencoding=s"=>\$inputencoding,
-	   "post"      => \$post,
-	   "pmml"      => sub {$$procs_post{'pmml'}=1;},
-	   "cmml"      => sub {$$procs_post{'cmml'}=1;},
-	   "openmath"  => sub {$$procs_post{'openmath'}=1;},
-	   "keepTeX"   => sub {$$procs_post{'keepTeX'}=1;},
-	   "keepXMath" => sub {$$procs_post{'keepXMath'}=1;},
-	   "parallelmath" => \$parallelmath,
-	   "stylesheet=s"=>\$stylesheet,
-	   "css=s"                 =>\@css,
-	   "defaultcss!"           =>\$defaultcss,
-	   "comments!" => \$comments,
-	   "VERSION"   => \$showversion,
-	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
-	   "documentid=s" => \$documentid,
-	   "help"      => \$help,
-      );
-      pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
-      if ($base && $base!~/(\w+):\/\//) { chdir "$base" or croak "Can't chdir to $base: $!";};
-      if (!$local && ($destination || $log || $postdest || $postlog)) {carp "I/O from filesystem not allowed without --local!\n".
-                                                " Will revert to sockets!\n";
-                                            undef $destination; undef $log;
-                                            undef $postdest; undef $postlog; }
+      # Parse overwrites from current input:
+      my ($ret,$args) = read_options($opts,$line);
+      if ($opts->{base} && $opts->{base}!~/(\w+):\/\//) 
+        { chdir $opts->{base} or croak "Can't chdir to ".$opts->{base}.": $!";};
+      if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest}
+          || $opts->{postlog}))
+        {carp "I/O from filesystem not allowed without --local!\n".
+           " Will revert to sockets!\n";
+         undef $opts->{destination}; undef $opts->{log};
+         undef $opts->{postdest}; undef $opts->{postlog}; }
       $source.=join(" ", grep {$_ !~ /^--/} @$args);
       $sockstart=0; next;
     }
@@ -289,40 +138,37 @@ while ( my $client = $server->accept() ) {
     $source .= $line if (defined $line);
   }
   next unless ((defined $source) && (length( $source ) > 0));
-  #Bookkeeping...
-  alarm(0);                    #We are processing, ignore timeout here
-  $input_counter++;
+  # Bookkeeping...
+  alarm(0);                    # We are processing, ignore timeout here
+  $opts->{input_counter}++;
   # Determine input type if local, otherwise only socket exchange:
   my ($isURL,$isString,$isFile);
-  if ($local) {
-    $source=~s/\n$//g; #eliminate trailing new lines
+  if ($opts->{local}) {
+    $source=~s/\n$//g; # Eliminate trailing new lines
     my @source_lines = split(/\n/,$source);
-    $isString = $source if (scalar(@source_lines)>1 || $mode eq "math");
+    $isString = $source if (scalar(@source_lines)>1 || $opts->{mode} eq "math");
     unless ($isString) {
       $isFile = pathname_find($source,types=>['tex',q{}]);
       $isFile = pathname_canonical($isFile);
       $source = $isFile if $isFile;
       unless($isFile) {
-        $response = auth_get($source,$authlist);
+        $response = auth_get($source,$opts->{authlist});
         $isURL = $response->is_success;
       }
     }
-    $isString = $source unless ($isFile || $isURL); #Not file or URL - then process as string
+    $isString = $source unless ($isFile || $isURL); # Not file or URL - then process as string
   } else { $isString=$source; }
-  if (!$local && ($isFile)) {carp "I/O from filesystem not allowed without --local!\n".
+  if (!$opts->{local} && ($isFile)) {carp "I/O from filesystem not allowed without --local!\n".
                                                 " Will revert to sockets!\n";}
-  #Math mode means post
-  #(TODO: Rethink this, maybe we want more flexibility e.g. noparse XMath)
-  #$post=1 if ($mode eq "math");
-  # HOWEVER, any post switch implies post:
-  $post=1 if (keys %$procs_post);
+  # Any post switch implies post:
+  $opts->{post}=1 if (keys %{$opts->{procs_post}});
   #Instantiate targets for current input
   my ($dir,$name,$ext);
   ($dir,$name,$ext) = pathname_split($source) if $isFile;
   #Redirect to logfile, if requested:
   my ($clog);
-  if ($log && $local) {
-    $clog = $log;
+  if ($opts->{log} && $opts->{local}) {
+    $clog = $opts->{log};
     $clog=~s/#name/$name/eg;
     $clog=~s/#dir/$dir/eg;
     $clog=~s/#ext/$ext/eg;
@@ -333,8 +179,8 @@ while ( my $client = $server->accept() ) {
     #No log if not local (STDERR redirects to /dev/null)
   }
   my $cdest;
-  if ($destination && $local) {
-    $cdest = $destination;
+  if ($opts->{destination} && $opts->{local}) {
+    $cdest = $opts->{destination};
     $cdest =~ s/#name/$name/eg;
     $cdest =~ s/#dir/$dir/eg;
     $cdest =~ s/#ext/$ext/eg;
@@ -342,8 +188,8 @@ while ( my $client = $server->accept() ) {
     $cdest = $client;
   }
   my $cdestpost;
-  if ($postdest && $local) {
-    $cdestpost = $postdest;
+  if ($opts->{postdest} && $opts->{local}) {
+    $cdestpost = $opts->{postdest};
     $cdestpost =~ s/#name/$name/eg;
     $cdestpost =~ s/#dir/$dir/eg;
     $cdestpost =~ s/#ext/$ext/eg;
@@ -353,171 +199,142 @@ while ( my $client = $server->accept() ) {
       (!$cdestpost || ($cdestpost eq $client) || $cdestpost=~/\.xhtml$/ || 
        $cdestpost=~s/\.tex\.xml$/.xhtml/ || $cdestpost=~s/\.xml$/.xhtml/); #Some heuristics
   }
+  $cdestpost = undef unless $opts->{post};
 
-  $cdestpost = undef unless $post;
-  my $deststat = (stat($cdest))[9] if ($summary && $cdest && ($cdest ne $client));
-  my $destpoststat = (stat($cdestpost))[9] if ($summary && $cdestpost && ($cdestpost ne $client));
+  my $deststat = (stat($cdest))[9] if ($opts->{summary} && $cdest && ($cdest ne $client));
+  my $destpoststat = (stat($cdestpost))[9] if ($opts->{summary} && $cdestpost && ($cdestpost ne $client));
 
   ###########################################################################
   #   Start of conversion
   #
 
-  $type = 'bibtex' if ($type eq 'auto') && ($source =~ /\.bib$/);
+  $opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && ($source =~ /\.bib$/);
   # ========================================
   # First read and digest whatever we're given.
   my $digested;
-  if ($mode eq "standard") {
-    #In the classic case, we need to reinitialize latexml
-    # on every input
+  if ($opts->{mode} eq "standard") {
+    # In the classic case, we need to reinitialize latexml on every input
     undef $latexml;
-    $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths], 
-                           verbosity=>$verbosity, strict=>$strict,
-                           includeComments=>$comments,inputencoding=>$inputencoding,
-                           includeStyles=>$includestyles,
-                           documentid=>$documentid,
-                           nomathparse=>$noparse);
-    $latexml->withState(sub {
-                          my($state)=@_;
-                          $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
-                        });
-    # Preload the preamble if any (and not loaded)
-    if ($_preamble) {
-      #TODO: It is difficult to digest 2 files via LaTeXML into 1 XML output right now...
-      $response=auth_get($_preamble,$authlist);
-      if ($response->is_success) {
-        my $content = $response->content;
-        $latexml->digestStringDaemonized($content,"standard",$preamble);
-      } else {
-        $latexml->digestFileDaemonized($preamble,"standard");
-      }
-    }
-    print STDERR "\n";          #Again, flush log
+    $latexml= new_latexml($opts);
+    init_state($latexml);
+    # Preload the preamble if any (always - standard mode here)
+    undef $opts->{preamble_loaded};
+    $digested_preamble = load_preamble($opts,$latexml,$digested_preamble);
+    print STDERR "\n";          # Again, flush log
   } # End of standard use case
 
   # Preload the preamble if any (and not loaded)
-  if ($preamble && ($preamble ne $_preamble_loaded)) {
-    #TODO: It is difficult to digest 2 preamble files via LaTeXML right now...
-    $response=auth_get($preamble,$authlist);
-    if ($response->is_success) {
-      $latexml->digestStringDaemonized($response->content,"standard",$preamble);
-    } else {
-      $latexml->digestFileDaemonized($preamble,"standard");
-    }
-  }
-
+  $digested_preamble = load_preamble($opts,$latexml,$digested_preamble);
+  # Prepare daemon frame
   $latexml->withState(sub {
-                        my($state)=@_; #Sandbox state
-                        #Save preamble information for further use:
-                        $state->assignValue('_preamble_loaded',$preamble,'global');
-                        $state->assignValue('_authlist',$authlist,'global');
+                        my($state)=@_; # Sandbox state
+                        # Save preamble information for further use:
+                        $state->assignValue('_preamble_loaded',$opts->{preamble},'global');
+                        $state->assignValue('_authlist',$opts->{authlist},'global');
                         $state->pushDaemonFrame; });
-  my $serialized;
-  my $dom;
+  # Prepare preamble and postamble in fragment mode
+  my ($serialized,$dom,$modepre,$modepost);
+  if ($opts->{mode} eq 'fragment') {
+    $modepre='standard_preamble.tex';
+    $modepost='standard_postamble.tex';
+  }
+  # Digest source:
   eval {
     if ($isURL) {
-      $digested = $latexml->digestStringDaemonized($response->content,$mode,$source);
+      $digested = $latexml->digestString($response->content,preamble=>$modepre,postamble=>$modepost,source=>$source,noinitialize=>1);
     } elsif ($isFile) {
-      if ($type eq 'bibtex') {
-        #TODO: Do we want URL support here?
-        $digested = $latexml->digestBibTeXFileDaemonized($source,$mode);
+      if ($opts->{type} eq 'bibtex') {
+        # TODO: Do we want URL support here?
+        $digested = $latexml->digestBibTeXFile($source,preamble=>$modepre,postamble=>$modepost,noinitialize=>1);
       } else {
-        $digested = $latexml->digestFileDaemonized($source,$mode); 
+        $digested = $latexml->digestFile($source,preamble=>$modepre,postamble=>$modepost,noinitialize=>1);
       }}
     elsif ($isString) {
-      $source = mathdoc($source) if ($mode eq "math");
-      $digested = $latexml->digestStringDaemonized($source,$mode);
+      $source = mathdoc($source) if ($opts->{mode} eq "math");
+      $digested = $latexml->digestString($source,preamble=>$modepre,postamble=>$modepost,noinitialize=>1);
     }
     # ========================================
     # Now, convert to DOM and output, if desired.
     if ($digested) {
+      $digested = LaTeXML::List->new($digested_preamble,$digested) if defined $digested_preamble;
       local $LaTeXML::Global::STATE = $$latexml{state};
-      if ($format eq 'tex') {
+      if ($opts->{format} eq 'tex') {
         $serialized = LaTeXML::Global::UnTeX($digested);
-      } elsif ($format eq 'box') {
+      } elsif ($opts->{format} eq 'box') {
         $serialized = $digested->toString;
       } else {
-        $dom = $latexml->convertDocument($digested); 
+        $dom = $latexml->convertDocument($digested);
         $serialized = $dom->toString(1);
       }
     }
     1;
-  } or do {                     #Fatal occured!
+  } or do {# Fatal occured!
     print STDERR "$@\n";
     print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
-    doSummary($cdest,$cdestpost,$client,$deststat,$destpoststat,$latexml->getStatusMessage) if ($summary);
-    #Need to reset latexml in these cases
-    if ($log) {
+    if ($opts->{summary}) {
+      my $summary_setup = {
+       cdest=>$cdest,
+       cdestpost=>$cdestpost,
+       client=>$client,
+       deststat=>$deststat,
+       destpoststat=>$destpoststat,
+       message=>$latexml->getStatusMessage };
+      print_summary($summary_setup);
+    }
+    # Need to reset latexml in these cases
+    if ($opts->{log}) {# Close log file
       close(LOG); *STDERR = *ERRORIG;
-    }                           #Close log file
-    #Undef variables
-    undef $latexml;
-    undef $digested;
-    undef $dom;
-    undef $serialized;
-    undef $source;
-    #Init:
-    $latexml= LaTeXML::Daemon->new(preload=>[@preload], searchpaths=>[@paths],
-                           verbosity=>$verbosity, strict=>$strict,
-                           includeComments=>$comments,inputencoding=>$inputencoding,
-                           includeStyles=>$includestyles,
-                           documentid=>$documentid,
-                           nomathparse=>$noparse);
-    $latexml->withState(sub {
-                          my($state)=@_;
-                          $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
-                        });
+    }
+    # Undef variables
+    map {undef $_} ($latexml, $digested, $dom, $serialized, $source);
+    undef $opts->{preamble_loaded};
+    # Re-Init:
+    $latexml = new_latexml($opts);
+    init_state($latexml);
     # Preload the preamble if any
-    if ($preamble && $mode eq "fragment") {
-      #TODO: It is difficult to digest 2 files via LaTeXML into 1 XML output right now...
-      $response=auth_get($preamble,$authlist);
-      if ($response->is_success) {
-        $latexml->digestStringDaemonized($response->content,"standard",$preamble);
-      } else {
-        $latexml->digestFileDaemonized($preamble,"standard");
-      }
-    }
-    print STDERR "\n";          #Again, flush log
-    #Move to next...
-    if ($input_counter>=$input_limit){ 
-      exec($0,@ARGV_SAVED) 
-        or croak ("Daemon autoflush Failed!\n");
-    }
-    alarm($timeout);              #Timeout if inactive for too long...
-    next;                       #Move on, no body to be produced.
+    $digested_preamble = load_preamble($opts,$latexml,$digested_preamble);
+    print STDERR "\n";          # Again, flush log
+    # Move to next...
+    flush_daemon($opts);
+    alarm($opts->{timeout});              # Timeout if inactive for too long...
+    next;                       # Move on, no body to be produced.
   };
   print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
   my $summaryMessage = $latexml->getStatusMessage;
+  # End daemon run, by popping frame:
   $latexml->withState(sub {
-                        my($state)=@_; #Remove current state frame
+                        my($state)=@_; # Remove current state frame
                         $state->popDaemonFrame;
                         $$state{status} = {};
                       });
-  if ($cdest && $local && ($cdest ne $client)) {
+  if ($cdest && $opts->{local} && ($cdest ne $client)) {
     open(OUT,">",$cdest) or croak "Couldn't open output file $cdest: $!";
   } elsif ($cdest==$client) {
     *OUT = *$cdest;
   }
   else {
-    #  binmode(STDOUT,":utf8");
     *OUT = *STDOUT;
   }
+  # Fall back to default post processors if no preferences:
+  %{$opts->{procs_post}}=%{$g_opts->{procs_post}} unless (scalar(keys %{$opts->{procs_post}}));
+  # Fall back to pmml as default
+  $opts->{procs_post}->{'pmml'}=1 unless (scalar(keys %{$opts->{procs_post}}));
 
-  %$procs_post=%$_procs_post unless (scalar(keys %$procs_post)); #Fall back to defaults if no preferences
-  $$procs_post{'pmml'}=1 unless (scalar(keys %$procs_post)); #Fall back to pmml as default
-  print OUT $serialized if ($serialized && (!$post || $cdest ne $client));
-  if ($cdest && $local && ($cdest ne $client)) {
+  print OUT $serialized if ($serialized && (!$opts->{post} || ($cdest ne $client)));
+  if ($cdest && $opts->{local} && ($cdest ne $client)) {
     close(OUT);
   }
-  if ($log && $local) { #Close log file
+  if ($opts->{log} && $opts->{local}) { # Close log file
     close(LOG); *STDERR = *ERRORIG;
   }
 
-  if ($post && $dom && (!$noparse)) {
-    #Postprocess
+  if ($opts->{post} && $dom && (!$opts->{noparse})) {
+    # Postprocess
+    # Prepare post log and destination
     my $clogpost;
-    $postlog = $log unless $postlog;
-    if ($postlog && $local) {
-      $clogpost = $postlog;
+    $opts->{postlog} = $opts->{log} unless $opts->{postlog};
+    if ($opts->{postlog} && $opts->{local}) {
+      $clogpost = $opts->{postlog};
       $clogpost=~s/#name/$name/eg;
       $clogpost=~s/#dir/$dir/eg;
       $clogpost=~s/#ext/$ext/eg;
@@ -531,39 +348,48 @@ while ( my $client = $server->accept() ) {
         print STDERR "LaTeXML Post-processing: \n";
       }
     } else {
-      #No log if not local (STDERR redirects to /dev/null)
+      # No log if not local (STDERR redirects to /dev/null)
     }
-    doPost(dest=>$cdestpost,stylesheet=>$stylesheet,dom=>$dom,mode=>$mode,format=>$format,
-           parallel=>$parallelmath,procs=>$procs_post,isStream=>($cdestpost eq $client),
-           verbosity=>$verbosity,defaultcss=>$defaultcss,embed=>$embed);
-    if ($postlog && $local) { #Close log file
+    # Perform post-processing conversion...
+    my $post_setup = {
+     dest=>$cdestpost,stylesheet=>$opts->{stylesheet},
+     dom=>$dom,mode=>$opts->{mode},
+     format=>$opts->{format}, parallelmath=>$opts->{parallelmath},
+     procs_post=>$opts->{procs_post},isStream=>($cdestpost eq $client),
+     verbosity=>$opts->{verbosity},defaultcss=>$opts->{defaultcss},embed=>$opts->{embed}
+    };
+    execute_post($post_setup);
+    if ($opts->{postlog} && $opts->{local}) { #Close log file
       close(PLOG); *STDERR = *ERRORIG;
     }
   }
-  doSummary($cdest,$cdestpost,$client,$deststat,$destpoststat,$summaryMessage) if ($summary);
-  close $client;
-  #Undef variables
-  undef $latexml if $mode eq "standard";
-  undef $digested;
-  undef $dom;
-  undef $serialized;
-  undef $source;
-  undef $clog;
-  #Move to next...
-  if ($input_counter>=$input_limit) {
-    exec($0,@ARGV_SAVED) 
-      or croak ("Daemon autoflush Failed!\n");
+  # Print summary, if requested
+  if ($opts->{summary}) {
+    my $summary_setup = {
+      cdest => $cdest,
+      cdestpost=>$cdestpost,
+      client=>$client,
+      deststat=>$deststat,
+      destpoststat=>$destpoststat,
+      message=>$summaryMessage };
+    print_summary($summary_setup);
   }
-  alarm($timeout);              #Timeout if inactive for too long...
+  close $client;
+  # Undef variables
+  undef $latexml if $opts->{mode} eq "standard";
+  map {undef $_} ( $digested, $dom, $serialized, $source, $clog);
+  # Move to next...
+  flush_daemon($opts);
+  alarm($opts->{timeout});              #Timeout if inactive for too long...
 }
 
 #======================================================================
 # Helpers
 #======================================================================
-sub doPost {
-  my (%options)=@_;
+sub execute_post {
+  my ($opts)=@_;
   my ($postdest,$style,$dom,$extract,$parallel,$proctypes,$isStream,$format,$verbosity,$defaultcss,$embed)= 
-    map {$options{$_}} qw(dest stylesheet dom mode parallel procs isStream format verbosity defaultcss embed);
+    map {$opts->{$_}} qw(dest stylesheet dom mode parallelmath procs_post isStream format verbosity defaultcss embed);
   $verbosity = $verbosity||0;
   my %PostOPS = (verbosity=>$verbosity,siteDirectory=>".");
   #Postprocess
@@ -598,7 +424,7 @@ sub doPost {
   $main->keepTeX if ($$proctypes{'keepTeX'} && $parallel);
   my @procs=();
   push(@procs,$main);
-  push(@procs,@mprocs) unless $parallelmath;
+  push(@procs,@mprocs) unless $parallel;
   push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $$proctypes{'keepXMath'};
   require LaTeXML::Post::XSLT;
   my @csspaths=();
@@ -632,19 +458,15 @@ sub doPost {
     #   just avoid crashing... and exit
     undef $doc;
     undef $postdoc;
-    foreach (@procs) {
-      undef $_;
-    }
-    foreach (@mprocs) {
-      undef $_;
-    }
+    undef $_ foreach (@procs);
+    undef $_ foreach (@mprocs);
     undef @procs;
     undef @mprocs;
     print STDERR "FATAL: Post-processor crashed! $@\n";
     return;
   };
   # If we want an embedable snippet, unwrap to body's "main" div
-  if ($embed && ($mode eq "fragment")) {
+  if ($embed && ($extract eq "fragment")) {
     my $bodyel = $postdoc->findnode('//*[local-name()="body"]');
     my $topdiv;
     # Doing monkey hoops is very annoying, why won't LibXML
@@ -699,8 +521,6 @@ sub doPost {
   foreach (@mprocs) { undef $_; }
   undef @procs;
   undef @mprocs;
-  undef %options;
-  undef %PostOPS;
   return;
 }
 
@@ -795,8 +615,10 @@ sub setup_server {
   return $sock_server;
 }
 
-sub doSummary {
-  my ($cdest,$cdestpost,$client,$deststat,$destpoststat,$summaryMessage)=@_;
+sub print_summary {
+  my ($opts) = @_;
+  my ($cdest,$cdestpost,$client,$deststat,$destpoststat,$summaryMessage) =
+    map {$opts->{$_}} qw(cdest cdestpost client deststat destpoststat message);
   my $writesuccess = 0; 
   $writesuccess = 1 if ($cdest && ($cdest ne $client) && ($deststat != (stat($cdest))[9]));
   my $writesuccesspost = 0;
@@ -812,6 +634,116 @@ sub doSummary {
   } elsif ($cdestpost && ($cdestpost ne $client) && ($cdestpost ne $cdest)) {
     print $client "Error! Did not write file $cdestpost\n";
   }
+}
+
+sub new_latexml {
+  my $opts = shift;
+  my $latexml = LaTeXML->new(preload=>[@{$opts->{preload}}], searchpaths=>[@{$opts->{paths}}],
+                          graphicspaths=>['.'],
+			  verbosity=>$opts->{verbosity}, strict=>$opts->{strict},
+			  includeComments=>$opts->{comments},inputencoding=>$opts->{inputencoding},
+			  includeStyles=>$opts->{includestyles},
+			  documentid=>$opts->{documentid},
+			  nomathparse=>$opts->{noparse});
+  if(my @baddirs = grep {! -d $_} @{$opts->{paths}}){
+    warn $opts->{identity}.": these path directories do not exist: ".join(', ',@baddirs)."\n"; }
+  return $latexml;
+}
+
+sub init_state {
+ my $latexml = shift;
+ $latexml->withState(sub {
+  my($state)=@_;
+  $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
+});}
+
+sub load_preamble {
+  my ($opts,$latexml,$original) = @_;
+  my $digested = undef;
+  # Preload the preamble if any (and not loaded)
+  if ($opts->{preamble} && ($opts->{preamble_loaded} ne $opts->{preamble})) {
+    #TODO: It is difficult to digest 2 files via LaTeXML into 1 XML output right now...
+    my $response=auth_get($opts->{preamble},$opts->{authlist});
+    if ($response->is_success) {
+      my $content = $response->content;
+      $digested = $latexml->digestString($content,source=>$opts->{preamble},noinitialize=>1);
+    } else {
+      $digested = $latexml->digestFile($opts->{preamble},noinitialize=>1);
+    }
+    $opts->{preamble_loaded} = $opts->{preamble};
+  }
+  $digested = $original unless defined $digested;
+  return $digested;
+}
+
+sub flush_daemon{
+  my $opts = shift;
+#Flush daemon, every $input_limit files:
+if ($opts->{input_counter}>=$opts->{input_limit}) {
+  exec($0,@{$opts->{ARGV_SAVED}})
+    or croak ("Daemon autoflush Failed!\n");
+}}
+
+
+sub read_options {
+  my ($opts,$line) = @_;
+  my ($ret,$args) = GetOptionsFromString($line,
+	   "output=s"  => sub {$opts->{destination} = $_[1];},
+           "destination=s" => sub {$opts->{destination} = $_[1];},
+           "postdest=s" => sub {$opts->{postdest} = $_[1];},
+	   "preload=s" => sub { push @{$opts->{preload}}, $_[1]},
+	   "preamble=s" => sub {$opts->{preamble} = $_[1];},
+           "base=s"  => sub {$opts->{base} = $_[1];},
+	   "path=s"    => sub { push @{$opts->{paths}}, $_[1]},
+	   "quiet"     => sub { $opts->{verbosity}--; },
+	   "verbose"   => sub { $opts->{verbosity}++; },
+	   "strict"    => sub { $opts->{strict} = 1; },
+	   "xml"       => sub { $opts->{format} = 'xml'; },
+	   "tex"       => sub { $opts->{format} = 'tex'; },
+	   "box"       => sub { $opts->{format} = 'box'; },
+	   "bibtex"    => sub { $opts->{type}='bibtex'; },
+	   "noparse"   => sub { $opts->{noparse} = 1; },
+	   "mode=s"  => sub { $opts->{mode} = $_[1]; },
+           "embed"   => sub { $opts->{embed} = 1; },
+	   "autoflush=s" => sub { $opts->{input_limit} = $_[1]; },
+           "timeout=s"   => sub { $opts->{timeout} = $_[1]; },
+           "port=s"      => sub { $opts->{port} = $_[1]; },
+           "local"       => sub { $opts->{local} = 1; },
+           "nolocal"       => sub { $opts->{local} = 0; },
+	   "log=s"       => sub { $opts->{log} = $_[1]; },
+           "postlog=s"   => sub { $opts->{postlog} = $_[1]; },
+           "summary"    => sub { $opts->{summary} = 1; },
+           "nosummary"    => sub { $opts->{summary} = 0; },
+	   "includestyles"=> sub { $opts->{includestyles} = 1; },
+	   "inputencoding=s"=> sub { $opts->{inputencoding} = $_[1]; },
+	   "post"      => sub {$opts->{post} = 1; },
+	   "pmml"      => sub {$opts->{procs_post}->{'pmml'}=1;},
+	   "cmml"      => sub {$opts->{procs_post}->{'cmml'}=1;},
+	   "openmath"  => sub {$opts->{procs_post}->{'openmath'}=1;},
+	   "keepTeX"   => sub {$opts->{procs_post}->{'keepTeX'}=1;},
+	   "keepXMath" => sub {$opts->{procs_post}->{'keepXMath'}=1;},
+	   "parallelmath" => sub {$opts->{parallelmath} = 1;},
+	   "stylesheet=s"=>  sub {$opts->{stylesheet} = $_[1];},
+	   "css=s"       =>  sub {$opts->{css}=$_[1];},
+	   "defaultcss" =>  sub {$opts->{defaultcss} = 1;},
+	   "nodefaultcss" =>  sub {$opts->{defaultcss} = 0;},
+	   "comments" =>  sub { $opts->{comments} = 1; },
+	   "nocomments"=> sub { $opts->{comments} = 0; },
+	   "VERSION"   => sub { $opts->{showversion}=1;},
+	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
+           "documentid=s" => sub { $opts->{documentid} = $_[1];},
+	   "help"      => sub { $opts->{help} = 1; } ,
+	  ) or pod2usage(-message => $opts->{identity}, -exitval=>1, -verbose=>0, -output=>\*STDERR);
+pod2usage(-message=>$opts->{identity}, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $opts->{help};
+if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
+  {carp "I/O from filesystem not allowed without --local!\n".
+     " Will revert to sockets!\n";
+   undef $opts->{destination}; undef $opts->{log};
+   undef $opts->{postdest}; undef $opts->{postlog};}
+# HOWEVER, any post switch implies post:
+$opts->{post}=1 if (keys %{$opts->{procs_post}});
+if($opts->{showversion}){ print STDERR $opts->{identity}."\n"; exit(1); }
+return ($ret,$args);
 }
 
 #**********************************************************************
