@@ -20,6 +20,7 @@ our $DEFSERIES = 'medium';
 our $DEFSHAPE  = 'upright';
 our $DEFSIZE   = 'normal';
 our $DEFCOLOR  = 'black';
+our $DEFENCODING= 'OT1';
 
 # NOTE:  Would it make sense to allow compnents to be `inherit' ??
 
@@ -30,13 +31,14 @@ sub new {
   my $shape  = $options{shape};
   my $size   = $options{size};
   my $color  = $options{color};
-  $class->new_internal($family,$series,$shape,$size,$color); }
+  my $encoding= $options{encoding};
+  $class->new_internal($family,$series,$shape,$size,$color,$encoding); }
 
 sub new_internal {
   my($class,@components)=@_;
   bless [@components],$class; }
 
-sub default { $_[0]->new_internal($DEFFAMILY, $DEFSERIES, $DEFSHAPE,$DEFSIZE, $DEFCOLOR); }
+sub default { $_[0]->new_internal($DEFFAMILY, $DEFSERIES, $DEFSHAPE,$DEFSIZE, $DEFCOLOR, $DEFENCODING); }
 
 # Accessors
 sub getFamily { $_[0]->[0]; }
@@ -44,6 +46,7 @@ sub getSeries { $_[0]->[1]; }
 sub getShape  { $_[0]->[2]; }
 sub getSize   { $_[0]->[3]; }
 sub getColor  { $_[0]->[4]; }
+sub getEncoding { $_[0]->[5]; }
 
 sub toString { "Font[".join(',',map($_ || '*', @{$_[0]}))."]"; }
 sub stringify{ $_[0]->toString; }
@@ -67,9 +70,10 @@ sub match {
 
 sub makeConcrete {
   my($self,$concrete)=@_;
-  my($family,$series,$shape,$size,$color)=@$self;  
-  my($ofamily,$oseries,$oshape,$osize,$ocolor)=@$concrete;
-  (ref $self)->new_internal($family||$ofamily,$series||$oseries,$shape||$oshape,$size||$osize,$color||$ocolor); }
+  my($family,$series,$shape,$size,$color,$encoding)=@$self;  
+  my($ofamily,$oseries,$oshape,$osize,$ocolor,$oencoding)=@$concrete;
+  (ref $self)->new_internal($family||$ofamily,$series||$oseries,$shape||$oshape,$size||$osize,
+			    $color||$ocolor,$encoding||$oencoding); }
 
 sub merge {
   my($self,%options)=@_;
@@ -78,33 +82,20 @@ sub merge {
   my $shape  = $options{shape}  || $$self[2];
   my $size   = $options{size}   || $$self[3];
   my $color  = $options{color}  || $$self[4];
-  (ref $self)->new_internal($family,$series,$shape,$size,$color); }
+  my $encoding= $options{encoding}  || $$self[5];
+  (ref $self)->new_internal($family,$series,$shape,$size,$color,$encoding); }
 
 # Really only applies to Math Fonts, but that should be handled elsewhere; We punt here.
 sub specialize {
   my($self,$string)=@_;
   $self; }
 
-# Return a string representing the font relative to other.
-sub XXrelativeTo {
-  my($self,$other)=@_;
-  my($family,$series,$shape,$size,$color)=@$self;  
-  my($ofamily,$oseries,$oshape,$osize,$ocolor)=@$other;
-  $family  = 'serif' if $family  && ($family eq 'math');
-  $ofamily = 'serif' if $ofamily && ($ofamily eq 'math');
-  my @diffs = grep($_, 
-		   ($family && (!$ofamily || ($family ne $ofamily)) ? $family : ''),
-		   ($series && (!$oseries || ($series ne $oseries)) ? $series : ''),
-		   ($shape  && (!$oshape  || ($shape  ne $oshape))  ? $shape : ''),
-		   ($size   && (!$osize   || ($size   ne $osize))   ? $size : ''),
-		   ($color  && (!$ocolor  || ($color  ne $ocolor))  ? $color : ''));
-  join(' ',@diffs); }
-
 # Return a hash of the differences in font, size and color
+# [does encoding play a role here?]
 sub relativeTo {
   my($self,$other)=@_;
-  my($family,$series,$shape,$size,$color)=@$self;  
-  my($ofamily,$oseries,$oshape,$osize,$ocolor)=@$other;
+  my($family,$series,$shape,$size,$color,$encoding)=@$self;  
+  my($ofamily,$oseries,$oshape,$osize,$ocolor,$oencoding)=@$other;
   $family  = 'serif' if $family  && ($family eq 'math');
   $ofamily = 'serif' if $ofamily && ($ofamily eq 'math');
   my @diffs=(($family && (!$ofamily || ($family ne $ofamily)) ? $family : ''),
@@ -113,41 +104,29 @@ sub relativeTo {
   my $fdiff=join(' ',grep($_, @diffs)); 
   my $sdiff=($size   && (!$osize   || ($size   ne $osize))   ? $size : '');
   my $cdiff=($color  && (!$ocolor  || ($color  ne $ocolor))  ? $color : '');
+##  my $ediff=($encoding && (!$oencoding || ($encoding ne $oencoding)) ? $encoding : '');
   ( ($fdiff ? (font=>$fdiff):()),
     ($sdiff ? (size=>$sdiff):()),
-    ($cdiff ? (color=>$cdiff):()) ); }
+    ($cdiff ? (color=>$cdiff):()),
+##    ($ediff ? (encoding=>$ediff):()),
+  ); }
 
 sub distance {
   my($self,$other)=@_;
-  my($family,$series,$shape,$size,$color)=@$self;  
-  my($ofamily,$oseries,$oshape,$osize,$ocolor)=@$other;
+  my($family,$series,$shape,$size,$color,$encoding)=@$self;  
+  my($ofamily,$oseries,$oshape,$osize,$ocolor,$oencoding)=@$other;
   $family  = 'serif' if $family  && ($family eq 'math');
   $ofamily = 'serif' if $ofamily && ($ofamily eq 'math');
   ($family && (!$ofamily || ($family ne $ofamily)) ? 1 : 0)
     + ($series && (!$oseries || ($series ne $oseries)) ? 1 : 0)
       + ($shape  && (!$oshape  || ($shape  ne $oshape))  ? 1 : 0)
 	+ ($size   && (!$osize   || ($size   ne $osize))   ? 1 : 0)
-	  + ($color  && (!$ocolor  || ($color  ne $ocolor))  ? 1 : 0); }
+	  + ($color  && (!$ocolor  || ($color  ne $ocolor))  ? 1 : 0)
+##	    + ($encoding  && (!$oencoding  || ($encoding  ne $oencoding))  ? 1 : 0)
+; }
 
 # This matches fonts when both are converted to strings (toString),
 # such as when they are set as attributes.
-sub XXmatch_font {
-  my($font1,$font2)=@_;
-#print STDERR "Match font \"".($font1 || 'none')."\" to \"".($font2||'none')."\"\n";
-return 1;
-
-  return 0 unless $font1 && $font2;
-  $font1 =~ /^Font\[(.*)\]$/;
-  my @comp1  = split(',',$1);
-  $font2 =~ /^Font\[(.*)\]$/;
-  my @comp2  = split(',',$1);
-  while(@comp1){
-    my $c1 = shift @comp1;
-    my $c2 = shift @comp2;
-    return 0 if ($c1 ne '*') && ($c2 ne '*') && ($c1 ne $c2); }
-  return 1; }
-
-
 our %FONT_REGEXP_CACHE=();
 
 sub match_font {
@@ -204,11 +183,12 @@ sub new {
   my $shape  = $options{shape};
   my $size   = $options{size};
   my $color  = $options{color};
+  my $encoding= $options{encoding};
   my $forcebold  = $options{forcebold} || 0;
   my $forceshape = $options{forceshape} || 0;
-  $class->new_internal($family,$series,$shape,$size,$color,$forcebold,$forceshape); }
+  $class->new_internal($family,$series,$shape,$size,$color,$encoding,$forcebold,$forceshape); }
 
-sub default { $_[0]->new_internal('math', $DEFSERIES, 'italic',$DEFSIZE, $DEFCOLOR,0); }
+sub default { $_[0]->new_internal('math', $DEFSERIES, 'italic',$DEFSIZE, $DEFCOLOR,undef,0,undef); }
 
 sub isSticky {
   $_[0]->[0] && ($_[0]->[0] =~ /^(serif|sansserif|typewriter)$/); }
@@ -220,8 +200,9 @@ sub merge {
   my $shape  = $options{shape}  || $$self[2];
   my $size   = $options{size}   || $$self[3];
   my $color  = $options{color}  || $$self[4];
-  my $forcebold  = $options{forcebold} || $$self[5];
-  my $forceshape  = $options{forceshape} || $$self[6];
+  my $encoding= $options{encoding} || $$self[5];
+  my $forcebold  = $options{forcebold} || $$self[6];
+  my $forceshape  = $options{forceshape} || $$self[7];
   # In math, setting any one of these, resets the others to default.
 #  $family = $DEFFAMILY if $family && !$options{family} && ($options{series} || $options{shape});
 #  $series = $DEFSERIES if $series && !$options{series} && ($options{family} || $options{shape});
@@ -229,7 +210,7 @@ sub merge {
   $family = $DEFFAMILY if !$options{family} && ($options{series} || $options{shape});
   $series = $DEFSERIES if !$options{series} && ($options{family} || $options{shape});
   $shape  = $DEFSHAPE  if !$options{shape}  && ($options{family} || $options{series});
-  (ref $self)->new_internal($family,$series,$shape,$size,$color,$forcebold,$forceshape); }
+  (ref $self)->new_internal($family,$series,$shape,$size,$color,$encoding,$forcebold,$forceshape); }
 
 # Instanciate the font for a particular class of symbols.
 # NOTE: This works in `normal' latex, but probably needs some tunability.
@@ -242,7 +223,7 @@ sub merge {
 sub specialize {
   my($self,$string)=@_;
   return $self unless defined $string;
-  my($family,$series,$shape,$size,$color,$forcebold,$forceshape)=@$self;
+  my($family,$series,$shape,$size,$color,$encoding,$forcebold,$forceshape)=@$self;
 print STDERR "Specialized font ".ToString($self)." for $string " if $LaTeXML::Font::DEBUG;
 
   $series = 'bold' if $forcebold;
@@ -276,7 +257,6 @@ my $f=  (ref $self)->new_internal($family,$series,$shape,$size,$color,$forcebold
 print STDERR " => ".ToString($f)."\n" if $LaTeXML::Font::DEBUG;
 $f;
 }
-
 
 #**********************************************************************
 1;

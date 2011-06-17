@@ -16,9 +16,6 @@ use LaTeXML::Global;
 use LaTeXML::Mouth;
 use LaTeXML::Number;
 use LaTeXML::Util::Pathname;
-use LaTeXML::Util::WWW;
-use URI;
-use LWP;
 use base qw(LaTeXML::Object);
 #**********************************************************************
 sub new {
@@ -39,84 +36,86 @@ sub new {
 # HMM: the packageLoaded check only makes sense for style files, and
 # is probably only important for latexml implementations?
 sub input {
-  my($self,$name,$types,%options)=@_;
-  $name = ToString($name) if ref $name;
-  # Try to find a Package implementing $name.
-  $name = $1 if $name =~ /^\{(.*)\}$/; # just in case
-  my $filecontents = $STATE->lookupValue($name.'_contents');
-  my $file = ($filecontents ? $name
-	      : pathname_find($name,paths=>$STATE->lookupValue('SEARCHPATHS'),
+  my($self,$file,$types,%options)=@_;
+  $file = ToString($file) if ref $file;
+  # Try to find a Package implementing $file.
+  $file = $1 if $file =~ /^\{(.*)\}$/; # just in case
+  my $filecontents = $STATE->lookupValue($file.'_contents');
+  my $path = ($filecontents ? $file
+	      : pathname_find($file,paths=>$STATE->lookupValue('SEARCHPATHS'),
 			      types=>$types, installation_subdir=>'Package'));
   # Discover input, either on the filesystem or on the web:
-   if(! $file) {
-     my $absuri = URI->new_abs( $name, $STATE->lookupValue('SOURCEFILE'));
-     my $authlist = $STATE->lookupValue('_authlist')||{};
-     my $response= auth_get($absuri,$authlist);
-     my $content;
-     $types=['tex'] unless ($types && scalar(@$types));
-     unless ($response->is_success) {
-       foreach (@$types) {
-         $response=auth_get($absuri.".$_",$authlist);
-         if ($response->is_success) {
-           $content = $response->content;
-           last;
-         }
-       }
-     } else { $content = $response->content; }
-     $STATE->assignValue('_authlist',$authlist);
-     if ($content) {
-       #URI Case:
-       $file=1; # Something got found!
-       NoteBegin("Processing $absuri...");
-       my $urimouth = LaTeXML::Mouth->new($content);
-       $$urimouth{source} = $absuri;
-       $self->openMouth($urimouth, 0);
-       return;
-     }
-   }
+  if(! $path) {
+    my $absuri = URI->new_abs( $file, $STATE->lookupValue('SOURCEFILE'));
+    my $authlist = $STATE->lookupValue('_authlist')||{};
+    my $response= auth_get($absuri,$authlist);
+    my $content;
+    $types=['tex'] unless ($types && scalar(@$types));
+    unless ($response->is_success) {
+      foreach (@$types) {
+        $response=auth_get($absuri.".$_",$authlist);
+        if ($response->is_success) {
+          $content = $response->content;
+          last;
+        }
+      }
+    } else { $content = $response->content; }
+    $STATE->assignValue('_authlist',$authlist);
+    if ($content) {
+      #URI Case:
+      $path=1; # Something got found!
+      NoteBegin("Processing $absuri...");
+      my $urimouth = LaTeXML::Mouth->new($content);
+      $$urimouth{source} = $absuri;
+      $self->openMouth($urimouth, 0);
+      return;
+    }
+  }
 
-  ###############################
-  if(! $file) {
-    $STATE->noteStatus(missing=>$name);
-    Error(":missing_file:$name Cannot find file $name of type ".join(', ',@{$types||[]})
-	  ." in paths ".join(', ',@{$STATE->lookupValue('SEARCHPATHS')})); }
-#  elsif($file =~ /\.(ltxml|latexml)$/){		# Perl module.
-  elsif($file =~ /\.ltxml$/){		# Perl module.
-    return if $STATE->lookupValue($file.'_loaded');
-    $STATE->assignValue($file.'_loaded'=>1,'global');
-    $self->openMouth(LaTeXML::PerlMouth->new($file),0);
+  if(! $path) {
+    $STATE->noteStatus(missing=>$file);
+    Error(":missing_file:$file Cannot find file $file of type ".join(', ',@{$types||[]})
+	  ." in paths ".join(', ',@{$STATE->lookupValue('SEARCHPATHS')})); 
+    return; }
+  my($dir,$name,$type)=pathname_split($path);
+  if($type eq 'ltxml'){		# Perl module.
+    return if $STATE->lookupValue($name.'.'.$type.'_loaded');
+    $STATE->assignValue($name.'.'.$type.'_loaded'=>1,'global');
+    $STATE->assignValue($name.'_loaded'=>1,'global');
+    $self->openMouth(LaTeXML::PerlMouth->new($path),0);
     my $pmouth = $$self{mouth};
-    do $file; 
-    Fatal(":perl:die Package $name had an error:\n  $@") if $@; 
+    do $path; 
+    Fatal(":perl:die Package $file had an error:\n  $@") if $@; 
     $self->closeMouth if $pmouth eq $$self{mouth}; # Close immediately, unless recursive input
   }
-  elsif($file =~ /\.(pool|sty|cls|clo|cnf)$/){	# (attempt to) interpret a style file.
-    return if $STATE->lookupValue($file.'_loaded');
-    if(! ($options{raw} || $STATE->lookupValue('INCLUDE_STYLES'))){
-      Warn(":unexpected:$file Ignoring style file $file");
+  elsif(($type ne 'tex') && ($path =~ /\.(tex|pool|sty|cls|clo|cnf|cfg|ldf|def|dfu)$/)){ # (attempt to) interpret a style file.
+    return if $STATE->lookupValue($name.'.'.$type.'_loaded');
+    if(! ($options{raw} || $STATE->lookupValue('INCLUDE_STYLES')
+	 || ($path =~ /(\.ldf|enc\.def)$/) )){
+      Warn(":unexpected:$path Ignoring style file $path");
       return; }
-    $STATE->assignValue($file.'_loaded'=>1,'global');
+    $STATE->assignValue($name.'.'.$type.'_loaded'=>1,'global');
     if($filecontents){
-      $self->openMouth(LaTeXML::StyleStringMouth->new($file,$filecontents), 0);  }
+      $self->openMouth(LaTeXML::StyleStringMouth->new($path,$filecontents), 0);  }
     else {
-      $self->openMouth(LaTeXML::StyleMouth->new($file), 0);  }}
+      $self->openMouth(LaTeXML::StyleMouth->new($path), 0);  }}
   else {			# Else read as an included file.
     # If there is a file-specific declaration file (name.latexml), load it first!
-    my $name = $file;
-    $name =~ s/\.tex//;
+    my $file = $path;
+    $file =~ s/\.tex//;
     local $LaTeXML::INHIBIT_LOAD=0;
-    $self->inputConfigfile($name); #  Load configuration for this source, if any.
+    $self->inputConfigfile($file); #  Load configuration for this source, if any.
     # NOW load the input --- UNLESS INHIBITTED!!!
     if(!$LaTeXML::INHIBIT_LOAD){
       if($filecontents){
 	$self->openMouth(LaTeXML::Mouth->new($filecontents) ,0); }
       else {
-	$self->openMouth(LaTeXML::FileMouth->new($file) ,0); }}
+	$self->openMouth(LaTeXML::FileMouth->new($path) ,0); }}
   }}
 
 sub inputConfigfile {
-  my($self,$name)=@_;
-  if(my $conf = pathname_find("$name.latexml",
+  my($self,$file)=@_;
+  if(my $conf = pathname_find("$file.latexml",
 			      paths=>$STATE->lookupValue('SEARCHPATHS'))){
     $self->openMouth(LaTeXML::PerlMouth->new($conf),0);
     my $pmouth = $$self{mouth};
@@ -357,6 +356,22 @@ sub readKeyword {
   }
   return undef; }
 
+sub readXKeyword {
+  my($self,@keywords)=@_;
+  $self->skipSpaces;
+  foreach my $keyword (@keywords){
+    $keyword = ToString($keyword) if ref $keyword;
+    my @tomatch=split('',uc($keyword));
+    my @matched=();
+    my $tok;
+    while(@tomatch && defined ($tok=$self->readXToken) && push(@matched,$tok) 
+	  && (uc($tok->getString) eq $tomatch[0])){ 
+      shift(@tomatch); }
+    return $keyword unless @tomatch;	# All matched!!!
+    $self->unread(@matched);	# Put 'em back and try next!
+  }
+  return undef; }
+
 # Return a (balanced) sequence tokens until a match against one of the Tokens in @delims.
 # In list context, also returns the found delimiter.
 sub readUntil {
@@ -432,7 +447,8 @@ sub readTokensValue {
     if($defn->isRegister eq 'Tokens'){
       $defn->valueOf($defn->readArguments($self)); }
     elsif($defn->isExpandable){
-      Tokens($defn->invoke($self)); }
+      $self->unread($defn->invoke($self));
+      $self->readTokensValue; }
     else {
       $token; }}		# ?
   else {
@@ -712,9 +728,9 @@ to TeX's rules.
 
 =over 4
 
-=item C<< $gullet->input($name,$types,%options); >>
+=item C<< $gullet->input($file,$types,%options); >>
 
-Input the file named C<$name>; Searches for matching files in the
+Input the file named C<$file>; Searches for matching files in the
 current C<searchpath> with an extension being one of  C<$types> (an array
 of strings). If the found file has a perl extension (pm, ltxml, or latexml), 
 it will be executed (loaded).  If the found file has a TeX extension

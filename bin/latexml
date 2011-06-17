@@ -13,15 +13,18 @@ use LaTeXML::Util::Pathname;
 my $identity = "latexml (LaTeXML version $LaTeXML::VERSION)";
 my($verbosity,$strict,$comments,$noparse,$includestyles)=(0,0,1,0,0);
 my ($format,$destination,$help,$showversion)=('xml','');
+my ($preamble,$postamble)=(undef,undef);
 my ($documentid);
 my $inputencoding;
 my $mode = 'auto';
-my @paths = ('.');
+my @paths = ();
 my (@preload,@debugs);
 GetOptions("destination=s" => \$destination,
 	   "output=s"  => \$destination,
 	   "preload=s" => \@preload,
 	   "path=s"    => \@paths,
+	   "preamble=s" => \$preamble,
+	   "postamble=s"=> \$postamble,
 	   "quiet"     => sub { $verbosity--; },
 	   "verbose"   => sub { $verbosity++; },
 	   "strict"    => \$strict,
@@ -43,13 +46,16 @@ if($showversion){ print STDERR "$identity\n"; exit(1); }
 pod2usage(-message=>"$identity\nMissing input TeX file", 
 	  -exitval=>1, -verbose=>0,-output=>\*STDERR) unless @ARGV;
 my $source = $ARGV[0];
-my @sources = @ARGV; #Deyan: adding support for multiple file parts
+
 #**********************************************************************
 # Set up the processing.
 print STDERR "$identity\n" unless $verbosity < 0;
 
 @paths = map(pathname_canonical($_),@paths);
-my $latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[@paths], graphicspaths=>['.'],
+if(my @baddirs = grep(! -d $_, @paths)){
+  warn "$identity: these path directories do not exist: ".join(', ',@baddirs)."\n"; }
+
+my $latexml= LaTeXML->new(preload=>[@preload], searchpaths=>[grep(-d $_,reverse(@paths))], graphicspaths=>['.'],
 			  verbosity=>$verbosity, strict=>$strict,
 			  includeComments=>$comments,inputencoding=>$inputencoding,
 			  includeStyles=>$includestyles,
@@ -61,8 +67,6 @@ if($destination){
   if(my $dir =pathname_directory($destination)){
     pathname_mkdir($dir) or die "Couldn't create destination directory $dir: $!"; }}
 
-if(my @baddirs = grep(! -d $_, @paths)){
-  warn "$identity: these path directories do not exist: ".join(', ',@baddirs)."\n"; }
 binmode(STDERR,":utf8");
 
 $mode = 'bibtex' if ($mode eq 'auto') && ($source =~ /\.bib$/);
@@ -73,35 +77,15 @@ my $digested;
 if($source eq '-'){
   my $content;
   { local $/ = undef; $content = <>; }
-  $digested = $latexml->digestString($content); }
+  $digested = $latexml->digestString($content,preamble=>$preamble,postamble=>$postamble); }
 elsif($mode eq 'bibtex'){
   $digested = $latexml->digestBibTeXFile($source); }
 else {
-  # ===============================================
-  # TODO: This has long become obsolete, remove entirely (possibly merge native latexml)
-  #Deyan: adding support for multiple file on input,
-  # where the assumption is that we are given several pieces of the same document
-  # Basic idea - write a temp file which \input{}s the ARGV collection of file pieces.
-  pop @sources if $sources[-1] eq '-';
-  if (scalar(@sources) > 1) {
-    my $multicontent;
-    my @bases=();
-    foreach my $piece(@sources) {
-      $multicontent .= '\input{'.$piece."}\n";
-      #Keep track of source base:
-      my ($dir,$name,$ext) = pathname_split($piece);
-      push(@bases,$name);
-    }
-    #my $sourcebase = join("-",@bases);
-    $digested = $latexml->digestString($multicontent);#,$sourcebase);
-  }
-  else {
-    $digested = $latexml->digestFile($source); 
-  }}
+  $digested = $latexml->digestFile($source,preamble=>$preamble,postamble=>$postamble); }
 
 # ========================================
 # Now, convert to DOM and output, if desired.
-#use Encode;
+
 my $serialized;
 if($digested){
     local $LaTeXML::Global::STATE = $$latexml{state};
@@ -147,6 +131,10 @@ latexml [options] I<texfile>
  --output=file      [obsolete synonym for --destination]
  --preload=module   requests loading of an optional module;
                     can be repeated
+ --preamble=file    specifies a preamble file which will
+                    effectively be prepended to the main file.
+ --postamble=file   specifies a postamble file which will
+                    effectively be appended to the main file.
  --includestyles    allows latexml to load raw *.sty file;
                     by default it avoids this.
  --path=dir         adds dir to the paths searched for files,
@@ -185,6 +173,13 @@ Specifies the destination file; by default the XML is written to stdout.
 Requests the loading of an optional module or package.  This may be useful if the TeX code
 does not specificly require the module (eg. through input or usepackage).
 For example, use C<--preload=LaTeX.pool> to force LaTeX mode.
+
+=item C<--preamble>=I<file>, C<--postamble>=I<file>
+
+Specifies a file whose contents will effectively be prepended or appended
+to the main document file's content. This can be useful when processing
+TeX fragments, in which case the preamble would contain documentclass and begindocument
+control sequences.  This option is not used when processing BibTeX files.
 
 =item C<--includestyles>
 
@@ -265,8 +260,8 @@ Specify the input encoding, eg. C<--inputencoding=iso-8859-1>.
 The encoding must be one known to Perl's Encode package.
 Note that this only enables the translation of the input bytes to
 UTF-8 used internally by LaTeXML, but does not affect catcodes.
-In such cases, you should be using the inputenc package.
-Note also that this does not affect the output encoding, which is
+It is usually better to use LaTeX's inputenc package.
+Note that this does not affect the output encoding, which is
 always UTF-8.
 
 =item C<--VERSION>

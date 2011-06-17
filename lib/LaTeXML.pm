@@ -50,7 +50,7 @@ sub new {
   $state->assignValue(GRAPHICSPATHS=> [ map(pathname_absolute(pathname_canonical($_)),
 					    @{$options{graphicspaths} || []}) ],'global');
   $state->assignValue(INCLUDE_STYLES=>$options{includeStyles}|| 0,'global');
-  $state->assignValue(INPUT_ENCODING=>$options{inputencoding}) if $options{inputencoding};
+  $state->assignValue(PERL_INPUT_ENCODING=>$options{inputencoding}) if $options{inputencoding};
   bless {state   => $state, 
 	 nomathparse=>$options{nomathparse}||0,
 	 preload=>$options{preload},
@@ -99,8 +99,9 @@ sub digestFile {
 
      my $pathname = pathname_find($file,types=>['tex','']);
      Fatal(":missing_file:$file Cannot find TeX file $file") unless $pathname;
-     $state->assignValue(SOURCEFILE=>$pathname);
      my($dir,$name,$ext)=pathname_split($pathname);
+     $state->assignValue(SOURCEFILE=>$pathname);
+     $state->assignValue(SOURCEDIRECTORY=>$dir);
      $state->unshiftValue(SEARCHPATHS=>$dir) unless grep($_ eq $dir, @{$state->lookupValue('SEARCHPATHS')});
      $state->unshiftValue(GRAPHICSPATHS=>$dir) unless grep($_ eq $dir, @{$state->lookupValue('GRAPHICSPATHS')});
 

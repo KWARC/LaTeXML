@@ -29,105 +29,6 @@ our @ISA = (qw(LaTeXML));
 
 #**********************************************************************
 
-sub digestFileDaemonized {
-  my($self,$file,$mode)=@_;
-  $file =~ s/\.tex$//;
-  $self->withState(sub {
-     my($state)=@_;
-     NoteBegin("Digesting $file");
-     #We only need to initialize the state at the start of the daemon!
-     #$self->initializeState('TeX.pool', @{$$self{preload} || []});
-     my $pathname = pathname_find($file,types=>['tex','']);
-     Fatal(":missing_file:$file Cannot find TeX file $file") unless $pathname;
-     $state->assignValue(SOURCEFILE=>$pathname,'global');
-     my($dir,$name,$ext)=pathname_split($pathname);
-     $state->assignValue(SOURCEBASE=>$name,'global');
-     $state->pushValue(SEARCHPATHS=>$dir);
-     $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
-							Tokens(Explode($name))));
-     #Note that we first open the \end and then the \begin
-     #Since we have a stack and not a queue.
-     if (($mode eq "fragment") && $state->lookupDefinition(T_CS("\\begin{document}"))) {
-       #End {document}
-       my $edoc = '\\end{document}';
-       $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($edoc),0);
-     }
-     #Digest input
-     $state->getStomach->getGullet->input($pathname);
-     #Wrap LaTeX fragments in a {document} environment
-     if (($mode eq "fragment") && $state->lookupDefinition(T_CS("\\begin{document}"))) {
-       my $bdoc = '\\begin{document}';
-       $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($bdoc),0);
-     }
-
-     my $list = $self->finishDigestion;
-     $state->popValue('SEARCHPATHS');
-     NoteEnd("Digesting $file");
-     $list; });
-}
-
-sub digestBibTeXFileDaemonized {
-  my($self,$file,$mode)=@_;
-  $file =~ s/\.bib$//;
-  $self->withState(sub {
-     my($state)=@_;
-     NoteBegin("Digesting bibliography $file");
-     # NOTE: This is set up to do BibTeX for LaTeX (not other flavors, if any)
-     #We only need to initialize the state at the start of the daemon!
-     #$self->initializeState('TeX.pool','LaTeX.pool', 'BibTeX.pool', @{$$self{preload} || []});
-     my $pathname = pathname_find($file,types=>['bib','']);
-     Fatal(":missing_file:$file Cannot find TeX file $file") unless $pathname;
-     my $bib = LaTeXML::Bib->newFromFile($file);
-     my($dir,$name,$ext)=pathname_split($pathname);
-     $state->pushValue(SEARCHPATHS=>$dir);
-     $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
-							Tokens(Explode($name))));
-     my $tex = $bib->toTeX;
-     $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($tex),0);
-     my $line = $self->finishDigestion;
-     $state->popValue('SEARCHPATHS');
-     NoteEnd("Digesting bibliography $file");
-     $line; });
-}
-
-sub digestStringDaemonized {
-  my($self,$string,$mode,$sourcefile)=@_;
-  my $sourceuri = $sourcefile;
-  $sourceuri =~ s/\.tex$// if $sourceuri;
-  $self->withState(sub {
-     my($state)=@_;
-     my $urinote = " from $sourceuri" if $sourceuri;
-     NoteBegin("Digesting string$urinote");
-     #We only need to initialize the state at the start of the daemon!
-     #$self->initializeState('TeX.pool', @{$$self{preload} || []});
-     if ($sourcefile) {
-       # Strip away the .tex to ensure the URIs are the same
-       $state->assignValue(SOURCEFILE=>$sourceuri,'global');
-       $sourcefile =~ s/^(\w+):\///;
-       my($dir,$name,$ext)=pathname_split($sourcefile); #DG: Dirty hack, make robust
-       $state->assignValue(SOURCEBASE=>$name,'global');
-     }
-     #Note that we first open the \end and then the \begin
-     #Since we have a stack and not a queue.
-     if (($mode eq "fragment") && $state->lookupDefinition(T_CS("\\begin{document}"))) {
-       #End {document}
-       my $edoc = '\\end{document}';
-       $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($edoc),0);
-     }
-     #Digest input
-     my $mouth = LaTeXML::Mouth->new($string);
-     $$mouth{source} = $sourceuri if $sourceuri;
-     $state->getStomach->getGullet->openMouth($mouth,0);
-     #Wrap LaTeX fragments in a {document} environment
-     if (($mode eq "fragment") && $state->lookupDefinition(T_CS("\\begin{document}"))) {
-       my $bdoc = '\\begin{document}';
-       $state->getStomach->getGullet->openMouth(LaTeXML::Mouth->new($bdoc),0);
-     }
-
-     my $line = $self->finishDigestion;
-     NoteEnd("Digesting string");
-     $line; });
-}
 
 
 __END__
@@ -141,10 +42,8 @@ C<LaTeXML::Daemon> - Daemonized digestion routines for the C<LaTeXML> class.
 =head1 SYNOPSIS
 
     use LaTeXML::Daemon;
-    my $latexml = LaTeXML::Daemon->new(%options);
-    $latexml->digestBibTeXFileDaemonized($bibfile,$mode);
-    $latexml->digestFileDaemonized($file,$mode);
-    $latexml->digestStringDaemonized($string,$mode);
+    my $daemon = LaTeXML::Daemon->new(%options);
+    my ($result,$errors,$status) = $daemon->convert($tex);
 
 Also see the utility daemon servers C<latexmls> and C<latexmld>, 
 which utilize this module.

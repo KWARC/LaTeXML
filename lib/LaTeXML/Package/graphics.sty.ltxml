@@ -15,6 +15,8 @@
 package LaTeXML::Package::Pool;
 use strict;
 use LaTeXML::Package;
+use LaTeXML::Util::Pathname;
+
 #**********************************************************************
 # Package options: draft, final, hiderotate, hidescale, hiresbb
 
@@ -80,7 +82,8 @@ DefConstructor('\reflectbox{}', sub {
 	       mode=>'text');
 
 DefConstructor('\graphicspath Semiverbatim',"<?latexml graphicspath='#1'?>",
-	       afterDigest=>sub { PushValue(SEARCHPATHS=>$_[1]->getArg(1)); });
+	       afterDigest=>sub {
+		 UnshiftValue(GRAPHICSPATHS=>pathname_absolute(pathname_canonical(ToString($_[1]->getArg(1))))); });
 
 # Basically, we're transforming the graphics options into graphicx format.
 DefMacro('\includegraphics OptionalMatch:* [][] Semiverbatim',
@@ -91,8 +94,12 @@ DefConstructor('\@includegraphics OptionalMatch:* [][] Semiverbatim', sub {
   my $bb = ($op2 ? ToString($op1)." ".ToString($op2) : ($op1 ? "0 0 ".ToString($op1) : ''));
   $bb=~ s/,/ /g;
   my $options=($starred ? ($bb ? "viewport=$bb, clip" : "clip") : '');
-  my $candidates = join(',',pathname_findall(ToString($graphic),type=>['*'],paths=>LookupValue('GRAPHICSPATHS')));
-  $document->insertElement('ltx:graphics',undef,graphic=>$graphic,options=>$options,candidates=>$candidates); },
+  $graphic = ToString($graphic); $graphic =~ s/^\s+//; $graphic=~ s/\s+$//;
+  my @candidates = pathname_findall($graphic,types=>['*'],paths=>LookupValue('GRAPHICSPATHS'));
+  if(my $base = LookupValue('SOURCEDIRECTORY')){
+    @candidates=map(pathname_relative($_,$base),@candidates); }
+  $document->insertElement('ltx:graphics',undef,graphic=>$graphic,options=>$options,
+			   candidates=>join(',',@candidates)); },
 	       alias=>'\includegraphics');
 
 # Also unimplemented... probably nothing useful to pass thru anyway?

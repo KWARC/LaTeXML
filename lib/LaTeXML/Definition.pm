@@ -39,11 +39,12 @@ sub stringify {
   my($self)=@_;
   my $type = ref $self;
   $type =~ s/^LaTeXML:://;
-  $type.'['.($$self{alias}||$$self{cs}->getCSName).' '.Stringify($$self{parameters}||'').']'; }
+  my $name = ($$self{alias}||$$self{cs}->getCSName);
+  $type.'['.($$self{parameters} ? $name.' '.Stringify($$self{parameters}) : $name).']'; }
 
 sub toString {
   my($self)=@_;
-  ToString($$self{cs}).' '.ToString($$self{parameters} ||''); }
+  ($$self{parameters} ? ToString($$self{cs}).' '.ToString($$self{parameters}) : ToString($$self{cs})); }
 
 # Return the Tokens that would invoke the given definition with arguments.
 sub invocation {
@@ -218,9 +219,9 @@ use LaTeXML::Global;
 use base qw(LaTeXML::Register);
 
 sub new {
-  my($class,$cs,$value,%traits)=@_;
+  my($class,$cs,$value,$internalcs,%traits)=@_;
   bless {cs=>$cs, parameters=>undef,
-	 value=>$value, char=>T_OTHER(chr($value->valueOf)),
+	 value=>$value, internalcs=>$internalcs,
 	 registerType=>'Number', readonly=>1,
 	 locator=>"defined ".$STATE->getStomach->getGullet->getMouth->getLocator, %traits}, $class; }
 
@@ -228,7 +229,8 @@ sub valueOf  { $_[0]->{value}; }
 sub setValue { Error(":unexpected:".$_[0]->getCSName." Cannot assign to chardef ".$_[0]->getCSName); return; }
 sub invoke   { 
   my($self,$stomach)=@_;
-  $stomach->invokeToken($$self{char}); }
+  if(my $cs = $$self{internalcs}){
+    $stomach->invokeToken($cs); }}
 
 #**********************************************************************
 # Constructor control sequences.  
