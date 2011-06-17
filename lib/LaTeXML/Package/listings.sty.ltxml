@@ -72,7 +72,8 @@ DefMacroI(T_CS('\begin{lstlisting}'),
 
 DefMacro('\lstinputlisting OptionalKeyVals:LST Semiverbatim', sub {
   my($gullet,$keyvals,$file)=@_;
-  my $path = FindFile(Expand($file));
+#  my $path = FindFile(Expand($file));
+  my $path = FindFile($file);
   my $text;
   if( $path && open(LST, $path)){
     { local $/ = undef;
