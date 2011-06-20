@@ -46,3 +46,18 @@ sub auth_get {
   }
   $response;
 }
+
+#======================================================================
+1;
+
+__END__
+
+=pod 
+
+=head1 NAME
+
+C<LaTeXML::Util::WWW>  - auxiliaries for web-scalability
+
+=head1 DESCRIPTION
+
+TODO: Add me
