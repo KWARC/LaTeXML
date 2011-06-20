@@ -16,6 +16,8 @@ use LaTeXML::Global;
 use LaTeXML::Mouth;
 use LaTeXML::Number;
 use LaTeXML::Util::Pathname;
+use LaTeXML::Util::WWW;
+
 use base qw(LaTeXML::Object);
 #**********************************************************************
 sub new {
