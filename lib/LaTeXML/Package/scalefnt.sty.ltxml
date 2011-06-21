@@ -1,7 +1,7 @@
 # -*- CPERL -*-
 # /=====================================================================\ #
-# |  keyval                                                             | #
-# | Implementation of keyval for LaTeXML                                | #
+# |  scalefnt                                                           | #
+# | Implementation for LaTeXML                                          | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
 # |  Public domain software, produced as part of work done by the       | #
@@ -13,13 +13,13 @@
 package LaTeXML::Package::Pool;
 use strict;
 use LaTeXML::Package;
-use LaTeXML::Util::KeyVal;
 
-# Should define some macros that connect to KeyVal ?
+#**********************************************************************
+# Nothing to do here!
+DefPrimitive('\scalefnt{}',sub {
+  my($stomach,$scale)=@_;
+  # Actually, this should scale relative to whatever the CURRENT font size is....
+  MergeFont(size=>abstract_font_size(ToString($scale))); });
 
-# This doesn't really do anything useful; what keyval wants is to evaluate $code!!!
-DefPrimitive('\define@key{}{}[]{}',sub {
-  my($keyset,$key,$default,$code)=@_;
-  DefKeyVal(ToString($keyset),ToString($key),'',ToString($default)); });
-#======================================================================
+#**********************************************************************
 1;

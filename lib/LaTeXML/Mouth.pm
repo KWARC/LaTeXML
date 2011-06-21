@@ -18,7 +18,6 @@ package LaTeXML::Mouth;
 use strict;
 use LaTeXML::Global;
 use LaTeXML::Token;
-use Encode;
 use base qw(LaTeXML::Object);
 
 sub new {
