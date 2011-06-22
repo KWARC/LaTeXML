@@ -1020,7 +1020,7 @@ sub pathname_find_x {
 our $inputfile_options={};
 sub InputFile {
   my($request,%options)=@_;
-  $request = ToString(Expand($request));
+  $request = ToString($request);
   CheckOptions("InputFile ($request)",$inputfile_options,%options);
   # HEURISTIC! First check if equivalent style file, but only IFF we are in preamble
   my ($dir,$name,$type) = pathname_split($request);
