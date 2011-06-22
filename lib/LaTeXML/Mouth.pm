@@ -347,7 +347,7 @@ sub getNextLine {
 
   if(!($$self{lineno} % 25)){
     NoteProgress("[#$$self{lineno}]"); }
-  $line=encode('UTF-8',$line); }
+  $line; }
 
 sub stringify {
   my($self)=@_;
