@@ -1,6 +1,6 @@
 # /=====================================================================\ #
 # |  LaTeXML::Daemon                                                    | #
-# | Extends the LaTeXML object with daemon methods                      | #
+# | Wrapper for LaTeXML processing with daemon-ish methods              | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
 # |  Public domain software, produced as part of work done by the       | #
@@ -18,58 +18,75 @@ use lib "$FindBin::RealBin/../lib";
 
 use LaTeXML;
 use LaTeXML::Util::Pathname;
-use LaTeXML::Util::ObjectDB;
 use LaTeXML::Util::WWW;
+use LaTeXML::Util::Extras;
 use LaTeXML::Post;
-use LaTeXML::Post::Writer;
 use LaTeXML::Post::Scan;
 use Carp;
+use IO::Scalar;
 use Data::Compare;
+use feature "switch";
 
 #**********************************************************************
-our @IGNORABLE = qw(identity input_counter input_limit);
+our @IGNORABLE = qw(identity input_counter input_limit profile);
 
 sub new {
   my ($class,%opts) = @_;
+  binmode(STDERR,":utf8");
+  prepare_options(undef,\%opts);
   bless {defaults=>\%opts,opts=>undef,ready=>0,
          latexml=>undef, digested_preamble=>undef}, $class;
 }
 
 sub prepare_session {
-  my ($self,%opts) = @_;
+  my ($self,$opts) = @_;
   #0. Make sure all default keys are present, via bootstrapping with the defaults:
   foreach (keys %{$self->{defaults}}) {
-    $opts{$_} = $self->{defaults}->{$_} unless exists $opts{$_};
+    $opts->{$_} = $self->{defaults}->{$_} unless exists $opts->{$_};
   }
+  $self->prepare_options($opts);
   #1. Check if there is some change from the current situation:
-  my $nothingtodo=1 if Compare(\%opts, $self->{opts}, { ignore_hash_keys => [@IGNORABLE] });
+  my $nothingtodo=1 if Compare($opts, $self->{opts}, { ignore_hash_keys => [@IGNORABLE] });
   #1.1. If no, nothing to do
-  return if $nothingtodo;
-  #1.2. If yes, reset opts:
-  undef $self->{opts};
-  $self->{opts}=\%opts;
+  unless ($nothingtodo) {
+    #1.2. If yes, reset opts:
+    undef $self->{opts};
+    $self->{opts} = $opts;
+    $self->{opts} = $self->{defaults} if (! keys %{$self->{opts}});
+    $self->prepare_options($self->{opts});
+  }
   # ... and initialize a session:
-  $self->initialize_session;
+  $self->initialize_session unless ($nothingtodo && $self->{ready});
   return;
+}
+
+sub prepare_options {
+  my ($self,$opts) = @_;
+  $opts->{verbosity} = 0 unless defined $opts->{verbosity};
+  $opts->{preload} = [] unless defined $opts->{preload};
+  $opts->{paths} = ['.'] unless defined $opts->{paths};
+  @{$opts->{paths}} = map {pathname_canonical($_)} @{$opts->{paths}};
+  if ($opts->{post}) {
+    # Fall back to default post processors if no preferences:
+    %{$opts->{procs_post}}=%{$self->{defaults}->{procs_post}} if (defined $self && (! keys %{$opts->{procs_post}}));
+    # Fall back to pmml as default
+    $opts->{procs_post}->{'pmml'}=1 if (! keys %{$opts->{procs_post}});
+  }
+  # Any post switch implies post:
+  $opts->{post}=1 if (keys %{$opts->{procs_post}});
+  $opts->{parallelmath}=0 unless (keys %{$opts->{procs_post}} > 1);
 }
 
 sub initialize_session {
   my ($self) = @_;
-  my $opts = $self->{opts};
-  $opts = $self->{defaults} unless (defined $self->{opts});
-  @{$opts->{paths}} = map {pathname_canonical($_)} @{$opts->{paths}};
-  # Any post switch implies post:
-  $opts->{post}=1 if (keys %{$opts->{procs_post}});
-  
-  binmode(STDERR,":utf8");
   # Prepare LaTeXML object
   my $latexml= new_latexml($self->{opts});
   # Demand errorless initialization
   my $init_status = $latexml->getStatusMessage;
   croak $init_status unless ($init_status !~ /error/i);
-
-
-  my $digested_preamble = load_preamble($self->{opts},$latexml,$self->{opts}->{preamble_loaded});
+  # Load preamble:
+  my $digested_preamble = load_preamble($self->{opts},$latexml,$self->{digested_preamble});
+  # Save in object:
   $self->{latexml} = $latexml;
   $self->{digested_preamble} = $digested_preamble;
   $self->{ready}=1;
@@ -77,60 +94,57 @@ sub initialize_session {
 
 sub convert {
   my ($self,$source) = @_;
-  # Install signal-handlers
-  local $SIG{'ALRM'} = 'dotimeout';
-  local $SIG{'TERM'} = 'doterm';
-  local $SIG{'INT'} = 'doterm';
-  # Prepare options if needed
+  # Tie STDERR to log:
+  my $log=q{}; my $status=q{};
+  open(LOG,">",\$log) or croak "Can't redirect STDERR to log! Dying...";
+  *ERRORIG=*STDERR;
+  *STDERR = *LOG;
+
+  # Initialize session if needed:
   $self->initialize_session unless $self->{ready};
 
   # Inform of identity, increase conversion counter
-  print STDERR $opts->{identity}."\n" if $opts->{verbosity} >= 0;
   my $opts = $self->{opts};
+  print STDERR $opts->{identity}."\n" if $opts->{verbosity} >= 0;
   $opts->{input_counter}++;
 
-  #Source type: File, String or URL?
-  ($opts->{source_type},$source) = $self->source_type($source) unless defined $opts->{source_type};
+  # Prepare content and determine source type
+  my $content = $self->prepare_content($source);
 
-  #Recognize bibtex case
-  $opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && ($source =~ /\.bib$/);
-  ##############################3
-  # First read and digest whatever we're given.
-  my $digested;
-  # Preload the preamble if any (and not loaded)
-  $digested_preamble = load_preamble($opts,$latexml,$digested_preamble);
   # Prepare daemon frame
+  my $latexml = $self->{latexml};
   $latexml->withState(sub {
                         my($state)=@_; # Sandbox state
                         # Save preamble information for further use:
                         $state->assignValue('_preamble_loaded',$opts->{preamble},'global');
                         $state->assignValue('_authlist',$opts->{authlist},'global');
                         $state->pushDaemonFrame; });
-  # Prepare preamble and postamble in fragment mode
-  my ($serialized,$dom,$modepre,$modepost);
-  if ($opts->{mode} eq 'fragment') {
-    $modepre='standard_preamble.tex';
-    $modepost='standard_postamble.tex';
-  }
+
+  # First read and digest whatever we're given.
+  my ($digested,$dom,$serialized);
   # Digest source:
   eval {
-    if ($isURL) {
-      $digested = $latexml->digestString($response->content,preamble=>$modepre,postamble=>$modepost,source=>$source,noinitialize=>1);
-    } elsif ($isFile) {
+    if ($opts->{source_type} eq 'url') {
+      $digested = $latexml->digestString($content,preamble=>$opts->{'fragment_preamble'},
+                                         postamble=>$opts->{'fragment_postamble'},source=>$source,noinitialize=>1);
+    } elsif ($opts->{source_type} eq 'file') {
       if ($opts->{type} eq 'bibtex') {
         # TODO: Do we want URL support here?
-        $digested = $latexml->digestBibTeXFile($source,preamble=>$modepre,postamble=>$modepost,noinitialize=>1);
+        $digested = $latexml->digestBibTeXFile($content,preamble=>$opts->{'fragment_preamble'},
+                                               postamble=>$opts->{'fragment_postamble'},noinitialize=>1);
       } else {
-        $digested = $latexml->digestFile($source,preamble=>$modepre,postamble=>$modepost,noinitialize=>1);
+        $digested = $latexml->digestFile($content,preamble=>$opts->{'fragment_preamble'},
+                                         postamble=>$opts->{'fragment_postamble'},noinitialize=>1);
       }}
-    elsif ($isString) {
-      $source = mathdoc($source) if ($opts->{mode} eq "math");
-      $digested = $latexml->digestString($source,preamble=>$modepre,postamble=>$modepost,noinitialize=>1);
+    elsif ($opts->{source_type} eq 'string') {
+      $digested = $latexml->digestString($content,preamble=>$opts->{'fragment_preamble'},
+                                         postamble=>$opts->{'fragment_postamble'},noinitialize=>1);
     }
-    # ========================================
+    
     # Now, convert to DOM and output, if desired.
     if ($digested) {
-      $digested = LaTeXML::List->new($digested_preamble,$digested) if defined $digested_preamble;
+      $digested = LaTeXML::List->new($self->{digested_preamble},$digested)
+        if defined $self->{digested_preamble};
       local $LaTeXML::Global::STATE = $$latexml{state};
       if ($opts->{format} eq 'tex') {
         $serialized = LaTeXML::Global::UnTeX($digested);
@@ -139,34 +153,121 @@ sub convert {
       } else {
         $dom = $latexml->convertDocument($digested);
         $serialized = $dom->toString(1);
-      }
-    }
+      }}
     1;
+  } or do {#Fatal occured!
+    print STDERR "$@\n";
+    print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
+    # Close and restore STDERR to original condition.
+    close LOG;
+    *STDERR=*ERRORIG;
+    $self->{ready}=0; return (undef,$log,$latexml->getStatusMessage);
+  };
 
-####################################################33
-###########################################3
-  #END:
+  print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
+  $status = $latexml->getStatusMessage;
+  # End daemon run, by popping frame:
+  $latexml->withState(sub {
+                        my($state)=@_; # Remove current state frame
+                        $state->popDaemonFrame;
+                        $$state{status} = {};
+                      });
+
+  my $result = $dom;
+  $result = $self->convert_post($serialized) if ($opts->{post} && $serialized && (!$opts->{noparse}));
+
+  # Close and restore STDERR to original condition.
+  close LOG;
+  *STDERR=*ERRORIG;
   delete $opts->{source_type};
-  #self->{log} ??
   ($result,$log,$status);
 }
 
-sub source_type {
-  my ($self,$source)=@_;
-  my $opts=$self->{opts};
-  $source=~s/\n$//g; # Eliminate trailing new lines
-  my @source_lines = split(/\n/,$source);
-  return ("string",$source) if (scalar(@source_lines)>1);
-  if ($opts->{local}) {
-    my $file = pathname_find($source,types=>['tex',q{}]);
-    $file = pathname_canonical($file) if $file;
-    return ("file",$file) if $file;
-  }
-  $response = auth_get($source,$opts->{authlist});
-  return ("url",$response) if $response->is_success;
-  return ("string",$source);
-}
+sub convert_post {
+  my ($self,$serialized) = @_;
+  my $opts = $self->{opts};
+  my ($style,$parallel,$proctypes,$format,$verbosity,$defaultcss,$embed) = 
+    map {$opts->{$_}} qw(stylesheet parallelmath procs_post format verbosity defaultcss embed);
+  $verbosity = $verbosity||0;
+  my %PostOPS = (verbosity=>$verbosity,siteDirectory=>".");
+  #Postprocess
+  #Default is XHTML, XML otherwise (TODO: Expand)
+  $format="xml" if ($style);
+  $format="xhtml" unless (defined $format);
+  if (!$style) {
+    given ($format) {
+      when ("xhtml") {$style = "LaTeXML-xhtml.xsl";}
+      when ("html") {$style = "LaTeXML-html.xsl";}
+      when ("html5") {$style = "LaTeXML-html5.xsl";}
+      when ("xml") {undef $style;}
+      default {Error("Unrecognized target format: $format");}
+    }}
+  my @css=();
+  unshift (@css,"core.css") if ($defaultcss);
+  $parallel = $parallel||0;
+  my $doc;
+  eval {
+    $doc = LaTeXML::Post::Document->newFromString($serialized,nocache=>1);
+    1;}
+    or do {                     #Fatal occured!
+      #Since this is postprocessing, we don't need to do anything
+      #   just avoid crashing... and exit
+      undef $doc;
+      print STDERR "FATAL: Post-processor crashed! $@\n";
+      return undef;
+    };
+  require LaTeXML::Post::MathML;
+  require LaTeXML::Post::OpenMath;
+  require LaTeXML::Post::PurgeXMath;
+  my @mprocs=();
 
+  push (@mprocs, LaTeXML::Post::MathML::Presentation->new(%PostOPS)) if $proctypes->{'pmml'};
+  push (@mprocs, LaTeXML::Post::MathML::Content->new(%PostOPS)) if $proctypes->{'cmml'};
+  push (@mprocs, LaTeXML::Post::OpenMath->new(%PostOPS)) if $proctypes->{'openmath'};
+  my $main = shift(@mprocs);
+  $main->setParallel(@mprocs) if $parallel;
+  $main->keepTeX if ($$proctypes{'keepTeX'} && $parallel);
+  my @procs=();
+  push(@procs,$main);
+  push(@procs,@mprocs) unless $parallel;
+  push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $$proctypes{'keepXMath'};
+  require LaTeXML::Post::XSLT;
+  my @csspaths=();
+#  if (@css) {
+#    foreach my $css (@css) {
+#      $css .= '.css' unless $css =~ /\.css$/;
+#      # Dance, if dest is current dir, we'll find the old css before the new one!
+#      my @csssources = map {pathname_canonical($_)}
+#                            pathname_findall($css,types=>['css'],
+#                                            (),
+#                                            installation_subdir=>'style');
+#      my $csspath = pathname_absolute($css,pathname_directory('.'));
+#      while (@csssources && ($csssources[0] eq $csspath)) {
+#        shift(@csssources);
+#      }
+#      my $csssource = shift(@csssources);
+#      pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
+#      push(@csspaths,$csspath);
+#    }}
+  push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
+					 parameters=>{number_sections
+						      =>("true()"),
+                                                      (@csspaths ? (CSS=>[@csspaths]):()),},
+                                       %PostOPS)) if $style;
+  my $postdoc;
+  eval { ($postdoc) = LaTeXML::Post::ProcessChain($doc,@procs); 1;}
+  or do {                     #Fatal occured!
+    #Since this is postprocessing, we don't need to do anything
+    #   just avoid crashing... and exit
+    print STDERR "FATAL: Post-processor crashed! $@\n";
+    return;
+  };
+  # If we want extra ids, this is where we add them:
+  $postdoc = InsertIDs($postdoc) if $opts->{force_ids}; #Experimental: add id's everywhere
+  # If we want an embedable snippet, unwrap to body's "main" div
+  $postdoc = GetEmbeddable($postdoc) if $embed;
+  return $postdoc;
+}
 
 ########## Helper routines: ############
 
@@ -209,6 +310,43 @@ sub load_preamble {
   return $digested;
 }
 
+sub prepare_content {
+  my ($self,$source)=@_;
+  $source=~s/\n$//g; # Eliminate trailing new lines
+
+  my $opts=$self->{opts};
+  given ($opts->{source_type}) {
+    when ("string") {return $source;}
+    when ("file") { if ($opts->{local}) {
+                    my $file = pathname_find($source,types=>['tex',q{}]);
+                    $file = pathname_canonical($file) if $file;
+                    #Recognize bibtex case
+                    $opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && ($file =~ /\.bib$/);
+                    return $file; }
+                  else {print STDERR "File input only allowed when 'local' is enabled,"
+                                    ."falling back to string input..";
+                        $opts->{source_type}="string"; return $source; }}
+    when ("url") {  my $response = auth_get($source,$opts->{authlist});
+                  if ($response->is_success) {return $response->content;} else {
+                  print STDERR "TODO: Flag a retrieval error and do something smart?"; return undef;}}
+    default { # Guess the input type:
+      my @source_lines = split(/\n/,$source);
+      if (scalar(@source_lines)>1) {$opts->{source_type}="string"; return $source; }
+      if ($opts->{local}) {
+        my $file = pathname_find($source,types=>['tex',q{}]);
+        $file = pathname_canonical($file) if $file;
+        #Recognize bibtex case
+        $opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && ($file =~ /\.bib$/);
+        if ($file) {$opts->{source_type}="file"; return $file; }
+      }
+      my $response = auth_get($source,$opts->{authlist});
+      if ($response->is_success) {$opts->{source_type}="url"; return $response->content; }
+      $opts->{source_type}="string"; return $source;
+    }
+  }
+}
+
+1;
 
 __END__
 

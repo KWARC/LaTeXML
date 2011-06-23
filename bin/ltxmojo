@@ -1,0 +1,57 @@
+#!/usr/bin/perl
+use utf8;
+use Mojolicious::Lite;
+use LaTeXML::Util::Startup;
+use LaTeXML::Util::Extras;
+use Encode;
+
+our $version = '0.1';
+
+# Make signed cookies secure
+app->secret('LaTeXML is the way to go');
+
+#Prep a LaTeXML Startup instance
+my $startup = LaTeXML::Util::Startup->new();
+
+helper get_latexml_daemon => sub {
+  my ($self,$opt) = @_;
+  return $startup->find_daemon($opt);
+};
+
+helper prepare_options => sub {
+  my ($self,$param) = @_;
+  my $opt={};
+  #TODO: Make sure lists go to array refs, etc.
+  foreach ($param->param) { $opt->{lc($_)} = $param->param($_); }
+  delete $opt->{procs_post};
+  if ($opt->{pmml}) {$opt->{procs_post}->{pmml}=1; delete $opt->{pmml}; }
+  if ($opt->{cmml}) {$opt->{procs_post}->{cmml}=1; delete $opt->{cmml}; }
+  if ($opt->{keepTeX}) {$opt->{procs_post}->{keepTeX}=1; delete $opt->{keepTeX}; }
+  return $opt;
+};
+
+post '/convert' => sub {
+  my $self = shift;
+  my $param = $self->req->body_params;
+  my $opt = $self->prepare_options($param);
+
+  # TeX is data, separate
+  my $tex = $opt->{tex}; delete $opt->{tex};
+  # Math profile should get a mathdoc() wrapper
+  $tex = MathDoc($tex) if (lc($opt->{profile}) eq "math");
+  # We now have a LaTeXML options object - $opt.
+  my $daemon = $self->get_latexml_daemon($opt);
+  #Override/extend with session-specific options in $opt:
+  $daemon->prepare_session($opt);
+  #Send a request:
+  my ($result,$errors,$status) = $daemon->convert($tex);
+
+  # Special for math profile: get out the m:math
+  $result = GetMath($result) if (lc($opt->{profile}) eq "math");
+
+  $result = $result->toString(1) if defined $result;
+
+  $self->render(json => {result=>$result,errors=>$errors,status=>$status});
+};
+
+app->start;
