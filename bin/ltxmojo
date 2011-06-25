@@ -22,7 +22,7 @@ helper prepare_options => sub {
   my ($self,$param) = @_;
   my $opt={};
   #TODO: Make sure lists go to array refs, etc.
-  foreach ($param->param) { $opt->{lc($_)} = $param->param($_); }
+  foreach ($param->param) { $opt->{lc($_)} = $param->param($_)||1; }
   delete $opt->{procs_post};
   if ($opt->{pmml}) {$opt->{procs_post}->{pmml}=1; delete $opt->{pmml}; }
   if ($opt->{cmml}) {$opt->{procs_post}->{cmml}=1; delete $opt->{cmml}; }
