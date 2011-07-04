@@ -192,8 +192,13 @@ sub register {
     bless $entry, 'LaTeXML::Util::ObjectDB::Entry';
     $$self{objects}{$key}=$entry; }
   $entry->setValues(%props);
-
   $entry; }
+
+sub purge {
+  my ($self,$key) = @_;
+  delete $$self{objects}{$key};
+  delete $$self{externaldb}{Encode::encode('utf8',$key)};
+}
 
 #********************************************************************************
 # DB Entries
@@ -215,6 +220,11 @@ sub key { $_[0]->{key}; }
 sub getValue {
   my($self,$attr)=@_;
   decodeValue($$self{$attr}); }
+
+sub getKeys {
+ my($self)=@_;
+ keys %$self;
+}
 
 sub setValues {
   my($self,%avpairs)=@_;
@@ -251,6 +261,15 @@ sub noteAssociation {
       $hash = $$hash{$key}; }
     else {
       $hash = $$hash{$key} = (@keys ? {} : 1); }}}
+
+sub as_hashref {
+  my($self)=@_;
+  my $hashref = {};
+  foreach (keys %$self) {
+    $hashref->{$_} = decodeValue($self->{$_});
+  }
+  return $hashref;
+}
 
 # Debugging aid
 use Text::Wrap;
