@@ -130,8 +130,29 @@ __END__
 
 =head1 NAME
 
-C<LaTeXML::Extra> - Extra goodies for LaTeXML processing
+C<LaTeXML::Extra> - Extra goodies supporting LaTeXML's processing
 
 =head1 SYNOPSIS
 
-TODO: Document me
+=head1 DESCRIPTION
+
+=head2 METHODS
+
+=over 4
+
+=item C<< foo >>
+
+bar
+
+=back
+
+=head1 AUTHOR
+
+Deyan Ginev <d.ginev@jacobs-university.de>
+
+=head1 COPYRIGHT
+
+Public domain software, produced as part of work done by the
+United States Government & not subject to copyright in the US.
+
+=cut

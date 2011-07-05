@@ -19,6 +19,8 @@ use LaTeXML::Util::WWW;
 use LaTeXML::Post;
 use LaTeXML::Post::Writer;
 use LaTeXML::Post::Scan;
+use Data::Dumper;
+
 
 use Carp;
 use Clone qw(clone);
@@ -33,9 +35,9 @@ my %flushlist = ( math=> 5000, fragment=>1000, standard=>100, default=>100);
 
 # Global Options
 my $g_opts = {
- identity => "latexmls (LaTeXML version $LaTeXML::VERSION)",
+ nopop=>1, identity => "latexmls (LaTeXML version $LaTeXML::VERSION)",
  verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
- errlog=>0, post=>0, parallelmath=>0, input_counter=>0, input_limit=>0,
+ post=>0, parallelmath=>0, input_counter=>0, input_limit=>0,
  local=>0, embed=>0, timeout=>60, format=>'xml', mode=>'standard',
  destination=>q{}, postdest=>q{}, log=>q{}, postlog=>q{}, base=>q{},
  procs_post=>{}, help=>0, showversion=>0, preamble=>q{}, preamble_loaded=>q{},
@@ -249,7 +251,7 @@ while ( my $client = $server->accept() ) {
       }}
     elsif ($isString) {
       $source = mathdoc($source) if ($opts->{mode} eq "math");
-      $digested = $latexml->digestString($source,preamble=>$modepre,postamble=>$modepost,noinitialize=>1);
+      $digested = $latexml->digestString($source,preamble=>$modepre,noinitialize=>1);
     }
     # ========================================
     # Now, convert to DOM and output, if desired.
@@ -301,7 +303,8 @@ while ( my $client = $server->accept() ) {
   # End daemon run, by popping frame:
   $latexml->withState(sub {
                         my($state)=@_; # Remove current state frame
-                        $state->popDaemonFrame;
+                        print STDERR Dumper($$state{undo}[0]),"\n";
+                        $state->popDaemonFrame unless $opts->{nopop};
                         $$state{status} = {};
                       });
   if ($cdest && $opts->{local} && ($cdest ne $client)) {

@@ -180,8 +180,7 @@ sub convert {
   close LOG;
   *STDERR=*ERRORIG;
   delete $opts->{source_type};
-  my $result = {result=>$result,log=>$log,status=>$status};
-  $result;
+  my $return = {result=>$result,log=>$log,status=>$status};
 }
 
 sub convert_post {
@@ -364,7 +363,7 @@ C<LaTeXML::Daemon> - Daemon object and API for LaTeXML and LaTeXMLPost conversio
     use LaTeXML::Daemon;
     my $daemon = LaTeXML::Daemon->new(%options);
     $daemon->setOptions(%opts);
-    my ($result,$errors,$status) = $daemon->convert($tex);
+    my ($result,$status,$log) = $daemon->convert($tex);
 
 =head1 DESCRIPTION
 
@@ -378,11 +377,51 @@ A Daemon object represents a converter instance and can convert files on demand,
 
 =item C<< $daemon->setOptions(%opts);  >>
 
-=item C<< my ($result,$errors,$status) = $daemon->convert($tex); >>
+=item C<< my ($result,$status,$log) = $daemon->convert($tex); >>
 
-Converts $tex into $result and supplies detailed information of detected errors and status.
+Converts $tex into $result and supplies detailed information of the conversion log and status.
 
 =back
+
+=head2 CUSTOMIZATION OPTIONS
+
+ Options: (key=>value pairs)
+ preload => [modules]   optional modules to be loaded
+ includestyles          allows latexml to load raw *.sty file;
+                        by default it avoids this.
+ preamble => [files]    loads tex files containing document frontmatter.
+ postamble => [files] loads texs file containing document backmatter. (TODO)
+
+ paths => [dir]         paths searched for files,
+                        modules, etc; 
+ log => file            specifies log file, reuqires 'local' default: STDERR
+ TODO? --documentid=id  assign an id to the document root.
+ verbosity => level     verbosity of reporting, 0 or negative for silent, 
+                        positive for increasing detail
+ strict                 makes latexml less forgiving of errors
+ type => bibtex         processes the file as a BibTeX bibliography.
+ format => box|xml|tex  output format (Boxes, XML document or TeX document)
+ noparse                suppresses parsing math (default: off)
+ post                   requests a followup post-processing
+ embed                  requests an embeddable XHTML div (= document body)
+                        (requires: 'post')
+ stylesheet => name     specifies a stylesheet, to be used by the post-processor.
+ css => [cssfiles]      css stylesheets to html/xhtml
+ nodefaultcss           disables the default css stylesheet
+ post_procs->{pmml}     converts math to Presentation MathML
+                        (default for xhtml format)
+ post_procs->{cmml}     converts math to Content MathML
+ post_procs->{openmath} converts math to OpenMath 
+ parallelmath           requests parallel math markup for MathML
+                        (off by default)
+ post_procs->{keepTeX}  keeps the TeX source of a formula as a MathML
+                        annotation element (requires 'parallelmath' : TODO really?)
+ post_procs->{keepXMath} keeps the XMath of a formula as a MathML
+                         annotation-xml element (requires 'parallelmath' : TODO really?)
+ nocomments              omit comments from the output
+ inputencoding => enc    specify the input encoding.
+ debug => package        enables debugging output for the named
+                         package
 
 =head1 AUTHOR
 
