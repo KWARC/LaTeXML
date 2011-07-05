@@ -20,7 +20,7 @@ element document { document_attributes, document_model }
 
 
 ## The content allowable as the main body of the document.
-document.body.class = Para.model | paragraph | subsubsection | subsection | section | chapter | part
+document.body.class = Para.model | paragraph | subsubsection | subsection | section | chapter | part 
 
 ## Attributes for \elementref{document}.
 document_attributes = Sectional.attributes
@@ -29,8 +29,8 @@ document_attributes = Sectional.attributes
 ## Content model for \elementref{document}.
 document_model =
  (FrontMatter.class | SectionalFrontMatter.class | Meta.class | titlepage)*,
-  document.body.class*,
-  BackMatter.class*
+ (document.body.class | element slide {document_attributes,document.body.class})*,
+ BackMatter.class*
 
 #======================================================================
 
@@ -46,7 +46,7 @@ part_attributes = Sectional.attributes
 
 ## Content model for \elementref{part}.
 part_model = SectionalFrontMatter.class*, 
-	   (part.body.class* | element slide {part_attributes,part.body.class*})
+	   (part.body.class | element slide {part_attributes,part.body.class})*
 
 #----------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ chapter_attributes = Sectional.attributes
 
 ## Content model for \elementref{chapter}.
 chapter_model = SectionalFrontMatter.class*, 
-	      (chapter.body.class*| element slide {chapter_attributes,chapter.body.class*})
+	      (chapter.body.class| element slide {chapter_attributes,chapter.body.class})*
 
 #----------------------------------------------------------------------
 
@@ -78,7 +78,7 @@ section_attributes = Sectional.attributes
 
 ## Content model for \elementref{section}.
 section_model = SectionalFrontMatter.class*, 
-	      (section.body.class*| element slide {section_attributes,section.body.class*})
+	      (section.body.class| element slide {section_attributes,section.body.class})*
  
 #----------------------------------------------------------------------
 
@@ -94,7 +94,7 @@ subsection_attributes = Sectional.attributes
 
 ## Content model for \elementref{subsection}.
 subsection_model = SectionalFrontMatter.class*,
-	      (subsection.body.class*| element slide {subsection_attributes,subsection.body.class*})
+	      (subsection.body.class| element slide {subsection_attributes,subsection.body.class})*
 
 #----------------------------------------------------------------------
 
@@ -110,7 +110,7 @@ subsubsection_attributes = Sectional.attributes
 
 ## Content model for \elementref{subsubsection}.
 subsubsection_model = SectionalFrontMatter.class*,
-	      (subsubsection.body.class*| element slide {subsubsection_attributes,subsubsection.body.class*})
+	      (subsubsection.body.class| element slide {subsubsection_attributes,subsubsection.body.class})*
 
 #----------------------------------------------------------------------
 
@@ -127,7 +127,7 @@ paragraph_attributes = Sectional.attributes
 
 ## Content model for \elementref{paragraph}.
 paragraph_model = SectionalFrontMatter.class*, 
-	      (paragraph.body.class*| element slide {paragraph_attributes,paragraph.body.class*})
+	      (paragraph.body.class| element slide {paragraph_attributes,paragraph.body.class})*
 
 
 #----------------------------------------------------------------------
@@ -144,7 +144,7 @@ subparagraph_attributes = Sectional.attributes
 
 ## Content model for \elementref{subparagraph}.
 subparagraph_model = SectionalFrontMatter.class*,
-	      (subparagraph.body.class*| element slide {subparagraph_attributes,subparagraph.body.class*})
+	      (subparagraph.body.class| element slide {subparagraph_attributes,subparagraph.body.class})*
 
 #======================================================================
 
