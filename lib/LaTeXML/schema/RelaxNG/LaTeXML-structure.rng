@@ -48,7 +48,13 @@
       </choice>
     </zeroOrMore>
     <zeroOrMore>
-      <ref name="document.body.class"/>
+      <choice>
+        <ref name="document.body.class"/>
+        <element name="slide">
+          <ref name="document_attributes"/>
+          <ref name="document.body.class"/>
+        </element>
+      </choice>
     </zeroOrMore>
     <zeroOrMore>
       <ref name="BackMatter.class"/>
@@ -79,7 +85,13 @@
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <ref name="part.body.class"/>
+      <choice>
+        <ref name="part.body.class"/>
+        <element name="slide">
+          <ref name="part_attributes"/>
+          <ref name="part.body.class"/>
+        </element>
+      </choice>
     </zeroOrMore>
   </define>
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -111,7 +123,13 @@
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <ref name="chapter.body.class"/>
+      <choice>
+        <ref name="chapter.body.class"/>
+        <element name="slide">
+          <ref name="chapter_attributes"/>
+          <ref name="chapter.body.class"/>
+        </element>
+      </choice>
     </zeroOrMore>
   </define>
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -142,7 +160,13 @@
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <ref name="section.body.class"/>
+      <choice>
+        <ref name="section.body.class"/>
+        <element name="slide">
+          <ref name="section_attributes"/>
+          <ref name="section.body.class"/>
+        </element>
+      </choice>
     </zeroOrMore>
   </define>
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -172,7 +196,13 @@
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <ref name="subsection.body.class"/>
+      <choice>
+        <ref name="subsection.body.class"/>
+        <element name="slide">
+          <ref name="subsection_attributes"/>
+          <ref name="subsection.body.class"/>
+        </element>
+      </choice>
     </zeroOrMore>
   </define>
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -201,7 +231,13 @@
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <ref name="subsubsection.body.class"/>
+      <choice>
+        <ref name="subsubsection.body.class"/>
+        <element name="slide">
+          <ref name="subsubsection_attributes"/>
+          <ref name="subsubsection.body.class"/>
+        </element>
+      </choice>
     </zeroOrMore>
   </define>
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -230,7 +266,13 @@ LaTeX Paragraph,  in distinction from an unlabelled logical paragraph.</a:docume
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <ref name="paragraph.body.class"/>
+      <choice>
+        <ref name="paragraph.body.class"/>
+        <element name="slide">
+          <ref name="paragraph_attributes"/>
+          <ref name="paragraph.body.class"/>
+        </element>
+      </choice>
     </zeroOrMore>
   </define>
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -255,7 +297,13 @@ LaTeX Paragraph,  in distinction from an unlabelled logical paragraph.</a:docume
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <ref name="subparagraph.body.class"/>
+      <choice>
+        <ref name="subparagraph.body.class"/>
+        <element name="slide">
+          <ref name="subparagraph_attributes"/>
+          <ref name="subparagraph.body.class"/>
+        </element>
+      </choice>
     </zeroOrMore>
   </define>
   <!-- ====================================================================== -->

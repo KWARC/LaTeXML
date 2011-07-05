@@ -27,7 +27,7 @@
 
   <xsl:template match="ltx:document  | ltx:part | ltx:chapter
 		       | ltx:section | ltx:subsection | ltx:subsubsection
-		       | ltx:paragraph | ltx:subparagraph
+		       | ltx:paragraph | ltx:subparagraph | ltx:slide
 		       | ltx:bibliography | ltx:appendix | ltx:index" xml:space="preserve">
     <div class="{f:classes(.)}"><xsl:call-template name="add_id"/>
     <xsl:apply-templates/>

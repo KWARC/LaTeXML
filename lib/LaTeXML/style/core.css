@@ -22,6 +22,14 @@
 .navbar li { white-space:nowrap; display:block; overflow:hidden; }
 .navbar li .here { white-space:normal; overflow:visible; }
 
+.slide {width: 95%;
+    margin: 5mm 5mm 5mm 5mm;
+    border-style:solid;
+    border-width:medium;
+    padding: 10pt;
+    position: relative;
+}
+
 /*======================================================================
  Titles & Frontmatter */
 h1 { text-align:center; font-size: 150%; font-family:sans-serif;}
