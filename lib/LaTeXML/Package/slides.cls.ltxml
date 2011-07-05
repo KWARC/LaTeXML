@@ -1,0 +1,9 @@
+# -*- CPERL -*-
+package LaTeXML::Package::Pool;
+use strict;
+use LaTeXML::Package;
+
+# NOTE: how's the best way to get verbatim material through?
+LoadClass('article');
+DefEnvironment('{slide}', "<ltx:slide>#body</ltx:slide>");
+1;
