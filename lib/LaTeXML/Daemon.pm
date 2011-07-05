@@ -180,7 +180,8 @@ sub convert {
   close LOG;
   *STDERR=*ERRORIG;
   delete $opts->{source_type};
-  ($result,$log,$status);
+  my $result = {result=>$result,log=>$log,status=>$status};
+  $result;
 }
 
 sub convert_post {
@@ -249,6 +250,7 @@ sub convert_post {
 #      pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
 #      push(@csspaths,$csspath);
 #    }}
+
   push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
 					 parameters=>{number_sections
 						      =>("true()"),
@@ -262,6 +264,7 @@ sub convert_post {
     print STDERR "FATAL: Post-processor crashed! $@\n";
     return;
   };
+
   # If we want extra ids, this is where we add them:
   $postdoc = InsertIDs($postdoc) if $opts->{force_ids}; #Experimental: add id's everywhere
   # If we want an embedable snippet, unwrap to body's "main" div

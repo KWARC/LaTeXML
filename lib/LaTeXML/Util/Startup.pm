@@ -23,18 +23,18 @@ standard => {
             },
 fragment => {
              verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
-             post=>0, parallelmath=>0, input_counter=>0, input_limit=>0,
-             embed=>1, timeout=>60, format=>'xml', base=>q{},
-             procs_post=>{}, help=>0, showversion=>0, preamble=>q{}, preamble_loaded=>q{},
+             post=>1, parallelmath=>1, input_counter=>0, input_limit=>0,
+             embed=>1, timeout=>60, format=>'xhtml', base=>q{},
+             procs_post=>{pmml=>1,cmml=>1,keepTeX=>1}, help=>0, showversion=>0, preamble=>q{}, preamble_loaded=>q{},
              fragment_preamble=>'standard_preamble.tex', fragment_postamble=>'standard_postamble.tex',
              stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{},
-             documentid =>q{}, type=>'auto', css => [], paths => [q{.}], preload=>[], debugs=>[],
-             authlist=>{}
+             documentid =>q{}, type=>'auto', css => [], paths => [q{.}], preload=>["article.cls", "LaTeX.pool"], debugs=>[],
+             authlist=>{}, force_ids=>0
             },
 math => {
              verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
              post=>1, parallelmath=>1, input_counter=>0, input_limit=>0,
-             embed=>0, timeout=>60, format=>'xml', base=>q{},
+             embed=>0, timeout=>60, format=>'xhtml', base=>q{},
              procs_post=>{pmml=>1,cmml=>1,keepTeX=>1},
              help=>0, showversion=>0, preamble=>q{}, preamble_loaded=>q{},
              stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{}, 

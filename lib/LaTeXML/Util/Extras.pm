@@ -56,6 +56,7 @@ sub GetMath {
 sub GetEmbeddable {
   my ($postdoc) = @_;
   my $bodyel = $postdoc->findnode('//*[local-name()="body"]');
+  return unless $bodyel;
   my $topdiv;
   # Doing monkey hoops is very annoying, why won't LibXML
   # just fix their XPath support already?!
