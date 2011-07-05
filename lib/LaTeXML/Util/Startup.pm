@@ -275,7 +275,6 @@ sub summary_profile {
   my $summary = '<div class="left-div"><table class="form-table">';
   my @keys = sort $entry->getKeys;
   my $split_when = int(scalar(@keys)/2)+1;
-  print "SW: $split_when\n";
   foreach my $e(@keys) {
     my $t = $profile_templates->{$e};
     $summary.= inner_handle($e,$t,$entry);
