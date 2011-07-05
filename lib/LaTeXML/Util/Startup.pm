@@ -29,7 +29,7 @@ fragment => {
              fragment_preamble=>'standard_preamble.tex', fragment_postamble=>'standard_postamble.tex',
              stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{},
              documentid =>q{}, type=>'auto', css => [], paths => [q{.}], preload=>["article.cls", "LaTeX.pool"], debugs=>[],
-             authlist=>{}, force_ids=>0
+             authlist=>{}, force_ids=>1
             },
 math => {
              verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
