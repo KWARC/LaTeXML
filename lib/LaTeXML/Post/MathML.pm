@@ -862,6 +862,16 @@ DefMathML("Token:OVERACCENT:?",  \&pmml_mo, undef);
 DefMathML("Token:UNDERACCENT:?", \&pmml_mo, undef);
 
 DefMathML("Token:NUMBER:?",      \&pmml_mn, sub { ['m:cn',{},$_[0]->textContent]; });
+
+#
+# DefMathML("Token:NUMBER:?",      \&pmml_mn, sub { 
+# my $n = $_[0]->textContent;
+# 
+# sub intcheck { if ($_[0] =~ \d+) 'type="integer"'
+#       else ''};
+# ['m:cn',{intcheck()},$n]; });
+#
+
 DefMathML("Token:?:absent", sub { ['m:none']} );
 DefMathML('Hint:?:?', sub { undef; }, sub { undef; }); # Should Disappear!
 
