@@ -58,7 +58,7 @@ WriteMakefile(NAME => 'LaTeXML',
                             'IO::Socket' => 0,
                             'Clone' => 0
 			   },
-	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmls','bin/latexmlc', 'bin/ltxmojo'],
+	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmls','bin/latexmlc'],
 	      macro => $MORE_MACROS,
 	      );
 
