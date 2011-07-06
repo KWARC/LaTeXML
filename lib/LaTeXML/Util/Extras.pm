@@ -105,7 +105,7 @@ our $id_xslt_dom = XML::LibXML->load_xml(no_blanks=>1, string => <<'EOT');
   cdata-section-elements="data" indent="yes"/>
   <xsl:template match="*">
     <xsl:copy>
-      <xsl:if test="not(@id)">
+      <xsl:if test="not(@xml:id) and not(@id)">
         <xsl:attribute name="id">
           <xsl:value-of select="generate-id(.)"/>
         </xsl:attribute>
