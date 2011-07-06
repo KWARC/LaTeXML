@@ -10,6 +10,9 @@ LoadClass('article');
 #DefMacro('\slidename','Slide');
 NewCounter('slide','document',idprefix=>'sl');
 NewCounter('equation', 'document', idprefix=>'E', idwithin=>'slide');
+NewCounter('@equationgroup', 'document', idprefix=>'EG', idwithin=>'slide');
+NewCounter('figure',   'document', idprefix=>'F', idwithin=>'slide');
+NewCounter('table',    'document', idprefix=>'T', idwithin=>'slide');
 
 DefEnvironment('{slide}', "<ltx:slide xml:id='#id' refnum='#refnum' frefnum='#frefnum'>#body</ltx:slide>",
 properties=> sub { RefStepCounter('slide'); } );
