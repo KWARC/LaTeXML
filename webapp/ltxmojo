@@ -8,7 +8,7 @@ use Data::Dumper;
 our $version = '0.1';
 our $dbfile = 'LaTeXML_Mojo.cache';
 
-$ENV{MOJO_HOME} = '.';
+#$ENV{MOJO_HOME} = '.';
 
 # Make signed cookies secure
 app->secret('LaTeXML is the way to go!');

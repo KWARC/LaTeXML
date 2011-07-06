@@ -863,7 +863,7 @@ DefMathML("Token:UNDERACCENT:?", \&pmml_mo, undef);
 
 DefMathML("Token:NUMBER:?",      \&pmml_mn, sub {
             my $n = $_[0]->textContent;
-            ['m:cn', type => ($n =~ /\D/) ? 'integer' : 'float' ,$n]; });
+            ['m:cn', {type => ($n =~ /\D/) ? 'float' : 'integer'} ,$n]; });
 
 
 DefMathML("Token:?:absent", sub { ['m:none']} );
