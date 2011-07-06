@@ -1,0 +1,5 @@
+% layout 'default';
+% title 'About';
+
+<br>To convert a TeX bundle instead, send a POST request to /convert
+<br>or upload your source at /upload

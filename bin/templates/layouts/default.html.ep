@@ -1,0 +1,102 @@
+<!doctype html><html>
+<style type="text/css">
+    body { margin:0; background:#cfd2e6; color:#000000; }
+    table { border: 1px solid; border-collapse: collapse; }
+    td, th { border: 1px solid; } 
+    table.nb {
+     border: none;
+     border-collapse: separate;
+    }
+    td.nb, th.nb {
+     border: none;
+    }
+    table.form-table {
+      border: none;
+      border-collapse: collapse;
+    }
+    table.form-table td,th {
+      border: none;
+      text-align:right;
+    }
+    table.form-table td.input {
+      border: none;
+      text-align:left;
+    }
+    #slogan {
+     font-family:"Lucida Sans Unicode", "Lucida Grande", sans-serif;
+     font-weight:bold;
+     font-style:normal;
+     font-size:20px;
+    }
+    div.left-div { float:left; width: 40%;}
+    div.right-div { margin-left: 40%; wifth:auto;}
+
+</style>
+<head>
+  <link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css"
+  rel="stylesheet" type="text/css"/>
+  <link rel="stylesheet" href="http://trac.mathweb.org/LaTeXML/chrome/common/css/trac.css" type="text/css" /><link rel="stylesheet" href="http://trac.mathweb.org/LaTeXML/chrome/common/css/wiki.css" type="text/css" />
+  <link rel="shortcut icon" href="http://trac.mathweb.org/LaTeXML/chrome/site/favicon.ico" type="image/x-icon" />
+  <link rel="icon" href="http://trac.mathweb.org/LaTeXML/chrome/site/favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" type="text/css" href="http://trac.mathweb.org/LaTeXML/chrome/site/latexml.css" />
+<title><%= title %></title></head>
+<body style="font-size:62.5%;">
+    <div id="siteheader">
+    </div>
+    <div id="banner">
+      <div id="header">
+        <p><a id="logo" href="http://dlmf.nist.gov/LaTeXML/"><img src="http://trac.mathweb.org/LaTeXML/chrome/site/logo.png" alt="LaTeXML" width="70" /></a>
+        <span id="slogan">ltxMojo: LaTeXML's Web Server</span></p>
+      </div>
+<div id="message">
+<% if (my $message = flash 'message' ) { %>
+<p><br><b><%= $message %></b><br></p>
+<% } %>
+</div>
+    <div id="metanav" class="nav">
+      <ul>
+      <% if (my $name = session 'name' ) { %>
+      <li class="first">logged in as <%= $name %></li><li><a href="/logout">Logout</a></li><li class="last"><a href="/prefs">Preferences</a></li>
+      <% } else { %>
+      <li class="first"><a href="/login">Login</a></li>
+      <% } %>
+    </ul>
+    </div>
+    <div id="mainnav" class="nav">
+    <ul>
+      <li class="first
+      active"><a href="/upload">Convert</a></li><li><a href="/about">About</a></li><li><a href="http://tex2xml.kwarc.info/test/edit.php">Web Editor</a></li><li><a href="http://trac.kwarc.info/arXMLiv/wiki/Demo">Demos</a></li><li class="last"><a href="/admin" title="Administration">Admin</a></li>
+    </ul>
+  </div>
+</div>
+
+<%= content %>
+
+<div id="footer" lang="en" xml:lang="en"><hr />
+  <p class="left">
+    <a alt="LaTeXML"
+    href="http://dlmf.nist.gov/LaTeXML/"><strong>LaTeXML
+    0.7</strong></a><br />
+  </p><p class="right">
+  <a href="jquery.com"><img alt="jQuery Logo" width="100" src="http://upload.wikimedia.org/wikipedia/en/9/9e/JQuery_logo.svg" /></a>
+  <a href="http://mojolicio.us">
+    <img alt="Mojolicious logo" width="100" src="http://mojolicio.us/mojolicious-white.png" />
+  </a>
+  <a href="http://www.perl.org/">
+    <img alt="Perl 5" width="100" src="http://mdk.per.ly/files/2011/05/raptor-black.png" />
+  </a></p>
+</div>
+    <div align="center">
+    <div id="sitefooter">
+        <font size="-2">
+          <div style="line-height:10px;color:#C0C0C0" align="center">
+	    <a href="https://svn.mathweb.org/repos/LaTeXML/branches/arXMLiv/">Public
+	    Domain Software</a>, created in
+	    the <a href="http://trac.kwarc.info/arXMLiv/">arXMLiv</a> Project.
+	  </div>
+	</font>
+    </div>
+    </div>
+</body>
+</html>
+

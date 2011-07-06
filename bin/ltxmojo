@@ -3,29 +3,33 @@
 use Mojolicious::Lite;
 use LaTeXML::Util::Startup;
 use LaTeXML::Util::Extras;
+use Data::Dumper;
 
 our $version = '0.1';
 our $dbfile = 'LaTeXML_Mojo.cache';
+
+$ENV{MOJO_HOME} = '.';
 
 # Make signed cookies secure
 app->secret('LaTeXML is the way to go!');
 
 #Prep a LaTeXML Startup instance
-my $startup = LaTeXML::Util::Startup->new();
+my $startup = LaTeXML::Util::Startup->new(dbfile=>$ENV{MOJO_HOME}.'/'.$dbfile);
 # Do a one-time check for admin, add if none:
 print $startup->modify_user('admin','admin','admin') unless $startup->exists_user('admin');
-
-helper get_latexml_daemon => sub {
-  my ($self,$opt) = @_;
-  return $startup->find_daemon($opt);
-};
 
 helper prepare_options => sub {
   my ($self,$param) = @_;
   my $opt={};
   #TODO: Make sure lists go to array refs, etc.
   foreach ($param->param) { $opt->{lc($_)} = $param->param($_)||1; }
-  $opt->{profile} = 'custom' unless defined $opt->{profile};
+  if (! defined $opt->{profile}) {
+    if (defined $opt->{user} && $startup->verify_user($opt->{user},$opt->{password})) {
+      $opt->{profile} = $startup->lookup_user_property($opt->{user},'default') || 'custom';
+    } else {
+      $opt->{profile} = 'custom';
+    }
+  }
   $opt->{identity} = "Mojo for LaTeXML, v$version; Profile: ".$opt->{profile};
   delete $opt->{procs_post};
   if ($opt->{pmml}) {$opt->{procs_post}->{pmml}=1; delete $opt->{pmml}; }
@@ -44,18 +48,21 @@ post '/convert' => sub {
   # Math profile should get a mathdoc() wrapper
   $tex = MathDoc($tex) if (lc($opt->{profile}) eq "math");
   # We now have a LaTeXML options object - $opt.
-  my $daemon = $self->get_latexml_daemon($opt);
+  my $daemon = $startup->find_daemon($opt);
   #Override/extend with session-specific options in $opt:
   $daemon->prepare_session($opt);
   #Send a request:
-  my ($result,$errors,$status) = $daemon->convert($tex);
-
+  my $response = $daemon->convert($tex);
+  my ($result,$status,$log);
+  if (defined $response) {
+    ($result,$status,$log) = map {$response->{$_}} qw(result status log);
+  }
   # Special for math profile: get out the m:math
   $result = GetMath($result) if (lc($opt->{profile}) eq "math");
 
   $result = $result->toString(1) if defined $result;
 
-  $self->render(json => {result=>$result,errors=>$errors,status=>$status});
+  $self->render(json => {result=>$result,status=>$status,log=>$log});
 };
 
 get '/login' => sub {
@@ -68,38 +75,27 @@ get '/login' => sub {
   $self->redirect_to('admin');
 } => 'login';
 
+get '/about' => sub {
+  my $self = shift;
+} => 'about';
+
+
 get '/' => sub {
   my $self = shift;
-  return $self->redirect_to('login') unless $self->session('name');
-  $self->render;
-} => 'index';
+  return $self->redirect_to('about');
+};
 
 get '/logout' => sub {
   my $self = shift;
   $self->session(expires => 1);
+  $self->flash(message => "Successfully logged out!");
   $self->redirect_to('login');
-} => 'logout';
+};
 
 get '/admin' => sub {
   my $self=shift;
   return $self->redirect_to('login') unless $self->session('name');
   $self->stash(startup=>$startup);
-  my $name = $self->param('name');
-  if ($name) {
-    given ($self->param('user_action')) {
-      when ('modify') {
-        my $pass = $self->param('pass');
-        my $role = $self->param('role');
-        $self->flash(message=>$startup->modify_user($name,$pass,$role));
-      }
-      when ('add') {
-        my $pass = $self->param('pass');
-        my $role = $self->param('role');
-        $self->flash(message=>$startup->modify_user($name,$pass,$role));
-      }
-      when ('delete') { $self->flash(message=>$startup->delete_user($name));}
-  default {}};
-  }
   $self->render;
 } => 'admin';
 
@@ -108,183 +104,92 @@ get '/upload' => sub {
   $self->render;
 } => 'upload';
 
-post '/process_request' => sub {
+any '/ajax' => sub {
   my $self=shift;
+  return $self->redirect_to('login') unless $self->session('name');
   my $header = $self->req->headers->header('X-Requested-With');
   if ($header && $header eq 'XMLHttpRequest') {
+    # Users API:
+    if ($self->param('user_action')) {
+      my $name = $self->param('name');
+      my $message ='This request was empty, please resend with Name set!';
+      given ($self->param('user_action')) {
+        when ('modify') {
+          if ($name) {
+            my $pass = $self->param('pass');
+            my $role = $self->param('role');
+            my $default = $self->param('default_profile');
+            $message = $startup->modify_user($name,$pass,$role,$default);
+          }}
+        when ('add') {
+          if ($name) {
+            my $pass = $self->param('pass');
+            my $role = $self->param('role');
+            my $default = $self->param('default_profile');
+            $message = $startup->modify_user($name,$pass,$role,$default);
+          }}
+        when ('delete') { $message = $startup->delete_user($name) if $name; }
+        when ('startup_users') { $self->render(json=>{users=>$startup->users});}
+        when ('overview_users') { 
+          my $users = $startup->users;
+          my $summary = [];
+          push @$summary, $startup->summary_user($_) foreach (@$users);
+          $self->render(json=>{users=>$users, summary=>$summary});
+        }
+        default {$message="Unrecognized Profile Action!"}};
+      $self->render(json=>{message=>$message});
+    }
+
+    # Profiles API:
+    if ($self->param('profile_action')) {
+      my $message ='This request was empty, please resend with profile_action set!';
+      given ($self->param('profile_action')) {
+        when ('startup_profiles') {
+          $self->render(json=>{profiles=>[@{$startup->profiles}]});
+        }
+        when ('select') {
+	  my $pname = $self->param('profile_name');
+          $self->render(json=>{message=>'Please provide a profile name!'}) unless $pname;
+          my $form = $startup->summary_profile($pname);
+          my $lines = 0;
+          $lines++ while ($form =~ /<[tb]r/g);
+          my $minh = "min-height: ".($lines*5)."px;";
+	  my $message = "Selected profile: ". $pname;
+          use Mojo::JSON;
+          my $json   = Mojo::JSON->new;
+	  open TMP, ">", "/tmp/json.txt";
+          print TMP $json->encode({form=>$form,style=>$minh,message=>$message});
+          close TMP;
+          $self->render(text=>$json->encode({form=>$form,style=>$minh,message=>$message}));
+        }
+        default {$self->render(json=>{message=>"Unrecognized Profile Action!"})}
+      };
+      $self->render(json=>{message=>$message});
+    }
+    # General Actions API:
     
-    $self->render_json({answer => "Hello from AJAX!"});
-  } else $self->render(text=>"Only AJAX request are accepted at this route!\n");
+ } else {$self->render(text=>"Only AJAX request are accepted at this route!\n");}
 };
 
 app->start;
-
-__DATA__
-
-@@ layouts/default.html.ep
-<!doctype html><html>
-<style type="text/css">
- table
-  {
-   border-collapse:collapse;
-  }
-  table, td, th
-  {
-   border:1px solid black;
-  }
-</style>
-<head>
-  <link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
-  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
-  <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
-  <script>
-  $(document).ready(function() {
-    $("#accordion").accordion();
-    $("#accordion2").accordion();
-    $("#tabs").tabs();
-  });
-$('#select_profile').click(function(e){
-console.log('bla');
-e.stopPropagation();
-});
-
-  </script>
-<title><%= title %></title></head>
-<body style="font-size:62.5%;">
-<% if (my $message = flash 'message' ) { %>
-  <b><%= $message %></b><br>
-<% } %>
-<%= content %></body>
-</html>
-
-@@ login.html.ep
-% layout 'default';
-% title 'Login';
-Use this form to reach the Administrative Interface.<br>
-<%= form_for login => begin %>
-  <% if (param 'name') { %>
-   <b>Wrong name or password, please try again.</b><br>
-  <% } %>
-  Name:<br>
-  <%= text_field 'name' %><br>
-  Password:<br>
-  <%= password_field 'pass' %><br>
-  <%= submit_button 'Login' %>
-<% end %>
-<br>To convert a TeX bundle instead, send a POST request to /convert
-<br>or upload your source at /upload
-
-@@ index.html.ep
-% layout 'default';
-% title 'Welcome';
-Welcome <%= session 'name' %>!<br>
-<%= link_to logout => begin %>
-  Logout
-<% end %>
-
-@@ upload.html.ep
-% layout 'default';
-% title 'Upload Interface';
- TODO: Upload interface
-
-@@ admin.html.ep
-% layout 'default';
-% title 'Administrative Interface';
-<div id="tabs">
-    <ul>
-        <li><a href="#um-tab"><span>User Management</span></a></li>
-        <li><a href="#profiles-tab"><span>Conversion Profiles</span></a></li>
-        <li><a href="#status-tab"><span>Service Status</span></a></li>
-        <li><a href="#maintenance-tab"><span>Server Maintenance</span></a></li>
-    </ul>
-
-	<div id="um-tab">
-          <div id="accordion">
-           <h3><a href="#">Overview</a></h3>
-           <div>
-             % foreach (@{$startup->users}) {
-             <p>Username: <b><%= $_ %></b><br>
-               <%== $startup->summary_user($_) %>
-             </p>
-            % }
-           </div>
-           <h3><a href="#">Modify User</a></h3>
-           <div><%= form_for admin  => begin %>
-           Name: <%= select_field name => $startup->users %><br>
-           Password: <%= password_field 'pass' %><br>
-           Role:  <%= text_field 'role' %><br>
-           <%= hidden_field user_action => 'modify' %>
-           <%= submit_button 'Modify' %><br>
-           <it>Note: Empty means 'unchanged'</it>
-          <% end %>
-          </div>
-           <h3><a href="#">Add User</a></h3>
-           <div><%= form_for admin  => begin %>
-           Name: <%= text_field 'name' %><br>
-           Password: <%= password_field 'pass' %><br>
-           Role:  <%= text_field 'role' %><br>
-           <%= hidden_field user_action => 'add' %>
-           <%= submit_button 'Add' %><br>
-          <% end %>
-          </div>
-           <h3><a href="#">Delete User</a></h3>
-           <div><%= form_for admin  => begin %>
-           Name: <%= select_field name => $startup->users %><br>
-           <%= hidden_field user_action => 'delete' %>
-           <%= submit_button 'Delete' %><br>
-          <% end %>
-          </div>
-         </div>
-	</div>
-
-	<div id="profiles-tab">
-          <div id="accordion2">
-            <h3><a href="#">Modify Profile</a></h3>
-            <div><%= form_for admin  => begin %>
-               Profile: <%= select_field profile => $startup->profiles %><br>
-               <%= hidden_field profile_action => 'select' %>
-               <%= submit_button 'Select' , id => '#select_profile' %><br>
-               <% end %>
-            </div>
-            <h3><a href="#">Add Profile</a></h3>
-            <div><%= form_for admin  => begin %>
-               Profile Name: <%= text_field 'profile' %><br>
-               <%= submit_button 'Add' %><br>
-               <% end %>
-            </div>
-         </div>
-	</div>
-
-	<div id="status-tab">
-		<p><b>Statistics on current DB and Conversion status</b></p>
-                <p>ObjectDB: <%= $startup->{db}->status %></p>
-        </div>
-	<div id="maintenance-tab">
-		<p>Restart/reboot/top-level parameters like 'autoflush' etc.
-		</p>
-	</div>
-</div>
-<%= link_to logout => begin %>
-  Logout
-<% end %>
-</body>
-</html>
-
-
 __END__
 
 =pod
 
 =head1 SYNOPSIS
 
-    use LaTeXML::Daemon;
-    my $daemon = LaTeXML::Daemon->new(%options);
-    $daemon->setOptions(%opts);
-    my ($result,$errors,$status) = $daemon->convert($tex);
+Routes:
+/
+/convert
+/login
+/logout
+/admin
+/upload
+/process_request
 
 =head1 DESCRIPTION
 
-A Daemon object represents a converter instance and can convert files on demand, until dismissed.
+Web App for LaTeXML
 
 =head2 HELPERS
 
@@ -297,6 +202,8 @@ Foo
 =back
 
 =head2 CUSTOMIZATION OPTIONS
+ user => username
+ password => password
  destination => file  specifies destination file, requires 'local'.
  output => file       [obsolete synonym for --destination]
  postdest => file     specifies destination file for postprocessing,
