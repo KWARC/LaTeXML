@@ -459,6 +459,10 @@ sub getSource {
 sub hasMoreInput { 0; }
 sub readToken { undef; }
 
+sub stringify {
+  my($self)=@_;
+  "PerlMouth[$$self{source}]"; }
+
 #**********************************************************************
 1;
 
