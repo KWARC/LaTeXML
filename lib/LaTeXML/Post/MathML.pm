@@ -1027,7 +1027,11 @@ DefMathML('Apply:?:formulae',sub {
 # TRICKY: How should this get converted to cmml ???
 DefMathML('Apply:?:multirelation',sub { 
   my($op,@elements)=@_;
-  pmml_row(map(pmml($_),@elements)); });
+  pmml_row(map(pmml($_),@elements)); },
+  sub { 
+	my($op,@elements)=@_;
+	['m:apply',{},['m:csymbol', {cd=>'multirel', name=>'multirelation'}],map(cmml($_),@elements)];
+  });
 
 #======================================================================
 # Calculus and Vector Calculus:
