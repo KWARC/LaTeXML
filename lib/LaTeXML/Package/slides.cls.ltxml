@@ -5,5 +5,13 @@ use LaTeXML::Package;
 
 # NOTE: how's the best way to get verbatim material through?
 LoadClass('article');
-DefEnvironment('{slide}', "<ltx:slide>#body</ltx:slide>");
+
+#Bruce suggests we think of using \slidename for the formatted refnums (Useful in some cases?)
+#DefMacro('\slidename','Slide');
+NewCounter('slide','document',idprefix=>'sl');
+NewCounter('equation', 'document', idprefix=>'E', idwithin=>'slide');
+
+DefEnvironment('{slide}', "<ltx:slide xml:id='#id' refnum='#refnum' frefnum='#frefnum'>#body</ltx:slide>",
+properties=> sub { RefStepCounter('slide'); } );
+
 1;
