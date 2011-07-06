@@ -1019,7 +1019,11 @@ DefMathML('Apply:METARELOP:?',     \&pmml_infix);
 # Top level relations
 DefMathML('Apply:?:formulae',sub { 
   my($op,@elements)=@_;
-  pmml_punctuate($op->getAttribute('separators'),@elements); });
+  pmml_punctuate($op->getAttribute('separators'),@elements); },
+  sub { 
+	my($op,@elements)=@_;
+	['m:apply',{},['m:csymbol', {cd=>'ambiguous', name=>'formulae-sequence'}],map(cmml($_),@elements)];
+  });
 # TRICKY: How should this get converted to cmml ???
 DefMathML('Apply:?:multirelation',sub { 
   my($op,@elements)=@_;
