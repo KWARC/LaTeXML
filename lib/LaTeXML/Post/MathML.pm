@@ -861,14 +861,9 @@ DefMathML("Token:ARROW:?",       \&pmml_mo, undef);
 DefMathML("Token:OVERACCENT:?",  \&pmml_mo, undef);
 DefMathML("Token:UNDERACCENT:?", \&pmml_mo, undef);
 
-DefMathML("Token:NUMBER:?",      \&pmml_mn, sub { ['m:cn',{intcheck()},$_[0]->textContent]; });
-sub intcheck {
-  my $n = $_[0]->textContent;
-  unless ($n =~ /\D/) {
-    return "type=\"integer\"";
-  }
-  "";
-}
+DefMathML("Token:NUMBER:?",      \&pmml_mn, sub {
+            my $n = $_[0]->textContent;
+            ['m:cn', type => ($n =~ /\D/) ? 'integer' : 'float' ,$n]; });
 
 
 DefMathML("Token:?:absent", sub { ['m:none']} );
