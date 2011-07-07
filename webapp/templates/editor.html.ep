@@ -9,23 +9,22 @@ var send_called = 0;
 var mouse_pressed = 0;
 var timeout = null;
 var hasError = /error/;
-var restorepoint;
 var setup_message = function(data) {
  $('#message').html("<br /><p>"+data.status+"</p>");
  $('#message').hover(  function () {
-    restorepoint = $('#onthefly').html();
-    $('#onthefly').html($('#onthefly').text(data.log).html().replace(/\n/g,"<br />"));
-    $('#onthefly').show();
+    $('#onthefly').hide();
+    $('#log').html($('#log').text(data.log).html().replace(/\n/g,"<br />"));
+    $('#log').show();
   }, 
   function () {
-    $('#onthefly').html(restorepoint);
+    $('#log').hide();
     $('#onthefly').show();
   });
 }
  $('#message').click(  function () {
-    restorepoint = $('#onthefly').html();
-    $('#onthefly').html($('#onthefly').text(data.log).html().replace(/\n/g,"<br />"));
-    $('#onthefly').show();
+    $('#log').html($('#log').text(data.log).html().replace(/\n/g,"<br />"));
+    $('#onthefly').hide();
+    $('#log').show();
   });
 
 var sendRequest = function(tex, my_counter, onthefly){
@@ -39,6 +38,7 @@ var sendRequest = function(tex, my_counter, onthefly){
                          if (onthefly) {
                           if (!hasError.test(data.status) && data.result != '' && my_counter <= ac_counter) { 
                             $('#onthefly').html(data.result);
+                            $('#onthefly').show();
                           }} else {
   	            	  if (!hasError.test(data.status)) { 
       	            	    $('#result').html(data.result);
@@ -109,8 +109,10 @@ $(document).ready(function() {
 <div class="edit_area" id="result" 
      style="display: inline; width: 40%; height: 500px; word-wrap:break-word;
      float:left; margin: 15px;"></div>
-<div style="display: inline; float:left; height: 500px; width:
-            40%;"><br /><div style="background-color: #ffddbb; display: none;" id="onthefly"></div></div>
+<div style="display: inline; float:left; height: 500px; width: 40%;"><br />
+<div style="background-color: #ffddbb; display: none;" id="onthefly"></div>
+<div style="background-color: #ffddbb; display: none;" id="log"></div>
+</div>
 <div style="clear:both; font-size:0px;">&nbsp;</div>
 <div id="counter" style="width: 40%; background-color: #cccccc; display: inline;">&nbsp;</div>
 <div style="display:none"><div id="source"></div></div>
