@@ -1,0 +1,116 @@
+% layout 'default';
+% title 'In-browser Editor of LaTeX Fragments';
+<%= javascript 'http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js' %>
+<%= javascript 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js' %>
+<%= javascript 'http://www.appelsiini.net/projects/jeditable/jquery.jeditable.js' %>
+<%= javascript '' => begin %>
+var ac_counter = 0;
+var send_called = 0;
+var mouse_pressed = 0;
+var timeout = null;
+var hasError = /error/;
+var restorepoint;
+var setup_message = function(data) {
+ $('#message').html("<br /><p>"+data.status+"</p>");
+ $('#message').hover(  function () {
+    restorepoint = $('#onthefly').html();
+    $('#onthefly').html($('#onthefly').text(data.log).html().replace(/\n/g,"<br />"));
+    $('#onthefly').show();
+  }, 
+  function () {
+    $('#onthefly').html(restorepoint);
+    $('#onthefly').show();
+  });
+}
+ $('#message').click(  function () {
+    restorepoint = $('#onthefly').html();
+    $('#onthefly').html($('#onthefly').text(data.log).html().replace(/\n/g,"<br />"));
+    $('#onthefly').show();
+  });
+
+var sendRequest = function(tex, my_counter, onthefly){
+	if (my_counter == ac_counter) {
+		if (ac_counter == 1) send_called = 0;
+		send_called++;
+		$('#counter').html(send_called);
+		$.post("/convert", { "tex": tex, "profile":"fragment" },
+			function(data) {
+                         setup_message(data);
+                         if (onthefly) {
+                          if (!hasError.test(data.status) && data.result != '' && my_counter <= ac_counter) { 
+                            $('#onthefly').html(data.result);
+                          }} else {
+  	            	  if (!hasError.test(data.status)) { 
+      	            	    $('#result').html(data.result);
+      	            	    $('#onthefly').hide();
+        	    	  }}
+        	},"json");
+	}
+}
+
+function do_convert_on_the_fly(e) {
+	if (e) { 
+		var key = e.keyCode;
+		if (!key) key = 0;
+	} else {
+		var key = 0;
+	}
+	
+	ac_counter++;
+	//console.log(key);
+	if ((key != 37 && key != 39 && key > 32 && key <= 250) || key == 8 || key == 0){
+		// immediately cancel outstanding requests
+		if (timeout) clearTimeout(timeout);
+
+   		var tex = $('textarea').val();
+		//alert(key);
+	    if (!tex) {
+	        ac_counter = 0;
+	        $('#onthefly').html(' ');
+	        return;
+		}
+
+		// call erst nach 200 ms
+		timeout = setTimeout(function(){sendRequest(tex, ac_counter, true)}, 300);
+	}
+	else if (key == 37 || key == 39){
+		//alert("left + right pressed");
+	} 
+}	
+
+
+function do_convert(str, settings) {
+	$('#source').val(str);
+	if (!str) {
+		$('#result').html('');
+	} else { 
+		sendRequest(str, ac_counter, false);
+		$('#onthefly').hide();
+	}
+}		
+
+$(document).ready(function() {
+	$('.edit_area').editable(do_convert, { 
+		data	:  function(value, settings) {
+				var retval = $('#source').val();
+				setTimeout(do_convert_on_the_fly, 100);
+				$('#onthefly').show();
+				return retval;
+	},
+		type    : 'textarea',
+                loadtext : 'Converting...',
+                onblur : 'submit',
+                placeholder: 'Enter LaTeX snippets here...'
+	});
+	$('textarea').live('keyup', do_convert_on_the_fly);
+});
+
+<% end %>
+<div class="edit_area" id="result" 
+     style="display: inline; width: 40%; height: 500px; word-wrap:break-word;
+     float:left; margin: 15px;"></div>
+<div style="display: inline; float:left; height: 500px; width:
+            40%;"><br /><div style="background-color: #ffddbb; display: none;" id="onthefly"></div></div>
+<div style="clear:both; font-size:0px;">&nbsp;</div>
+<div id="counter" style="width: 40%; background-color: #cccccc; display: inline;">&nbsp;</div>
+<div style="display:none"><div id="source"></div></div>

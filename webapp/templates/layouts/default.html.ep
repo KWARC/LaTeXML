@@ -1,4 +1,16 @@
-<!doctype html><html>
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 plus MathML 2.0//EN" "http://www.w3.org/TR/MathML2/dtd/xhtml-math11-f.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:svg="http://www.w3.org/2000/svg">
+<head>
+  <title><%= title %></title>
+  <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+  <link rel="stylesheet" type="text/css" href="http://tex2xml.kwarc.info/test/core.css" />
+  <link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css"
+  rel="stylesheet" type="text/css"/>
+  <link rel="stylesheet" href="http://trac.mathweb.org/LaTeXML/chrome/common/css/trac.css" type="text/css" /><link rel="stylesheet" href="http://trac.mathweb.org/LaTeXML/chrome/common/css/wiki.css" type="text/css" />
+  <link rel="shortcut icon" href="http://trac.mathweb.org/LaTeXML/chrome/site/favicon.ico" type="image/x-icon" />
+  <link rel="icon" href="http://trac.mathweb.org/LaTeXML/chrome/site/favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" type="text/css" href="http://trac.mathweb.org/LaTeXML/chrome/site/latexml.css" />
 <style type="text/css">
     body { margin:0; background:#cfd2e6; color:#000000; }
     table { border: 1px solid; border-collapse: collapse; }
@@ -32,15 +44,9 @@
     div.right-div { margin-left: 40%; wifth:auto;}
 
 </style>
-<head>
-  <link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css"
-  rel="stylesheet" type="text/css"/>
-  <link rel="stylesheet" href="http://trac.mathweb.org/LaTeXML/chrome/common/css/trac.css" type="text/css" /><link rel="stylesheet" href="http://trac.mathweb.org/LaTeXML/chrome/common/css/wiki.css" type="text/css" />
-  <link rel="shortcut icon" href="http://trac.mathweb.org/LaTeXML/chrome/site/favicon.ico" type="image/x-icon" />
-  <link rel="icon" href="http://trac.mathweb.org/LaTeXML/chrome/site/favicon.ico" type="image/x-icon" />
-    <link rel="stylesheet" type="text/css" href="http://trac.mathweb.org/LaTeXML/chrome/site/latexml.css" />
-<title><%= title %></title></head>
-<body style="font-size:62.5%;">
+
+</head>
+<body style="font-size:72.5%;">
     <div id="siteheader">
     </div>
     <div id="banner">
@@ -48,9 +54,9 @@
         <p><a id="logo" href="http://dlmf.nist.gov/LaTeXML/"><img src="http://trac.mathweb.org/LaTeXML/chrome/site/logo.png" alt="LaTeXML" width="70" /></a>
         <span id="slogan">ltxMojo: LaTeXML's Web Server</span></p>
       </div>
-<div id="message">
+<div id="message" style="width:20%;">
 <% if (my $message = flash 'message' ) { %>
-<p><br><b><%= $message %></b><br></p>
+<p><br /><b><%= $message %></b><br /></p>
 <% } %>
 </div>
     <div id="metanav" class="nav">
@@ -65,7 +71,7 @@
     <div id="mainnav" class="nav">
     <ul>
       <li class="first
-      active"><a href="/upload">Convert</a></li><li><a href="/about">About</a></li><li><a href="http://tex2xml.kwarc.info/test/edit.php">Web Editor</a></li><li><a href="http://trac.kwarc.info/arXMLiv/wiki/Demo">Demos</a></li><li class="last"><a href="/admin" title="Administration">Admin</a></li>
+      active"><a href="/upload">Convert</a></li><li><a href="/about">About</a></li><li><a href="/editor">Web Editor</a></li><li><a href="http://trac.kwarc.info/arXMLiv/wiki/Demo">Demos</a></li><li class="last"><a href="/admin" title="Administration">Admin</a></li>
     </ul>
   </div>
 </div>
