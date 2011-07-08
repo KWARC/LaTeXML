@@ -21,7 +21,7 @@ var setup_message = function(data) {
     $('#onthefly').show();
   });
   $('#message').click(  function () {
-    $('#message').unbind('mouseenter mouseleave');
+    $('#message').unbind('mouseenter').unbind('mouseleave');
     $('#log').html($('#log').text(data.log).html().replace(/\n/g,"<br />"));
     $('#onthefly').hide();
     $('#log').show();
