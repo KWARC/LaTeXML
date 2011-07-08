@@ -24,6 +24,7 @@ var setup_message = function(data) {
     $('#log').html($('#log').text(data.log).html().replace(/\n/g,"<br />"));
     $('#onthefly').hide();
     $('#log').show();
+    $('#message').hover();
   });
 }
 
