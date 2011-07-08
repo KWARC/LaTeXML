@@ -11,8 +11,7 @@ var timeout = null;
 var hasError = /error/;
 var setup_message = function(data) {
  $('#message').html("<br /><p>"+data.status+"</p><br />"+
-                    "<p style=\"font-size: 70%; font-style:italic;
-                                \">Hover over for details.");
+                    "<p style=\"font-size: 70%; font-style:italic; \">Hover over for details.</p>");
  $('#message').hover(  function () {
     $('#onthefly').hide();
     $('#log').html($('#log').text(data.log).html().replace(/\n/g,"<br />"));
