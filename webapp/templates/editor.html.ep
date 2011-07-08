@@ -20,12 +20,12 @@ var setup_message = function(data) {
     $('#log').hide();
     $('#onthefly').show();
   });
-}
- $('#message').click(  function () {
+  $('#message').click(  function () {
     $('#log').html($('#log').text(data.log).html().replace(/\n/g,"<br />"));
     $('#onthefly').hide();
     $('#log').show();
   });
+}
 
 var sendRequest = function(tex, my_counter, onthefly){
 	if (my_counter == ac_counter) {
