@@ -254,6 +254,7 @@ our $profile_templates = {
                   showversion => 'bool',
                   strict => 'bool',
                   includestyles => 'bool',
+                  'force_ids' => 'bool',
                   # Text:
                   stylesheet => 'text',
                   inputencoding => 'text',

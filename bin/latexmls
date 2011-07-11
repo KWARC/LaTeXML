@@ -303,7 +303,6 @@ while ( my $client = $server->accept() ) {
   # End daemon run, by popping frame:
   $latexml->withState(sub {
                         my($state)=@_; # Remove current state frame
-                        print STDERR Dumper($$state{undo}[0]),"\n";
                         $state->popDaemonFrame unless $opts->{nopop};
                         $$state{status} = {};
                       });

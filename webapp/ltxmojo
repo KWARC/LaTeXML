@@ -57,6 +57,11 @@ post '/convert' => sub {
   if (defined $response) {
     ($result,$status,$log) = map {$response->{$_}} qw(result status log);
   }
+
+  # If we want extra ids, this is where we add them:
+  $result = InsertIDs($result) if $opt->{force_ids}; #Experimental: add id's everywhere
+  # If we want an embedable snippet, unwrap to body's "main" div
+  $result = GetEmbeddable($result) if $opt->{embed};
   # Special for math profile: get out the m:math
   $result = GetMath($result) if (lc($opt->{profile}) eq "math");
 

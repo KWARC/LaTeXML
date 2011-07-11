@@ -161,7 +161,7 @@ sub convert {
     # Close and restore STDERR to original condition.
     close LOG;
     *STDERR=*ERRORIG;
-    $self->{ready}=0; return (undef,$log,$latexml->getStatusMessage);
+    $self->{ready}=0; return {result=>undef,log=>$log,status=>$latexml->getStatusMessage};
   };
 
   print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
@@ -264,10 +264,6 @@ sub convert_post {
     return;
   };
 
-  # If we want extra ids, this is where we add them:
-  $postdoc = InsertIDs($postdoc) if $opts->{force_ids}; #Experimental: add id's everywhere
-  # If we want an embedable snippet, unwrap to body's "main" div
-  $postdoc = GetEmbeddable($postdoc) if $embed;
   return $postdoc;
 }
 
