@@ -152,7 +152,7 @@ sub convert {
         $serialized = $digested->toString;
       } else {
         $dom = $latexml->convertDocument($digested);
-        $serialized = $dom->toString(1);
+        $serialized = $dom->toString(1) unless $opts->{post};
       }}
     1;
   } or do {#Fatal occured!
@@ -174,7 +174,7 @@ sub convert {
                       });
 
   my $result = $dom;
-  $result = $self->convert_post($serialized) if ($opts->{post} && $serialized && (!$opts->{noparse}));
+  $result = $self->convert_post($dom) if ($opts->{post} && $dom && (!$opts->{noparse}));
 
   # Close and restore STDERR to original condition.
   close LOG;
@@ -184,7 +184,7 @@ sub convert {
 }
 
 sub convert_post {
-  my ($self,$serialized) = @_;
+  my ($self,$dom) = @_;
   my $opts = $self->{opts};
   my ($style,$parallel,$proctypes,$format,$verbosity,$defaultcss,$embed) = 
     map {$opts->{$_}} qw(stylesheet parallelmath procs_post format verbosity defaultcss embed);
@@ -207,7 +207,7 @@ sub convert_post {
   $parallel = $parallel||0;
   my $doc;
   eval {
-    $doc = LaTeXML::Post::Document->newFromString($serialized,nocache=>1);
+    $doc = LaTeXML::Post::Document->new($dom,nocache=>1);
     1;}
     or do {                     #Fatal occured!
       #Since this is postprocessing, we don't need to do anything
