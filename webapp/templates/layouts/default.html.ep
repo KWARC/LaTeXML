@@ -5,12 +5,12 @@
   <title><%= title %></title>
   <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
   <link rel="stylesheet" type="text/css" href="http://tex2xml.kwarc.info/test/core.css" />
-  <link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css"
-  rel="stylesheet" type="text/css"/>
-  <link rel="stylesheet" href="http://trac.mathweb.org/LaTeXML/chrome/common/css/trac.css" type="text/css" /><link rel="stylesheet" href="http://trac.mathweb.org/LaTeXML/chrome/common/css/wiki.css" type="text/css" />
+  <link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
+  <link rel="stylesheet" href="http://trac.mathweb.org/LaTeXML/chrome/common/css/trac.css" type="text/css" />
+<!--  <link rel="stylesheet" href="http://trac.mathweb.org/LaTeXML/chrome/common/css/wiki.css" type="text/css" />-->
   <link rel="shortcut icon" href="http://trac.mathweb.org/LaTeXML/chrome/site/favicon.ico" type="image/x-icon" />
   <link rel="icon" href="http://trac.mathweb.org/LaTeXML/chrome/site/favicon.ico" type="image/x-icon" />
-    <link rel="stylesheet" type="text/css" href="http://trac.mathweb.org/LaTeXML/chrome/site/latexml.css" />
+  <link rel="stylesheet" type="text/css" href="http://trac.mathweb.org/LaTeXML/chrome/site/latexml.css" />
 <style type="text/css">
     body { margin:0; background:#cfd2e6; color:#000000; }
     table { border: 1px solid; border-collapse: collapse; }
@@ -58,7 +58,10 @@ option {
 option:hover {
     cursor: pointer;
 }
-
+p {
+  margin-top:0.01;
+  margin-bottom:0.01;
+}
 </style>
 
 </head>
