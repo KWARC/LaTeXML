@@ -144,10 +144,11 @@ $(document).ready(function() {
 
 <% end %>
 <div class="edit_area" id="result" 
-     style="display: inline; width: 40%; height: 500px; word-wrap:break-word; float:left; margin: 15px;"></div>
-<div style="display: inline; float:left; height: 500px; width: 40%;"><br />
-<div style="background-color: #ffddbb; display: none;" id="onthefly"></div>
-<div style="background-color: #ffddbb; display: none;" id="log"></div>
+     style="display: inline; width: 40%; height: 500px;
+     word-wrap:break-word; float:left; margin: 15px; overflow-y:auto;"></div>
+<div style="display: inline; float:left; height: 500px; width: 40%; overflow-y:auto;"><br />
+<div style="background-color: #ffddbb; display: none; word-wrap:break-word;" id="onthefly"></div>
+<div style="background-color: #ffddbb; display: none; word-wrap:break-word;" id="log"></div>
 </div>
 <div style="clear:both; font-size:0px;">&nbsp;</div>
 <div id="counter" style="width: 40%; background-color: #cccccc; display: inline;">&nbsp;</div>
