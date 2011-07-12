@@ -92,14 +92,27 @@ function do_convert(str, settings) {
 }		
 
 var examples = new Array();
-examples['clc'] = '$\\int_0^\\infty x\\,dx$ is an integral';
-examples['nar'] = '\\section{One}\\subsection{One-one}\\paragraph{Para}Hello World!';
-examples['tbl'] = '\\begin{table}{ccc}1&2&3\\\\4&5&6\\end{table}';
+examples['clc'] = ["Behold: $\\int_0^\\infty x\\,dx$ is an integral"];
+examples['nar'] = ["\\section{One}",
+                   "\\subsection{One-one}",
+                   "\\paragraph{Para}Hello World!"].join('\n');
+examples['tbl'] = ["\\begin{tabular}{ccc}",
+                   "1&2&3\\\\",
+                   "4&5&6",
+                   "\\end{tabular}"].join('\n');
 
 $(document).ready(function() {
 	$('.edit_area').editable(do_convert, { 
 		data	:  function(value, settings) {
-				var retval = $('#source').val();
+                 	       var retval = $('#source').val();
+                               var str = "";
+                               $("#example_select option:selected").each(function () {
+                                str += $(this).attr("value");
+                               });
+                               if (str.length>0) {
+                                 retval = examples[str];
+                               }
+
 				setTimeout(do_convert_on_the_fly, 100);
 				$('#onthefly').show();
 				return retval;
@@ -111,13 +124,8 @@ $(document).ready(function() {
 	});
 	$('textarea').live('keyup', do_convert_on_the_fly);
         $("select").change(function() {
-          var str = "";
-          $("select option:selected").each(function () {
-                str += $(this).text() + " ";
-              });
-          if (str.length>0) {
-           $('#result').text(examples[str]);
-          }
+          $('#result').text('Example Loaded! Click to convert...');
+          $('#result').focus();
         });
 });
 
