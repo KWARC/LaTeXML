@@ -41,6 +41,7 @@ return $texdoc;
 
 sub GetMath {
   my ($source) = @_;
+  return unless defined $source;
   my $math;
   my $mnodes = $source->findnodes('//*[local-name()="math"]');
   if ($mnodes->size <= 1) {
@@ -55,8 +56,9 @@ sub GetMath {
 
 sub GetEmbeddable {
   my ($postdoc) = @_;
+  return unless defined $postdoc;
   my $bodyel = $postdoc->findnode('//*[local-name()="body"]');
-  return unless $bodyel;
+  return unless defined $bodyel;
   my $topdiv;
   # Doing monkey hoops is very annoying, why won't LibXML
   # just fix their XPath support already?!
@@ -119,7 +121,9 @@ EOT
 our $id_xslt = XML::LibXSLT->new()->parse_stylesheet($id_xslt_dom);
 
 sub InsertIDs {
-  return LaTeXML::Post::Document->new($id_xslt->transform(shift->getDocument));
+  my $doc = shift;
+  return unless defined $doc;
+  return LaTeXML::Post::Document->new($id_xslt->transform($doc->getDocument));
 }
 
 1;

@@ -334,7 +334,7 @@ sub inner_handle {
 
 sub template_profile {
   my ($self,$profile,$value) = @_;
-  
+  # Add template for adding a new profile
 }
 ###########################################
 #### Statistics #####

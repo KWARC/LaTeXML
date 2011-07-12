@@ -91,6 +91,11 @@ function do_convert(str, settings) {
 	}
 }		
 
+var examples = new Array();
+examples['clc'] = '$\\int_0^\\infty x\\,dx$ is an integral';
+examples['nar'] = '\\section{One}\\subsection{One-one}\\paragraph{Para}Hello World!';
+examples['tbl'] = '\\begin{table}{ccc}1&2&3\\\\4&5&6\\end{table}';
+
 $(document).ready(function() {
 	$('.edit_area').editable(do_convert, { 
 		data	:  function(value, settings) {
@@ -105,6 +110,15 @@ $(document).ready(function() {
                 placeholder: 'Enter LaTeX snippets here...'
 	});
 	$('textarea').live('keyup', do_convert_on_the_fly);
+        $("select").change(function() {
+          var str = "";
+          $("select option:selected").each(function () {
+                str += $(this).text() + " ";
+              });
+          if (str.length>0) {
+           $('#result').text(examples[str]);
+          }
+        });
 });
 
 <% end %>
@@ -117,4 +131,6 @@ $(document).ready(function() {
 </div>
 <div style="clear:both; font-size:0px;">&nbsp;</div>
 <div id="counter" style="width: 40%; background-color: #cccccc; display: inline;">&nbsp;</div>
+<br /><div style="float:left"><%= select_field example =>
+  [["Calculus"=>"clc"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
 <div style="display:none"><div id="source"></div></div>

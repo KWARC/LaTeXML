@@ -42,6 +42,22 @@
     }
     div.left-div { float:left; width: 40%;}
     div.right-div { margin-left: 40%; wifth:auto;}
+select {
+    -moz-border-radius: 4px;
+    -moz-box-shadow: 1px 1px 5px #cfcfcf inset;
+    border: 1px solid #cfcfcf;
+    vertical-align: middle;
+    background-color: transparent;
+}
+option {
+    background-color: #fef5e6;
+    border-bottom: 1px solid #ebdac0;
+    border-right: 1px solid #d6bb86;
+    border-left: 1px solid #d6bb86;
+}
+option:hover {
+    cursor: pointer;
+}
 
 </style>
 
