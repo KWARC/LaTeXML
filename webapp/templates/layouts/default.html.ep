@@ -58,10 +58,6 @@ option {
 option:hover {
     cursor: pointer;
 }
-p {
-  margin-top:0.01;
-  margin-bottom:0.01;
-}
 </style>
 
 </head>
