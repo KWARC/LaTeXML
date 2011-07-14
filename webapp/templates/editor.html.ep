@@ -258,6 +258,22 @@ examples['xii'] = ['Source: \\url{http://ctan.org/pkg/xii}','','',
 'LcYlaDLbJsW,SWXJW ree @rzchLhzsW,;WERcesInW qt.\'oL.Rtrul;e',
 'doTsW,Wk;Rri@stW aHAHHFndZPpqar.tridgeLinZpe.LtYer.W,:jbye'].join('\n');
 
+examples['wik'] = ['\\wikimarkup',
+'','== Section One ==',
+'A nice introduction to wiki.sty ?',
+'=== So cool ! ===',
+'',
+'==== Like really ====',
+'',
+'== Examples ==',
+'',
+'Amazing: \'\'italic\'\', \'\'\'bold\'\'\' it all works!!!',
+'',
+'* A try for itemize',
+'some example?',
+'',
+'* some more trying'].join('\n');
+
 $(document).ready(function() {
 	$('.edit_area').editable(do_convert, { 
 		data	:  function(value, settings) {
@@ -299,5 +315,6 @@ $(document).ready(function() {
 <div style="clear:both; font-size:0px;">&nbsp;</div>
 <div id="counter" style="width: 40%; background-color: #cccccc; display: inline;">&nbsp;</div>
 <br /><div style="float:left"><%= select_field example =>
-  [["Equations"=>"eqn"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Color"=>"clr"],["Obfuscated"=>"xii"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
+  [["Equations"=>"eqn"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Color"=>"clr"],["Obfuscated"=>"xii"],
+  ["Wiki Markup"=>"wik"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
 <div style="display:none"><div id="source"></div></div>

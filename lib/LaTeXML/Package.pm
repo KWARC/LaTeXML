@@ -1242,7 +1242,7 @@ sub InputDefinitions {
   my $astype = ($options{as_class} ? 'cls' : $options{type});
 
   if(my $file = FindFile($name, type=>$options{type}, notex=>$options{notex}, noltxml=>$options{noltxml})){
-    if($options{handleoptions}){
+    if($options{handleoptions}) {
       # For \RequirePackageWithOptions, pass the options from the outer class/style to the inner one.
       if($options{withoptions} && $prevname){
 	PassOptions($name,$astype,@{LookupValue('opt@'.$prevname.".".$prevext)}); }

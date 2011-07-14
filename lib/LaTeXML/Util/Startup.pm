@@ -30,7 +30,7 @@ fragment => {
              stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{},
              documentid =>q{}, type=>'auto', css => [], paths => [q{.},q{/usr/share/texmf-texlive/tex/latex/nicetext/}], debugs=>[],
              preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty",
-                       "amssymb.sty", "eucal.sty","color.sty",'url.sty','hyperref.sty','wiki.sty'],
+                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty','wiki.sty'],
              authlist=>{}, force_ids=>1
             },
 math => {
@@ -42,7 +42,7 @@ math => {
              stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{}, 
              documentid =>q{}, type=>'auto', css => [], paths => [q{.}],
              preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", 
-                       "amssymb.sty", "eucal.sty","color.sty",'url.sty','hyperref.sty'],
+                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty'],
              debugs=>[], authlist=>{}
         },
 
