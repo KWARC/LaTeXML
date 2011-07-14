@@ -13,8 +13,8 @@
   <link rel="stylesheet" type="text/css" href="http://trac.mathweb.org/LaTeXML/chrome/site/latexml.css" />
 <style type="text/css">
     body { margin:0; background:#cfd2e6; color:#000000; }
-    table { border: 1px solid; border-collapse: collapse; }
-    td, th { border: 1px solid; } 
+    table.summary { border: 1px solid; border-collapse: collapse; }
+    table.summary td, th { border: 1px solid; } 
     table.nb {
      border: none;
      border-collapse: separate;
@@ -41,7 +41,7 @@
      font-size:20px;
     }
     div.left-div { float:left; width: 40%;}
-    div.right-div { margin-left: 40%; wifth:auto;}
+    div.right-div { margin-left: 40%; width:auto;}
 select {
     -moz-border-radius: 4px;
     -moz-box-shadow: 1px 1px 5px #cfcfcf inset;

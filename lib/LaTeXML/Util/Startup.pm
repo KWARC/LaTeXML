@@ -28,7 +28,9 @@ fragment => {
              procs_post=>{pmml=>1,cmml=>1,keepTeX=>1}, help=>0, showversion=>0, preamble=>q{}, preamble_loaded=>q{},
              fragment_preamble=>'standard_preamble.tex', fragment_postamble=>'standard_postamble.tex',
              stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{},
-             documentid =>q{}, type=>'auto', css => [], paths => [q{.}], preload=>["article.cls", "LaTeX.pool"], debugs=>[],
+             documentid =>q{}, type=>'auto', css => [], paths => [q{.}], debugs=>[],
+             preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", 
+                       "amssymb.sty", "eucal.sty","color.sty",'url.sty','hyperref.sty'],
              authlist=>{}, force_ids=>1
             },
 math => {
@@ -40,7 +42,7 @@ math => {
              stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{}, 
              documentid =>q{}, type=>'auto', css => [], paths => [q{.}],
              preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", 
-                       "amssymb.sty", "eucal.sty"],
+                       "amssymb.sty", "eucal.sty","color.sty",'url.sty','hyperref.sty'],
              debugs=>[], authlist=>{}
         },
 

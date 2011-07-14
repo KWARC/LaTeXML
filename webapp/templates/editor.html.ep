@@ -93,14 +93,159 @@ function do_convert(str, settings) {
 
 var examples = new Array();
 examples['clc'] = ["Behold: $\\int_0^\\infty x\\,dx$ is an integral"];
+
+examples['eqn'] = ['\\section{The Lorenz Equations}',
+'\\[\\begin{aligned}',
+'\\dot{x} & = \\sigma(y-x) \\\\',
+'\\dot{y} & = \\rho x - y - xz \\\\',
+'\\dot{z} & = -\\beta z + xy',
+'\\end{aligned} \\]',
+'\\section{The Cauchy-Schwarz Inequality}',
+'\\[ \\left( \\sum_{k=1}^n a_k b_k \\right)^2 \\leq \\left( \\sum_{k=1}^n a_k^2 \\right) \\left( \\sum_{k=1}^n b_k^2 \\right) \\]',
+'\\section{A Cross Product Formula}',
+'\\[\\mathbf{V}_1 \\times \\mathbf{V}_2 =  \\begin{vmatrix}',
+'\\mathbf{i} & \\mathbf{j} & \\mathbf{k} \\\\',
+'\\frac{\\partial X}{\\partial u} &  \\frac{\\partial Y}{\\partial u} & 0 \\\\',
+'\\frac{\\partial X}{\\partial v} &  \\frac{\\partial Y}{\\partial v} & 0',
+'\\end{vmatrix}  \\]','',
+'The probability of getting $\\(k\\)$ heads when flipping $\\(n\\)$ coins is: ',
+'\\[P(E) = {n \\choose k} p^k (1-p)^{ n-k} \\]',
+'\\section{An Identity of Ramanujan}',
+'\\[ \\frac{1}{\\Bigl(\\sqrt{\\phi \\sqrt{5}}-\\phi\\Bigr) e^{\\frac25 \\pi}} =',
+'1+\\frac{e^{-2\\pi}} {1+\\frac{e^{-4\\pi}} {1+\\frac{e^{-6\\pi}}',
+'{1+\\frac{e^{-8\\pi}} {1+\\ldots} } } } \\]',
+'\\section{A Rogers-Ramanujan Identity}',
+'',
+'\\[  1 +  \\frac{q^2}{(1-q)}+\\frac{q^6}{(1-q)(1-q^2)}+\\cdots =',
+'\\prod_{j=0}^{\\infty}\\frac{1}{(1-q^{5j+2})(1-q^{5j+3})},',
+'\\quad\\quad \\text{for} |q|<1. \\]',
+'\\section{Maxwell\'s Equations}',
+'\\[  \\begin{aligned}',
+'\\nabla \\times \\vec{\\mathbf{B}} -\\, \\frac1c\\, \\frac{\\partial\\vec{\\mathbf{E}}}{\\partial t} & = \\frac{4\\pi}{c}\\vec{\\mathbf{j}} \\\\',
+'\\nabla \\cdot \\vec{\\mathbf{E}} & = 4 \\pi \\rho \\\\',
+'\\nabla \\times \\vec{\\mathbf{E}}\\, +\\, \\frac1c\\, \\frac{\\partial\\vec{\\mathbf{B}}}{\\partial t} & = \\vec{\\mathbf{0}} \\\\',
+'',
+'\\nabla \\cdot \\vec{\\mathbf{B}} & = 0 \\end{aligned}\\]',
+'','','Source: \\url{http://www.mathjax.org/demos/tex-samples/}'].join('\n');
+
 examples['nar'] = ["\\section{One}",
                    "\\subsection{One-one}",
                    "\\paragraph{Para}Hello World!"].join('\n');
-examples['tbl'] = ["\\begin{tabular}{ccc}",
-                   "1&2&3\\\\",
-                   "4&5&6",
-                   "\\end{tabular}"].join('\n');
-examples['xii'] = ['\\let~\\catcode~`76~`A13~`F1~`j00~`P2jdefA71F~`7113jdefPALLF',
+examples['tbl'] = ['\\section{First Example}','\\begin{tabular}{|c|ccc|r|}',
+'	\\hline',
+'$k$ &  $x_1^k$    &   $x_2^k$  & $x_3^k$   & remarks  \\\\',
+'	\\hline',
+'0   & -0.3 & 0.6 & 0.7  &  \\\\',
+'1   & 0.47102965 & 0.04883157 & -0.53345964  & *\\\\',
+'2   & 0.49988691 & 0.00228830 & -0.52246185 & $s_3$ \\\\',
+'3   & 0.49999976 & 0.00005380 & -0.52365600  & \\\\',
+'4   & 0.5 & 0.00000307 & -0.52359743  & $\\epsilon < 10^{-5}$ \\\\',
+'7   & 0.5 & 0 & -0.52359878  & $\\epsilon < \\xi $ \\\\',
+'	\\hline',
+'\\end{tabular}',
+'\\section{Second Example}',
+'\\begin{tabular}{|c|r@{.}lr@{.}lr@{.}l||r|}',
+'	\\hline',
+'\\multicolumn{8}{|c|}',
+'	{Iteration $k$ of $f(x_n)$} \\\\',
+'\\textbf{\\em k}',
+'	& \\multicolumn{2}{c}{$x_1^k$}',
+'	& \\multicolumn{2}{c}{$x_2^k$}',
+'	& \\multicolumn{2}{c||}{$x_3^k$}',
+'	& remarks \\\\ \\hline \\hline',
+'0   & -0&3                 & 0&6                 &  0&7   & - \\\\',
+'1   &  0&47102965 & 0&04883157 & -0&53345964  & $\\delta<\\epsilon$ \\\\',
+'2   &  0&49988691 & 0&00228830 & -0&52246185  & $\\delta < \\varepsilon$ \\\\',
+'3   &  0&49999976 & 0&00005380 & -0&523656   &   $N$ \\\\',
+'4   &  0&5                 & 0&00000307 & -0&52359743  & \\\\',
+'$\\vdots$	& \\multicolumn{2}{c}{$\\vdots$}',
+'	& \\multicolumn{2}{c}{$\\ddots$}',
+'	& \\multicolumn{2}{c||}{$\\vdots$}  & \\\\',
+'7   &  0&5   & 0&0    & \\textbf{-0}&\\textbf{52359878}',
+'		 & $\\delta<10^{-8}$ \\\\ \\hline',
+'\\end{tabular}',
+'','Source: \\url{http://amath.colorado.edu/documentation/LaTeX/reference/tables/}'].join('\n');
+
+
+examples['clr'] = [
+'The 68 standard colors known to dvips\\vspace{0.5ex}',
+'\\begin{center}\\begin{tabular}{|l|l|l|l|}',
+'\\hline',
+'{\\color{Apricot} Apricot}&',
+'{\\color{Aquamarine} Aquamarine}&',
+'{\\color{Bittersweet} Bittersweet}&',
+'{\\color{Black} Black}\\\\ \\hline',
+'{\\color{Blue} Blue}&',
+'{\\color{BlueGreen} BlueGreen}&',
+'{\\color{BlueViolet} BlueViolet}&',
+'{\\color{BrickRed} BrickRed}\\\\ \\hline',
+'{\\color{Brown} Brown}&',
+'{\\color{BurntOrange} BurntOrange}&',
+'{\\color{CadetBlue} CadetBlue}&',
+'{\\color{CarnationPink} CarnationPink}\\\\ \\hline',
+'{\\color{Cerulean} Cerulean}&',
+'{\\color{CornflowerBlue} CornflowerBlue}&',
+'{\\color{Cyan} Cyan}&',
+'{\\color{Dandelion} Dandelion}\\\\ \\hline',
+'{\\color{DarkOrchid} DarkOrchid}&',
+'{\\color{Emerald} Emerald}&',
+'{\\color{ForestGreen} ForestGreen}&',
+'{\\color{Fuchsia} Fuchsia}\\\\ \\hline',
+'{\\color{Goldenrod} Goldenrod}&',
+'{\\color{Gray} Gray}&',
+'{\\color{Green} Green}&',
+'{\\color{GreenYellow} GreenYellow}\\\\ \\hline',
+'{\\color{JungleGreen} JungleGreen}&',
+'{\\color{Lavender} Lavender}&',
+'{\\color{LimeGreen} LimeGreen}&',
+'{\\color{Magenta} Magenta}\\\\ \\hline',
+'{\\color{Mahogany} Mahogany}&',
+'{\\color{Maroon} Maroon}&',
+'{\\color{Melon} Melon}&',
+'{\\color{MidnightBlue} MidnightBlue}\\\\ \\hline',
+'{\\color{Mulberry} Mulberry}&',
+'{\\color{NavyBlue} NavyBlue}&',
+'{\\color{OliveGreen} OliveGreen}&',
+'{\\color{Orange} Orange}\\\\ \\hline',
+'{\\color{OrangeRed} OrangeRed}&',
+'{\\color{Orchid} Orchid}&',
+'{\\color{Peach} Peach}&',
+'{\\color{Periwinkle} Periwinkle}\\\\ \\hline',
+'{\\color{PineGreen} PineGreen}&',
+'{\\color{Plum} Plum}&',
+'{\\color{ProcessBlue} ProcessBlue}&',
+'{\\color{Purple} Purple}\\\\ \\hline',
+'{\\color{RawSienna} RawSienna}&',
+'{\\color{Red} Red}&',
+'{\\color{RedOrange} RedOrange}&',
+'{\\color{RedViolet} RedViolet}\\\\ \\hline',
+'{\\color{Rhodamine} Rhodamine}&',
+'{\\color{RoyalBlue} RoyalBlue}&',
+'{\\color{RoyalPurple} RoyalPurple}&',
+'{\\color{RubineRed} RubineRed}\\\\ \\hline',
+'{\\color{Salmon} Salmon}&',
+'{\\color{SeaGreen} SeaGreen}&',
+'{\\color{Sepia} Sepia}&',
+'{\\color{SkyBlue} SkyBlue}\\\\ \\hline',
+'{\\color{SpringGreen} SpringGreen}&',
+'{\\color{Tan} Tan}&',
+'{\\color{TealBlue} TealBlue}&',
+'{\\color{Thistle} Thistle}\\\\ \\hline',
+'{\\color{Turquoise} Turquoise}&',
+'{\\color{Violet} Violet}&',
+'{\\color{VioletRed} VioletRed}&',
+'{\\color{White} White}\\\\ \\hline',
+'{\\color{WildStrawberry} WildStrawberry}&',
+'{\\color{Yellow} Yellow}&',
+'{\\color{YellowGreen} YellowGreen}&',
+'{\\color{YellowOrange} YellowOrange}\\\\ \\hline',
+'\\end{tabular}',
+'\\end{center}',
+'Source: \\url{http://people.oregonstate.edu/~peterseb/tex/samples/color-package.html}'].join('\n');
+
+
+examples['xii'] = ['Source: \\url{http://ctan.org/pkg/xii}','','',
+'\\let~\\catcode~`76~`A13~`F1~`j00~`P2jdefA71F~`7113jdefPALLF',
 'PA\'\'FwPA;;FPAZZFLaLPA//71F71iPAHHFLPAzzFenPASSFthP;A$$FevP',
 'A@@FfPARR717273F737271P;ADDFRgniPAWW71FPATTFvePA**FstRsamP',
 'AGGFRruoPAqq71.72.F717271PAYY7172F727171PA??Fi*LmPA&&71jfi',
@@ -144,14 +289,16 @@ $(document).ready(function() {
 
 <% end %>
 <div class="edit_area" id="result" 
-     style="display: inline; width: 40%; height: 500px;
+     style="display:inline; width: 40%; height: 500px;
      word-wrap:break-word; float:left; margin: 15px; overflow-y:auto;"></div>
-<div style="display: inline; float:left; height: 500px; width: 40%; overflow-y:auto;"><br />
-<div style="background-color: #ffddbb; display: none; word-wrap:break-word;" id="onthefly"></div>
-<div style="background-color: #ffddbb; display: none; word-wrap:break-word;" id="log"></div>
+<div style="display:inline; float:left; height: 500px; width: 40%; overflow-y:auto;"><br />
+<div style="background-color: #ffddbb; display: none;
+            word-wrap:break-word; margin: 15px;" id="onthefly"></div>
+<div style="background-color: #ffddbb; display: none;
+            word-wrap:break-word; margin: 15px;" id="log"></div>
 </div>
 <div style="clear:both; font-size:0px;">&nbsp;</div>
 <div id="counter" style="width: 40%; background-color: #cccccc; display: inline;">&nbsp;</div>
 <br /><div style="float:left"><%= select_field example =>
-  [["Calculus"=>"clc"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Obfuscated"=>"xii"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
+  [["Equations"=>"eqn"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Color"=>"clr"],["Obfuscated"=>"xii"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
 <div style="display:none"><div id="source"></div></div>
