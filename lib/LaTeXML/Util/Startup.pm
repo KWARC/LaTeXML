@@ -22,15 +22,15 @@ standard => {
              authlist=>{}
             },
 fragment => {
-             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
+             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>1,
              post=>1, parallelmath=>1, input_counter=>0, input_limit=>0,
              embed=>1, timeout=>60, format=>'xhtml', base=>q{},
              procs_post=>{pmml=>1,cmml=>1,keepTeX=>1}, help=>0, showversion=>0, preamble=>q{}, preamble_loaded=>q{},
              fragment_preamble=>'standard_preamble.tex', fragment_postamble=>'standard_postamble.tex',
              stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{},
-             documentid =>q{}, type=>'auto', css => [], paths => [q{.}], debugs=>[],
-             preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", 
-                       "amssymb.sty", "eucal.sty","color.sty",'url.sty','hyperref.sty'],
+             documentid =>q{}, type=>'auto', css => [], paths => [q{.},q{/usr/share/texmf-texlive/tex/latex/nicetext/}], debugs=>[],
+             preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty",
+                       "amssymb.sty", "eucal.sty","color.sty",'url.sty','hyperref.sty','wiki.sty'],
              authlist=>{}, force_ids=>1
             },
 math => {
