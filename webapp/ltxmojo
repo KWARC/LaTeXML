@@ -82,7 +82,15 @@ get '/login' => sub {
 
 get '/about' => sub {
   my $self = shift;
+  my $headers = Mojo::Headers->new;
+  $headers->add('Content-Type','application/xhtml+xml');
+  $self->res->content->headers($headers);
+  $self->render();
 } => 'about';
+
+get '/demo' => sub {
+  my $self = shift;
+} => 'demo';
 
 get '/editor' => sub {
   my $self = shift;

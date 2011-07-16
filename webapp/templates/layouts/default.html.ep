@@ -86,13 +86,11 @@ option:hover {
     <div id="mainnav" class="nav">
     <ul>
       <li class="first
-      active"><a href="/upload">Convert</a></li><li><a href="/about">About</a></li><li><a href="/editor">Web Editor</a></li><li><a href="http://trac.kwarc.info/arXMLiv/wiki/Demo">Demos</a></li><li class="last"><a href="/admin" title="Administration">Admin</a></li>
+      active"><a href="/upload">Convert</a></li><li><a href="/about">About</a></li><li><a href="/editor">Web Editor</a></li><li><a href="/demo">Demo</a></li><li class="last"><a href="/admin" title="Administration">Admin</a></li>
     </ul>
   </div>
 </div>
-
 <%= content %>
-
 <div id="footer" lang="en" xml:lang="en"><hr />
   <p class="left">
     <a alt="LaTeXML"
