@@ -276,6 +276,26 @@ examples['wik'] = ['\\wikimarkup',
 '',
 '* some more trying'].join('\n');
 
+examples['met'] = ['%% BEGIN METADATA BLOCK',
+'\\pmcanonicalname{ZipfsLaw}',
+'\\pmrecord{3}{3422}',
+'\\pmowner{akrowne}{2}',
+'\\pmmodifier{akrowne}{2}',
+'\\pmcreated{2002-09-05 14:18:48.912026-04}',
+'\\pmmodified{2002-09-05 17:58:34.348745-04}',
+'\\pmtitle{Zipf\'s law}',
+'\\pmtype{Definition}',
+'\\pmcomment{fixing LaTeX tabular-in-caption lockup}',
+'\\pmauthor{akrowne}{2}',
+'\\pmclassification{msc}{60E05}',
+'\\pmclassification{msc}{68P20}',
+'\\pmclassification{msc}{94A99}',
+'%% END METADATA BLOCK',
+'This example demonstrates embedding document metadata via {\\LaTeX} macros, using the vocabulary and syntax for the encyclopedia \\hyperref{www.planetmath.org}{PlanetMath.org}.',
+'The concrete example is taken from the \\hyperref{http://planetmath.org/encyclopedia/ZipfsLaw.html}{Zipf\'s Law} article.',
+'','',
+'View the generated soure to explore the result metadata as {\color{blue}HTML+RDFa}.'].join('\n');
+
 $(document).ready(function() {
 	$('.edit_area').editable(do_convert, { 
 		data	:  function(value, settings) {
@@ -318,5 +338,5 @@ $(document).ready(function() {
 <div id="counter" style="width: 40%; background-color: #cccccc; display: inline;">&nbsp;</div>
 <br /><div style="float:left"><%= select_field example =>
   [["Equations"=>"eqn"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Color"=>"clr"],["Obfuscated"=>"xii"],
-  ["Wiki Markup"=>"wik"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
+  ["Wiki Markup"=>"wik"],["Metadata"=>"met"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
 <div style="display:none"><div id="source"></div></div>
