@@ -1,4 +1,20 @@
 % layout 'default';
 % title 'Upload Interface';
- TODO: Upload interface
+<div style="margin:10px;">
+<h2>Classic Setup</h2>
+Try the classic interface at <a href="http://tex2xml.kwarc.info/">http://tex2xml.kwarc.info/</a>
 
+<h2>RESTful Convert</h2>
+Or send an HTTP POST request to /convert, with the following syntax:</li><li>
+<ul><li>
+tex : "the TeX source to convert"
+</li><li>
+profile : "conversion profile - default is <it>standard</it>,
+try <it>fragment</it> for best daemon results"
+</li><li>
+TODO: Fully document Advanced options for the API</li>
+</ul>
+<h3> Command-line example:</h3>
+<p>curl -d "profile=fragment&tex=\textbf{Hello World}" http://latexml.mathweb.org/convert</p>
+<b>Work in progress:</b> Upload interface
+</div>

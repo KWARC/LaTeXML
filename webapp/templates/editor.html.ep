@@ -31,6 +31,7 @@ var setup_message = function(data) {
 
 var sendRequest = function(tex, my_counter, onthefly){
 	if (my_counter == ac_counter) {
+                $("body").css("cursor","progress");
 		if (ac_counter == 1) send_called = 0;
 		send_called++;
 		$('#counter').html(send_called);
@@ -46,6 +47,7 @@ var sendRequest = function(tex, my_counter, onthefly){
       	            	    $('#result').html(data.result);
       	            	    $('#onthefly').hide();
         	    	  }}
+                         $("body").css("cursor", "auto");
         	},"json");
 	}
 }

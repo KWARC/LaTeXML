@@ -5,12 +5,14 @@
 var hasError = /error/;
 $(document).ready(function() {
 	$('div.latex-fragment, span.latex-fragment').each(function(index) {
+                $("body").css("cursor","progress");
 		var tex = $(this).text();
 		var mythis = $(this);
 		$.post("/convert", { "profile":"fragment","tex": tex },
 			function(data){
 				if (!hasError.test(data.status)) { 
 					mythis.html(data.result);
+                                        $("body").css("cursor", "auto");
 				}
    			}, "json");
 	});
