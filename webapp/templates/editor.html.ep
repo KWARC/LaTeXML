@@ -262,19 +262,19 @@ examples['xii'] = ['Source: \\url{http://ctan.org/pkg/xii}','','',
 
 examples['wik'] = ['\\wikimarkup',
 '','== Section One ==',
-'A nice introduction to wiki.sty ?',
-'=== So cool ! ===',
+'An introduction to wiki.sty',
+'=== A subsection ===',
 '',
-'==== Like really ====',
+'==== And a subsubsection ====',
 '',
 '== Examples ==',
 '',
-'Amazing: \'\'italic\'\', \'\'\'bold\'\'\' it all works!!!',
+'Font styling: \'\'italic\'\', \'\'\'bold\'\'\' it all works!',
 '',
-'* A try for itemize',
-'some example?',
-'',
-'* some more trying'].join('\n');
+'* Future work: itemize',
+'','* also enumerate',
+'','* etc.',
+''].join('\n');
 
 examples['met'] = ['%% BEGIN METADATA BLOCK',
 '\\pmcanonicalname{ZipfsLaw}',
@@ -291,10 +291,10 @@ examples['met'] = ['%% BEGIN METADATA BLOCK',
 '\\pmclassification{msc}{68P20}',
 '\\pmclassification{msc}{94A99}',
 '%% END METADATA BLOCK',
-'This example demonstrates embedding document metadata via {\\LaTeX} macros, using the vocabulary and syntax for the encyclopedia \\hyperref{www.planetmath.org}{PlanetMath.org}.',
-'The concrete example is taken from the \\hyperref{http://planetmath.org/encyclopedia/ZipfsLaw.html}{Zipf\'s Law} article.',
+'This example demonstrates embedding document metadata via {\\LaTeX} macros, using the vocabulary and syntax for the encyclopedia \\href{www.planetmath.org}{PlanetMath.org}.',
+'The concrete example is taken from the \\href{http://planetmath.org/encyclopedia/ZipfsLaw.html}{Zipf\'s Law} article.',
 '','',
-'View the generated soure to explore the result metadata as {\color{blue}HTML+RDFa}.'].join('\n');
+'View the generated soure to explore the result metadata as {\\color{blue}HTML+RDFa}.'].join('\n');
 
 $(document).ready(function() {
 	$('.edit_area').editable(do_convert, { 
