@@ -28,9 +28,16 @@ fragment => {
              procs_post=>{pmml=>1,cmml=>1,keepTeX=>1}, help=>0, showversion=>0, preamble=>q{}, preamble_loaded=>q{},
              fragment_preamble=>'standard_preamble.tex', fragment_postamble=>'standard_postamble.tex',
              stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{},
-             documentid =>q{}, type=>'auto', css => [], paths => [q{.},q{/usr/share/texmf-texlive/tex/latex/nicetext/}], debugs=>[],
+             documentid =>q{}, type=>'auto', css => [], debugs=>[],
+             paths => ['.','/usr/share/texmf/tex/latex/pgf/basiclayer','/usr/share/texmf/tex/generic/pgf/basiclayer',
+                       '/usr/share/texmf/tex/latex/pgf/systemlayer','/usr/share/texmf-texlive/tex/latex/graphics',
+                       '/usr/share/texmf/tex/generic/pgf/systemlayer','/usr/share/texmf/tex/generic/pgf/systemlayer',
+                       '/usr/share/texmf/tex/latex/pgf/utilities','/usr/share/texmf/tex/generic/pgf/utilities',
+                       '/usr/share/texmf/tex/generic/pgf/math','/usr/share/texmf/tex/generic/pgf/modules',
+                       '/usr/share/texmf/tex/latex/pgf/compatibility/','/etc/texmf/tex/latex/config/','/usr/share/texmf/tex/latex/xcolor/',
+                       '/home/dreamweaver/svn/arXMLiv/trunk/work_in_progress/sty/pgf','/home/dreamweaver/svn/arXMLiv/trunk/work_in_progress/sty/xcolor'],
              preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty",
-                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty','wiki.sty'],
+                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty','planetmath-specials.sty','tikz.sty','wiki.sty'],
              authlist=>{}, force_ids=>1
             },
 math => {

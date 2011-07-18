@@ -152,8 +152,8 @@ sub handle_escape {		# Read control sequence
   # NOTE: We're using control sequences WITH the \ prepended!!!
   my $cs = "\\";		# I need this standardized to be able to lookup tokens (A better way???)
   my($ch,$cc)=$self->getNextChar;
-###  if($cc == CC_EOL){	# I _think_ this is what Knuth is sayin' !?!?
-###    ($ch,$cc)=(' ',CC_SPACE); }
+  if($cc == CC_EOL){	# I _think_ this is what Knuth is sayin' !?!?
+    ($ch,$cc)=(' ',CC_SPACE); }
 ### OR did he really??? That interferes with \catcode`\^^M=... for example!
   $cs .= $ch;
   if ($cc == CC_LETTER) {	# For letter, read more letters for csname.

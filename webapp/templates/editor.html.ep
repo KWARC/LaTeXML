@@ -62,7 +62,7 @@ function do_convert_on_the_fly(e) {
 	
 	ac_counter++;
 	//console.log(key);
-	if ((key != 37 && key != 39 && key > 32 && key <= 250) || key == 8 || key == 0){
+	if (((key < 37 || key > 40) && key > 32 && key <= 250) || key == 8 || key == 0){
 		// immediately cancel outstanding requests
 		if (timeout) clearTimeout(timeout);
 
@@ -74,12 +74,9 @@ function do_convert_on_the_fly(e) {
 	        return;
 		}
 
-		// call erst nach 200 ms
+		// call erst nach 300ms
 		timeout = setTimeout(function(){sendRequest(tex, ac_counter, true)}, 300);
 	}
-	else if (key == 37 || key == 39){
-		//alert("left + right pressed");
-	} 
 }	
 
 
@@ -296,6 +293,42 @@ examples['met'] = ['%% BEGIN METADATA BLOCK',
 '','',
 'View the generated soure to explore the result metadata as {\\color{blue}HTML+RDFa}.'].join('\n');
 
+examples['tik'] = ['\\title{A TikZ gallery of basic examples}',
+'\\section{Connecting squares}',
+'\\begin{tikzpicture}',
+'\\draw (0,0) -- +(1,0) -- +(1,1) -- +(0,1) -- cycle;',
+'\\draw (2,0) -- +(1,0) -- +(1,1) -- +(0,1) -- cycle;',
+'\\draw (1.5,1.5) -- +(1,0) -- +(1,1) -- +(0,1) -- cycle;',
+'\\draw (0,0) -- (1,1) {[rounded corners] -- (2,0) -- (3,1)} -- (3,0) -- (2,1);',
+'\\end{tikzpicture}',
+'',
+'\\section{A Trapezoid with rounded corners}',
+'\\begin{tikzpicture}',
+'\\draw (0,0) [rounded corners=10pt] -- (1,1) -- (2,1)',
+'[sharp corners] -- (2,0)',
+'[rounded corners=5pt] -- cycle;',
+'\\end{tikzpicture}',
+'',
+'\\section{A Unit Circle}',
+'\\begin{tikzpicture}',
+'\\draw[clip] (0,0) circle (1cm);',
+'\\end{tikzpicture}',
+'',
+'\\section{Plot of $\\sin(x)$}',
+'\\begin{tikzpicture}',
+'\\draw plot (\\x,{sin(\\x r)});',
+'\\end{tikzpicture}',
+'',
+'\\section{Some plots}',
+'\\begin{tikzpicture}',
+'\\draw (0,0) grid (10,10);',
+'\\pgfxycurve(0,0)(3,2)(1,4)(10,3)',
+'\\pgfstroke',
+'\\pgfxycurve(0,0)(1,3)(5,4)(7,9)',
+'\\pgfxycurve(0,0)(1,3)(7,4)(0,9)',
+'\\pgffill',
+'\\end{tikzpicture}'].join('\n');
+
 $(document).ready(function() {
 	$('.edit_area').editable(do_convert, { 
 		data	:  function(value, settings) {
@@ -338,5 +371,5 @@ $(document).ready(function() {
 <div id="counter" style="width: 40%; background-color: #cccccc; display: inline;">&nbsp;</div>
 <br /><div style="float:left"><%= select_field example =>
   [["Equations"=>"eqn"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Color"=>"clr"],["Obfuscated"=>"xii"],
-  ["Wiki Markup"=>"wik"],["Metadata"=>"met"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
+  ["Wiki Markup"=>"wik"],["Metadata"=>"met"],["TikZ Graphics"=>"tik"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
 <div style="display:none"><div id="source"></div></div>
