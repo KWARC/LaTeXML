@@ -298,11 +298,15 @@ sub load_preamble {
     if ($response->is_success) {
       my $content = $response->content;
       $digested = $latexml->digestString($content,source=>$opts->{preamble},noinitialize=>1);
+      $opts->{preamble_loaded} = $opts->{preamble};
     } else {
-      if (!$opts->{local}) { carp "File preamble allowed only when 'local' is enabled!"; return; }
-      $digested = $latexml->digestFile($opts->{preamble},noinitialize=>1);
-    }
-    $opts->{preamble_loaded} = $opts->{preamble};
+      if ($opts->{preamble}=~/\s|\\/) {#Guess it's a string?
+        $digested = $latexml->digestString($opts->{preamble},source=>"Anonymous string",noinitialize=>1);
+      } else {
+        if (!$opts->{local}) { carp "File preamble allowed only when 'local' is enabled!"; return; }
+        $digested = $latexml->digestFile($opts->{preamble},noinitialize=>1);
+        $opts->{preamble_loaded} = $opts->{preamble};
+      }}
   }
   $digested = $original unless defined $digested;
   return $digested;

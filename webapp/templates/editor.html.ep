@@ -9,6 +9,7 @@ var send_called = 0;
 var mouse_pressed = 0;
 var timeout = null;
 var hasError = /error/;
+var hasPreamble = /^([\s\S]*)\\begin{document}([\s\S]*)\\end{document}([\s\S]*)$/;
 var setup_message = function(data) {
  $('#message').html("<br /><p style=\"margin-bottom:0; \">"+data.status+"</p><br />"+
                     "<p style=\"font-size: 70%; font-style:italic; margin-top:0; \">Hover over for details.</p>");
@@ -35,7 +36,14 @@ var sendRequest = function(tex, my_counter, onthefly){
 		if (ac_counter == 1) send_called = 0;
 		send_called++;
 		$('#counter').html(send_called);
-		$.post("/convert", { "tex": tex, "profile":"fragment" },
+                //Check if preamble exists:
+                var m = hasPreamble.exec(tex);
+                var preamble = null;
+                if (m != null) {
+                 preamble = m[1];
+                 tex = m[2];
+                }
+		$.post("/convert", { "tex": tex, "preamble" : preamble, "profile":"fragment" },
 			function(data) {
                          setup_message(data);
                          if (onthefly) {
@@ -65,7 +73,7 @@ function do_convert_on_the_fly(e) {
 	if (((key < 37 || key > 40) && key > 32 && key <= 250) || key == 8 || key == 0){
 		// immediately cancel outstanding requests
 		if (timeout) clearTimeout(timeout);
-
+                ac_counter--;
    		var tex = $('textarea').val();
 		//alert(key);
 	    if (!tex) {
@@ -293,6 +301,15 @@ examples['met'] = ['%% BEGIN METADATA BLOCK',
 '','',
 'View the generated soure to explore the result metadata as {\\color{blue}HTML+RDFa}.'].join('\n');
 
+examples['wgr'] = [
+'\\usepackage{webgraphic}',
+'\\begin{document}',
+'Welcome to \\\\',
+'\\def\\w{500}',
+'\\webgraphic[width=\\w]{http://mdk.per.ly/files/2011/05/raptor-black.png}',
+'\\url{http://perl.org}',
+'\\end{document}'].join('\n');
+
 examples['tik'] = ['\\title{A TikZ gallery of basic examples}',
 '\\section{Connecting squares}',
 '\\begin{tikzpicture}',
@@ -371,5 +388,5 @@ $(document).ready(function() {
 <div id="counter" style="width: 40%; background-color: #cccccc; display: inline;">&nbsp;</div>
 <br /><div style="float:left"><%= select_field example =>
   [["Equations"=>"eqn"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Color"=>"clr"],["Obfuscated"=>"xii"],
-  ["Wiki Markup"=>"wik"],["Metadata"=>"met"],["TikZ Graphics"=>"tik"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
+  ["Wiki Markup"=>"wik"],["Web Graphics"=>"wgr"],["Metadata"=>"met"],["TikZ Graphics"=>"tik"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
 <div style="display:none"><div id="source"></div></div>
