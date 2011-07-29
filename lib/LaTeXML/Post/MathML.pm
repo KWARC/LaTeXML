@@ -1008,7 +1008,7 @@ DefMathML("Token:?:greater-than",         undef, sub{['m:gt'];});
 DefMathML("Token:?:less-than",            undef, sub{['m:lt'];});
 DefMathML("Token:?:greater-than-or-equals",undef, sub{['m:geq'];});
 DefMathML("Token:?:less-than-or-equals",  undef, sub{['m:leq'];});
-DefMathML("Token:?:equivalent-to",        undef, sub{['m:equivalent'];});
+DefMathML("Token:?:identical-to",        undef, sub{['m:equivalent'];});
 DefMathML("Token:?:almost-equals",	  undef, sub{['m:approx'];});
 DefMathML("Token:?:factor-of",            undef, sub{['m:factorof'];});
 
