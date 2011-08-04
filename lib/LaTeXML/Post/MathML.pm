@@ -1061,17 +1061,17 @@ DefMathML("Token:?:list",             undef, sub{['m:list'];});
 DefMathML("Token:?:union",            undef, sub{['m:union'];});
 DefMathML("Token:?:intersection",     undef, sub{['m:intersect'];});
 DefMathML("Token:?:element-of",       undef, sub{['m:in'];});
-DefMathML("Token:?:not-in",           undef, sub{['m:notin'];});
-DefMathML("Token:?:subset-of",        undef, sub{['m:subset'];});
-DefMathML("Token:?:proper-subset",    undef, sub{['m:prsubset'];});
+DefMathML("Token:?:not-element-of",   undef, sub{['m:notin'];});
+DefMathML("Token:?:subset-of-or-equals",undef, sub{['m:subset'];});
+DefMathML("Token:?:subset-of",	      undef, sub{['m:prsubset'];});
 DefMathML("Token:?:not-subset",       undef, sub{['m:notsubset'];});
 DefMathML("Token:?:not-proper-subset",undef, sub{['m:notprsubset'];});
 DefMathML("Token:?:set-minus",	      undef, sub{['m:setdiff'];});
 DefMathML("Token:?:cardinality",      undef, sub{['m:card'];});		# same presentation for cardinality and abs. value
-DefMathML("Token:?:cartesian-product",undef, sub{['m:cartesianproduct'];});
+DefMathML("Token:?:cartesian-product",undef, sub{['m:cartesianproduct'];}); # same pres as times
 
 # tried introducing superset relation which reduces to subset by reversing arguments. failed to manage to reverse arguments.
-
+# 
 # DefMathML("Token:?:superset-of",      undef, 
 # sub{
 #   my($op,@elements)=@_;
@@ -1080,7 +1080,7 @@ DefMathML("Token:?:cartesian-product",undef, sub{['m:cartesianproduct'];});
 # sub{
 #   my($op,@elements)=@_;
 #   my(@rev)=reverse @elements;
-#   ['m:apply',{},['m:subset',{}],map(cmml($_),@rev)];});
+#   ['m:apply',{},['m:subset2',{}],map(cmml($_),@rev)];});
 
 
 #======================================================================
