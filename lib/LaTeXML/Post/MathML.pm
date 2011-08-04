@@ -1010,7 +1010,7 @@ DefMathML("Token:?:greater-than-or-equals",undef, sub{['m:geq'];});
 DefMathML("Token:?:less-than-or-equals",  undef, sub{['m:leq'];});
 DefMathML("Token:?:identical-to",        undef, sub{['m:equivalent'];});
 DefMathML("Token:?:almost-equals",	  undef, sub{['m:approx'];});
-DefMathML("Token:?:factor-of",            undef, sub{['m:factorof'];});
+DefMathML("Token:?:factor-of",            undef, sub{['m:factorof'];}); # How should one test cmml for factor-of?
 
 DefMathML("Token:METARELOP:?",     \&pmml_mo);
 DefMathML('Apply:RELOP:?',         \&pmml_infix);
@@ -1060,13 +1060,13 @@ DefMathML("Token:?:set",              undef, sub{['m:set'];});
 DefMathML("Token:?:list",             undef, sub{['m:list'];});
 DefMathML("Token:?:union",            undef, sub{['m:union'];});
 DefMathML("Token:?:intersection",     undef, sub{['m:intersect'];});
-DefMathML("Token:?:in",               undef, sub{['m:in'];});
+DefMathML("Token:?:element-of",       undef, sub{['m:in'];});
 DefMathML("Token:?:not-in",           undef, sub{['m:notin'];});
 DefMathML("Token:?:subset",           undef, sub{['m:subset'];});
 DefMathML("Token:?:proper-subset",    undef, sub{['m:prsubset'];});
 DefMathML("Token:?:not-subset",       undef, sub{['m:notsubset'];});
 DefMathML("Token:?:not-proper-subset",undef, sub{['m:notprsubset'];});
-DefMathML("Token:?:set-difference",   undef, sub{['m:setdiff'];});
+DefMathML("Token:?:set-minus",	      undef, sub{['m:setdiff'];});
 DefMathML("Token:?:cardinality",      undef, sub{['m:card'];});
 DefMathML("Token:?:cartesian-product",undef, sub{['m:cartesianproduct'];});
 
