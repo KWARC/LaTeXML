@@ -1071,16 +1071,15 @@ DefMathML("Token:?:cardinality",      undef, sub{['m:card'];});		# same presenta
 DefMathML("Token:?:cartesian-product",undef, sub{['m:cartesianproduct'];}); # same presentation as times
 
 # The following works on simple relations. Fails on multirelations.
-# 
-# DefMathML("Apply:?:superset-of",
-# sub{
-#   my($op,@elements)=@_;
-#   my(@rev)=reverse(@elements);
-#   ['m:subset',{},map(pmml($_),@rev)];},
-# sub{
-#   my($op,@elements)=@_;
-#   my(@rev)=reverse(@elements);
-#   ['m:apply',{},['m:subset',{}],map(cmml($_),@rev)];});
+DefMathML("Apply:?:superset-of",
+sub{
+  my($op,@elements)=@_;
+  my(@rev)=reverse(@elements);
+  ['m:subset',{},map(pmml($_),@rev)];},
+sub{
+  my($op,@elements)=@_;
+  my(@rev)=reverse(@elements);
+  ['m:apply',{},['m:subset',{}],map(cmml($_),@rev)];});
 
 
 #======================================================================
