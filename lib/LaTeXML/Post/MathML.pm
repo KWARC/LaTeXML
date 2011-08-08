@@ -1068,19 +1068,19 @@ DefMathML("Token:?:not-subset",       undef, sub{['m:notsubset'];});
 DefMathML("Token:?:not-proper-subset",undef, sub{['m:notprsubset'];});
 DefMathML("Token:?:set-minus",	      undef, sub{['m:setdiff'];});
 DefMathML("Token:?:cardinality",      undef, sub{['m:card'];});		# same presentation for cardinality and abs. value
-DefMathML("Token:?:cartesian-product",undef, sub{['m:cartesianproduct'];}); # same pres as times
+DefMathML("Token:?:cartesian-product",undef, sub{['m:cartesianproduct'];}); # same presentation as times
 
-# tried introducing superset relation which reduces to subset by reversing arguments. failed to manage to reverse arguments.
+# The following works on simple relations. Fails on multirelations.
 # 
-# DefMathML("Token:?:superset-of",      undef, 
+# DefMathML("Apply:?:superset-of",
 # sub{
 #   my($op,@elements)=@_;
-#   my(@rev)=reverse @elements;
+#   my(@rev)=reverse(@elements);
 #   ['m:subset',{},map(pmml($_),@rev)];},
 # sub{
 #   my($op,@elements)=@_;
-#   my(@rev)=reverse @elements;
-#   ['m:apply',{},['m:subset2',{}],map(cmml($_),@rev)];});
+#   my(@rev)=reverse(@elements);
+#   ['m:apply',{},['m:subset',{}],map(cmml($_),@rev)];});
 
 
 #======================================================================
