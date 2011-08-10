@@ -1072,7 +1072,6 @@ DefMathML("Token:?:cartesian-product",undef, sub{['m:cartesianproduct'];}); # sa
 
 # The following works on simple relations. Fails on multirelations.
 DefMathML("Apply:?:superset-of", \&pmml_infix,
-\&pmml_infix,
 sub{
   my($op,@elements)=@_;
   my(@rev)=reverse(@elements);
