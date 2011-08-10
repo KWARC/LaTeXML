@@ -1071,7 +1071,7 @@ DefMathML("Token:?:cardinality",      undef, sub{['m:card'];});		# same presenta
 DefMathML("Token:?:cartesian-product",undef, sub{['m:cartesianproduct'];}); # same presentation as times
 
 # The following works on simple relations. Fails on multirelations.
-DefMathML("Apply:?:superset-of",
+DefMathML("Apply:?:superset-of", \&pmml_infix,
 \&pmml_infix,
 sub{
   my($op,@elements)=@_;
