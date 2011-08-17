@@ -1062,16 +1062,22 @@ DefMathML("Token:?:union",            undef, sub{['m:union'];});
 DefMathML("Token:?:intersection",     undef, sub{['m:intersect'];});
 DefMathML("Token:?:element-of",       undef, sub{['m:in'];});
 DefMathML("Token:?:not-element-of",   undef, sub{['m:notin'];});
-DefMathML("Token:?:subset-of-or-equals",undef, sub{['m:subset'];});
+DefMathML("Token:?:subset-of-or-equals",	undef, sub{['m:subset'];});
 DefMathML("Token:?:subset-of",	      undef, sub{['m:prsubset'];});
-DefMathML("Token:?:not-subset",       undef, sub{['m:notsubset'];});
-DefMathML("Token:?:not-proper-subset",undef, sub{['m:notprsubset'];});
+DefMathML("Token:?:not-subset-of-or-equals",    undef, sub{['m:notsubset'];});
+DefMathML("Token:?:not-subset-of",    undef, sub{['m:notprsubset'];});
 DefMathML("Token:?:set-minus",	      undef, sub{['m:setdiff'];});
 DefMathML("Token:?:cardinality",      undef, sub{['m:card'];});		# same presentation for cardinality and abs. value
 DefMathML("Token:?:cartesian-product",undef, sub{['m:cartesianproduct'];}); # same presentation as times
 
-# The following works on simple relations. Fails on multirelations.
+# The following macros work on simple relations. Fail on multirelations.
 DefMathML("Apply:?:superset-of", \&pmml_infix,
+sub{
+  my($op,@elements)=@_;
+  my(@rev)=reverse(@elements);
+  ['m:apply',{},['m:prsubset',{}],map(cmml($_),@rev)];});
+
+DefMathML("Apply:?:superset-of-or-equals", \&pmml_infix,
 sub{
   my($op,@elements)=@_;
   my(@rev)=reverse(@elements);
