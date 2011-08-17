@@ -1083,6 +1083,17 @@ sub{
   my(@rev)=reverse(@elements);
   ['m:apply',{},['m:subset',{}],map(cmml($_),@rev)];});
 
+DefMathML("Apply:?:not-superset-of", \&pmml_infix,
+sub{
+  my($op,@elements)=@_;
+  my(@rev)=reverse(@elements);
+  ['m:apply',{},['m:notprsubset',{}],map(cmml($_),@rev)];});
+
+DefMathML("Apply:?:not-superset-of-or-equals", \&pmml_infix,
+sub{
+  my($op,@elements)=@_;
+  my(@rev)=reverse(@elements);
+  ['m:apply',{},['m:notsubset',{}],map(cmml($_),@rev)];});
 
 #======================================================================
 # Sequences and Series:
