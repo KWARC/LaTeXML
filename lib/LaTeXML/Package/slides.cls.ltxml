@@ -1,10 +1,27 @@
 # -*- CPERL -*-
+# /=====================================================================\ #
+# |  slides.cls - Implementation for LaTeXML                            | #
+# |                                                                     | #
+# |=====================================================================| #
+# | Part of LaTeXML:                                                    | #
+# |  Public domain software, produced as part of work done by the       | #
+# |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | http://dlmf.nist.gov/LaTeXML/                                       | #
+# \=====================================================================/ #
+
 package LaTeXML::Package::Pool;
 use strict;
 use LaTeXML::Package;
 
 # NOTE: how's the best way to get verbatim material through?
 LoadClass('article');
+
+# TODO: Declare meaningful options
+DeclareOption();
+
+# TODO: Pass options to article.cls
+PassOptions('article','cls',@options);
 
 #Bruce suggests we think of using \slidename for the formatted refnums (Useful in some cases?)
 #DefMacro('\slidename','Slide');
@@ -13,8 +30,15 @@ NewCounter('equation', 'document', idprefix=>'E', idwithin=>'slide');
 NewCounter('@equationgroup', 'document', idprefix=>'EG', idwithin=>'slide');
 NewCounter('figure',   'document', idprefix=>'F', idwithin=>'slide');
 NewCounter('table',    'document', idprefix=>'T', idwithin=>'slide');
+#These counters are redefined here from article.cls and their idwithin attribute is changed.
+
 
 DefEnvironment('{slide}', "<ltx:slide xml:id='#id' refnum='#refnum' frefnum='#frefnum'>#body</ltx:slide>",
+properties=> sub { RefStepCounter('slide'); } );
+
+# TODO: Declare overlay environment:
+# Should the overlay use the slide counter?
+DefEnvironment('{overlay}', "<ltx:slide xml:id='#id' refnum='#refnum' frefnum='#frefnum'>#body</ltx:slide>",
 properties=> sub { RefStepCounter('slide'); } );
 
 1;
