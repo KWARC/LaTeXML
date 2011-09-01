@@ -219,6 +219,7 @@
 	  <xsl:value-of select="concat('color:',@color)"/>
 	</xsl:attribute>
       </xsl:if>
+      <xsl:apply-templates/>
     </xsl:element>
   </xsl:template>
 

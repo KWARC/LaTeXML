@@ -38,7 +38,7 @@ fragment => {
                        '/home/dreamweaver/svn/arXMLiv/trunk/work_in_progress/sty/pgf','/home/dreamweaver/svn/arXMLiv/trunk/work_in_progress/sty/xcolor',
                        '/home/dreamweaver/svn/LaTeXML-branch/contrib/package/webgraphic/'],
              preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty",
-                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty','planetmath-specials.sty','tikz.sty'],#,'wiki.sty'
+                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty','planetmath-specials.sty'],#,'wiki.sty'
              authlist=>{}, force_ids=>1
             },
 math => {

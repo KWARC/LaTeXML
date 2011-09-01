@@ -28,7 +28,8 @@ my($linelength,$keepXMath,$plane1,$hackplane1)=(undef,undef,undef,undef);
 my($dographics,$svg,$picimages)=(undef,undef,undef);
 my @graphicsmaps=();
 my($split,$splitat,$splitpath,$splitnaming)=(undef,'section',undef,'id');
-my($contexttoc)=(undef);
+my($navtoc)=(undef);
+my %navtocstyles=(context=>1,normal=>1,none=>1);
 my($prescan,$dbfile,$scan,$crossref,$sitedir)=(undef,undef,1,1,undef);
 my($index,$permutedindex,$splitindex)=(1,undef,undef);
 my($splitbibliography,@bibliographies)=(undef);
@@ -72,7 +73,8 @@ GetOptions("verbose+"              =>\$verbosity,
 	   "scan!"                 =>\$scan,
 	   "crossref!"             =>\$crossref,
 	   "urlstyle=s"            =>\$urlstyle,
-	   "contexttoc!"           =>\$contexttoc,
+	   "navigationtoc=s"       =>\$navtoc,
+	   "navtoc=s"              =>\$navtoc,
 	   # Generating indices
 	   "index!"                =>\$index,
 	   "permutedindex!"        =>\$permutedindex,
@@ -156,6 +158,14 @@ if(!$prescan && $index && ! ($scan || defined $crossref)){
 if(!$prescan && @bibliographies && ! ($scan || defined $crossref)){
   Error("Cannot generate bibliography (--bibliography) without --scan or --dbfile"); }
 
+$navtoc = lc($navtoc) if defined $navtoc;
+$navtoc=undef if $navtoc && $navtoc eq 'none';
+if($navtoc){
+  if(!$navtocstyles{$navtoc}){
+    Error("$navtoc is not a recognized style of navigation TOC (--navigationtoc)"); }
+  if(!$crossref){
+    Error("Cannot use --navigationtoc=$navtoc without --crossref"); }}
+
 # Check format and complete math and image options
 if(!defined $format){}
 elsif($format eq 'html'){
@@ -231,6 +241,15 @@ if(defined $dbfile && !-f $dbfile){
     pathname_mkdir($dbdir); }}
 my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile,%OPTIONS);
 
+# Create the Source Document
+my $DOCUMENT= ($xmlfile eq '-'
+	       ? LaTeXML::Post::Document->newFromSTDIN(validate=>$validate,
+						       sourceDirectory=>$sourcedir,
+						       destination=>$destination)
+	       : LaTeXML::Post::Document->newFromFile($xmlfile,
+						      validate=>$validate,
+						      sourceDirectory=>$sourcedir,
+						      destination=>$destination));
 # Create the processors:
 my @procs = ();
 if($split){
@@ -258,7 +277,7 @@ if(!$prescan){
     require 'LaTeXML/Post/CrossRef.pm';
     push(@procs,LaTeXML::Post::CrossRef->new(db=>$DB,urlstyle=>$urlstyle,format=>$format,
 					     ($numbersections ? (number_sections=>1):()),
-					     ($contexttoc ? (context_toc=>1):()),
+					     ($navtoc ? (navigation_toc=>$navtoc):()),
 					     %OPTIONS)); }
 
   if($mathimages){
@@ -312,46 +331,36 @@ if(!$prescan){
 
   if($stylesheet){
     require 'LaTeXML/Post/XSLT.pm'; 
-    my @csspaths=();
-    if(@css){
-      foreach my $css (@css){
-	$css .= '.css' unless $css =~ /\.css$/;
-	# Dance, if dest is current dir, we'll find the old css before the new one!
-	my @csssources = map(pathname_canonical($_),
-			     pathname_findall($css,types=>['css'],
-					      ($sourcedir ? (paths=>[$sourcedir]):()),
-					      installation_subdir=>'style'));
-	my $csspath = pathname_absolute($css,pathname_directory($destination));
-	while(@csssources && ($csssources[0] eq $csspath)){ shift(@csssources); }
-	my $csssource = shift(@csssources);
-	pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
-	push(@csspaths,$csspath); }}
-    my $icondest;
+    # Copy various kinds of resources, css, icon (eventually javascript...)
+    my $parameters={};
+    my @searchpaths = $DOCUMENT->getSearchPaths;
+    foreach my $css (@css){
+      if(my $csssource = pathname_find($css, types=>['css'],paths=>[@searchpaths],
+				       installation_subdir=>'style')){
+	print STDERR "Using CSS=$csssource\n" if $verbosity > 0;
+	my $cssdest = pathname_absolute($css,pathname_directory($destination));
+	$cssdest .= '.css' unless $cssdest =~ /\.css$/;
+	warn "CSS source $csssource is same as destination!" if $csssource eq $cssdest;
+	pathname_copy($csssource,$cssdest);
+	push(@{$$parameters{CSS}}, $cssdest); }
+      else {
+	warn "Couldn't find CSS $css in paths ".join(',',@searchpaths)."\n"; }}
     if($icon){
-      $icondest = pathname_absolute($icon,pathname_directory($destination));
-      if(my $iconsrc = pathname_find($icon,($sourcedir ? (paths=>[$sourcedir]):()))){
-	pathname_copy($iconsrc,$icondest); }}
-    push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$stylesheet,
-					 parameters=>{(@csspaths ? (CSS=>[@csspaths]):()),
-						      ($icondest ? (ICON=>$icondest):()),
-						     },
-					 %OPTIONS)); }
+      if(my $iconsrc = pathname_find($icon,paths=>[$DOCUMENT->getSearchPaths])){
+	print STDERR "Using icon=$iconsrc\n" if $verbosity > 0;
+	my $icondest = pathname_absolute($icon,pathname_directory($destination));
+	pathname_copy($iconsrc,$icondest);
+	$$parameters{ICON}=$icondest;  }
+      else {
+	warn "Couldn't find ICON $icon in paths ".join(',',@searchpaths)."\n"; }}
+    push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$stylesheet,parameters=>$parameters, %OPTIONS)); }
 
   push(@procs,LaTeXML::Post::Writer->new(format=>$format,omit_doctype=>$omit_doctype,is_html=>$is_html,%OPTIONS));
 }
 
 # Figure how to define a Reader processor (?)
 # that initialize the thing by reading several files (the rest of the command line).
-LaTeXML::Post::ProcessChain(
-	  ($xmlfile eq '-'
-	   ? LaTeXML::Post::Document->newFromSTDIN(validate=>$validate,
-						   sourceDirectory=>$sourcedir,
-						   destination=>$destination)
-	   : LaTeXML::Post::Document->newFromFile($xmlfile,
-						  validate=>$validate,
-						  sourceDirectory=>$sourcedir,
-						  destination=>$destination)),
-			    @procs);
+LaTeXML::Post::ProcessChain($DOCUMENT,@procs);
 $DB->finish;
 #======================================================================
 # helpers
@@ -425,6 +434,7 @@ latexmlpost [options] I<xmlfile>
  --nocrossref            disables the above
  --urlstyle=(server|negotiated|file) format to use for urls
                          (default server).
+ --navigationtoc=(context|none) generates a table of contents innavbar
  --index                 requests filling in the index (default)
  --noindex               disables the above
  --splitindex            Splits the index into pages per initial.
@@ -634,6 +644,13 @@ trailing C<index.html>.  With C<negotiated>, the trailing
 file extension (typically C<html> or C<xhtml>) are eliminated.
 The scheme C<file> preserves complete (but relative) urls
 so that the site can be browsed as files without any server.
+
+=item C<--navigationtoc>=C<(context|none)>
+
+Generates a table of contents in the navigation bar; default is C<none>.
+The `context' style of TOC, is somewhat verbose and reveals more detail near the current
+page; it is most suitable for navigation bars placed on the left or right.
+Other styles of TOC should be developed and added here, such as a short form.
 
 =item C<--index>, C<--noindex>
 
