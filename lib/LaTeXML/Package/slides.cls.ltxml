@@ -18,10 +18,12 @@ use LaTeXML::Package;
 LoadClass('article');
 
 # TODO: Declare meaningful options
-DeclareOption();
+foreach my $option (qw()){
+  DeclareOption($option, undef); }
 
-# TODO: Pass options to article.cls
-PassOptions('article','cls',@options);
+# Pass all remaining options to article.cls
+DeclareOption(undef,sub {
+  PassOptions('article','cls',ToString(Digest(T_CS('\CurrentOption')))); });
 
 #Bruce suggests we think of using \slidename for the formatted refnums (Useful in some cases?)
 #DefMacro('\slidename','Slide');
@@ -37,8 +39,12 @@ DefEnvironment('{slide}', "<ltx:slide xml:id='#id' refnum='#refnum' frefnum='#fr
 properties=> sub { RefStepCounter('slide'); } );
 
 # TODO: Declare overlay environment:
-# Should the overlay use the slide counter?
+# NOTE: Should the overlay use the slide counter?
 DefEnvironment('{overlay}', "<ltx:slide xml:id='#id' refnum='#refnum' frefnum='#frefnum'>#body</ltx:slide>",
 properties=> sub { RefStepCounter('slide'); } );
+
+# Disabling table of contents
+DefConstructor('\tableofcontents', undef);
+
 
 1;
