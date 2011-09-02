@@ -38,12 +38,15 @@ NewCounter('table',    'document', idprefix=>'T', idwithin=>'slide');
 DefEnvironment('{slide}', "<ltx:slide xml:id='#id' refnum='#refnum' frefnum='#frefnum'>#body</ltx:slide>",
 properties=> sub { RefStepCounter('slide'); } );
 
-# TODO: Declare overlay environment:
-# NOTE: Should the overlay use the slide counter?
+
+# TODO: Declare note and overlay environment:
+# NOTE: Should the note and overlay use the slide counter? Should they increment it?
+DefEnvironment('{note}', "<ltx:slide xml:id='#id' refnum='#refnum' frefnum='#frefnum'>#body</ltx:slide>",
+properties=> sub { RefStepCounter('slide'); } );
 DefEnvironment('{overlay}', "<ltx:slide xml:id='#id' refnum='#refnum' frefnum='#frefnum'>#body</ltx:slide>",
 properties=> sub { RefStepCounter('slide'); } );
 
-# Disabling table of contents
+# Disabling table of contents 
 DefConstructor('\tableofcontents', undef);
 
 
