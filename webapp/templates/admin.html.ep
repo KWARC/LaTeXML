@@ -1,6 +1,6 @@
 % layout 'default';
-  <%= javascript 'http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js' %>
-  <%= javascript 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js' %>
+  <%= javascript 'js/external/jquery.min.js' %>
+  <%= javascript 'js/external/jquery-ui.min.js' %>
   <%= javascript begin %>
   $(document).ready(function() {
     $("#accordion").accordion();

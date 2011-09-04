@@ -1,6 +1,6 @@
 % layout 'default';
 % title 'About';
-<%= javascript 'http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js' %>
+<%= javascript 'js/external/jquery.min.js' %>
 <%= javascript '' => begin %>
 var hasError = /error/;
 $(document).ready(function() {

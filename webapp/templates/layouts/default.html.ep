@@ -4,13 +4,12 @@
 <head>
   <title><%= title %></title>
   <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
-  <link rel="stylesheet" type="text/css" href="http://tex2xml.kwarc.info/test/core.css" />
-  <link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
-  <link rel="stylesheet" href="http://trac.mathweb.org/LaTeXML/chrome/common/css/trac.css" type="text/css" />
-<!--  <link rel="stylesheet" href="http://trac.mathweb.org/LaTeXML/chrome/common/css/wiki.css" type="text/css" />-->
-  <link rel="shortcut icon" href="http://trac.mathweb.org/LaTeXML/chrome/site/favicon.ico" type="image/x-icon" />
-  <link rel="icon" href="http://trac.mathweb.org/LaTeXML/chrome/site/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" type="text/css" href="http://trac.mathweb.org/LaTeXML/chrome/site/latexml.css" />
+  <link rel="stylesheet" type="text/css" href="css/external/core.css" />
+  <link rel="stylesheet" type="text/css" href="css/external/jquery-ui.css" />
+  <link rel="stylesheet" type="text/css" href="css/external/trac.css" />
+  <link rel="stylesheet" type="text/css" href="css/external/latexml.css" />
+  <link rel="shortcut icon"  type="image/x-icon" href="css/external/favicon.ico" />
+  <link rel="icon"  type="image/x-icon" href="css/external/favicon.ico" />
 <style type="text/css">
     body { margin:0; background:#cfd2e6; color:#000000; }
     table.summary { border: 1px solid; border-collapse: collapse; }
@@ -66,7 +65,7 @@ option:hover {
     </div>
     <div id="banner">
       <div id="header">
-        <p><a id="logo" href="http://dlmf.nist.gov/LaTeXML/"><img src="http://trac.mathweb.org/LaTeXML/chrome/site/logo.png" alt="LaTeXML" width="70" /></a>
+        <p><a id="logo" href="http://dlmf.nist.gov/LaTeXML/"><img src="img/external/latexml-logo.png" alt="LaTeXML" width="70" /></a>
         <span id="slogan">ltxMojo: LaTeXML's Web Server</span></p>
       </div>
 <div id="message" style="width:20%;">
@@ -97,12 +96,12 @@ option:hover {
     href="http://dlmf.nist.gov/LaTeXML/"><strong>LaTeXML
     0.7</strong></a><br />
   </p><p class="right">
-  <a href="jquery.com"><img alt="jQuery Logo" width="100" src="http://upload.wikimedia.org/wikipedia/en/9/9e/JQuery_logo.svg" /></a>
+  <a href="jquery.com"><img alt="jQuery Logo" width="100" src="img/external/JQuery_logo.svg" /></a>
   <a href="http://mojolicio.us">
-    <img alt="Mojolicious logo" width="100" src="http://mojolicio.us/mojolicious-white.png" />
+    <img alt="Mojolicious logo" width="100" src="img/external/mojolicious-white.png" />
   </a>
   <a href="http://www.perl.org/">
-    <img alt="Perl 5" width="100" src="http://mdk.per.ly/files/2011/05/raptor-black.png" />
+    <img alt="Perl 5" width="100" src="img/external/raptor-black.png" />
   </a></p>
 </div>
     <div align="center">
