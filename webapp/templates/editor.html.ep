@@ -46,7 +46,8 @@ var sendRequest = function(tex, my_counter, onthefly){
                  preamble = m[1];
                  tex = m[2];
                 }
-		$.post("/convert", { "tex": tex, "preamble" : preamble, "profile":"fragment" },
+		$.post("/convert", { "tex": tex, "preamble" :
+	preamble, "profile":"fragment"},
 		 function(data) {
                          setup_message(data);
                          if (onthefly) {

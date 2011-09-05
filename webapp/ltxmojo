@@ -74,7 +74,8 @@ post '/convert' => sub {
   if (defined $response) {
     ($result, $status, $log) = map { $response->{$_} } qw(result status log);
   }
-
+  # Delete daemon if Fatal occurred
+  undef $daemon unless defined $result;
   # If we want extra ids, this is where we add them:
   $result = InsertIDs($result)
     if $opt->{force_ids};    #Experimental: add id's everywhere

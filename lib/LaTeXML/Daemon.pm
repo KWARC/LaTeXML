@@ -62,6 +62,7 @@ sub prepare_session {
 
 sub prepare_options {
   my ($self,$opts) = @_;
+  $opts->{timeout} = 600 unless defined $opts->{timeout}; # 10 minute timeout default
   $opts->{verbosity} = 0 unless defined $opts->{verbosity};
   $opts->{preload} = [] unless defined $opts->{preload};
   $opts->{paths} = ['.'] unless defined $opts->{paths};
@@ -85,7 +86,24 @@ sub initialize_session {
   my $init_status = $latexml->getStatusMessage;
   croak $init_status unless ($init_status !~ /error/i);
   # Load preamble:
-  my $digested_preamble = load_preamble($self->{opts},$latexml,$self->{digested_preamble});
+  my $digested_preamble;
+  eval {
+    local $SIG{'ALRM'} = sub { die "alarm\n" };
+    alarm($self->{opts}->{timeout});
+    $digested_preamble = load_preamble($self->{opts},$latexml,$self->{digested_preamble});
+    alarm(0);
+    1;
+  };
+  if ($@) { #Fatal error
+    if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
+      print STDERR "$@\n";
+      print STDERR "Fatal error: preamble conversion timeout after ".$self->{opts}->{timeout}." seconds!\n";
+      print STDERR "\nPreamble conversion incomplete (timeout): ".$latexml->getStatusMessage.".\n";
+    } else {
+      print STDERR "$@\n";
+      print STDERR "\nPreamble conversion complete: ".$latexml->getStatusMessage.".\n";
+    }
+  }
   # Save in object:
   $self->{latexml} = $latexml;
   $self->{digested_preamble} = $digested_preamble;
@@ -124,6 +142,8 @@ sub convert {
   my ($digested,$dom,$serialized);
   # Digest source:
   eval {
+    local $SIG{'ALRM'} = sub { die "alarm\n" };
+    alarm($opts->{timeout});
     if ($opts->{source_type} eq 'url') {
       $digested = $latexml->digestString($content,preamble=>$opts->{'fragment_preamble'},
                                          postamble=>$opts->{'fragment_postamble'},source=>$source,noinitialize=>1);
@@ -154,16 +174,23 @@ sub convert {
         $dom = $latexml->convertDocument($digested);
         $serialized = $dom->toString(1) unless $opts->{post};
       }}
+    alarm(0);
     1;
-  } or do {#Fatal occured!
-    print STDERR "$@\n";
-    print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
+  };
+   if ($@) {#Fatal occured!
+    if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
+      print STDERR "$@\n";
+      print STDERR "Fatal error: main conversion timeout after ".$opts->{timeout}." seconds!\n";
+      print STDERR "\nConversion incomplete (timeout): ".$latexml->getStatusMessage.".\n";
+    } else {
+      print STDERR "$@\n";
+      print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
+    }
     # Close and restore STDERR to original condition.
     close LOG;
     *STDERR=*ERRORIG;
     $self->{ready}=0; return {result=>undef,log=>$log,status=>$latexml->getStatusMessage};
-  };
-
+  }
   print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
   $status = $latexml->getStatusMessage;
   # End daemon run, by popping frame:
@@ -207,15 +234,25 @@ sub convert_post {
   $parallel = $parallel||0;
   my $doc;
   eval {
+    local $SIG{'ALRM'} = sub { die "alarm\n" };
+    alarm($opts->{timeout});
     $doc = LaTeXML::Post::Document->new($dom,nocache=>1);
-    1;}
-    or do {                     #Fatal occured!
-      #Since this is postprocessing, we don't need to do anything
-      #   just avoid crashing... and exit
-      undef $doc;
-      print STDERR "FATAL: Post-processor crashed! $@\n";
-      return undef;
-    };
+    alarm(0);
+    1;
+  };
+  if ($@) {                     #Fatal occured!
+    if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
+      print STDERR "$@\n";
+      print STDERR "Fatal error: postprocessing couldn't create document: timeout after "
+        . $opts->{timeout} . " seconds!\n";
+    } else {
+      print STDERR "Fatal: Post-processor crashed! $@\n";
+    }
+    #Since this is postprocessing, we don't need to do anything
+    #   just avoid crashing... and exit
+    undef $doc;
+    return undef;
+  }
   require LaTeXML::Post::MathML;
   require LaTeXML::Post::OpenMath;
   require LaTeXML::Post::PurgeXMath;
@@ -256,13 +293,22 @@ sub convert_post {
                                                       (@csspaths ? (CSS=>[@csspaths]):()),},
                                        %PostOPS)) if $style;
   my $postdoc;
-  eval { ($postdoc) = LaTeXML::Post::ProcessChain($doc,@procs); 1;}
-  or do {                     #Fatal occured!
-    #Since this is postprocessing, we don't need to do anything
-    #   just avoid crashing... and exit
-    print STDERR "FATAL: Post-processor crashed! $@\n";
-    return;
+  eval {
+    local $SIG{'ALRM'} = sub { die "alarm\n" };
+    alarm($opts->{timeout});
+    ($postdoc) = LaTeXML::Post::ProcessChain($doc,@procs);
+    alarm(0);
+    1;
   };
+  if ($@) {                     #Fatal occured!
+    if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
+      print STDERR "$@\n";
+      print STDERR "Fatal error: postprocessing timeout after ".$opts->{timeout}." seconds!\n";
+    } else {
+      print STDERR "Fatal: Post-processor crashed! $@\n";
+    }
+    return;
+  }
 
   return $postdoc;
 }
