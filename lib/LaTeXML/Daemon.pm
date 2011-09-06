@@ -23,7 +23,6 @@ use LaTeXML::Util::Extras;
 use LaTeXML::Post;
 use LaTeXML::Post::Scan;
 use Carp;
-use IO::Scalar;
 use Data::Compare;
 use feature "switch";
 
