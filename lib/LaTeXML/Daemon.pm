@@ -30,29 +30,28 @@ use feature "switch";
 our @IGNORABLE = qw(identity input_counter input_limit profile);
 
 sub new {
-  my ($class,%opts) = @_;
+  my ($class,$opts) = @_;
   binmode(STDERR,":utf8");
-  prepare_options(undef,\%opts);
-  bless {defaults=>\%opts,opts=>undef,ready=>0,
+  prepare_options(undef,$opts);
+  bless {defaults=>$opts,opts=>undef,ready=>0,
          latexml=>undef, digested_preamble=>undef}, $class;
 }
 
 sub prepare_session {
   my ($self,$opts) = @_;
-  #0. Make sure all default keys are present, via bootstrapping with the defaults:
+  #0. Ensure all default keys are present:
+  # (always, as users can specify partial options that build on the defaults)
   foreach (keys %{$self->{defaults}}) {
     $opts->{$_} = $self->{defaults}->{$_} unless exists $opts->{$_};
   }
-  $self->prepare_options($opts);
+  #TODO: Some options like paths and includes are additive, we need special treatment there
   #1. Check if there is some change from the current situation:
   my $nothingtodo=1 if Compare($opts, $self->{opts}, { ignore_hash_keys => [@IGNORABLE] });
-  #1.1. If no, nothing to do
+  #1.1. If no change, nothing to do
   unless ($nothingtodo) {
-    #1.2. If yes, reset opts:
-    undef $self->{opts};
+    #1.2. If some change, prepare and set options:
+    $self->prepare_options($opts);
     $self->{opts} = $opts;
-    $self->{opts} = $self->{defaults} if (! keys %{$self->{opts}});
-    $self->prepare_options($self->{opts});
   }
   # ... and initialize a session:
   $self->initialize_session unless ($nothingtodo && $self->{ready});
@@ -209,6 +208,8 @@ sub convert {
   my $return = {result=>$result,log=>$log,status=>$status};
 }
 
+########## Helper routines: ############
+
 sub convert_post {
   my ($self,$dom) = @_;
   my $opts = $self->{opts};
@@ -312,8 +313,6 @@ sub convert_post {
   return $postdoc;
 }
 
-########## Helper routines: ############
-
 sub new_latexml {
   my $opts = shift;
   my $latexml = LaTeXML->new(preload=>[@{$opts->{preload}}], searchpaths=>[@{$opts->{paths}}],
@@ -353,6 +352,9 @@ sub load_preamble {
         $opts->{preamble_loaded} = $opts->{preamble};
       }}
   }
+  # Demand errorless conversion:
+  my $init_status = $latexml->getStatusMessage;
+  croak $init_status unless ($init_status !~ /error/i);
   $digested = $original unless defined $digested;
   return $digested;
 }
@@ -406,8 +408,8 @@ C<LaTeXML::Daemon> - Daemon object and API for LaTeXML and LaTeXMLPost conversio
 =head1 SYNOPSIS
 
     use LaTeXML::Daemon;
-    my $daemon = LaTeXML::Daemon->new(%options);
-    $daemon->setOptions(%opts);
+    my $daemon = LaTeXML::Daemon->new($opts);
+    $daemon->prepare_session($opts);
     my ($result,$status,$log) = $daemon->convert($tex);
 
 =head1 DESCRIPTION
@@ -418,13 +420,63 @@ A Daemon object represents a converter instance and can convert files on demand,
 
 =over 4
 
-=item C<< my $daemon = LaTeXML::Daemon->new(%options); >>
+=item C<< my $daemon = LaTeXML::Daemon->new($opts); >>
 
-=item C<< $daemon->setOptions(%opts);  >>
+Creates a new daemon object with a given options hash reference $opts.
+        $opts specifies the default fallback options for any conversion job with this daemon.
+
+=item C<< $daemon->prepare_session($opts); >>
+
+RECOMMENDED preparation routine for EXTERNAL use (also see Synopsis).
+
+Top-level preparation routine that prepares both a correct options object and an initialized LaTeXML object,
+          using the "initialize_options" and "initialize_session" routines, when needed.
+Contains optimization checks that skip initializations unless necessary.
+Also adds support for partial option specifications during daemon runtime,
+     falling back on the option defaults given when daemon object was created.
+
+=item C<< $daemon->initialize_session($opts); >>
+
+Given an options hash reference $opts, initializes a session by creating a new LaTeXML object 
+      with initialized state and loading a daemonized preamble (if any).
+Sets the "ready" flag to true, making a subsequent "convert" call immediately possible.
+
+=item C<< $daemon->prepare_options($opts); >>
+
+Given an options hash reference $opts, performs a set of assignments of meaningful defaults (when needed)
+      and normalizations (for relative paths, etc).
 
 =item C<< my ($result,$status,$log) = $daemon->convert($tex); >>
 
-Converts $tex into $result and supplies detailed information of the conversion log and status.
+Converts a TeX input string $tex into the LaTeXML::Document object $result.
+Supplies detailed information of the conversion log ($log),
+         as well as a brief conversion status summary ($status).
+
+=back
+
+=head2 INTERNAL ROUTINES
+
+=over 4
+
+=item C<< my $latexml = new_latexml($opts); >>
+
+Creates a new LaTeXML object and initializes its state.
+
+=item C<< my $digested_preamble = load_preamble($opts,$latexml,$previous_digested_preamble); >>
+
+Loads a daemon preamble (if needed), adding its definitions to the LaTeXML state and
+      maintaining a list of digested boxes.
+
+=item C<< my $content = $self->prepare_content($source); >>
+
+Determines the source type (URL, file or string) and returns the retrieved content.
+The determined input type is saved as a "source_type" field in the daemon object.
+
+=item C<< my $postdoc = $daemon->convert_post($dom); >>
+
+Post-processes a LaTeXML::Document object $dom into a final format,
+               based on the preferences specified in $self->{opts}.
+Typically used within "convert".
 
 =back
 
@@ -438,9 +490,10 @@ Converts $tex into $result and supplies detailed information of the conversion l
  postamble => [files] loads texs file containing document backmatter. (TODO)
 
  paths => [dir]         paths searched for files,
-                        modules, etc; 
+                        modules, etc;
  log => file            specifies log file, reuqires 'local' default: STDERR
  TODO? --documentid=id  assign an id to the document root.
+ timeout => seconds     designate an expiration time limit to the processing job
  verbosity => level     verbosity of reporting, 0 or negative for silent, 
                         positive for increasing detail
  strict                 makes latexml less forgiving of errors

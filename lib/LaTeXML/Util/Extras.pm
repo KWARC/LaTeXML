@@ -138,15 +138,39 @@ C<LaTeXML::Extra> - Extra goodies supporting LaTeXML's processing
 
 =head1 SYNOPSIS
 
+    my $full_tex_doc = MathDoc($math_snippet);
+    my $mathml_math_snippet = GetMath($xhtml_doc);
+    my $body_div_snippet = GetEmbeddable($xhtml_doc);
+    my $xhtml_doc_with_ids = InsertIDs($xhtml_doc);
+
 =head1 DESCRIPTION
+
+This class contains all additional functionality that does not fit into the core LaTeXML processing 
+     and is too specific or minor to have its own LaTeXML::Util class.
 
 =head2 METHODS
 
 =over 4
 
-=item C<< foo >>
+=item C<< my $full_tex_doc = MathDoc($math_snippet); >>
 
-bar
+Given an expression in TeX's math mode, this routine constructs a LaTeX
+       document fragment containing the formula.
+       (= no preamble or document class, useful for fragment mode daemonized processing)
+
+=item C<< my $mathml_math_snippet = GetMath($xhtml_doc); >>
+
+Extracts the first MathML math XML snippet in an XHTML document, provided as a LaTeXML::Document object.
+
+=item C<< my $body_div_snippet = GetEmbeddable($xhtml_doc); >>
+
+Extracts the body <div> element of an XHTML document produced by LaTeXML's stylesheet for XHTML, 
+ provided as a LaTeXML::Document object.
+
+=item C<< my $xhtml_doc_with_ids = InsertIDs($xhtml_doc); >>
+
+Inserts pseudo-random identifiers in any XHTML document, provided as a LaTeXML::Document object on input.
+ Uses XSLT's "generate-id()" mechanism.
 
 =back
 

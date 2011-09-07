@@ -56,8 +56,37 @@ __END__
 
 =head1 NAME
 
-C<LaTeXML::Util::WWW>  - auxiliaries for web-scalability
+C<LaTeXML::Util::WWW>  - auxiliaries for web-scalability of LaTeXML's IO
+
+=head1 SYNOPSIS
+
+    my $response = auth_get($url,$authlist);
 
 =head1 DESCRIPTION
 
-TODO: Add me
+Utilities for enabling general interaction with the World Wide Web in LaTeXML's Input/Output.
+
+Still in development, more functionality is expected at a later stage.
+
+=head2 METHODS
+
+=over 4
+
+=item C<< my $response = auth_get($url,$authlist); >>
+
+Given an authentication list, attempts a get request on a given URL ($url) and returns the $response.
+
+If no authentication is possible automatically, the routine prompts the user for credentials.
+
+=back
+
+=head1 AUTHOR
+
+Deyan Ginev <d.ginev@jacobs-university.de>
+
+=head1 COPYRIGHT
+
+Public domain software, produced as part of work done by the
+United States Government & not subject to copyright in the US.
+
+=cut

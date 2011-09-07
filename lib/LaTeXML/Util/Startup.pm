@@ -1,5 +1,4 @@
-################ LaTeXML startup API #####################
-
+################ LaTeXML Startup Utilities #####################
 package LaTeXML::Util::Startup;
 use LaTeXML::Util::ObjectDB;
 use LaTeXML::Util::Pathname;
@@ -288,7 +287,7 @@ sub summary_profile {
   my $split_when = int(scalar(@keys)/2)+1;
   foreach my $e(@keys) {
     my $t = $profile_templates->{$e};
-    $summary.= inner_handle($e,$t,$entry);
+    $summary.= _inner_handle($e,$t,$entry);
     $split_when--;
     unless ($split_when) {  $summary.='</table></div><div class="right-div"><table class="form-table">';}
   }
@@ -296,7 +295,7 @@ sub summary_profile {
   $summary.='</table></div>';
 }
 
-sub inner_handle {
+sub _inner_handle {
   my ($e,$t,$entry,$flag) = @_;
   my ($type, $spec) = split(/\|/,$t);
   my $summary = q{};
@@ -333,7 +332,7 @@ sub inner_handle {
       $summary .= "<tr><td><b>$e</b><td></td></tr>";
       foreach (split(/,/,$spec)) {
         my ($in_e,$in_t) = split(/:/,$_);
-        $summary .= inner_handle($in_e,$in_t,$entry,$current->{$in_e});
+        $summary .= _inner_handle($in_e,$in_t,$entry,$current->{$in_e});
       }
       $summary .= "<tr><td><b>------</b><td></td></tr>";
     }
@@ -371,23 +370,128 @@ C<LaTeXML::Util::Startup> - Provide an API for starting and maintaining a stash 
 
 =head1 SYNOPSIS
 
+my $startup = LaTeXML::Util::Startup->new();
+my $daemon = $startup->find_daemon($opts);
+
 =head1 DESCRIPTION
 
 =head2 METHODS
 
+=head3 Generics and Defaults
+
 =over 4
 
-=item C<< foo >>
+=item C<< $DB_FILE >>
 
-bar
+Contains the generic default for a Database File to hold the state information of
+ daemons, users and conversion profiles.
+
+=item C<< $PROFILES >>
+
+Contains the default profiles recognized by the conversion interface.
+
+=item C<< my $startup = LaTeXML::Util::Startup->new(%opts); >>
+
+Initializes a new Startup driver and connects to (or creates) its database file.
+ The only admissible option is "dbfile=>filepath" used to specify the location and name of the DB object.
 
 =back
 
-=head2 CUSTOMIZATION OPTIONS
+=head3 Daemon Management
 
- TODO?  --timeout=secs     Set a timeout value for inactivity.
-                    Default is 60 seconds, set 0 to disable.
+=over 4
 
+=item C<< my $daemon = $startup->find_daemon($opts); >>
+
+Finds a daemon compatible with the prescribed options. In case the search fails, a new daemon is started.
+
+=item C<< $startup->boot_profile($profile); >>
+
+Creates a new daemon object of the given profile.
+
+=item C<< $startup->boot_custom($opts); >>
+
+Creates a new daemon with the given default options
+
+=back
+
+=head3 User Management
+
+=over 4
+
+=item C<< my $users = $startup->users; >>
+
+Fetches all users registered in the DB object, returning an array reference.
+
+=item C<< my $boolean = $startup->exists_user($username); >>
+
+Checks if a given username is registered in the DB object.
+
+=item C<< my $summary_table = $startup->summary_user($username); >>
+
+Provides an HTML summary table with the DB properties for a given username entry.
+
+=item C<< my $boolean = $startup->verify_user($username,$password); >>
+
+Verifies that a username and password pair match a DB entry.
+
+=item C<< my $report_message = $startup->modify_user($username,$password,$role,$default); >>
+
+Modifies a user entry's password, role and/or default profile selection, returning a string report message.
+
+=item C<< my $report_message = $startup->delete_user($username); >>
+
+Deletes a user entry, returning a string report message.
+
+=item C<< my $property_value = $startup->lookup_user_property($username,$property_name); >>
+
+Fetches a value of a requested property name for the user entry designated by $username.
+Returns undefined if no such property is set.
+
+=back
+
+=head3 Profile Management
+
+=over 4
+
+=item C<< my $profiles = $startup->profiles; >>
+
+Fetches all profiles registered in the DB object, returning an array reference.
+
+=item C<< my $hashref = $startup->get_profile($profilename); >>
+
+Returns a hash reference with all LaTeXML options characteristic to the profile $profilename.
+
+=item C<< my $summary_table = $startup->summary_profile($profilename); >>
+
+Provides an HTML summary table with the DB properties for a given profilename entry.
+
+=item C<< my $report_message = $startup->modify_profile($profilename,$options); >>
+
+Modifies a profile's properties, as given by a hash reference compliant with the properties template,
+ returning a string report message.
+
+=item C<< my $report_message = $startup->delete_profile($profilename); >>
+
+Deletes a profile entry, returning a string report message.
+
+=item C<< my $template_html = $startup->template_profile; >>
+
+Returns a template HTML table, which can be used inside a generic HTML form for profile creation.
+
+=back
+
+=head3 Statistics
+
+=over 4
+
+=item C<< my $status_string = $startup->status; >>
+
+Returns the overall statistics of the DB object, as provided by LaTeXML::Util::ObjectDB.
+
+=back
+
+NOTE: The API is still in active development, expect enhancement and possible changes in the interfaces
 
 =head1 AUTHOR
 
