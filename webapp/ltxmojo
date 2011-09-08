@@ -3,7 +3,7 @@
 use Mojolicious::Lite;
 use LaTeXML::Util::Startup;
 use LaTeXML::Util::Extras;
-use Data::Dumper;
+use LaTeXML::Daemon;
 
 our $version = '0.1';
 our $dbfile  = 'LaTeXML_Mojo.cache';

@@ -148,7 +148,7 @@ sub boot_profile {
 sub boot_custom {
   my ($self,$opt) = @_;
   #TODO: Do we need some care and attention for $opt here?
-  return LaTeXML::Daemon->new(%$opt);
+  return LaTeXML::Daemon->new($opt);
 }
 
 ###########################################

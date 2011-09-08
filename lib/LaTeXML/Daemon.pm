@@ -60,6 +60,7 @@ sub prepare_session {
 
 sub prepare_options {
   my ($self,$opts) = @_;
+  undef $self unless ref $self; # Only care about daemon objects, ignore when invoked as static sub
   $opts->{timeout} = 600 unless defined $opts->{timeout}; # 10 minute timeout default
   $opts->{verbosity} = 0 unless defined $opts->{verbosity};
   $opts->{preload} = [] unless defined $opts->{preload};

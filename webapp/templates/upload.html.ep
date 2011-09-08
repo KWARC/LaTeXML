@@ -16,5 +16,18 @@ TODO: Fully document Advanced options for the API</li>
 </ul>
 <h3> Command-line example:</h3>
 <p>curl -d "profile=fragment&tex=\textbf{Hello World}" http://latexml.mathweb.org/convert</p>
-<b>Work in progress:</b> Upload interface
+
+<h2>Upload Interface</h2>
+<b>Work in progress:</b>
+<!--
+<p>
+	<input id="files-upload" type="file" multiple>
+</p>
+<p id="drop-area">
+	<span class="drop-instructions">or drag and drop files here</span>
+	<span class="drop-over">Drop files here!</span>
+</p>
+
+-->
+
 </div>
