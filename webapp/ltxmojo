@@ -158,7 +158,7 @@ post '/upload' => sub {
   my $self = shift;
   my $headers = $self->req->headers;
   if ($headers->header('content-type') eq 'multipart/form-data') {}
-  print STDERR Dumper($headers),"\n";
+
   $self->render(text=>"Uploaded!");
 };
 
