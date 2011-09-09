@@ -2995,7 +2995,7 @@ DefConstructor('\fbox{}',
 
 DefConstructor('\framebox[Dimension][]{}',
 	       "?#mathframe(<ltx:XMApp><ltx:XMTok role='FRAME' style='box'/>#inner</ltx:XMApp>)"
-	       .  "(<ltx:text ?#1(width='#1') ?#align(align='#align') framed='rectangle' _noautoclose='1'>#3</ltx:text>)",
+	       .  "(<ltx:inline-block ?#1(width='#1') ?#align(align='#align') framed='rectangle' _noautoclose='1'>#3</ltx:inline-block>)",
 #	       mode=>'text',
 	       beforeDigest=>sub {
 		 my($stomach)=@_;
