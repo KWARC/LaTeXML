@@ -57,38 +57,10 @@ sub GetMath {
 sub GetEmbeddable {
   my ($postdoc) = @_;
   return unless defined $postdoc;
-  my $bodyel = $postdoc->findnode('//*[local-name()="body"]');
-  return unless defined $bodyel;
-  my $topdiv;
-  # Doing monkey hoops is very annoying, why won't LibXML
-  # just fix their XPath support already?!
-  foreach ($bodyel->childNodes) {
-    $topdiv=$_;
-    last if ($topdiv->nodeName eq 'div');
-  }
-  my $contentdiv;
-  foreach ($topdiv->childNodes) {
-    $contentdiv=$_;
-    last if ($contentdiv->nodeName eq 'div');
-  }
-  my $maindiv;
-  foreach ($contentdiv->childNodes) {
-    $maindiv=$_;
-    last if ($maindiv->nodeName eq 'div');
-  }
-  # Assign the top division to the post-document holder
-  # Copy over all <html> attributes to the maindiv, so that we keep namespaces:
-  my $htmlel = $postdoc->findnode('//*[local-name()="html"]');
-  $htmlel->unbindNode;
-  $htmlel->removeChildNodes;
-  $htmlel->setNodeName('div');
-  $htmlel->setAttribute('class','document');
-  $maindiv->unbindNode;
-  foreach ($maindiv->childNodes) {
-    $_->unbindNode;
-    $htmlel->addChild($_);
-  }
-  return $htmlel;
+  my $docdiv = $postdoc->findnode('//*[@class="document"]');
+  return unless defined $docdiv;
+  print STDERR $docdiv->toString(2),"\n";
+  return $postdoc;
 }
 
 our $id_xslt_dom = XML::LibXML->load_xml(no_blanks=>1, string => <<'EOT');
