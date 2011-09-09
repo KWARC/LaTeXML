@@ -1,33 +1,49 @@
-% layout 'default';
+% layout 'html5';
 % title 'Upload Interface';
-<div style="margin:10px;">
-<h2>Classic Setup</h2>
-Try the classic interface at <a href="http://tex2xml.kwarc.info/">http://tex2xml.kwarc.info/</a>
+<%= javascript 'js/external/jquery.min.js' %>
+<link rel="stylesheet" type="text/css" href="css/upload/fileAPI.css" />
 
-<h2>RESTful Convert</h2>
-Or send an HTTP POST request to /convert, with the following syntax:</li><li>
-<ul><li>
-tex : "the TeX source to convert"
-</li><li>
-profile : "conversion profile - default is <it>standard</it>,
-try <it>fragment</it> for best daemon results"
-</li><li>
-TODO: Fully document Advanced options for the API</li>
-</ul>
-<h3> Command-line example:</h3>
-<p>curl -d "profile=fragment&tex=\textbf{Hello World}" http://latexml.mathweb.org/convert</p>
+<div style="margin:10px;">
 
 <h2>Upload Interface</h2>
-<b>Work in progress:</b>
-<!--
+<p>This service converts TeX/LaTeX documents into XHTML.</p>
+<p>We can support flat setups of TeX files directly (no
+  subfolders).</p>
+<p>For
+complex multi-folder projects, please send a single archive (.zip or
+.tar.gz), containing all relevant sources (no styles required).</p>
+
+<h3>Choose file(s)</h3>
 <p>
 	<input id="files-upload" type="file" multiple>
 </p>
+<div style="display:inline; width: 40%;
+     word-wrap:break-word; float:left; margin: 15px;">
 <p id="drop-area">
 	<span class="drop-instructions">or drag and drop files here</span>
 	<span class="drop-over">Drop files here!</span>
 </p>
 
--->
+<ul id="file-list">
+	<li class="no-items">(no files uploaded yet)</li>
+</ul>
+<%= javascript 'js/upload/fileAPI.js' %>
+</div>
+<div style="display:inline; width: 40%;
+     word-wrap:break-word; float:left; margin: 15px;"><b>
+</b></div>
 
+<!--<div style="display:inline; width: 40%;
+     word-wrap:break-word; float:left; margin: 15px;">
+  <%= form_for upload =>
+  (method => 'post', enctype => 'multipart/form-data') => begin %>
+  <%= file_field 'uploaded_archive' %>
+  <%= submit_button 'Upload' %>
+  <% end %>
+</div>-->
+<div style="clear:both; font-size:0px;">&nbsp;</div>
+
+<p><strong>Note:</strong> For uploads of several files the service
+  needs to maintain a session, via a session cookie, for which you
+  need cookies enabled.
 </div>

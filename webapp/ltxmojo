@@ -4,11 +4,13 @@ use Mojolicious::Lite;
 use LaTeXML::Util::Startup;
 use LaTeXML::Util::Extras;
 use LaTeXML::Daemon;
+use Data::Dumper;
 
 our $version = '0.1';
 our $dbfile  = 'LaTeXML_Mojo.cache';
 
 $ENV{MOJO_HOME} = '.' unless defined $ENV{MOJO_HOME};
+$ENV{MOJO_MAX_MESSAGE_SIZE} = 10485760; # 10 MB file upload limit
 
 # Make signed cookies secure
 app->secret('LaTeXML is the way to go!');
@@ -141,10 +143,24 @@ get '/admin' => sub {
   $self->render;
 } => 'admin';
 
+get '/help' => sub {
+  my $self = shift;
+  $self->render;
+} => 'help';
+
+
 get '/upload' => sub {
   my $self = shift;
   $self->render;
 } => 'upload';
+
+post '/upload' => sub {
+  my $self = shift;
+  my $headers = $self->req->headers;
+  if ($headers->header('content-type') eq 'multipart/form-data') {}
+  print STDERR Dumper($headers),"\n";
+  $self->render(text=>"Uploaded!");
+};
 
 any '/ajax' => sub {
   my $self = shift;
