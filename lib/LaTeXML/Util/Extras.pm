@@ -58,9 +58,7 @@ sub GetEmbeddable {
   my ($postdoc) = @_;
   return unless defined $postdoc;
   my $docdiv = $postdoc->findnode('//*[@class="document"]');
-  return unless defined $docdiv;
-  print STDERR $docdiv->toString(2),"\n";
-  return $postdoc;
+  return $docdiv;
 }
 
 our $id_xslt_dom = XML::LibXML->load_xml(no_blanks=>1, string => <<'EOT');

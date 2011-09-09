@@ -40,7 +40,7 @@ fragment => {
                        "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty'],#'planetmath-specials.sty','wiki.sty'
              authlist=>{}, force_ids=>1
             },
-fragment_html => {
+'fragment-html' => {
              verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>1,
              post=>1, parallelmath=>1, input_counter=>0, input_limit=>0,
              embed=>1, timeout=>60, format=>'html5', base=>q{},
