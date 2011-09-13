@@ -65,6 +65,7 @@ sub prepare_options {
   $opts->{verbosity} = 0 unless defined $opts->{verbosity};
   $opts->{preload} = [] unless defined $opts->{preload};
   $opts->{paths} = ['.'] unless defined $opts->{paths};
+  $opts->{dographics} = 1 unless defined $opts->{dographics};
   @{$opts->{paths}} = map {pathname_canonical($_)} @{$opts->{paths}};
   if ($opts->{post}) {
     # Fall back to default post processors if no preferences:
@@ -269,6 +270,11 @@ sub convert_post {
   push(@procs,$main);
   push(@procs,@mprocs) unless $parallel;
   push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $$proctypes{'keepXMath'};
+  if($opts->{dographics}){
+    # TODO: Rethink full-fledged graphics support
+    require 'LaTeXML/Post/Graphics.pm';
+    my @g_options=();
+    push(@procs,LaTeXML::Post::Graphics->new(@g_options,%PostOPS)); }
   require LaTeXML::Post::XSLT;
   my @csspaths=();
 #  if (@css) {
@@ -463,7 +469,7 @@ Supplies detailed information of the conversion log ($log),
 
 Creates a new LaTeXML object and initializes its state.
 
-=item C<< my $digested_preamble = load_preamble($opts,$latexml,$previous_digested_preamble); >>
+=item C<< my $digested_pre = load_preamble($opts,$latexml,$previous_digested); >>
 
 Loads a daemon preamble (if needed), adding its definitions to the LaTeXML state and
       maintaining a list of digested boxes.
@@ -483,28 +489,32 @@ Typically used within "convert".
 
 =head2 CUSTOMIZATION OPTIONS
 
- Options: (key=>value pairs)
+ Options: key=>value pairs
  preload => [modules]   optional modules to be loaded
  includestyles          allows latexml to load raw *.sty file;
-                        by default it avoids this.
- preamble => [files]    loads tex files containing document frontmatter.
- postamble => [files] loads texs file containing document backmatter. (TODO)
+                        off by default.
+ preamble => [files]    loads tex files with document frontmatter.
+ postamble => [files]   loads tex files with document backmatter. (TODO)
 
  paths => [dir]         paths searched for files,
                         modules, etc;
- log => file            specifies log file, reuqires 'local' default: STDERR
- TODO? --documentid=id  assign an id to the document root.
- timeout => seconds     designate an expiration time limit to the processing job
- verbosity => level     verbosity of reporting, 0 or negative for silent, 
-                        positive for increasing detail
+ log => file            specifies log file, reuqires 'local'
+                        default log output: STDERR
+ documentid => id       assign an id to the document root. (TODO)
+ timeout => seconds     designate an expiration time limit
+                        for the conversion job
+ verbosity => level     verbosity of reporting, 0 or negative
+                        for silent, positive for increasing detail
  strict                 makes latexml less forgiving of errors
  type => bibtex         processes the file as a BibTeX bibliography.
- format => box|xml|tex  output format (Boxes, XML document or TeX document)
+ format => box|xml|tex  output format
+                        (Boxes, XML document or expanded TeX document)
  noparse                suppresses parsing math (default: off)
  post                   requests a followup post-processing
- embed                  requests an embeddable XHTML div (= document body)
+ embed                  requests an embeddable XHTML snippet
                         (requires: 'post')
- stylesheet => name     specifies a stylesheet, to be used by the post-processor.
+ stylesheet => file     specifies a stylesheet,
+                        to be used by the post-processor.
  css => [cssfiles]      css stylesheets to html/xhtml
  nodefaultcss           disables the default css stylesheet
  post_procs->{pmml}     converts math to Presentation MathML
@@ -514,9 +524,9 @@ Typically used within "convert".
  parallelmath           requests parallel math markup for MathML
                         (off by default)
  post_procs->{keepTeX}  keeps the TeX source of a formula as a MathML
-                        annotation element (requires 'parallelmath' : TODO really?)
+                        annotation element (requires 'parallelmath')
  post_procs->{keepXMath} keeps the XMath of a formula as a MathML
-                         annotation-xml element (requires 'parallelmath' : TODO really?)
+                         annotation-xml element (requires 'parallelmath')
  nocomments              omit comments from the output
  inputencoding => enc    specify the input encoding.
  debug => package        enables debugging output for the named

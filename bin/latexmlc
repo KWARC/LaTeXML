@@ -66,22 +66,22 @@ __END__
 
 =head1 NAME
 
-C<latexmlc> - A client for latexml, latexmlpost and latexmlmath.
+C<latexmlc> - A client for L<latexml>, L<latexmlpost> and L<latexmlmath>.
 
 =head1 SYNOPSIS
 
-See latexmls for allowed options.
+See L<latexmls> for allowed options.
 
 =head1 DESCRIPTION
 
-latexmlc provides a client which automatically sets up a LaTeXML local server if necessary
-(via latexmls).
+L<latexmlc> provides a client which automatically sets up a LaTeXML local server if necessary
+(via L<latexmls>).
 
 If such server already exists, the client proceeds to communicate normally.
 
 =head1 SEE ALSO
 
-L<latexmls>, L<latexmld>
+L<latexmls>, L<ltxmojo>
 
 =cut
 #**********************************************************************

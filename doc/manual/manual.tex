@@ -6,7 +6,7 @@
 \usepackage{tocbibind}
 % Should the additional keywords be indexed?
 \lstdefinestyle{shell}{language=bash,escapechar=@,basicstyle=\ttfamily\small,%
-   morekeywords={latexml,latexmlpost,latexmlmath,latexmls,latexmld,latexmlc},
+   morekeywords={latexml,latexmlpost,latexmlmath,latexmls,latexmlc},
    moredelim=[is][\itshape]{\{}{\}}}
 % Can (should?) I make $ prefix give \itshape ?
 \lstdefinestyle{latexml}{basicstyle=\small\ttfamily,language=Perl,%
@@ -48,7 +48,7 @@
 \mainmatter
 %%%======================================================================
 \chapter{Introduction}\label{intro}
-For many, \LaTeX\ is the prefered format for document authoring, particularly those
+For many, \LaTeX\ is the preferred format for document authoring, particularly those
 involving significant mathematical content and where quality typesetting is desired.
 On the other hand, content-oriented \XML\ is an extremely useful representation for documents,
 allowing them to be used, and reused, for a variety of purposes, not least, 
@@ -112,7 +112,7 @@ If all else fails, please consult the source code, or the author.
 \vskip 1cm\relax
 Using \LaTeXML, and programming for it, can be somewhat confusing as one is dealing with several
 languages not normally combined, often within the same file,
---- Perl, \TeX\ and \XML\ (along with \XSLT, \HTML, \CSS), plus shell programmming.
+--- Perl, \TeX\ and \XML\ (along with \XSLT, \HTML, \CSS), plus shell programming.
 To help visually distinguish different contexts, if only slightly,
 we'll try to put `programming' oriented material (Perl, \TeX) in a typewriter font,
 \texttt{like this}; \XML\ material will be put in a sans-serif face
@@ -128,7 +128,7 @@ conversion to \HTML, processing images, conversion to \MathML\ and so on.
 \end{description}
 \noindent The usage of these commands can be as simple as
 \begin{lstlisting}[style=shell]
-latexml doc.tex | latexmpost --dest=doc.xhtml
+latexml doc.tex | latexmlpost --dest=doc.xhtml
 \end{lstlisting}
 \noindent to convert a single document into \XHTML,  or as complicated as
 \begin{lstlisting}[style=shell]
@@ -491,122 +491,7 @@ a single, handy, command \ltxcmd{latexmlmath}.  For example,
 will print the \MathML\ to standard output.  
 To convert the formula to a \texttt{png} image, say \texttt{quad.png},
 use the option \code{--mathimage=quad.png}.
-%%%----------------------------------------------------------------------
-\section{Optimized Processing}\label{usage.daemon}\index{latexmls!basic usage}
-%TODO: Rethink index
-When one is interested in processing jobs beyond a single document,
-conversion efficiency, adaptability and throughput are of highest importance. Two such scenarios are processing jobs converting large
-collections of documents and multi-user web applications,
-building on {\LaTeXML} as a conversion backend.
 
-The \ltxcmd{latexmld} daemon, as well as the \ltxcmd{latexmls} and \ltxcmd{latexmlc}
-server-client setup facilitate such purposes. Note that these executables are in
-\textbf{beta stage} and are currently under heavy development. Notable limitations in the
-current beta stage are that website and bibliography features, originally provided in
-\ltxcmd{latexml} and \ltxcmd{latexmlpost} remain unsupported, furthermore some of the more
-advanced customization options relateed to graphics and scanning are still missing as
-well.
-
-\subsection{The {\LaTeXML} Server \texttt{latexmls}}
-
-\begin{lstlisting}[style=shell]
-  latexmls {options}
-\end{lstlisting}
-
-The \ltxcmd{latexmls} server invokes a TCP/IP server daemon on a designated port (a set of default ports is assumed). The server can be then queried via standard socket communication, which facilitates the input/output flow. The setup is highly customizable, both on startup and during runtime. Customizations include three modes of operation, output representation, destination and log targets\footnote{now with support for pattern specifications, such as \#dir/\#name.xhtml}, preloaded libraries, timeout and autovivification thresholds, etc. 
-
-
-The \textit{math}, \textit{fragment} and \textit{standard} modes facilitate three types of processing jobs, with specially tuned optimizations. The \textit{math} mode operators analogously to \ltxcmd{latexmlmath}, expecting a single mathematical expression on input. The \textit{standard} mode is the analog to the standard \ltxcmd{latexml} processing. The new feature of \textit{fragment} processing is particularly useful to processing libraries of controlled {\LaTeX} syntax, such as ZentralBlatt Math's journals of mathematical reviews. Given a standard preamble, specified by a set of \code{--preload=\textit{package}} options, it becomes possible to avoid both Perl's and {\LaTeXML}'s reinitializations, making batch conversions of such documents faster by over a magnitude.
-
-
-Two important options are \code{--local} and \code{--port=\textit{number}}, as they can be set only during the startup of the server. The \code{--local} switch permits the read/write use of the filesystem the server is running on, while by default (or by specifying \code{--nolocal}), it is forbidden access and can communicate only via the respective socket. Multiple {\LaTeXML} servers can coexist simultaneously, if started on different ports, which helps utilize the parallel computing capabilities of multi-core processors.
-
-
-To enable out-of-the-box server use for external applications, the two-step conversion
-process of {\LaTeXML}-proper and postprocessing can be merged into a single step, via the
-\code{--post} trigger. Once enabled, it becomes possible to use the full range of options
-available to \ltxcmd{latexmlpost}.
-%, with the additional \code{--keepTeX} switch, which preserves the original syntax of the formula as a parallel annotation.
-
-
-The in-built support for \textit{runtime customization}, allows for great versatility of a single daemon process. This becomes important in web-services which allow users to customize their document preambles or their desired output representations. Being able to reuse the same process is also a big efficiency boost when converting large jobs of heterogeneous {\LaTeX} documents, which would otherwise require either a separate {\LaTeXML} process or a specially designated daemon server.
-
-\subsection{The {\LaTeXML} Client \texttt{latexmlc}}
-
-The \ltxcmd{latexmlc} executable is a simple client interface to a local {\LaTeXML}
-server, invoked by \ltxcmd{latexmls}.It accepts the full set of options of the server.
-
-\begin{lstlisting}[style=shell]
-  latexmlc {options} {doc}
-\end{lstlisting}
-
-If no server is present when the client is invoked, it will start its own server with the
-default timeout and the default port for that mode, unless otherwise specified by the
-user. If an active server is found on the designated port, its startup options are used
-for the conversion in the case that no options are specified by the client. All client
-options (except \code{--local} and \code{--port=\textit{number}}) take precedence and
-overwrite the startup options of the server during the runtime. The client can also be
-invoked without any options, in which case it will assume the default mode and port and
-start/connect to the respective server.
-
-\textbf{Warning:} The \ltxcmd{latexmld} executable has been deprecated and will soon be
-rendered obsolete. 
-
-\begin{lstlisting}[style=shell]
-  latexmld {options}
-\end{lstlisting}
-It was the first prototype of a \LaTeXML daemon, that used pipes for IO. The follow-up
-\ltxcmd{latexmls} prototype based on sockets has proven more scalable and general. The
-pipe-based \ltxcmd{latexmld} daemon shares a subset of the processing options of
-\ltxcmd{latexmls} and is always out of date in terms of feature enhancements and bug
-fixes.
-
-\subsection{Use cases}\label{usacases.daemon}
-Some examples of possible start-up invocations for setting up off-the-shelf services include:
-\begin{description}
-\item[Web Server: Formula Conversion] One possible setup for a formula conversion web server\\
-\begin{lstlisting}[style=shell]
-latexmls --mode=math --post 
---parallelmath --pmml --cmml --keepTeX 
---port=3334 --timeout=0 --autoflush=5000
-\end{lstlisting}
-\item[Web Server: LaTeX Fragment] One possible setup for a conversion web server of {\LaTeX} fragments\\
-\begin{lstlisting}[style=shell]
-latexmls --mode=fragment --preload=LaTeX.pool 
- --preload=article.cls --preload=amsmath.sty 
- --preload=amsthm.sty --preload=amstext.sty
- --preload=amssymb.sty --post --pmml 
- --port=3344 --timeout=0 --autoflush=1000
-\end{lstlisting}
-\item[Web Server: Document Conversion] One possible setup for a conversion web server of {\LaTeX} documents\\
-\begin{lstlisting}[style=shell]
-latexmls --mode=standard --post --pmml  
---port=3354 --timeout=0 --autoflush=500
-\end{lstlisting}
-\item[Batch Conversion: Server for PlanetMath] A setup for a batch conversion server of 8000+ articles from PlanetMath.org\\
-\begin{lstlisting}[style=shell]
-latexmls --mode=standard --local
- --post --pmml --cmml --keepTeX --parallelmath
- --log=#dir/stderr.log  --postlog=#dir/stderr.post.log
- --destination=#dir/#name.tex.xml
- --port=4454 --timeout=100 --autoflush=200
- --path=./sty/ --preload=pmath.sty
-\end{lstlisting}
-\item[Batch Conversion Server for ZBL] A setup for a batch conversion server of 1.5+ million articles from the ZentralBlatt Math review journals\\
-\begin{lstlisting}[style=shell]
-latexmls --mode=fragment --local --preload=zbl.cls
- --post --pmml --cmml --keepTeX --parallelmath
- --log=#dir/stderr.log
- --destination=#dir/#name.tex.xml 
- --path=./zbl/sty/
- --stylesheet=zbl2html.xsl
- --timeout=0 --autoflush=5000
-\end{lstlisting}
-\item[Simple User Client] A minimal invocation to an active local formula conversion server.
-\begin{lstlisting}[style=shell]
-latexmlc --mode=math "\frac{a}{b}"
-\end{lstlisting}
-\end{description}
 %%%======================================================================
 \chapter{Architecture}\label{architecture}
 As has been said, \LaTeXML\ consists of two main programs:
@@ -1183,7 +1068,7 @@ Some additional functions useful when writing constructors:
   hopefully without \TeX\ markup, suitable for use as document content
   and attribute values.  Note that if \ltxcode|$stuff| contains Whatsits
   generated by Constructors, it may not be possible to avoid \TeX\ code.
-  Constrast \ltxcode|ToString| to the following two functions.
+  Contrast \ltxcode|ToString| to the following two functions.
 \item \ltxcode|UnTeX($stuff)| returns a string containing the \TeX\ code
   that would generate \ltxcode|$stuff| (this might not be the original \TeX).
   The function \ltxcode|Revert($stuff)| returns the same information as a Tokens list.
@@ -1656,7 +1541,6 @@ and Catalin David for testing help and for implementing additional packages.
 \input{pods/latexml}
 \include{pods/latexmlpost}
 \include{pods/latexmlmath}
-\include{pods/latexmld}
 \include{pods/latexmls}
 \include{pods/latexmlc}
 %%%======================================================================

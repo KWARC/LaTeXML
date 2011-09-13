@@ -387,6 +387,7 @@ __END__
 =head1 NAME
 
 C<LaTeXML::Util::Startup> - Provide an API for starting and maintaining a stash of LaTeXML converters
+Additionally, uses LaTeXML::ObjectDB to provide basic support for user and conversion profile management.
 
 =head1 SYNOPSIS
 
@@ -455,7 +456,7 @@ Provides an HTML summary table with the DB properties for a given username entry
 
 Verifies that a username and password pair match a DB entry.
 
-=item C<< my $report_message = $startup->modify_user($username,$password,$role,$default); >>
+=item C<< my $report_message = $startup->modify_user($user,$pass,$role,$default); >>
 
 Modifies a user entry's password, role and/or default profile selection, returning a string report message.
 
@@ -463,7 +464,7 @@ Modifies a user entry's password, role and/or default profile selection, returni
 
 Deletes a user entry, returning a string report message.
 
-=item C<< my $property_value = $startup->lookup_user_property($username,$property_name); >>
+=item C<< my $property_value = $startup->lookup_user_property($user,$prop_name); >>
 
 Fetches a value of a requested property name for the user entry designated by $username.
 Returns undefined if no such property is set.

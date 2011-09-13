@@ -1,63 +1,61 @@
-// Check for the various File API support.
-if (window.File && window.FileReader && window.FileList && window.Blob) {
-  // Great success! All the File APIs are supported.
-} else {
-  alert('The File APIs are not fully supported in this browser.');
-}
 $(document).ready(function() {
+    // Check for the various File API support.
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+        // Great success! All the File APIs are supported.
+    } else {
+        alert('The File APIs are not fully supported in this browser.');
+    }
     var filesUpload = document.getElementById("files-upload"),
     dropArea = document.getElementById("drop-area"),
     fileList = document.getElementById("file-list");
     function uploadFile (file) {
-	var li = document.createElement("li"),
-	div = document.createElement("div"),
-	img,
-	progressBarContainer = document.createElement("div"),
-	progressBar = document.createElement("div"),
-	reader,
-	xhr,
-	fileInfo;
-	
-	li.appendChild(div);
-	
-	progressBarContainer.className = "progress-bar-container";
-	progressBar.className = "progress-bar";
-	progressBarContainer.appendChild(progressBar);
-	li.appendChild(progressBarContainer);
-	
-	// Uploading - for Firefox, Google Chrome and Safari
-	xhr = new XMLHttpRequest();
-	// Update progress bar
-	xhr.upload.addEventListener("progress", function (evt) {
-	    if (evt.lengthComputable) {
-		progressBar.style.width = (evt.loaded / evt.total) * 100 + "%";
-	    }
-	    else {
-		// No data to calculate on
-	    }
-	}, false);
-	// File uploaded
-	xhr.addEventListener("load", function () {
-	    progressBarContainer.className += " uploaded";
-	    progressBar.innerHTML = "Uploaded!";
-	}, false);
         
 	if (typeof FileReader !== "undefined") {
             if (!(file.type)) {
                 //Assume no file type means a folder:
-                fileList.innerHTML("<p>We are sorry, HTML5 does not allow folder uploads.</p><br></br>"
-                            +"<p>Please upload only TeX fragments with inputs on the same level.</p>"
-                             +"<br></br><br></br><p>In order to convert complex setups, please upload a"
-                             +".zip or .tar.gz archive of your bundle.</p>");
+                $("<p>\""+file.name+"\" is a folder.</p><p>We are sorry, HTML5 does not allow folder uploads.<br>"
+                            +"Please upload only TeX fragments with inputs on the same level.<br>"
+                             +"In order to convert complex setups, please upload a"
+                  +".zip or .tar.gz archive of your bundle.</p><hr class=\"separator\">").insertBefore(fileList.firstChild);
             } else {
-                if ((/x-tex|postscript|x-dvi|image/i).test(file.type)) {
+                if ((/\/(zip|pdf|postscript|x-(tex|dvi|download|zip))|image/i).test(file.type)) {
+                    
+	            var li = document.createElement("li"),
+	            div = document.createElement("div"),
+	            img,
+	            progressBarContainer = document.createElement("div"),
+	            progressBar = document.createElement("div"),
+	            reader,
+	            fileInfo;
+	            
+	            li.appendChild(div);
+	            
+	            progressBarContainer.className = "progress-bar-container";
+	            progressBar.className = "progress-bar";
+	            progressBarContainer.appendChild(progressBar);
+	            li.appendChild(progressBarContainer);
 
-
+	            // Uploading - for Firefox, Google Chrome and Safari
+	            var xhr = new XMLHttpRequest();
+	            // Update progress bar
+	            xhr.upload.addEventListener("progress", function (evt) {
+	                if (evt.lengthComputable) {
+		            progressBar.style.width = (evt.loaded / evt.total) * 100 + "%";
+	                }
+	                else {
+		            // No data to calculate on
+	                }
+	            }, false);
+	            // File uploaded
+	            xhr.addEventListener("load", function () {
+	                progressBarContainer.className += " uploaded";
+	                progressBar.innerHTML = "Uploaded!";
+	            }, false);
 
         	    /*
 	              If the file is an image and the web browser supports FileReader,
 	              present a preview in the file list
-	            */            
+
                     if ((/image/i).test(file.type)) {
 	                img = document.createElement("img");
 	                li.appendChild(img);
@@ -69,7 +67,7 @@ $(document).ready(function() {
 	                }(img));
 	                reader.readAsDataURL(file);  
                     }
-		
+	            */            		
 	            xhr.open("post", "/upload", true);
 	            
 	            // Set appropriate headers
@@ -87,10 +85,10 @@ $(document).ready(function() {
 	            fileInfo += "<div><strong>Type:</strong> " + file.type + "</div>";
 	            div.innerHTML = fileInfo;
 	            
-	            fileList.appendChild(li);
+	            fileList.insertBefore(li,fileList.firstChild);
 	        }
                 else {
-                    fileList.innerHTML("<p>The MIME type of the file \""+ file.name +"\" is not supported, skipping...</p>");
+                    $('<p>The MIME type "'+file.type+'" of the file "'+ file.name +'" is not supported, skipping...</p><hr class="separator">').insertBefore(fileList.firstChild);
                 }
             }  
         }
@@ -107,7 +105,7 @@ $(document).ready(function() {
 	}	
     }
     
-    filesUpload.addEventListener("change", function () {
+    filesUpload.addEventListener("change", function (evt) {
 	traverseFiles(this.files);
     }, false);
     

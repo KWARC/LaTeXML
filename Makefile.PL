@@ -57,6 +57,7 @@ WriteMakefile(NAME => 'LaTeXML',
                             'IO::Prompt' => 0,
                             'IO::Socket' => 0,
                             'Data::Compare' => 0,
+                            'Archive::Zip' => 0,
                             'Clone' => 0
 			   },
 	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmls','bin/latexmlc'],

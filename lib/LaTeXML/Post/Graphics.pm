@@ -154,7 +154,11 @@ sub processGraphic {
   my($self,$doc,$node)=@_;
   my $source = $self->findGraphicFile($doc,$node);
   if(!$source){
-    $self->Warn($doc,"Missing graphic for ".$node->toString."; skipping"); return; }
+    $self->Warn($doc,"Missing graphic for ".$node->toString."; skipping");
+    #DG: FIXME Temporary hack to get source attributes for online conversion jobs
+    my $srcattr = $node->getAttribute('graphic');
+    $self->setGraphicSrc($node,$srcattr) if $srcattr;
+    return; }
   my $transform = $self->getTransform($node);
   my($image,$width,$height)=$self->transformGraphic($doc,$node,$source,$transform); 
   $self->setGraphicSrc($node,$image,$width,$height) if $image;
