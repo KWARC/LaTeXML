@@ -19,8 +19,6 @@ use LaTeXML::Util::WWW;
 use LaTeXML::Post;
 use LaTeXML::Post::Writer;
 use LaTeXML::Post::Scan;
-use Data::Dumper;
-
 
 use Carp;
 use Clone qw(clone);
@@ -41,7 +39,7 @@ my $g_opts = {
  local=>0, embed=>0, timeout=>60, format=>'xml', mode=>'standard',
  destination=>q{}, postdest=>q{}, log=>q{}, postlog=>q{}, base=>q{},
  procs_post=>{}, help=>0, showversion=>0, preamble=>q{}, preamble_loaded=>q{},
- stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{}, 
+ stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{}, dographics=>1,
  documentid =>q{}, type=>'auto', css => [], paths => [q{.}], preload=>[], debugs=>[],
  authlist=>{}, port=>q{}, ARGV_SAVED => [@ARGV] #Save, so that we reinvoke when flushed
 };
@@ -352,7 +350,7 @@ while ( my $client = $server->accept() ) {
     # Perform post-processing conversion...
     my $post_setup = {
      dest=>$cdestpost,stylesheet=>$opts->{stylesheet},
-     dom=>$dom,mode=>$opts->{mode},
+     dom=>$dom,mode=>$opts->{mode}, dographics=>$opts->{dographics},
      format=>$opts->{format}, parallelmath=>$opts->{parallelmath},
      procs_post=>$opts->{procs_post},isStream=>($cdestpost eq $client),
      verbosity=>$opts->{verbosity},defaultcss=>$opts->{defaultcss},embed=>$opts->{embed}
@@ -425,6 +423,11 @@ sub execute_post {
   push(@procs,$main);
   push(@procs,@mprocs) unless $parallel;
   push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $$proctypes{'keepXMath'};
+  # TODO: Rethink full-fledged graphics support
+  if($opts->{dographics}){
+    require 'LaTeXML/Post/Graphics.pm';
+    my @g_options=();
+    push(@procs,LaTeXML::Post::Graphics->new(@g_options,%PostOPS)); }
   require LaTeXML::Post::XSLT;
   my @csspaths=();
   if (@css) {
@@ -747,6 +750,8 @@ return ($ret,$args);
 #**********************************************************************
 __END__
 
+=pod
+
 =head1 NAME
 
 C<latexmls> - A server for latexml, latexmlpost and latexmlmath.
@@ -772,7 +777,8 @@ latexmls [options]
                     that employ relative paths.
  --path=dir         adds dir to the paths searched for files,
                     modules, etc; 
- --log=file         specifies log file, reuqires --local (default: STDERR)
+ --log=file         specifies log file, reuqires --local
+                    default: STDERR
  --postlog=file     specifies log file for postprocessing, 
                     requires --local, --post 
                     default is appending to the --log file.
@@ -802,8 +808,8 @@ latexmls [options]
                     Supported: standard|math|fragment
                     (default: standard)
  --post             requests a followup post-processing
- --embed            requests an embeddable XHTML div (= document body)
-                    (requires: --post,--mode=fragment, socket destination)
+ --embed            requests an embeddable XHTML snippet
+                    (requires: --post,--mode=fragment)
  --stylesheet       specifies a stylesheet,
                     to be used by the post-processor.
  --css=cssfile           adds a css stylesheet to html/xhtml
@@ -836,12 +842,6 @@ Each communication session allows local option overwriting on the first sent lin
 The input will be read until a line containing "END OF REQUEST" is found. Please
 take this into account to avoid hanging.
 
-=head1 ToDo List
-
-This is an early release, which has a list of future features planned. They include:
-- Support fragments and standard LaTeX files sent via the socket, in addition to the filename scheme.
-- Allow log transmission.
-
 =head1 OPTIONS AND ARGUMENTS
 
 =over 4
@@ -850,17 +850,17 @@ This is an early release, which has a list of future features planned. They incl
 
 Requires: C<--local>
 
-Specifies the destination file; by default the XML is written to stdout.
+Specifies the destination file; by default the XML is written to STDOUT.
 The Daemon allows using the #name, #dir and #ext patterns as variables for
 the base of the source filename, the source directory and the source file extension.
-An example would be: C<--destination=#dir/#name.xml>
+
+Example: C<--destination>=I<#dir/#name.xml>
 
 =item C<--postdest>=I<file>
 
 Requires: C<--local>, C<--post>
 
-Behaves like C<--destination>, for the post-processing target.
-makes use of the C<#dir>,C<#name>,C<#ext> patterns. 
+Behaves like C<--destination>, for the post-processing target. C<#dir>,C<#name>,C<#ext> patterns can be used.
 
 If omitted and C<--destination> is not provided, but C<--post> is specified, 
 the output will be returned via the socket. If C<--destination> is present, 
@@ -900,7 +900,7 @@ somewhat like TEXINPUTS.  This option can be repeated.
 
 Requires: C<--local>
 
-Specifies the log file; be default any conversion messages are printed to stderr.
+Specifies the log file; be default any conversion messages are printed to STDERR.
 The Daemon allows using the C<#name>, C<#dir> and C<#ext> patterns as variables for
 the base of the source filename, the source directory and the source file extension.
 An example would be: C<--log=#dir/#name.log>
@@ -1115,8 +1115,7 @@ Shows this help message.
 
 =head1 SEE ALSO
 
-L<latexmlc>, L<latexmld>, L<latexml>, L<latexmlpost>, L<latexmlmath>, L<LaTeXML>
+L<latexmlc>, L<ltxmojo>, L<latexml>, L<latexmlpost>, L<latexmlmath>, L<LaTeXML>
 
 =cut
 #**********************************************************************
-
