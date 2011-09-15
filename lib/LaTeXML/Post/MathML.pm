@@ -958,6 +958,10 @@ DefMathML('Apply:SUBSCRIPTOP:?',   \&pmml_script_handler, undef);
 DefMathML('Token:SUPERSCRIPTOP:?', undef, sub{['m:csymbol',{cd=>'ambiguous'},'superscript'];});
 DefMathML('Token:SUBSCRIPTOP:?',   undef, sub{['m:csymbol',{cd=>'ambiguous'},'subscript'];});
 
+#DG Experimental: qvars for MWS
+DefMathML('Token:?:qvar', undef, sub{['m:csymbol',{cd=>'mws',name=>'qvar'}, $_[0]->textContent];});
+
+
 DefMathML('Apply:POSTFIX:?', sub {
   ['m:mrow',{},pmml($_[1]),pmml($_[0])]; });
 
