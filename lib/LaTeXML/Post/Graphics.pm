@@ -158,7 +158,13 @@ sub processGraphic {
     #DG: FIXME Temporary hack to get source attributes for online conversion jobs
     my $srcattr = $node->getAttribute('graphic');
     $self->setGraphicSrc($node,$srcattr) if $srcattr;
-    return; }
+    return; } else {
+      #DG: FIXME!!! FULLY DISABLING IMAGE PROCESSING FOR NOW!!!
+      # Reason: sTeX processing is hacky for Tikz. REWRITE soon!
+      my $srcattr = $node->getAttribute('graphic');
+      $self->setGraphicSrc($node,$srcattr) if $srcattr;
+      return;
+    }
   my $transform = $self->getTransform($node);
   my($image,$width,$height)=$self->transformGraphic($doc,$node,$source,$transform); 
   $self->setGraphicSrc($node,$image,$width,$height) if $image;
