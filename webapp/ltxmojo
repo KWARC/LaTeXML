@@ -4,6 +4,8 @@ use Mojolicious::Lite;
 use LaTeXML::Util::Startup;
 use LaTeXML::Util::Extras;
 use LaTeXML::Daemon;
+use Archive::Zip;
+use File::Path;
 use Data::Dumper;
 use feature 'switch';
 
@@ -24,12 +26,21 @@ my $startup =
 print $startup->modify_user('admin', 'admin', 'admin')
   unless $startup->exists_user('admin');
 
-helper prepare_options => sub {
-  my ($self, $param) = @_;
-  my $opt = {};
+# Adapted From: http://th.atguy.com/mycode/generate_random_string/
+my @rchars=('a'..'z','A'..'Z');
+helper rand_str => sub {
+  my ($self,$length)=@_;
+  my $random_string;
+  foreach (1..$length) {
+    # rand @chars will generate a random 
+    # number between 0 and scalar @chars
+    $random_string.=$rchars[rand @rchars];
+  }
+  return $random_string;
+};
 
-  #TODO: Make sure lists go to array refs, etc.
-  foreach ($param->param) { $opt->{lc($_)} = $param->param($_) || 1; }
+helper prepare_options => sub {
+  my ($self, $opt) = @_;
   if (!defined $opt->{profile}) {
     if (defined $opt->{user}
       && $startup->verify_user($opt->{user}, $opt->{password}))
@@ -56,7 +67,10 @@ helper prepare_options => sub {
 post '/convert' => sub {
   my $self  = shift;
   my $param = $self->req->body_params;
-  my $opt   = $self->prepare_options($param);
+  #TODO: Make sure lists go to array refs, etc.
+  my $opt = {};
+  foreach ($param->param) { $opt->{lc($_)} = $param->param($_) || 1; }
+  $opt = $self->prepare_options($opt);
 
   # TeX is data, separate
   my $tex = $opt->{tex};
@@ -157,16 +171,39 @@ get '/upload' => sub {
 
 post '/upload' => sub {
   my $self = shift;
-  # Need a session!
-  my $headers = $self->req->headers;
-  my $type = $headers->{'x-file-type'};
-  if ($type && $type eq 'application/x-gzip') {
-    #.zip (can't support others for now)
-  } else {
-    #.tex , .sty , .jpg and so on - write to filesystem (when are we done?)
-  }
-  print STDERR Dumper($headers);
-  $self->render(text=>"Uploaded!");
+  # # TODO: Need a session?
+  # my $headers = $self->req->headers;
+  # my $type = $headers->header('x-file-type');
+  # if ($type && $type =~ 'zip' && ($headers->header('content-type') eq 'multipart/form-data')) {
+  #   #.zip (can't support others for now)
+  #   my $zipcontent = $self->req->body;
+  #   my $rname = $self->rand_str(6);
+  #   #TODO: This is a Unix treatment, make it scale under windows! (CPAN module?)
+  #   my $rdir = "/tmp/$rname/";
+  #   mkdir $rdir;
+  #   $rname = $rname.".zip";
+  #   open ZIP, ">", $rdir.$rname;
+  #   print ZIP $zipcontent;
+  #   close ZIP;
+  #   `cd $rdir; unzip -o $rname`;
+  #   #Add $rdir to LaTeXML path, convert with standard profile.    
+  #   my $opt = {profile=>'standard', paths=>[$rdir]};
+  #   $opt = $self->prepare_options($opt);
+  #   my $daemon = $startup->find_daemon($opt);
+  #   #Override/extend with session-specific options in $opt:
+  #   $daemon->prepare_session($opt);
+  #   #Send a request:
+  #   my $response = $daemon->convert($rdir.$rname);
+  #   if (defined $response) {
+  #     my ($result, $status, $log) = map { $response->{$_} } qw(result status log);
+  #     print Dumper($result);
+  #   }
+  #   File::Path::remove_tree($rdir);
+  #   $self->render(text=>"Uploaded!");
+  # } else {
+  #   #.tex , .sty , .jpg and so on - write to filesystem (when are we done?)
+   $self->render(text=>"Uploaded, but ignored!");
+  # }
 };
 
 any '/ajax' => sub {
