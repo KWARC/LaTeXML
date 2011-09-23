@@ -24,7 +24,7 @@ use Carp;
 use Clone qw(clone);
 use POSIX qw( setsid );
 use IO::Socket;
-
+use Data::Dumper;
 #**********************************************************************
 # Ports
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
@@ -39,7 +39,7 @@ my $g_opts = {
  local=>0, embed=>0, timeout=>60, format=>'xml', mode=>'standard',
  destination=>q{}, postdest=>q{}, log=>q{}, postlog=>q{}, base=>q{},
  procs_post=>{}, help=>0, showversion=>0, preamble=>q{}, preamble_loaded=>q{},
- stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{}, dographics=>1,
+ stylesheet=>q{}, styleparam=>{}, defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{}, dographics=>1,
  documentid =>q{}, type=>'auto', css => [], paths => [q{.}], preload=>[], debugs=>[],
  authlist=>{}, port=>q{}, ARGV_SAVED => [@ARGV] #Save, so that we reinvoke when flushed
 };
@@ -348,8 +348,9 @@ while ( my $client = $server->accept() ) {
       # No log if not local (STDERR redirects to /dev/null)
     }
     # Perform post-processing conversion...
+    # TODO make sure this clones and doesn't just co-reference
     my $post_setup = {
-     dest=>$cdestpost,stylesheet=>$opts->{stylesheet},
+     dest=>$cdestpost,stylesheet=>$opts->{stylesheet},styleparam=>$opts->{styleparam},
      dom=>$dom,mode=>$opts->{mode}, dographics=>$opts->{dographics},
      format=>$opts->{format}, parallelmath=>$opts->{parallelmath},
      procs_post=>$opts->{procs_post},isStream=>($cdestpost eq $client),
@@ -449,7 +450,8 @@ sub execute_post {
   push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
 					 parameters=>{number_sections
 						      =>("true()"),
-                                                      (@csspaths ? (CSS=>[@csspaths]):()),},
+                                                      (@csspaths ? (CSS=>[@csspaths]):()),
+                                                     %{$opts->{styleparam}}},
                                        %PostOPS)) if $style;
   push(@procs,LaTeXML::Post::Writer->new(format=>$format,omit_doctype=>0,%PostOPS))
     if ($postdest && !$isStream);
@@ -725,6 +727,8 @@ sub read_options {
 	   "keepXMath" => sub {$opts->{procs_post}->{'keepXMath'}=1;},
 	   "parallelmath" => sub {$opts->{parallelmath} = 1;},
 	   "stylesheet=s"=>  sub {$opts->{stylesheet} = $_[1];},
+           "styleparam=s" => sub {my ($k,$v) = split(':',$_[1]);
+                                  $opts->{styleparam}->{$k}=$v;},
 	   "css=s"       =>  sub {$opts->{css}=$_[1];},
 	   "defaultcss" =>  sub {$opts->{defaultcss} = 1;},
 	   "nodefaultcss" =>  sub {$opts->{defaultcss} = 0;},
