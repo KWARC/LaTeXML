@@ -51,8 +51,7 @@ Let(T_CS('\magnification'),T_CS('\@undefined'));
 # Basic \documentclass & \documentstyle
 
 #AssignValue('2.09_COMPATIBILITY'=>0);
-DefMacroI('\if@compatibility',undef,sub { ifHandler($_[0],LookupValue('2.09_COMPATIBILITY')); },
-	 isConditional=>1);
+DefConditionalI('\if@compatibility',undef,sub { LookupValue('2.09_COMPATIBILITY'); });
 DefMacroI('\@compatibilitytrue','');
 DefMacroI('\@compatibilityfalse','');
 
@@ -137,7 +136,7 @@ sub onlyPreamble {
 # it can be processed specially, if needed.  These are the magic
 # '\begin{env}', '\end{env}' control sequences created by DefEnvironment.
 
-AssignValue(current_environment=>'document','global');
+AssignValue(current_environment=>'','global');
 DefMacro('\@currenvir',sub { Explode(LookupValue('current_environment')); });
 DefMacro('\begin{}',sub { 
   my($gullet,$env)=@_;
@@ -1289,11 +1288,10 @@ DefConstructor('\@equationgroup@open@row SkipSpaces DigestedBody',
 
 # ========================================
 # Some special kinds of rows...
-DefMacroI('\if@in@firstcolumn',undef, sub {
+DefConditionalI('\if@in@firstcolumn',undef, sub {
 	   my $x = LookupValue('Alignment');
 	   $x = ($x ? $x->currentColumnNumber : 9);
-	   ifHandler($_[0],$x < 2); },
-	 isConditional=>1);
+	   $x < 2; });
 # A bit more defensiveness, since people abuse eqnarray so badly.
 # Eg. &&\lefteqn{...}  whatever?!?!
 DefMacro('\lefteqn{}',
@@ -3098,12 +3096,18 @@ DefConstructor('\raisebox{Dimension}[Dimension][Dimension]{}',
 #----------------------------------------------------------------------
 
 sub ResolveReader {
-  my ($itemtype) = @_;
-  if(ref $itemtype eq 'CODE'){ $itemtype; }
+  my ($type) = @_;
+  return $type if ref $type eq 'CODE'; # It's already a reader (hopefully).
+  $type = ToString($type);
+  if(my $descriptor = $LaTeXML::Parameters::PARAMETER_TABLE{$type}){
+    $$descriptor{reader}; }
+  # Otherwise, try to find a function named Read<Type>
   else {
-    $itemtype = ToString($itemtype);
-    LaTeXML::Parameters::checkReaderFunction('Read'.$itemtype); }}
+    LaTeXML::Parameters::checkReaderFunction('Read'.$type); }}
 
+# This defines a Pair parameter type,
+# that reads a parenthesized, comma separated pair of subtype.
+# By default, the subtype is Float, but you can write Pair:Number, or Pair:Dimension
 sub ReadPair {
   my($gullet,$itemtype, $xarg, $yarg)=@_;
   my $itemreader;
@@ -3228,12 +3232,12 @@ DefConstructor('\put Pair {}',
 	       properties=>sub { pos=>'translate('.ptValue(picScale($_[1])).')'; },
 	       mode=>'text');
 
-DefConstructor('\pic@line Pair {Float}',
+DefConstructor('\pic@line Pair:Number {Float}',
 	       "<ltx:line points='#points' stroke-width='#thick'/>",
 	       alias=>'\line',
 	       properties=>sub { picProperties(points=>'0,0 '.slopeToPicCoord($_[1],$_[2])->ptValue()); });
 
-DefConstructor('\pic@vector Pair {Float}',
+DefConstructor('\pic@vector Pair:Number {Float}',
 	       "<ltx:line points='#points' stroke-width='#thick' terminators='->'"
 	       . " arrowlength='#arrowlength'/>",
 	       alias=>'\vector',
