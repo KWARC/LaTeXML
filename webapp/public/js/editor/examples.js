@@ -210,7 +210,8 @@ examples['wgr'] = [
 '\\url{http://perl.org}',
 '\\end{document}'].join('\n');
 
-examples['tik'] = ['\\title{A TikZ gallery of basic examples}',
+    examples['tik'] = ['\\documentclass{article}\\usepackage{tikz}\\begin{document}',
+'\\title{A TikZ gallery of basic examples}',
 '\\section{Connecting squares}',
 '\\begin{tikzpicture}',
 '\\draw (0,0) -- +(1,0) -- +(1,1) -- +(0,1) -- cycle;',
@@ -244,5 +245,5 @@ examples['tik'] = ['\\title{A TikZ gallery of basic examples}',
 '\\pgfxycurve(0,0)(1,3)(5,4)(7,9)',
 '\\pgfxycurve(0,0)(1,3)(7,4)(0,9)',
 '\\pgffill',
-'\\end{tikzpicture}'].join('\n');
+'\\end{tikzpicture}\\end{document}'].join('\n');
 }

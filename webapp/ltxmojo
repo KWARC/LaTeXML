@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Mojolicious::Lite;
+use lib "lib";
 use LaTeXML::Util::Startup;
 use LaTeXML::Util::Extras;
 use LaTeXML::Daemon;

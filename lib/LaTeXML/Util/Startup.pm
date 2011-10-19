@@ -345,17 +345,18 @@ sub _inner_handle {
     when ('arrayref') {
       my $current = $entry->getValue($e);
       $summary .= "<tr><td>$e";
-      $summary .= "</td><td class=\"input\"><input name=\"$e\" value=\"$_\"></td></tr><tr><td>\n" foreach @$current||('');
+      $summary .= "</td><td class=\"input\"><input name=\"$e\" value=\"$_\"></td></tr><tr><td>\n" foreach @$current;
       $summary.= "</td><td></td></tr>";
     }
     when ('hashref') {
       my $current = $entry->getValue($e);
-      $summary .= "<tr><td><b>$e</b><td></td></tr>";
+      $summary .= "<tr><td style=\"border-bottom:2px dashed gray;\">&nbsp;</td><td style=\"border-bottom:2px dashed gray;\">&nbsp;<td/></tr>";
+      $summary .= "<tr><td><b>Block $e</b><td></td></tr>";
       foreach (split(/,/,$spec)) {
         my ($in_e,$in_t) = split(/:/,$_);
         $summary .= _inner_handle($in_e,$in_t,$entry,$current->{$in_e});
       }
-      $summary .= "<tr><td><b>------</b><td></td></tr>";
+      $summary .= "<tr><td style=\"border-top:2px dashed gray;\">&nbsp;</td><td style=\"border-top:2px dashed gray;\">&nbsp;<td/></tr>";
     }
     default {}
   }
