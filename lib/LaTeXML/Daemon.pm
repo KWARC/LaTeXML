@@ -262,6 +262,62 @@ sub convert_post {
     undef $doc;
     return undef;
   }
+
+  my @procs=();
+  #TODO: Add support for the following:
+  my $dbfile = $opts->{dbfile};
+  if (defined $dbfile && !-f $dbfile) {
+    if (my $dbdir = pathname_directory($dbfile)) {
+      pathname_mkdir($dbdir);
+    }
+  }
+  my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile,%PostOPS0);
+  my @bibliographies = undef;
+  my $permutedindex = undef;
+  my $splitindex = undef;
+  my $splitbibliography = undef;
+  ### Advanced Processors:
+  if ($opts->{split}) {
+    require 'LaTeXML/Post/Split.pm';
+    push(@procs,LaTeXML::Post::Split->new(split_xpath=>$opts->{splitpath},splitnaming=>$opts->{splitnaming},
+                                          %PostOPS)); }
+  our $scanner = ($opts->{scan} || $DB) && LaTeXML::Post::Scan->new(db=>$DB,%PostOPS);
+  if ($opts->{scan}) {
+    push(@procs,$scanner);
+  }
+  if (!$opts->{prescan}) {
+    if ($opts->{index}) {
+      require 'LaTeXML/Post/MakeIndex.pm';
+      push(@procs,LaTeXML::Post::MakeIndex->new(db=>$DB, permuted=>$permutedindex,
+                                                split=>$splitindex, scanner=>$scanner,
+                                                %PostOPS)); }}
+  if (@bibliographies) {
+    require 'LaTeXML/Post/MakeBibliography.pm';
+    push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>[@bibliographies],
+						     split=>$splitbibliography, scanner=>$scanner,
+						     %PostOPS)); }
+  if ($opts->{crossref}) {
+    require 'LaTeXML/Post/CrossRef.pm';
+    push(@procs,LaTeXML::Post::CrossRef->new(db=>$DB,urlstyle=>$opts->{urlstyle},format=>$opts->{format},
+					     ($opts->{numbersections} ? (number_sections=>1):()),
+					     ($opts->{navtoc} ? (navigation_toc=>$opts->{navtoc}):()),
+					     %PostOPS)); }
+
+  if ($opts->{mathimages}) {
+    require 'LaTeXML/Post/MathImages.pm';
+    push(@procs,LaTeXML::Post::MathImages->new(magnification=>$opts->{mathimagemag},%PostOPS));
+  }
+  if ($opts->{picimages}) {
+    require 'LaTeXML/Post/PictureImages.pm';
+    push(@procs,LaTeXML::Post::PictureImages->new(%PostOPS));
+  }
+  if ($opts->{dographics}) {
+    # TODO: Rethink full-fledged graphics support
+    require 'LaTeXML/Post/Graphics.pm';
+    my @g_options=();
+    push(@procs,LaTeXML::Post::Graphics->new(@g_options,%PostOPS));
+  }
+
   require LaTeXML::Post::MathML;
   require LaTeXML::Post::OpenMath;
   require LaTeXML::Post::PurgeXMath;
@@ -273,58 +329,9 @@ sub convert_post {
   my $main = shift(@mprocs);
   $main->setParallel(@mprocs) if $parallel;
   $main->keepTeX if ($$proctypes{'keepTeX'} && $parallel);
-  my @procs=();
   push(@procs,$main);
   push(@procs,@mprocs) unless $parallel;
   push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $$proctypes{'keepXMath'};
-
-#TODO: Add support for the following:
-my $dbfile = $opts->{dbfile};
-if(defined $dbfile && !-f $dbfile){
-  if(my $dbdir = pathname_directory($dbfile)){
-    pathname_mkdir($dbdir); }}
-my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile,%PostOPS);
-my @bibliographies = undef;
-my $permutedindex = undef;
-my $splitindex = undef;
-my $splitbibliography = undef;
-### Advanced Processors:
-if($opts->{split}){
-  require 'LaTeXML/Post/Split.pm';
-  push(@procs,LaTeXML::Post::Split->new(split_xpath=>$opts->{splitpath},splitnaming=>$opts->{splitnaming},
-					%PostOPS)); }
-our $scanner = ($opts->{scan} || $DB) && LaTeXML::Post::Scan->new(db=>$DB,%PostOPS);
-if($opts->{scan}){
-  push(@procs,$scanner); }
-if(!$opts->{prescan}){
-  if($opts->{index}){
-    require 'LaTeXML/Post/MakeIndex.pm';
-    push(@procs,LaTeXML::Post::MakeIndex->new(db=>$DB, permuted=>$permutedindex,
-					      split=>$splitindex, scanner=>$scanner,
-					      %PostOPS)); }}
-  if(@bibliographies){
-    require 'LaTeXML/Post/MakeBibliography.pm';
-    push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>[@bibliographies],
-						     split=>$splitbibliography, scanner=>$scanner,
-						     %PostOPS)); }
-  if($opts->{crossref}){
-    require 'LaTeXML/Post/CrossRef.pm';
-    push(@procs,LaTeXML::Post::CrossRef->new(db=>$DB,urlstyle=>$opts->{urlstyle},format=>$opts->{format},
-					     ($opts->{numbersections} ? (number_sections=>1):()),
-					     ($opts->{navtoc} ? (navigation_toc=>$opts->{navtoc}):()),
-					     %PostOPS)); }
-
-  if($opts->{mathimages}){
-    require 'LaTeXML/Post/MathImages.pm';
-    push(@procs,LaTeXML::Post::MathImages->new(magnification=>$opts->{mathimagemag},%PostOPS)); }
-  if($opts->{picimages}){
-    require 'LaTeXML/Post/PictureImages.pm';
-    push(@procs,LaTeXML::Post::PictureImages->new(%PostOPS)); }
-  if($opts->{dographics}){
-    # TODO: Rethink full-fledged graphics support
-    require 'LaTeXML/Post/Graphics.pm';
-    my @g_options=();
-    push(@procs,LaTeXML::Post::Graphics->new(@g_options,%PostOPS)); }
 
   require LaTeXML::Post::XSLT;
   my @csspaths=();
@@ -355,6 +362,7 @@ if(!$opts->{prescan}){
     local $SIG{'ALRM'} = sub { die "alarm\n" };
     alarm($opts->{timeout});
     ($postdoc) = LaTeXML::Post::ProcessChain($doc,@procs);
+    $DB->finish;
     alarm(0);
     1;
   };
