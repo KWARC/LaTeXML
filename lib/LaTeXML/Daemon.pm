@@ -271,7 +271,7 @@ sub convert_post {
       pathname_mkdir($dbdir);
     }
   }
-  my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile,%PostOPS0);
+  my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile,%PostOPS);
   my @bibliographies = undef;
   my $permutedindex = undef;
   my $splitindex = undef;
