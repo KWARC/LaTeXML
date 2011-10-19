@@ -82,8 +82,14 @@ sub prepare_options {
   $opts->{dbfile}=undef unless defined $opts->{dbfile};
   $opts->{scan}=1 unless defined $opts->{scan};
   $opts->{index}=1 unless defined $opts->{index};
+  $opts->{split}=undef unless defined $opts->{split};
+  $opts->{splitat}='section' unless defined $opts->{splitat};
+  $opts->{splitpath}=undef unless defined $opts->{splitpath};
+  $opts->{splitnaming}='id' unless defined $opts->{splitnaming};
   $opts->{crossref}=1 unless defined $opts->{crossref};
   $opts->{sitedir}=undef unless defined $opts->{sitedir};
+  $opts->{numbersections}=1 unless defined $opts->{numbersections};
+  $opts->{urlstyle}='server' unless defined $opts->{urlstyle};
 }
 
 sub initialize_session {
@@ -288,7 +294,7 @@ sub convert_post {
       require 'LaTeXML/Post/MakeIndex.pm';
       push(@procs,LaTeXML::Post::MakeIndex->new(db=>$DB, permuted=>$opts->{permutedindex},
                                                 split=>$opts->{splitindex}, scanner=>$scanner,
-                                                %PostOPS)); }}
+                                                %PostOPS)); }
   if (@bibliographies) {
     require 'LaTeXML/Post/MakeBibliography.pm';
     push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>[@bibliographies],
@@ -296,7 +302,7 @@ sub convert_post {
 						     %PostOPS)); }
   if ($opts->{crossref}) {
     require 'LaTeXML/Post/CrossRef.pm';
-    push(@procs,LaTeXML::Post::CrossRef->new(db=>$DB,urlstyle=>$opts->{urlstyle},format=>$opts->{format},
+    push(@procs,LaTeXML::Post::CrossRef->new(db=>$DB,urlstyle=>$opts->{urlstyle},format=>$format,
 					     ($opts->{numbersections} ? (number_sections=>1):()),
 					     ($opts->{navtoc} ? (navigation_toc=>$opts->{navtoc}):()),
 					     %PostOPS)); }
@@ -355,6 +361,7 @@ sub convert_post {
 						      =>("true()"),
                                                       (@csspaths ? (CSS=>[@csspaths]):()),},
                                        %PostOPS)) if $style;
+  }
   my $postdoc;
   eval {
     local $SIG{'ALRM'} = sub { die "alarm\n" };
