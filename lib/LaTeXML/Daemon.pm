@@ -81,6 +81,7 @@ sub prepare_options {
   $opts->{prescan}=undef unless defined $opts->{prescan};
   $opts->{dbfile}=undef unless defined $opts->{dbfile};
   $opts->{scan}=1 unless defined $opts->{scan};
+  $opts->{index}=1 unless defined $opts->{index};
   $opts->{crossref}=1 unless defined $opts->{crossref};
   $opts->{sitedir}=undef unless defined $opts->{sitedir};
 }
@@ -273,9 +274,6 @@ sub convert_post {
   }
   my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile,%PostOPS);
   my @bibliographies = undef;
-  my $permutedindex = undef;
-  my $splitindex = undef;
-  my $splitbibliography = undef;
   ### Advanced Processors:
   if ($opts->{split}) {
     require 'LaTeXML/Post/Split.pm';
@@ -288,13 +286,13 @@ sub convert_post {
   if (!$opts->{prescan}) {
     if ($opts->{index}) {
       require 'LaTeXML/Post/MakeIndex.pm';
-      push(@procs,LaTeXML::Post::MakeIndex->new(db=>$DB, permuted=>$permutedindex,
-                                                split=>$splitindex, scanner=>$scanner,
+      push(@procs,LaTeXML::Post::MakeIndex->new(db=>$DB, permuted=>$opts->{permutedindex},
+                                                split=>$opts->{splitindex}, scanner=>$scanner,
                                                 %PostOPS)); }}
   if (@bibliographies) {
     require 'LaTeXML/Post/MakeBibliography.pm';
     push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>[@bibliographies],
-						     split=>$splitbibliography, scanner=>$scanner,
+						     split=>$opts->{splitbibliography}, scanner=>$scanner,
 						     %PostOPS)); }
   if ($opts->{crossref}) {
     require 'LaTeXML/Post/CrossRef.pm';
