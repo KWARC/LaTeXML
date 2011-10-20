@@ -36,7 +36,7 @@ fragment => {
                        '/usr/share/texmf/tex/latex/pgf/compatibility/','/etc/texmf/tex/latex/config/','/usr/share/texmf/tex/latex/xcolor/',
                        '/home/dreamweaver/svn/arXMLiv/trunk/work_in_progress/sty/pgf','/home/dreamweaver/svn/arXMLiv/trunk/work_in_progress/sty/xcolor',
                        '/home/dreamweaver/svn/LaTeXML-branch/contrib/package/webgraphic/',
-                       '/home/dreamweaver/testbed/wiki/'],
+                       '/home/dreamweaver/testbed/wiki/','/home/dreamweaver/svn/SWoN/src/sty/'],
              preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty",
                        "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty','planetmath-specials.sty','wiki.sty'],
              authlist=>{}, force_ids=>1

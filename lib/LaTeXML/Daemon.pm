@@ -79,7 +79,7 @@ sub prepare_options {
   $opts->{parallelmath}=0 unless (keys %{$opts->{procs_post}} > 1);
   # Default: scan and crossref on, other advanced off
   $opts->{prescan}=undef unless defined $opts->{prescan};
-  $opts->{dbfile}=undef unless defined $opts->{dbfile};
+  $opts->{dbfile}='/tmp/db.db' unless defined $opts->{dbfile};
   $opts->{scan}=1 unless defined $opts->{scan};
   $opts->{index}=1 unless defined $opts->{index};
   $opts->{split}=undef unless defined $opts->{split};
@@ -232,7 +232,7 @@ sub convert_post {
   my ($style,$parallel,$proctypes,$format,$verbosity,$defaultcss,$embed) = 
     map {$opts->{$_}} qw(stylesheet parallelmath procs_post format verbosity defaultcss embed);
   $verbosity = $verbosity||0;
-  my %PostOPS = (verbosity=>$verbosity,siteDirectory=>".");
+  our %PostOPS = (verbosity=>$verbosity,siteDirectory=>".");
   #Postprocess
   #Default is XHTML, XML otherwise (TODO: Expand)
   $format="xml" if ($style);
@@ -289,7 +289,7 @@ sub convert_post {
   if ($opts->{scan}) {
     push(@procs,$scanner);
   }
-  if (!$opts->{prescan}) {
+  if (!($opts->{prescan})) {
     if ($opts->{index}) {
       require 'LaTeXML/Post/MakeIndex.pm';
       push(@procs,LaTeXML::Post::MakeIndex->new(db=>$DB, permuted=>$opts->{permutedindex},
