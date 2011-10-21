@@ -63,7 +63,7 @@ sub prepare_options {
   my ($self,$opts) = @_;
   undef $self unless ref $self; # Only care about daemon objects, ignore when invoked as static sub
   $opts->{timeout} = 600 unless defined $opts->{timeout}; # 10 minute timeout default
-  $opts->{verbosity} = 0 unless defined $opts->{verbosity};
+  $opts->{verbosity} = 10 unless defined $opts->{verbosity};
   $opts->{preload} = [] unless defined $opts->{preload};
   $opts->{paths} = ['.'] unless defined $opts->{paths};
   $opts->{dographics} = 1 unless defined $opts->{dographics};
@@ -79,7 +79,7 @@ sub prepare_options {
   $opts->{parallelmath}=0 unless (keys %{$opts->{procs_post}} > 1);
   # Default: scan and crossref on, other advanced off
   $opts->{prescan}=undef unless defined $opts->{prescan};
-  $opts->{dbfile}='/tmp/db.db' unless defined $opts->{dbfile};
+  $opts->{dbfile}=undef unless defined $opts->{dbfile};
   $opts->{scan}=1 unless defined $opts->{scan};
   $opts->{index}=1 unless defined $opts->{index};
   $opts->{split}=undef unless defined $opts->{split};
@@ -89,6 +89,7 @@ sub prepare_options {
   $opts->{crossref}=1 unless defined $opts->{crossref};
   $opts->{sitedir}=undef unless defined $opts->{sitedir};
   $opts->{numbersections}=1 unless defined $opts->{numbersections};
+  $opts->{navtoc}=undef unless defined $opts->{numbersections};
   $opts->{urlstyle}='server' unless defined $opts->{urlstyle};
 }
 
@@ -232,7 +233,7 @@ sub convert_post {
   my ($style,$parallel,$proctypes,$format,$verbosity,$defaultcss,$embed) = 
     map {$opts->{$_}} qw(stylesheet parallelmath procs_post format verbosity defaultcss embed);
   $verbosity = $verbosity||0;
-  our %PostOPS = (verbosity=>$verbosity,siteDirectory=>".");
+  our %PostOPS = (verbosity=>$verbosity,siteDirectory=>".",nocache=>1,destination=>'.');
   #Postprocess
   #Default is XHTML, XML otherwise (TODO: Expand)
   $format="xml" if ($style);
@@ -252,7 +253,7 @@ sub convert_post {
   eval {
     local $SIG{'ALRM'} = sub { die "alarm\n" };
     alarm($opts->{timeout});
-    $doc = LaTeXML::Post::Document->new($dom,nocache=>1);
+    $doc = LaTeXML::Post::Document->new($dom,%PostOPS);
     alarm(0);
     1;
   };
@@ -285,10 +286,8 @@ sub convert_post {
     require 'LaTeXML/Post/Split.pm';
     push(@procs,LaTeXML::Post::Split->new(split_xpath=>$opts->{splitpath},splitnaming=>$opts->{splitnaming},
                                           %PostOPS)); }
-  our $scanner = ($opts->{scan} || $DB) && LaTeXML::Post::Scan->new(db=>$DB,%PostOPS);
-  if ($opts->{scan}) {
-    push(@procs,$scanner);
-  }
+  my $scanner = ($opts->{scan} || $DB) && LaTeXML::Post::Scan->new(db=>$DB,%PostOPS);
+  push(@procs,$scanner) if $opts->{scan};
   if (!($opts->{prescan})) {
     if ($opts->{index}) {
       require 'LaTeXML/Post/MakeIndex.pm';
@@ -335,7 +334,7 @@ sub convert_post {
   $main->keepTeX if ($$proctypes{'keepTeX'} && $parallel);
   push(@procs,$main);
   push(@procs,@mprocs) unless $parallel;
-  push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $$proctypes{'keepXMath'};
+  push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $proctypes->{'keepXMath'};
 
   require LaTeXML::Post::XSLT;
   my @csspaths=();
@@ -367,7 +366,6 @@ sub convert_post {
     local $SIG{'ALRM'} = sub { die "alarm\n" };
     alarm($opts->{timeout});
     ($postdoc) = LaTeXML::Post::ProcessChain($doc,@procs);
-    $DB->finish;
     alarm(0);
     1;
   };
@@ -380,7 +378,7 @@ sub convert_post {
     }
     return;
   }
-
+  $DB->finish;
   return $postdoc;
 }
 

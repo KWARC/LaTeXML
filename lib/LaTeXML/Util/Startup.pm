@@ -295,7 +295,7 @@ our $profile_templates = {
                   input_limit => 'number',
                   timeout => 'number',#Do we want this?
                   # Choice:
-                  format => 'select|xml,tex,box',
+                  format => 'select|xhtml,html5,html,xml,tex,box', #TODO
                   verbosity => 'select|-5,-1,0,1,5',
                   type => 'select|auto,bib'
 };
