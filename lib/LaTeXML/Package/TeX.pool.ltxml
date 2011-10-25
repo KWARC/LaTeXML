@@ -17,7 +17,9 @@ use Unicode::Normalize;
 use LaTeXML::Util::Alignment;
 use LaTeXML::Util::KeyVal;
 use LaTeXML::Util::Pathname;
+use Data::Dumper;
 no warnings 'redefine';
+use feature 'switch';
 
 RegisterNamespace(ltx=>"http://dlmf.nist.gov/LaTeXML");
 RegisterNamespace(svg=>"http://www.w3.org/2000/svg");
@@ -366,8 +368,67 @@ DefMacroI('\fontname', undef,sub { Explode("fontname not implemented"); });
 
 DefMacro('\meaning Token',sub {
   my($gullet,$tok)=@_;
-  my $meaning = LookupMeaning($tok);
-  Explode(defined $meaning ? $meaning : 'undefined'); });
+  my $definition = LookupMeaning($tok);
+  if ($tok == T_ALIGN) {$definition = $tok;}
+  my $meaning;
+  if (defined $definition) {
+    my $type = ref $definition;
+    $type =~ s/^LaTeXML:://;
+    #LaTeXML::Expandable and LaTeXML::Cosntructor = macro
+    #LaTeXML::Primitive and LaTeXML::Token = letter/character
+    if (lc($type)=~/primitive/) {
+      $definition = $definition->getCS;
+      $type = ref $definition;
+      $type =~ s/^LaTeXML:://;
+    }
+    if (lc($type)=~/constructor/) {
+      $definition = $definition->{cs};
+      $type = ref $definition;
+      $type =~ s/^LaTeXML:://;
+    }
+    if (lc($type)=~/token/) {
+      my $cc = $definition->getCatcode;
+      my $char = $definition->getString;
+      given($cc) {
+        when(CC_LETTER) {$meaning="the letter";}
+        when(CC_OTHER) {$meaning="the character";}
+        when(CC_ESCAPE) {$meaning="the escape character";}
+        when(CC_SUB) {$meaning="subscript character";}
+        when(CC_SUPER) {$meaning="superscript character";}
+        when(CC_MATH) {$meaning="math shift character";}
+        when (CC_BEGIN) {$meaning="begin-group character";}
+        when (CC_END) {$meaning="end-group character";}
+        when (CC_PARAM) {$meaning="macro parameter character";}
+        when (CC_ALIGN) {$meaning="alignment tab character";}
+        when (CC_SPACE) {$meaning="space character";}
+        when (CC_IGNORE) {$meaning="ignored character";}
+        when (CC_INVALID) {$meaning="invalid character";}
+        when (CC_COMMENT) {$meaning="comment character";}
+      };
+      $meaning .=" $char";
+    } elsif (lc($type)=~/expandable/) {
+      my $expansion = $definition->getExpansion;
+      my $ltxps = $$definition{parameters};
+      my @params;
+      my $argcount=0;
+      if (defined $ltxps) {
+        @params = $ltxps->getParameters;
+        $argcount = $ltxps->getNumArgs;
+      }
+      my @specparts = map {my $sp = $_->{spec}; $sp=~s/^(\w+)://; $sp;} @params;
+      my $arg=1;
+      foreach (@specparts) {
+        last if ($arg>$argcount);
+        $_.="#$arg";
+        $arg++;}
+      my $spec = join("",@specparts);
+      $spec=~s/\{\}//g;
+      $meaning="macro:".ToString($spec)."->".ToString($expansion);
+    }
+    else {$meaning = 'undefined';}
+    Explode($meaning);
+  } else {
+  Explode('undefined'); }});
 
 DefParameterType('CSName', sub {
   my($gullet)=@_;
