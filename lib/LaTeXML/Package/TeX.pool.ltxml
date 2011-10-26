@@ -381,7 +381,7 @@ DefMacro('\meaning Token',sub {
       $type = ref $definition;
       $type =~ s/^LaTeXML:://;
     }
-    if (lc($type)=~/constructor/) {
+    if (lc($type)=~/con(ditional|structor)/) {
       $definition = $definition->{cs};
       $type = ref $definition;
       $type =~ s/^LaTeXML:://;
@@ -423,6 +423,7 @@ DefMacro('\meaning Token',sub {
         $arg++;}
       my $spec = join("",@specparts);
       $spec=~s/\{\}//g;
+      $spec=~s/Token//g;
       $meaning="macro:".ToString($spec)."->".ToString($expansion);
     }
     else {$meaning = 'undefined';}
