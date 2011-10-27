@@ -22,6 +22,7 @@
   <include href="LaTeXML-picture.rng"/>
   <include href="LaTeXML-structure.rng"/>
   <include href="LaTeXML-bib.rng"/>
+  <include href="LaTeXML-metadata.rng"/>
   <define name="Inline.model">
     <a:documentation>Combined model for inline content.</a:documentation>
     <zeroOrMore>

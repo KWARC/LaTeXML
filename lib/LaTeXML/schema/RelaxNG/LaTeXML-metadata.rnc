@@ -1,0 +1,47 @@
+# /=====================================================================\ 
+# |  LaTeXML-metadata.rnc                                               |
+# | RelaxNG model for LaTeXML generated documents                       |
+# |=====================================================================|
+# | Part of LaTeXML:                                                    |
+# |  Public domain software, produced as part of work done by the       |
+# |  United States Government & not subject to copyright in the US.     |
+# |=====================================================================|
+# | Deyan Ginev <d.ginev@jacobs-university.de>                  #_#     |
+# | http://dlmf.nist.gov/LaTeXML/                              (o o)    |
+# \=========================================================ooo==U==ooo=/
+
+
+default namespace = "http://dlmf.nist.gov/LaTeXML"
+
+
+rdf =
+## Metadata that covers several `out of band' annotations.
+## It's content allows both inline and block-level content.
+element rdf { rdf_attributes, rdf_model }
+
+## Attributes for \elementref{note}.
+rdf_attributes =
+  Common.attributes,
+
+  ## indicates the RDFa property.
+  attribute property { text }?,
+
+  ## indicates the RDFa content.
+  attribute content { text }?,
+
+  ## indicates the RDFa relation.
+  attribute rel { text }?,
+
+  ## indicates the RDFa relation.
+  attribute resource { text }?,
+
+  ## indicates the RDFa content datatype.
+  attribute datatype { text }?,
+
+  ## indicates the RDFa about.
+  attribute about { text }?
+
+## Content model for \elementref{note}.
+rdf_model = Flow.model
+
+Meta.class   |= rdf

@@ -26,6 +26,8 @@ include "LaTeXML-picture.rnc"
 include "LaTeXML-structure.rnc"
 include "LaTeXML-bib.rnc"
 
+include "LaTeXML-metadata.rnc"
+
 ## Combined model for inline content.
 Inline.model = (text | Inline.class | Misc.class | Meta.class)*
 
