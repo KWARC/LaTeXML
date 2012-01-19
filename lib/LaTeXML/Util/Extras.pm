@@ -1,4 +1,14 @@
-################ LaTeXML Extras and Goodies #####################
+# /=====================================================================\ #
+# |  LaTeXML::Extras                                                    | #
+# |  Extras, Goodies and, well, things without a clear home module      | #
+# |=====================================================================| #
+# | Part of LaTeXML:                                                    | #
+# |  Public domain software, produced as part of work done by the       | #
+# |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | Deyan Ginev <d.ginev@jacobs-university.de>                  #_#     | #
+# | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
+# \=========================================================ooo==U==ooo=/ #
 
 package LaTeXML::Util::Extras;
 use XML::LibXSLT;
@@ -104,7 +114,7 @@ __END__
 
 =head1 NAME
 
-C<LaTeXML::Extra> - Extra goodies supporting LaTeXML's processing
+C<LaTeXML::Extras> - Extra goodies supporting LaTeXML's processing
 
 =head1 SYNOPSIS
 
