@@ -498,9 +498,12 @@ Creates a new daemon object with a given options hash reference $opts.
 
 RECOMMENDED preparation routine for EXTERNAL use (also see Synopsis).
 
-Top-level preparation routine that prepares both a correct options object and an initialized LaTeXML object,
-          using the "initialize_options" and "initialize_session" routines, when needed.
+Top-level preparation routine that prepares both a correct options object
+    and an initialized LaTeXML object,
+    using the "initialize_options" and "initialize_session" routines, when needed.
+
 Contains optimization checks that skip initializations unless necessary.
+
 Also adds support for partial option specifications during daemon runtime,
      falling back on the option defaults given when daemon object was created.
 
@@ -508,16 +511,18 @@ Also adds support for partial option specifications during daemon runtime,
 
 Given an options hash reference $opts, initializes a session by creating a new LaTeXML object 
       with initialized state and loading a daemonized preamble (if any).
+
 Sets the "ready" flag to true, making a subsequent "convert" call immediately possible.
 
 =item C<< $daemon->prepare_options($opts); >>
 
-Given an options hash reference $opts, performs a set of assignments of meaningful defaults (when needed)
-      and normalizations (for relative paths, etc).
+Given an options hash reference $opts, performs a set of assignments of meaningful defaults
+    (when needed) and normalizations (for relative paths, etc).
 
 =item C<< my ($result,$status,$log) = $daemon->convert($tex); >>
 
 Converts a TeX input string $tex into the LaTeXML::Document object $result.
+
 Supplies detailed information of the conversion log ($log),
          as well as a brief conversion status summary ($status).
 
@@ -539,13 +544,15 @@ Loads a daemon preamble (if needed), adding its definitions to the LaTeXML state
 =item C<< my $content = $self->prepare_content($source); >>
 
 Determines the source type (URL, file or string) and returns the retrieved content.
+
 The determined input type is saved as a "source_type" field in the daemon object.
 
 =item C<< my $postdoc = $daemon->convert_post($dom); >>
 
 Post-processes a LaTeXML::Document object $dom into a final format,
                based on the preferences specified in $self->{opts}.
-Typically used within "convert".
+
+Typically used only internally by C<convert>.
 
 =back
 
