@@ -14,7 +14,6 @@ package LaTeXML::Util::WWW;
 use strict;
 use LWP;
 use LWP::Simple;
-use IO::Prompt;
 use Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( &auth_get);

@@ -16,6 +16,7 @@ use warnings;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use Pod::Usage;
+use Data::Dumper;
 use LaTeXML;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::WWW;
@@ -24,11 +25,9 @@ use LaTeXML::Post;
 use LaTeXML::Post::Scan;
 use LaTeXML::Util::ObjectDB;
 use Carp;
-use Data::Compare;
-use feature "switch";
 
 #**********************************************************************
-our @IGNORABLE = qw(identity input_counter input_limit profile);
+our @IGNORABLE = qw(identity input_counter input_limit profile port);
 
 sub new {
   my ($class,$opts) = @_;
@@ -47,7 +46,11 @@ sub prepare_session {
   }
   #TODO: Some options like paths and includes are additive, we need special treatment there
   #1. Check if there is some change from the current situation:
-  my $nothingtodo=1 if Compare($opts, $self->{opts}, { ignore_hash_keys => [@IGNORABLE] });
+  my $opts_tmp={};
+  foreach (@IGNORABLE) {
+    $opts->{$_} = $self->{opts}->{$_} unless defined $opts->{$_};
+  }
+  my $nothingtodo=1 if LaTeXML::Util::ObjectDB::compare($opts, $self->{opts});
   #1.1. If no change, nothing to do
   unless ($nothingtodo) {
     #1.2. If some change, prepare and set options:
@@ -63,6 +66,8 @@ sub prepare_options {
   my ($self,$opts) = @_;
   undef $self unless ref $self; # Only care about daemon objects, ignore when invoked as static sub
   $opts->{timeout} = 600 unless defined $opts->{timeout}; # 10 minute timeout default
+  $opts->{input_limit} = 100 unless defined $opts->{input_limit};
+  $opts->{format} = 'xml' unless defined $opts->{format};
   $opts->{verbosity} = 10 unless defined $opts->{verbosity};
   $opts->{preload} = [] unless defined $opts->{preload};
   $opts->{paths} = ['.'] unless defined $opts->{paths};
@@ -91,6 +96,7 @@ sub prepare_options {
   $opts->{numbersections}=1 unless defined $opts->{numbersections};
   $opts->{navtoc}=undef unless defined $opts->{numbersections};
   $opts->{urlstyle}='server' unless defined $opts->{urlstyle};
+  $opts->{type} = 'auto' unless defined $opts->{type};
 }
 
 sub initialize_session {
@@ -217,7 +223,6 @@ sub convert {
 
   my $result = $dom;
   $result = $self->convert_post($dom) if ($opts->{post} && $dom && (!$opts->{noparse}));
-
   # Close and restore STDERR to original condition.
   close LOG;
   *STDERR=*ERRORIG;
@@ -239,13 +244,12 @@ sub convert_post {
   $format="xml" if ($style);
   $format="xhtml" unless (defined $format);
   if (!$style) {
-    given ($format) {
-      when ("xhtml") {$style = "LaTeXML-xhtml.xsl";}
-      when ("html") {$style = "LaTeXML-html.xsl";}
-      when ("html5") {$style = "LaTeXML-html5.xsl";}
-      when ("xml") {undef $style;}
-      default {Error("Unrecognized target format: $format");}
-    }}
+    if ($format eq "xhtml") {$style = "LaTeXML-xhtml.xsl";}
+    elsif ($format eq "html") {$style = "LaTeXML-html.xsl";}
+    elsif ($format eq "html5") {$style = "LaTeXML-html5.xsl";}
+    elsif ($format eq "xml") {undef $style;}
+    else {Error("Unrecognized target format: $format");}
+  }
   my @css=();
   unshift (@css,"core.css") if ($defaultcss);
   $parallel = $parallel||0;
@@ -358,7 +362,8 @@ sub convert_post {
   push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
 					 parameters=>{number_sections
 						      =>("true()"),
-                                                      (@csspaths ? (CSS=>[@csspaths]):()),},
+                                                      (@csspaths ? (CSS=>[@csspaths]):()),
+					 ($opts->{styleparam} ? %{$opts->{styleparam}}:())},
                                        %PostOPS)) if $style;
   }
   my $postdoc;
@@ -431,36 +436,37 @@ sub load_preamble {
 sub prepare_content {
   my ($self,$source)=@_;
   $source=~s/\n$//g; # Eliminate trailing new lines
-
   my $opts=$self->{opts};
-  given ($opts->{source_type}) {
-    when ("string") {return $source;}
-    when ("file") { if ($opts->{local}) {
-                    my $file = pathname_find($source,types=>['tex',q{}]);
-                    $file = pathname_canonical($file) if $file;
-                    #Recognize bibtex case
-                    $opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && ($file =~ /\.bib$/);
-                    return $file; }
-                  else {print STDERR "File input only allowed when 'local' is enabled,"
-                                    ."falling back to string input..";
-                        $opts->{source_type}="string"; return $source; }}
-    when ("url") {  my $response = auth_get($source,$opts->{authlist});
-                  if ($response->is_success) {return $response->content;} else {
-                  print STDERR "TODO: Flag a retrieval error and do something smart?"; return undef;}}
-    default { # Guess the input type:
-      my @source_lines = split(/\n/,$source);
-      if (scalar(@source_lines)>1) {$opts->{source_type}="string"; return $source; }
+  if (defined $opts->{source_type}) {
+    if ($opts->{source_type} eq "string") {return $source;}
+    elsif ($opts->{source_type} eq "file") {
       if ($opts->{local}) {
-        my $file = pathname_find($source,types=>['tex',q{}]);
-        $file = pathname_canonical($file) if $file;
-        #Recognize bibtex case
-        $opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && ($file =~ /\.bib$/);
-        if ($file) {$opts->{source_type}="file"; return $file; }
-      }
+	my $file = pathname_find($source,types=>['tex',q{}]);
+	$file = pathname_canonical($file) if $file;
+	#Recognize bibtex case
+	$opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && ($file =~ /\.bib$/);
+	return $file; }
+      else {print STDERR "File input only allowed when 'local' is enabled,"
+	      ."falling back to string input..";
+	    $opts->{source_type}="string"; return $source; }}
+    elsif ($opts->{source_type} eq "url") {
       my $response = auth_get($source,$opts->{authlist});
-      if ($response->is_success) {$opts->{source_type}="url"; return $response->content; }
-      $opts->{source_type}="string"; return $source;
+      if ($response->is_success) {return $response->content;} else {
+	print STDERR "TODO: Flag a retrieval error and do something smart?"; return undef;}}
+  }
+  else { # Guess the input type:
+    my @source_lines = split(/\n/,$source);
+    if (scalar(@source_lines)>1) {$opts->{source_type}="string"; return $source; }
+    if ($opts->{local}) {
+      my $file = pathname_find($source,types=>['tex',q{}]);
+      $file = pathname_canonical($file) if $file;
+      #Recognize bibtex case
+      $opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && ($file =~ /\.bib$/);
+      if ($file) {$opts->{source_type}="file"; return $file; }
     }
+    my $response = auth_get($source,$opts->{authlist});
+    if ($response->is_success) {$opts->{source_type}="url"; return $response->content; }
+    $opts->{source_type}="string"; return $source;
   }
 }
 

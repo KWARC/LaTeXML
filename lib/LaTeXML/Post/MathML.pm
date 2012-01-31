@@ -1308,7 +1308,7 @@ sub translateParallel {
 		    $_->translateNode($doc,$xmath,$style,'m:annotation-xml')],
 		   @{$$self{math_processors}});
   # And, a TeX encoding, if any
-  push(@annot,['m:annotation',{encoding=>'application/x-tex'}, $tex]) if defined $tex;
+  push(@annot,['m:annotation',{encoding=>'application/x-tex'}, $tex]) if ($$self{keepTeX} && defined $tex);
   my @trans = ['m:semantics',{},
 	       $self->translateNode($doc,$xmath,$style,'m:semantics'),
 	       @annot ];

@@ -19,7 +19,6 @@ use LaTeXML::Util::KeyVal;
 use LaTeXML::Util::Pathname;
 use Data::Dumper;
 no warnings 'redefine';
-use feature 'switch';
 
 RegisterNamespace(ltx=>"http://dlmf.nist.gov/LaTeXML");
 RegisterNamespace(svg=>"http://www.w3.org/2000/svg");
@@ -389,22 +388,22 @@ DefMacro('\meaning Token',sub {
     if (lc($type)=~/token/) {
       my $cc = $definition->getCatcode;
       my $char = $definition->getString;
-      given($cc) {
-        when(CC_LETTER) {$meaning="the letter";}
-        when(CC_OTHER) {$meaning="the character";}
-        when(CC_ESCAPE) {$meaning="the escape character";}
-        when(CC_SUB) {$meaning="subscript character";}
-        when(CC_SUPER) {$meaning="superscript character";}
-        when(CC_MATH) {$meaning="math shift character";}
-        when (CC_BEGIN) {$meaning="begin-group character";}
-        when (CC_END) {$meaning="end-group character";}
-        when (CC_PARAM) {$meaning="macro parameter character";}
-        when (CC_ALIGN) {$meaning="alignment tab character";}
-        when (CC_SPACE) {$meaning="space character";}
-        when (CC_IGNORE) {$meaning="ignored character";}
-        when (CC_INVALID) {$meaning="invalid character";}
-        when (CC_COMMENT) {$meaning="comment character";}
-      };
+
+      if ($cc == CC_LETTER) {$meaning="the letter";}
+      elsif ($cc == CC_OTHER) {$meaning="the character";}
+      elsif ($cc == CC_ESCAPE) {$meaning="the escape character";}
+      elsif ($cc == CC_SUB) {$meaning="subscript character";}
+      elsif ($cc == CC_SUPER) {$meaning="superscript character";}
+      elsif ($cc == CC_MATH) {$meaning="math shift character";}
+      elsif ($cc == CC_BEGIN) {$meaning="begin-group character";}
+      elsif ($cc == CC_END) {$meaning="end-group character";}
+      elsif ($cc == CC_PARAM) {$meaning="macro parameter character";}
+      elsif ($cc == CC_ALIGN) {$meaning="alignment tab character";}
+      elsif ($cc == CC_SPACE) {$meaning="space character";}
+      elsif ($cc == CC_IGNORE) {$meaning="ignored character";}
+      elsif ($cc == CC_INVALID) {$meaning="invalid character";}
+      elsif ($cc == CC_COMMENT) {$meaning="comment character";}
+      
       $meaning .=" $char";
     } elsif (lc($type)=~/expandable/) {
       my $expansion = $definition->getExpansion;

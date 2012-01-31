@@ -11,11 +11,16 @@
 # \=========================================================ooo==U==ooo=/ #
 
 package LaTeXML::Util::Extras;
+use strict;
+use warnings;
+use Carp;
+use Getopt::Long qw(:config no_ignore_case);
 use XML::LibXSLT;
 use XML::LibXML;
+use LaTeXML::Util::Pathname;
 use Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw( &MathDoc &GetMath &GetEmbeddable &InsertIDs);
+our @EXPORT = qw( &MathDoc &GetMath &GetEmbeddable &InsertIDs &Compare &ReadOptions);
 
 sub MathDoc {
 #======================================================================
@@ -71,7 +76,7 @@ sub GetEmbeddable {
   return $docdiv;
 }
 
-our $id_xslt_dom = XML::LibXML->load_xml(no_blanks=>1, string => <<'EOT');
+our $id_xslt_dom = XML::LibXML->new()->parse_string(<<'EOT');
 <!-- this style sheet introduces automatic IDs to an XHTML document-->
 <xsl:stylesheet version="1.0"
   xmlns:xsl = "http://www.w3.org/1999/XSL/Transform"
@@ -105,6 +110,82 @@ sub InsertIDs {
   return unless defined $doc;
   return LaTeXML::Post::Document->new($id_xslt->transform($doc->getDocument));
 }
+
+sub ReadOptions {
+  my ($opts,$argref) = @_;
+  local @ARGV = @$argref;
+  my ($ret,$args) = GetOptions(
+	   "output=s"  => sub {$opts->{destination} = $_[1];},
+           "destination=s" => sub {$opts->{destination} = $_[1];},
+           "postdest=s" => sub {$opts->{postdest} = $_[1];},
+	   "preload=s" => sub { push @{$opts->{preload}}, $_[1]},
+	   "preamble=s" => sub {$opts->{preamble} = $_[1];},
+           "base=s"  => sub {$opts->{base} = $_[1];},
+	   "path=s"    => sub { push @{$opts->{paths}}, $_[1]},
+	   "quiet"     => sub { $opts->{verbosity}--; },
+	   "verbose"   => sub { $opts->{verbosity}++; },
+	   "strict"    => sub { $opts->{strict} = 1; },
+	   "xml"       => sub { $opts->{format} = 'xml'; },
+	   "tex"       => sub { $opts->{format} = 'tex'; },
+	   "box"       => sub { $opts->{format} = 'box'; },
+	   "bibtex"    => sub { $opts->{type}='bibtex'; },
+	   "noparse"   => sub { $opts->{noparse} = 1; },
+	   "format=s"   => sub { $opts->{format} = $_[1]; },
+	   "profile=s"  => sub { $opts->{profile} = $_[1]; },
+	   "mode=s"  => sub { $opts->{profile} = $_[1]; },
+           "source=s"  => sub { $opts->{source} = $_[1]; },
+           "embed"   => sub { $opts->{embed} = 1; },
+           "noembed"   => sub { $opts->{embed} = 0; },
+	   "autoflush=s" => sub { $opts->{input_limit} = $_[1]; },
+           "timeout=s"   => sub { $opts->{timeout} = $_[1]; },
+           "port=s"      => sub { $opts->{port} = $_[1]; },
+           "local"       => sub { $opts->{local} = 1; },
+           "nolocal"       => sub { $opts->{local} = 0; },
+	   "log=s"       => sub { $opts->{log} = $_[1]; },
+           "postlog=s"   => sub { $opts->{postlog} = $_[1]; },
+           "summary"    => sub { $opts->{summary} = 1; },
+           "nosummary"    => sub { $opts->{summary} = 0; },
+	   "includestyles"=> sub { $opts->{includestyles} = 1; },
+	   "inputencoding=s"=> sub { $opts->{inputencoding} = $_[1]; },
+	   "post"      => sub {$opts->{post} = 1; },
+	   "pmml"      => sub {$opts->{procs_post}->{'pmml'}=1;},
+	   "cmml"      => sub {$opts->{procs_post}->{'cmml'}=1;},
+	   "openmath"  => sub {$opts->{procs_post}->{'openmath'}=1;},
+	   "keepTeX"   => sub {$opts->{procs_post}->{'keepTeX'}=1;},
+	   "keepXMath" => sub {$opts->{procs_post}->{'keepXMath'}=1;},
+	   "parallelmath" => sub {$opts->{parallelmath} = 1;},
+	   "stylesheet=s"=>  sub {$opts->{stylesheet} = $_[1];},
+           "styleparam=s" => sub {my ($k,$v) = split(':',$_[1]);
+                                  $opts->{styleparam}->{$k}=$v;},
+	   "css=s"       =>  sub {$opts->{css}=$_[1];},
+	   "defaultcss" =>  sub {$opts->{defaultcss} = 1;},
+	   "nodefaultcss" =>  sub {$opts->{defaultcss} = 0;},
+	   "comments" =>  sub { $opts->{comments} = 1; },
+	   "nocomments"=> sub { $opts->{comments} = 0; },
+	   "VERSION"   => sub { $opts->{showversion}=1;},
+	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
+           "documentid=s" => sub { $opts->{documentid} = $_[1];},
+	   "help"      => sub { $opts->{help} = 1; } ,
+	  ) or pod2usage(-message => $opts->{identity}, -exitval=>1, -verbose=>0, -output=>\*STDERR);
+pod2usage(-message=>$opts->{identity}, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $opts->{help};
+if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
+  {carp "I/O from filesystem not allowed without --local!\n".
+     " Will revert to sockets!\n";
+   undef $opts->{destination}; undef $opts->{log};
+   undef $opts->{postdest}; undef $opts->{postlog};}
+# Check that destination is valid before wasting any time...
+if($opts->{destination}){
+  $opts->{destination} = pathname_canonical($opts->{destination});
+  if(my $dir =pathname_directory($opts->{destination})){
+    pathname_mkdir($dir) or croak "Couldn't create destination directory $dir: $!"; }}
+
+# HOWEVER, any post switch implies post:
+$opts->{post}=1 if (keys %{$opts->{procs_post}});
+if($opts->{showversion}){ print STDERR $opts->{identity}."\n"; exit(1); }
+  $opts->{source} = $ARGV[0] unless $opts->{source};
+  return;
+}
+
 
 1;
 
@@ -140,17 +221,25 @@ Given an expression in TeX's math mode, this routine constructs a LaTeX
 
 =item C<< my $mathml_math_snippet = GetMath($xhtml_doc); >>
 
-Extracts the first MathML math XML snippet in an XHTML document, provided as a LaTeXML::Document object.
+Extracts the first MathML math XML snippet in an XHTML document, provided as a
+    LaTeXML::Document object.
 
 =item C<< my $body_div_snippet = GetEmbeddable($xhtml_doc); >>
 
 Extracts the body <div> element of an XHTML document produced by LaTeXML's stylesheet for XHTML, 
- provided as a LaTeXML::Document object.
+    provided as a LaTeXML::Document object.
 
 =item C<< my $xhtml_doc_with_ids = InsertIDs($xhtml_doc); >>
 
-Inserts pseudo-random identifiers in any XHTML document, provided as a LaTeXML::Document object on input.
- Uses XSLT's "generate-id()" mechanism.
+Inserts pseudo-random identifiers in any XHTML document, provided as a
+    LaTeXML::Document object on input.
+
+Uses XSLT's "generate-id()" mechanism.
+
+=item C<< my $bool = Compare($a, $b); >>
+
+Compares to hashrefs $a and $b, assuming they represent LaTeXML Options objects.
+    Returns true if they are identical, False if different.
 
 =back
 

@@ -6,7 +6,6 @@ use LaTeXML::Daemon;
 use Data::Dumper;
 $Data::Dumper::Terse = 1;          # don't output names where feasible
 $Data::Dumper::Indent = 3;         # turn off all pretty print
-use feature qw(switch);
 
 our $DB_FILE = 'LaTeXML_Startup.cache';
 #TODO: Eliminate redundant options
@@ -28,17 +27,9 @@ fragment => {
              fragment_preamble=>'standard_preamble.tex', fragment_postamble=>'standard_postamble.tex',
              stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{},
              documentid =>q{}, type=>'auto', css => [], debugs=>[],
-             paths => ['.','/usr/share/texmf/tex/latex/pgf/basiclayer','/usr/share/texmf/tex/generic/pgf/basiclayer',
-                       '/usr/share/texmf/tex/latex/pgf/systemlayer','/usr/share/texmf-texlive/tex/latex/graphics',
-                       '/usr/share/texmf/tex/generic/pgf/systemlayer','/usr/share/texmf/tex/generic/pgf/systemlayer',
-                       '/usr/share/texmf/tex/latex/pgf/utilities','/usr/share/texmf/tex/generic/pgf/utilities',
-                       '/usr/share/texmf/tex/generic/pgf/math','/usr/share/texmf/tex/generic/pgf/modules',
-                       '/usr/share/texmf/tex/latex/pgf/compatibility/','/etc/texmf/tex/latex/config/','/usr/share/texmf/tex/latex/xcolor/',
-                       '/home/dreamweaver/svn/arXMLiv/trunk/work_in_progress/sty/pgf','/home/dreamweaver/svn/arXMLiv/trunk/work_in_progress/sty/xcolor',
-                       '/home/dreamweaver/svn/LaTeXML-branch/contrib/package/webgraphic/',
-                       '/home/dreamweaver/testbed/wiki/','/home/dreamweaver/svn/SWoN/src/sty/'],
+             paths => ['.'],
              preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty",
-                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty','planetmath-specials.sty','wiki.sty'],
+                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty'],
              authlist=>{}, force_ids=>1
             },
 'fragment-html' => {
@@ -49,16 +40,9 @@ fragment => {
              fragment_preamble=>'standard_preamble.tex', fragment_postamble=>'standard_postamble.tex',
              stylesheet=>q{},defaultcss=>1,summary=>0,icon=>0, inputencoding=>q{},
              documentid =>q{}, type=>'auto', css => [], debugs=>[],
-             paths => ['.','/usr/share/texmf/tex/latex/pgf/basiclayer','/usr/share/texmf/tex/generic/pgf/basiclayer',
-                       '/usr/share/texmf/tex/latex/pgf/systemlayer','/usr/share/texmf-texlive/tex/latex/graphics',
-                       '/usr/share/texmf/tex/generic/pgf/systemlayer','/usr/share/texmf/tex/generic/pgf/systemlayer',
-                       '/usr/share/texmf/tex/latex/pgf/utilities','/usr/share/texmf/tex/generic/pgf/utilities',
-                       '/usr/share/texmf/tex/generic/pgf/math','/usr/share/texmf/tex/generic/pgf/modules',
-                       '/usr/share/texmf/tex/latex/pgf/compatibility/','/etc/texmf/tex/latex/config/','/usr/share/texmf/tex/latex/xcolor/',
-                       '/home/dreamweaver/svn/arXMLiv/trunk/work_in_progress/sty/pgf','/home/dreamweaver/svn/arXMLiv/trunk/work_in_progress/sty/xcolor',
-                       '/home/dreamweaver/svn/LaTeXML-branch/contrib/package/webgraphic/'],
+             paths => ['.'],
              preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty",
-                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty'],#'planetmath-specials.sty','wiki.sty'
+                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty'],
              authlist=>{}, force_ids=>1
             },
 math => {
@@ -74,7 +58,7 @@ math => {
              debugs=>[], authlist=>{}
         },
 
-'stex-oregano' => {identity=>"Mojo for LaTeXML, v$version; Profile: stex",
+'stex-oregano' => {identity=>"Mojo for LaTeXML, v$LaTeXML::VERSION; Profile: stex",
          paths=>['/arXMLiv/trunk/build/contrib/package/webgraphic',
                  '/arXMLiv/trunk/build/contrib/stex/sty',
                  '/arXMLiv/trunk/build/contrib/stex/rnc',
@@ -109,7 +93,7 @@ math => {
          documentid =>q{}, type=>'auto', css => [],
          preload=>['.'], debugs=>[], authlist=>{}},
 
-#bibtex => {identity=>"Mojo for LaTeXML, v$version; Profile: bibtex"}, #TODO
+#bibtex => {identity=>"Mojo for LaTeXML, v$LaTeXML::VERSION; Profile: bibtex"}, #TODO
 linguistic => { verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
              noparse=>1, post=>0, parallelmath=>0, input_counter=>0, input_limit=>0,
              embed=>0, timeout=>60, format=>'xml', base=>q{},
@@ -320,46 +304,45 @@ sub _inner_handle {
   my ($e,$t,$entry,$flag) = @_;
   my ($type, $spec) = split(/\|/,$t);
   my $summary = q{};
-  given ($type) {
-    when ('bool') {    $summary .= "<tr><td>$e</td><td class=\"input\"><select name=\"$e\">";
-                       if ($entry->getValue($e)||$flag) {
-                         $summary .= "<option value=\"1\">yes</option><option value=\"0\">no</option>";
-                       } else {
-                         $summary .= "<option value=\"0\">no</option><option value=\"1\">yes</option>";
-                       }
-                       $summary.="</td></tr>\n"; }
-    when ('text') { $summary .= "<tr><td>$e</td><td class=\"input\"><input name=\"$e\"></td></tr>\n"; }
-    when ('pass') { $summary .= "<tr><td>$e</td><td class=\"input\"><input type=\"password\" name=\"$e\"></td></tr>\n"; }
-    when ('number') { $summary .= "<tr><td>$e</td><td class=\"input\"><input name=\"$e\"></td></tr>\n"; }
-    when ('select') {
+  if ($type eq 'bool') {    $summary .= "<tr><td>$e</td><td class=\"input\"><select name=\"$e\">";
+			    if ($entry->getValue($e)||$flag) {
+				$summary .= "<option value=\"1\">yes</option><option value=\"0\">no</option>";
+			    } else {
+				$summary .= "<option value=\"0\">no</option><option value=\"1\">yes</option>";
+			    }
+			    $summary.="</td></tr>\n"; }
+  elsif ($type eq 'text') { $summary .= "<tr><td>$e</td><td class=\"input\"><input name=\"$e\"></td></tr>\n"; }
+  elsif ($type eq 'pass') { $summary .= "<tr><td>$e</td><td class=\"input\"><input type=\"password\" name=\"$e\"></td></tr>\n"; }
+  elsif ($type eq 'number') { $summary .= "<tr><td>$e</td><td class=\"input\"><input name=\"$e\"></td></tr>\n"; }
+  elsif ($type eq 'select') {
       $summary .= "<tr><td>$e</td><td class=\"input\"><select name=\"$e\">";
       my $sel = $entry->getValue($e);
       foreach (split(',',$spec)) {
-        if ($sel ne $_ ) {
-          $summary .= "<option value=\"$_\">$_</option>";
-        } else {
-          $summary .= "<option value=\"$_\" selected>$_</option>";
-        }
+	  if ($sel ne $_ ) {
+	      $summary .= "<option value=\"$_\">$_</option>";
+	  } else {
+	      $summary .= "<option value=\"$_\" selected>$_</option>";
+	  }
       }
       $summary.="</td></tr>\n"; }
-    when ('arrayref') {
+  elsif ($type eq 'arrayref') {
       my $current = $entry->getValue($e);
       $summary .= "<tr><td>$e";
       $summary .= "</td><td class=\"input\"><input name=\"$e\" value=\"$_\"></td></tr><tr><td>\n" foreach @$current;
       $summary.= "</td><td></td></tr>";
     }
-    when ('hashref') {
+  elsif ($type eq 'hashref') {
       my $current = $entry->getValue($e);
       $summary .= "<tr><td style=\"border-bottom:2px dashed gray;\">&nbsp;</td><td style=\"border-bottom:2px dashed gray;\">&nbsp;<td/></tr>";
       $summary .= "<tr><td><b>Block $e</b><td></td></tr>";
       foreach (split(/,/,$spec)) {
-        my ($in_e,$in_t) = split(/:/,$_);
-        $summary .= _inner_handle($in_e,$in_t,$entry,$current->{$in_e});
+	  my ($in_e,$in_t) = split(/:/,$_);
+	  $summary .= _inner_handle($in_e,$in_t,$entry,$current->{$in_e});
       }
       $summary .= "<tr><td style=\"border-top:2px dashed gray;\">&nbsp;</td><td style=\"border-top:2px dashed gray;\">&nbsp;<td/></tr>";
-    }
-    default {}
   }
+
+
   $summary;
 }
 

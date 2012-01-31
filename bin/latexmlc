@@ -5,61 +5,105 @@
 #######################
 
 use strict;
-use FindBin;
-use lib "$FindBin::RealBin/../lib";
 use Pod::Usage;
 use Carp;
 use Cwd qw(cwd abs_path);
 use IO::Socket;
+use FindBin;
+use lib "$FindBin::RealBin/../lib";
 use LaTeXML::Util::Pathname;
+use LaTeXML::Util::Extras;
+use Storable qw(freeze thaw);
+use Encode;
 
-my @opts = grep ($_ =~ /^-/,@ARGV);
-my @args = grep ($_ !~ /^-/,@ARGV);
 
+my $opts={};
+ReadOptions($opts,\@ARGV);
+
+# Standard profile, unless specified
+$opts->{profile} = 'custom' unless defined $opts->{profile};
 #Need to make all paths absolute
-my ($port) = map {$_=~/(\d+)/; $1;} grep {$_ =~ /^--port=(\d+)/;} @opts;
-my ($mode) = map {$_=~/--mode=(\w+)/; $1;} grep {$_ =~ /^--mode=(\w+)/;} @opts;
-$mode="standard" unless $mode; #Default is standard
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
-$port = $portlist{$mode} unless $port;
-$port = 3334 unless $port; #Fall back to 3334 if all fails...
+$opts->{port} = $portlist{$opts->{profile}} unless $opts->{port};
+$opts->{port} = 3334 unless $opts->{port}; #Fall back to 3334 if all fails...
 
 #***************************************************************************
 #Add some base, so that relative paths work
 my $cdir = abs_path(cwd());
 $cdir =~ s/ /\\ /g;
-my ($base) = map {$_=~/(\S+)/; $1;} grep {$_ =~ /^--base=(\S+)$/;} @opts;
-push(@opts,'--base='.$cdir) unless $base;
+$opts->{base}=$cdir unless $opts->{base};
+
+# Record if destination exists, for summary
+
+my $deststat = (stat($opts->{destination}))[9] if ($opts->{summary} && $opts->{destination});
+$deststat = 0 unless $deststat;
+
+# Revert to sockets if no --local
+if (!$opts->{local} && ($opts->{destination} || $opts->{log}))
+  {carp "I/O from filesystem not allowed without --local!\n".
+     " Will revert to sockets!\n";
+   undef $opts->{destination}; undef $opts->{log}; }
+
 
 #***************************************************************************
 #Setup client and communicate
 my $sock = new IO::Socket::INET
   ( PeerAddr => '127.0.0.1',
-    PeerPort => $port,
+    PeerPort => $opts->{port},
     Proto => 'tcp',
   ); #Attempt connecting to a service
 unless ($sock) {
   #Startup daemon with @opts and feed in args
-  push(@opts,'--path='.$cdir);#add current path
-  system('latexmls',@opts);
+  push @{$opts->{paths}}, $cdir;#add current path
+  system('latexmls','--port='.$opts->{port});
 }
-#Daemon is running, feed in @args and @opts
-foreach my $arg(@args) {
-  $sock = new IO::Socket::INET 
-    ( PeerAddr => '127.0.0.1',
-      PeerPort => $port,
-      Proto => 'tcp',
-    );
-  croak "Could not create socket: $!\n" unless $sock; 
-  my ($text,$batch);
-  $sock->send(join(" ",@opts)."\n".$arg."\nEND REQUEST\n");
-  do {
-    $sock->recv($batch,1024);
-    $text.=$batch;
-  } while ($batch);
-  print $text;
-}
+#Daemon is running, feed in request
+$sock = new IO::Socket::INET 
+  ( PeerAddr => '127.0.0.1',
+    PeerPort => $opts->{port},
+    Proto => 'tcp',
+  );
+croak "Could not create socket: $!\n" unless $sock; 
+my ($response,$batch);
+$sock->send(freeze($opts)."\nEND REQUEST\n");
+do {
+  $sock->recv($batch,1024);
+  $response.=$batch;
+} while ($batch);
 close($sock);
+
+$response = thaw($response);
+
+my  ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
+
+# Special features for latexmls:
+if ($opts->{log} && $opts->{local}) {
+  my $clog = $opts->{log};
+  open(LOG,">",$clog) or croak "Couldn't open log file $clog : $!\n";
+  print LOG encode('UTF-8',$log);
+  close LOG;
+} else {print STDERR encode('UTF-8',$log),"\n";}#STDERR log otherwise
+
+if ($opts->{destination} && $opts->{local}) {
+  open(OUT,">",$opts->{destination}) or croak "Couldn't open output file ".$opts->{destination}.": $!";
+  print OUT encode('UTF-8',$result);
+  close OUT;
+} else { print STDOUT encode('UTF-8',$result),"\n"; } #Output to STDOUT
+
+# Print summary, if requested, to STDERR
+if ($opts->{summary} && $opts->{destination}) {
+  $status.="\n";
+  print STDERR $status,summary($opts->{destination},$deststat);
+}
+
+# == Helpers ==
+sub summary {
+  my ($dest,$deststat) = @_;
+  my $newstat = (stat($dest))[9];
+  $newstat = 0 unless $newstat;
+  if ($newstat && ($deststat != $newstat)) { "\nWrote $dest\n"; }
+  else { "\nError! Did not write file $dest\n"; }
+}
 
 #**********************************************************************
 __END__
