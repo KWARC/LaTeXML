@@ -27,7 +27,7 @@ use LaTeXML::Util::ObjectDB;
 use Carp;
 
 #**********************************************************************
-our @IGNORABLE = qw(identity input_counter input_limit profile port);
+our @IGNORABLE = qw(identity input_counter input_limit profile port preamble_loaded port destination log);
 
 sub new {
   my ($class,$opts) = @_;
@@ -44,21 +44,29 @@ sub prepare_session {
   foreach (keys %{$self->{defaults}}) {
     $opts->{$_} = $self->{defaults}->{$_} unless exists $opts->{$_};
   }
+  # 1. Ensure option "sanity"
+  $self->prepare_options($opts);
+
   #TODO: Some options like paths and includes are additive, we need special treatment there
-  #1. Check if there is some change from the current situation:
+  #2. Check if there is some change from the current situation:
   my $opts_tmp={};
   foreach (@IGNORABLE) {
-    $opts->{$_} = $self->{opts}->{$_} unless defined $opts->{$_};
+    $opts_tmp->{$_} = $opts->{$_};
+    $opts->{$_} = $self->{opts}->{$_};
   }
-  my $nothingtodo=1 if LaTeXML::Util::ObjectDB::compare($opts, $self->{opts});
-  #1.1. If no change, nothing to do
-  unless ($nothingtodo) {
-    #1.2. If some change, prepare and set options:
-    $self->prepare_options($opts);
+
+  my $something_to_do=1 unless LaTeXML::Util::ObjectDB::compare($opts, $self->{opts});
+
+  #2.1. If no change, nothing to do, otherwise set new options
+  if ($something_to_do) {
+    #2.2. Reinstate ignorables:
+    $opts->{$_} = $opts_tmp->{$_} foreach (@IGNORABLE);
     $self->{opts} = $opts;
   }
+
   # ... and initialize a session:
-  $self->initialize_session unless ($nothingtodo && $self->{ready});
+  $self->initialize_session if ($something_to_do || (! $self->{ready}));
+
   return;
 }
 

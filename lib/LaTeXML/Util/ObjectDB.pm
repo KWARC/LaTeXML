@@ -125,20 +125,26 @@ sub finish {
 sub compare {
   my($a,$b)=@_;
   my $ra = ref $a;
-  if(! $ra){
+  if(! $ra) {
     if(ref $b){ 0; }
-    else { $a eq $b; }}
+    else { compare_scalar($a,$b); }}
   elsif($ra ne ref $b){ 0; }
   elsif($ra eq 'HASH'){ compare_hash($a,$b); }
   elsif($ra eq 'ARRAY'){ compare_array($a,$b); }
-  else { $a eq $b;}}
+  else { compare_scalar($a,$b); }}
+
+sub compare_scalar {
+  my ($a,$b) = @_;
+  ((! defined $a) && (! defined $b)) ||
+    (defined $a && defined $b && $a eq $b);
+}
 
 sub compare_hash {
   my($a,$b)=@_;
   my %attr = ();
   map($attr{$_}=1, keys %$a);
   map($attr{$_}=1, keys %$b);
-  (grep( !( (defined $$a{$_}) && (defined $$b{$_})
+  (grep( !( (exists $$a{$_}) && (exists $$b{$_})
 	    && compare($$a{$_}, $$b{$_}) ), keys %attr) ? 0 : 1); }
 
 sub compare_array {

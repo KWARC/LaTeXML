@@ -167,21 +167,26 @@ sub ReadOptions {
            "documentid=s" => sub { $opts->{documentid} = $_[1];},
 	   "help"      => sub { $opts->{help} = 1; } ,
 	  ) or pod2usage(-message => $opts->{identity}, -exitval=>1, -verbose=>0, -output=>\*STDERR);
-pod2usage(-message=>$opts->{identity}, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $opts->{help};
-if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
-  {carp "I/O from filesystem not allowed without --local!\n".
-     " Will revert to sockets!\n";
-   undef $opts->{destination}; undef $opts->{log};
-   undef $opts->{postdest}; undef $opts->{postlog};}
-# Check that destination is valid before wasting any time...
-if($opts->{destination}){
-  $opts->{destination} = pathname_canonical($opts->{destination});
-  if(my $dir =pathname_directory($opts->{destination})){
-    pathname_mkdir($dir) or croak "Couldn't create destination directory $dir: $!"; }}
 
-# HOWEVER, any post switch implies post:
-$opts->{post}=1 if (keys %{$opts->{procs_post}});
-if($opts->{showversion}){ print STDERR $opts->{identity}."\n"; exit(1); }
+  pod2usage(-message=>$opts->{identity}, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $opts->{help};
+
+  if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
+    {carp "I/O from filesystem not allowed without --local!\n".
+       " Will revert to sockets!\n";
+     undef $opts->{destination}; undef $opts->{log};
+     undef $opts->{postdest}; undef $opts->{postlog};}
+  
+  # Check that destination is valid before wasting any time...
+  if($opts->{destination}){
+    $opts->{destination} = pathname_canonical($opts->{destination});
+    if(my $dir =pathname_directory($opts->{destination})){
+      pathname_mkdir($dir) or croak "Couldn't create destination directory $dir: $!"; }}
+  
+  # HOWEVER, any post switch implies post:
+  $opts->{post}=1 if (keys %{$opts->{procs_post}});
+
+  if($opts->{showversion}){ print STDERR $opts->{identity}."\n"; exit(1); }
+
   $opts->{source} = $ARGV[0] unless $opts->{source};
   return;
 }

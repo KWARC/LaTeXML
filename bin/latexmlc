@@ -44,6 +44,7 @@ if (!$opts->{local} && ($opts->{destination} || $opts->{log}))
      " Will revert to sockets!\n";
    undef $opts->{destination}; undef $opts->{log}; }
 
+push @{$opts->{paths}}, $cdir;#add current path, to ensure never empty
 
 #***************************************************************************
 #Setup client and communicate
@@ -54,7 +55,6 @@ my $sock = new IO::Socket::INET
   ); #Attempt connecting to a service
 unless ($sock) {
   #Startup daemon with @opts and feed in args
-  push @{$opts->{paths}}, $cdir;#add current path
   system('latexmls','--port='.$opts->{port});
 }
 #Daemon is running, feed in request
@@ -77,22 +77,25 @@ $response = thaw($response);
 my  ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
 
 # Special features for latexmls:
-if ($opts->{log} && $opts->{local}) {
-  my $clog = $opts->{log};
-  open(LOG,">",$clog) or croak "Couldn't open log file $clog : $!\n";
-  print LOG encode('UTF-8',$log);
-  close LOG;
-} else {print STDERR encode('UTF-8',$log),"\n";}#STDERR log otherwise
+if ($log) {
+  if ($opts->{log} && $opts->{local}) {
+    my $clog = $opts->{log};
+    open(LOG,">",$clog) or croak "Couldn't open log file $clog : $!\n";
+    print LOG encode('UTF-8',$log);
+    close LOG;
+  } else {print STDERR encode('UTF-8',$log),"\n";}#STDERR log otherwise
+}
 
-if ($opts->{destination} && $opts->{local}) {
-  open(OUT,">",$opts->{destination}) or croak "Couldn't open output file ".$opts->{destination}.": $!";
-  print OUT encode('UTF-8',$result);
-  close OUT;
-} else { print STDOUT encode('UTF-8',$result),"\n"; } #Output to STDOUT
+if ($result) {
+  if ($opts->{destination} && $opts->{local}) {
+    open(OUT,">",$opts->{destination}) or croak "Couldn't open output file ".$opts->{destination}.": $!";
+    print OUT encode('UTF-8',$result);
+    close OUT;
+  } else { print STDOUT encode('UTF-8',$result),"\n"; } #Output to STDOUT
+}
 
 # Print summary, if requested, to STDERR
 if ($opts->{summary} && $opts->{destination}) {
-  $status.="\n";
   print STDERR $status,summary($opts->{destination},$deststat);
 }
 

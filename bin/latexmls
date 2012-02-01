@@ -118,7 +118,7 @@ while ( my $client = $server->accept() ) {
   $result = GetEmbeddable($result) if $opts->{embed};
 
   # Special for math profile: get out the m:math
-  $result = GetMath($result) if (lc($opts->{profile}) eq "math");
+  $result = GetMath($result) if (lc($opts->{profile}||'') eq "math");
 
   $result = $result->toString(1) if defined $result;
   $response->{result} = $result;
@@ -126,7 +126,7 @@ while ( my $client = $server->accept() ) {
   print $client freeze($response);
 
   #Flush daemon, every $input_limit files:
-  if ($opts->{input_counter} >= $opts->{input_limit}) {
+  if ($opts->{input_limit} && (($opts->{input_counter}||0) >= $opts->{input_limit})) {
       exec($0,@$ARGV_SAVED)
 	  or croak ("Daemon autoflush Failed!\n");
   }
