@@ -114,10 +114,10 @@ sub InsertIDs {
 sub ReadOptions {
   my ($opts,$argref) = @_;
   local @ARGV = @$argref;
+  $opts->{math_formats} = [] unless defined $opts->{math_formats};
   my ($ret,$args) = GetOptions(
 	   "output=s"  => sub {$opts->{destination} = $_[1];},
            "destination=s" => sub {$opts->{destination} = $_[1];},
-           "postdest=s" => sub {$opts->{postdest} = $_[1];},
 	   "preload=s" => sub { push @{$opts->{preload}}, $_[1]},
 	   "preamble=s" => sub {$opts->{preamble} = $_[1];},
            "base=s"  => sub {$opts->{base} = $_[1];},
@@ -142,18 +142,20 @@ sub ReadOptions {
            "local"       => sub { $opts->{local} = 1; },
            "nolocal"       => sub { $opts->{local} = 0; },
 	   "log=s"       => sub { $opts->{log} = $_[1]; },
-           "postlog=s"   => sub { $opts->{postlog} = $_[1]; },
            "summary"    => sub { $opts->{summary} = 1; },
            "nosummary"    => sub { $opts->{summary} = 0; },
 	   "includestyles"=> sub { $opts->{includestyles} = 1; },
 	   "inputencoding=s"=> sub { $opts->{inputencoding} = $_[1]; },
-	   "post"      => sub {$opts->{post} = 1; },
-	   "pmml"      => sub {$opts->{procs_post}->{'pmml'}=1;},
-	   "cmml"      => sub {$opts->{procs_post}->{'cmml'}=1;},
-	   "openmath"  => sub {$opts->{procs_post}->{'openmath'}=1;},
-	   "keepTeX"   => sub {$opts->{procs_post}->{'keepTeX'}=1;},
-	   "keepXMath" => sub {$opts->{procs_post}->{'keepXMath'}=1;},
-	   "parallelmath" => sub {$opts->{parallelmath} = 1;},
+	   "post!"      => \$opts->{post},
+	   "presentationmathml|pmml"     => sub { addMathFormat($opts,'pmml'); },
+	   "contentmathml|cmml"          => sub { addMathFormat($opts,'cmml'); },
+	   "openmath|om"                 => sub { addMathFormat($opts,'om'); },
+	   "keepXMath|xmath"             => sub { addMathFormat($opts,'XMath'); },
+	   "nopresentationmathml|nopmml" => sub { removeMathFormat($opts,'pmml'); },
+	   "nocontentmathml|nocmml"      => sub { removeMathFormat($opts,'cmml'); },
+	   "noopenmath|noom"             => sub { removeMathFormat($opts,'om'); },
+	   "nokeepXMath|noxmath"         => sub { removeMathFormat($opts,'XMath'); },
+	   "parallelmath!"               => sub { $opts->{parallelmath} = 1;},
 	   "stylesheet=s"=>  sub {$opts->{stylesheet} = $_[1];},
            "styleparam=s" => sub {my ($k,$v) = split(':',$_[1]);
                                   $opts->{styleparam}->{$k}=$v;},
@@ -165,6 +167,9 @@ sub ReadOptions {
 	   "VERSION"   => sub { $opts->{showversion}=1;},
 	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
            "documentid=s" => sub { $opts->{documentid} = $_[1];},
+	   "plane1!"                     => \$opts->{plane1},
+	   "hackplane1!"                 => \$opts->{hackplane1},
+	   "svg"       => \$opts->{svg},
 	   "help"      => sub { $opts->{help} = 1; } ,
 	  ) or pod2usage(-message => $opts->{identity}, -exitval=>1, -verbose=>0, -output=>\*STDERR);
 
@@ -183,13 +188,26 @@ sub ReadOptions {
       pathname_mkdir($dir) or croak "Couldn't create destination directory $dir: $!"; }}
   
   # HOWEVER, any post switch implies post:
-  $opts->{post}=1 if (keys %{$opts->{procs_post}});
+  $opts->{math_formats} = [] if ((defined $opts->{post}) && ($opts->{post} == 0));
+  $opts->{post}=1 if (@{$opts->{math_formats}});
+  # Removed math formats are irrelevant for conversion:
+  delete $opts->{removed_math_formats};
 
   if($opts->{showversion}){ print STDERR $opts->{identity}."\n"; exit(1); }
 
   $opts->{source} = $ARGV[0] unless $opts->{source};
   return;
 }
+
+sub addMathFormat {
+  my($opts,$fmt)=@_;
+  push(@{$opts->{math_formats}},$fmt) 
+    unless grep($_ eq $fmt,@{$opts->{math_formats}}) || $opts->{removed_math_formats}->{$fmt}; }
+sub removeMathFormat {
+  my($opts,$fmt)=@_;
+  @{$opts->{math_formats}} = grep($_ ne $fmt, @{$opts->{math_formats}});
+  $opts->{removed_math_formats}->{$fmt}=1; }
+
 
 
 1;

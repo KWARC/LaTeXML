@@ -34,6 +34,7 @@ sub new {
     $self->Error(undef,"No stylesheet \"$stylesheet\" found!")
       unless $pathname && -f $pathname;
     $stylesheet = $pathname; }
+
   $stylesheet = LaTeXML::Common::XML::XSLT->new($stylesheet);
   if((!ref $stylesheet) || !($stylesheet->can('transform'))){
     $self->Error(undef,"Stylesheet \"$stylesheet\" is not a usable stylesheet!"); }
@@ -52,8 +53,8 @@ sub process {
     $params{CSS} = '"'.join('|',map(pathname_relative($_,$dir),@$css)) .'"'; }
   if(my $icon = $params{ICON}){
     $params{ICON} = '"'. pathname_relative($icon,$dir) . '"'; }
-
-  $doc->new($$self{stylesheet}->transform($doc->getDocument,  %params)); }
+  $doc->new($$self{stylesheet}->transform($doc->getDocument,  %params));
+ }
 
 # ================================================================================
 1;

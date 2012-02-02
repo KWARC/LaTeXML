@@ -83,13 +83,16 @@ sub prepare_options {
   @{$opts->{paths}} = map {pathname_canonical($_)} @{$opts->{paths}};
   if ($opts->{post}) {
     # Fall back to default post processors if no preferences:
-    %{$opts->{procs_post}}=%{$self->{defaults}->{procs_post}} if (defined $self && (! keys %{$opts->{procs_post}}));
-    # Fall back to pmml as default
-    $opts->{procs_post}->{'pmml'}=1 if (! keys %{$opts->{procs_post}});
+    @{$opts->{math_formats}}=@{$self->{defaults}->{math_formats}} if (defined $self && (! @{$opts->{math_formats}}));
+    # Fall back to pmml as default, when post is wanted
+    unshift @{$opts->{math_formats}}, 'pmml' if (! @{$opts->{math_formats}||[]});
   }
+  # use parallel markup if there are multiple formats requested.
+  $opts->{parallelmath} = 1 if @{$opts->{math_formats}}>1;
+
   # Any post switch implies post:
-  $opts->{post}=1 if (keys %{$opts->{procs_post}});
-  $opts->{parallelmath}=0 unless (keys %{$opts->{procs_post}} > 1);
+  $opts->{post}=1 if @{$opts->{math_formats}};
+  $opts->{parallelmath}=0 unless (@{$opts->{math_formats}} > 1);
   # Default: scan and crossref on, other advanced off
   $opts->{prescan}=undef unless defined $opts->{prescan};
   $opts->{dbfile}=undef unless defined $opts->{dbfile};
@@ -243,8 +246,8 @@ sub convert {
 sub convert_post {
   my ($self,$dom) = @_;
   my $opts = $self->{opts};
-  my ($style,$parallel,$proctypes,$format,$verbosity,$defaultcss,$embed) = 
-    map {$opts->{$_}} qw(stylesheet parallelmath procs_post format verbosity defaultcss embed);
+  my ($style,$parallel,$math_formats,$format,$verbosity,$defaultcss,$embed) = 
+    map {$opts->{$_}} qw(stylesheet parallelmath math_formats format verbosity defaultcss embed);
   $verbosity = $verbosity||0;
   our %PostOPS = (verbosity=>$verbosity,siteDirectory=>".",nocache=>1,destination=>'.');
   #Postprocess
@@ -282,7 +285,7 @@ sub convert_post {
     undef $doc;
     return undef;
   }
-
+  
   my @procs=();
   #TODO: Add support for the following:
   my $dbfile = $opts->{dbfile};
@@ -306,50 +309,71 @@ sub convert_post {
       push(@procs,LaTeXML::Post::MakeIndex->new(db=>$DB, permuted=>$opts->{permutedindex},
                                                 split=>$opts->{splitindex}, scanner=>$scanner,
                                                 %PostOPS)); }
-  if (@bibliographies) {
-    require 'LaTeXML/Post/MakeBibliography.pm';
-    push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>[@bibliographies],
-						     split=>$opts->{splitbibliography}, scanner=>$scanner,
-						     %PostOPS)); }
-  if ($opts->{crossref}) {
-    require 'LaTeXML/Post/CrossRef.pm';
-    push(@procs,LaTeXML::Post::CrossRef->new(db=>$DB,urlstyle=>$opts->{urlstyle},format=>$format,
-					     ($opts->{numbersections} ? (number_sections=>1):()),
-					     ($opts->{navtoc} ? (navigation_toc=>$opts->{navtoc}):()),
-					     %PostOPS)); }
+    if (@bibliographies) {
+      require 'LaTeXML/Post/MakeBibliography.pm';
+      push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>[@bibliographies],
+						       split=>$opts->{splitbibliography}, scanner=>$scanner,
+						       %PostOPS)); }
+    if ($opts->{crossref}) {
+      require 'LaTeXML/Post/CrossRef.pm';
+      push(@procs,LaTeXML::Post::CrossRef->new(db=>$DB,urlstyle=>$opts->{urlstyle},format=>$format,
+					       ($opts->{numbersections} ? (number_sections=>1):()),
+					       ($opts->{navtoc} ? (navigation_toc=>$opts->{navtoc}):()),
+					       %PostOPS)); }
+    
+    if ($opts->{mathimages}) {
+      require 'LaTeXML/Post/MathImages.pm';
+      push(@procs,LaTeXML::Post::MathImages->new(magnification=>$opts->{mathimagemag},%PostOPS));
+    }
+    if ($opts->{picimages}) {
+      require 'LaTeXML/Post/PictureImages.pm';
+      push(@procs,LaTeXML::Post::PictureImages->new(%PostOPS));
+    }
+    if ($opts->{dographics}) {
+      # TODO: Rethink full-fledged graphics support
+      require 'LaTeXML/Post/Graphics.pm';
+      my @g_options=();
+      push(@procs,LaTeXML::Post::Graphics->new(@g_options,%PostOPS));
+    }
 
-  if ($opts->{mathimages}) {
-    require 'LaTeXML/Post/MathImages.pm';
-    push(@procs,LaTeXML::Post::MathImages->new(magnification=>$opts->{mathimagemag},%PostOPS));
-  }
-  if ($opts->{picimages}) {
-    require 'LaTeXML/Post/PictureImages.pm';
-    push(@procs,LaTeXML::Post::PictureImages->new(%PostOPS));
-  }
-  if ($opts->{dographics}) {
-    # TODO: Rethink full-fledged graphics support
-    require 'LaTeXML/Post/Graphics.pm';
-    my @g_options=();
-    push(@procs,LaTeXML::Post::Graphics->new(@g_options,%PostOPS));
-  }
+    my @mprocs=();
+    ###    # If XMath is not first, it must be at END!  Or... ???
+    foreach my $fmt (@$math_formats) {
+      if($fmt eq 'XMath'){
+	require 'LaTeXML/Post/XMath.pm';
+	push(@mprocs,LaTeXML::Post::XMath->new(%PostOPS)); }
+      elsif($fmt eq 'pmml'){
+	require 'LaTeXML/Post/MathML.pm';
+	if(defined $opts->{linelength}){
+	  push(@mprocs,LaTeXML::Post::MathML::PresentationLineBreak->new(
+                    linelength=>$opts->{linelength},
+                    ($opts->{plane1} ? (plane1=>1):()),
+                    ($opts->{hackplane1} ? (hackplane1=>1):()),
+                    %PostOPS)); }
+	else {
+	  push(@mprocs,LaTeXML::Post::MathML::Presentation->new(
+                    ($opts->{plane1} ? (plane1=>1):()),
+                    ($opts->{hackplane1} ? (hackplane1=>1):()),
+                    %PostOPS)); }}
+      elsif($fmt eq 'cmml'){
+	require 'LaTeXML/Post/MathML.pm';
+	push(@mprocs,LaTeXML::Post::MathML::Content->new(%PostOPS)); }
+      elsif($fmt eq 'om'){
+	require 'LaTeXML/Post/OpenMath.pm';
+	push(@mprocs,LaTeXML::Post::OpenMath->new(%PostOPS)); }
+    }
+###    $keepXMath  = 0 unless defined $keepXMath;
+### OR is $parallelmath ALWAYS on whenever there's more than one math processor?
+    if($parallel) {
+      my $main = shift(@mprocs);
+      $main->setParallel(@mprocs);
+      push(@procs,$main); }
+    else {
+      push(@procs,@mprocs); }
 
-  require LaTeXML::Post::MathML;
-  require LaTeXML::Post::OpenMath;
-  require LaTeXML::Post::PurgeXMath;
-  my @mprocs=();
 
-  push (@mprocs, LaTeXML::Post::MathML::Presentation->new(%PostOPS)) if $proctypes->{'pmml'};
-  push (@mprocs, LaTeXML::Post::MathML::Content->new(%PostOPS)) if $proctypes->{'cmml'};
-  push (@mprocs, LaTeXML::Post::OpenMath->new(%PostOPS)) if $proctypes->{'openmath'};
-  my $main = shift(@mprocs);
-  $main->setParallel(@mprocs) if $parallel;
-  $main->keepTeX if ($$proctypes{'keepTeX'} && $parallel);
-  push(@procs,$main);
-  push(@procs,@mprocs) unless $parallel;
-  push(@procs, LaTeXML::Post::PurgeXMath->new(%PostOPS)) unless $proctypes->{'keepXMath'};
-
-  require LaTeXML::Post::XSLT;
-  my @csspaths=();
+    require LaTeXML::Post::XSLT;
+    my @csspaths=();
 #  if (@css) {
 #    foreach my $css (@css) {
 #      $css .= '.css' unless $css =~ /\.css$/;
@@ -366,12 +390,14 @@ sub convert_post {
 #      pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
 #      push(@csspaths,$csspath);
 #    }}
-  push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
+    push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
 					 parameters=>{
                                                       (@csspaths ? (CSS=>[@csspaths]):()),
                                                       ($opts->{styleparam} ? (%{$opts->{styleparam}}):())},
-                                       %PostOPS)) if $style;
+					 %PostOPS)) if $style;
   }
+
+  # Do the actual post-processing:
   my $postdoc;
   eval {
     local $SIG{'ALRM'} = sub { die "alarm\n" };

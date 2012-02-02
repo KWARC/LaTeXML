@@ -68,6 +68,7 @@ sub Expr {
   my($node)=@_;
   my $result = Expr_aux($node);
   # map any ID here, as well, BUT, since we follow split/scan, use the fragid, not xml:id!
+  return $result if (!$node || $node =~ 'XML::LibXML::Text');
   if(my $id = $node->getAttribute('fragid')){
     $$result[1]{'xml:id'}=$id.$LaTeXML::Post::MATHPROCESSOR->IDSuffix; }
   $result; }
@@ -78,9 +79,13 @@ sub Expr_aux {
   my($node)=@_;
   return OMError("Missing Subexpression") unless $node;
   my $tag = getQName($node);
-  if(($tag eq 'ltx:XMath') || ($tag eq 'ltx:XMWrap')){
+  if(!$tag) {
+    #leftover when we unwrap a ltx:XMText, we should simply add its text content
+    $node->textContent;
+  }
+  elsif(($tag eq 'ltx:XMath') || ($tag eq 'ltx:XMWrap')){
     my($item,@rest)=  element_nodes($node);
-    print STDERR "Warning: got extra nodes for content!\n  ".$node->toString."\n" if @rest;
+    print STDERR "Warning: got extra nodes for content!\n  ".$node->toString."\n" if grep (defined, @rest);
     Expr($item); }
   elsif($tag eq 'ltx:XMDual'){
     my($content,$presentation) = element_nodes($node);
@@ -101,10 +106,6 @@ sub Expr_aux {
     my $qname = getQName($node->firstChild);
     $node = $node->firstChild if ($qname && ($qname eq 'ltx:text'));
     ['om:OMSTR',{},(grep($_,map(Expr($_),$node->childNodes)))];}
-  elsif(!$tag) {
-    #leftover when we unwrap a ltx:XMText, we should simply add its text content
-    $node->textContent;
-  }
   else {
     ['om:OMSTR',{},$node->textContent]; }}
 

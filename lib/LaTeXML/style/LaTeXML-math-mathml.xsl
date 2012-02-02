@@ -22,7 +22,7 @@
     exclude-result-prefixes = "ltx">
 
   <xsl:template match="ltx:Math">
-    <xsl:apply-templates select="m:math"/>
+      <xsl:apply-templates select="m:math"/>
   </xsl:template>
 
   <!-- Copy MathML, as is -->
@@ -39,7 +39,24 @@
       <xsl:if test="parent::ltx:Math/@xml:id">
         <xsl:attribute name="xml:id"><xsl:value-of select="parent::ltx:Math/@xml:id"/></xsl:attribute>
       </xsl:if>
-      <xsl:apply-templates/>
+      <xsl:choose>
+	<xsl:when test="local-name()='annotation-xml'">
+	  <!-- switch to blind-copy if annotation-xml -->
+	  <xsl:apply-templates mode='blind-copy'/>
+	</xsl:when>
+	<xsl:otherwise>
+	  <xsl:apply-templates/>
+	</xsl:otherwise>
+      </xsl:choose>
+    </xsl:element> 
+  </xsl:template>
+
+  <xsl:template match="*" mode='blind-copy'>
+    <xsl:element name="{name()}" namespace="{namespace-uri()}">
+      <xsl:for-each select="@*">
+	<xsl:attribute name="{name()}"><xsl:value-of select="."/></xsl:attribute>
+      </xsl:for-each>
+      <xsl:apply-templates mode='blind-copy'/>
     </xsl:element>
   </xsl:template>
 

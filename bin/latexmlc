@@ -87,6 +87,7 @@ if ($log) {
 }
 
 if ($result) {
+
   if ($opts->{destination} && $opts->{local}) {
     open(OUT,">",$opts->{destination}) or croak "Couldn't open output file ".$opts->{destination}.": $!";
     print OUT encode('UTF-8',$result);
