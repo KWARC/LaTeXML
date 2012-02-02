@@ -20,69 +20,42 @@
 #
 # So, I think LaTeXML's naming scheme is a worthwhile one to pursue,
 # but we DO need to provide a rich but customizable mapping, starting with stuff like:
-#    equals => relation1:eq
+#    equals => arith1:eq
 # ================================================================================
 package LaTeXML::Post::OpenMath;
 use strict;
 use LaTeXML::Common::XML;
-use LaTeXML::Post::MathML;
-use base qw(LaTeXML::Post);
+use base qw(LaTeXML::Post::MathProcessor);
 
 our $omURI = "http://www.openmath.org/OpenMath";
-our $pres_processor=LaTeXML::Post::MathML::Presentation->new();
 
-sub process {
-  my($self,$doc)=@_;
-  if(my @maths = $self->find_math_nodes($doc)){
-    $self->Progress($doc,"Converting ".scalar(@maths)." formulae");
-#    $doc->addNamespace($omURI,'om');
-    foreach my $math (@maths){
-      $self->processNode($doc,$math); }
-    $doc->adjust_latexml_doctype('OpenMath'); } # Add OpenMath if LaTeXML dtd.
-  $doc; }
+sub preprocess {
+  my($self,$doc,@nodes)=@_;
+  $doc->adjust_latexml_doctype('OpenMath');  # Add OpenMath if LaTeXML dtd.
+  $doc->addNamespace($omURI,'om'); }
 
-sub setParallel {
-  my($self,@moreprocessors)=@_;
-  $$self{parallel}=1;
-  $$self{math_processors} = [@moreprocessors]; }
+sub outerWrapper {
+  my($self,$doc,$node,@conversion)=@_;
+  ['om:OMOBJ',{},@conversion]; }
 
+sub convertNode {
+  my($self,$doc,$xmath,$style)=@_;
+  Expr($xmath); }
 
-sub find_math_nodes { $_[1]->findnodes('//ltx:Math'); }
+sub combineParallel {
+  my($self,$doc,$math,$primary,@secondaries)=@_;
+  my $tex = isElementNode($math) && $math->getAttribute('tex');
+  (['om:OMATTR',{},
+    map( (['om:OMS',{cd=>"Alternate", name=>$$_[0]->getEncodingName}], ['om:OMFOREIGN',{},$$_[1]]),
+	 @secondaries),
+    ($tex ? (['om:OMS',{cd=>'Alternate', name=>'TeX'}],['om:OMFOREIGN',{},$tex]) : ()),
+    $primary ]); }
 
 sub getQName {
   $LaTeXML::Post::DOCUMENT->getQName(@_); }
 
-# $self->processNode($doc,$mathnode) is the top-level conversion
-# It converts the XMath within $mathnode, and adds it to the $mathnode,
-sub processNode {
-  my($self,$doc,$math)=@_;
-  my $mode = $math->getAttribute('mode')||'inline';
-  my $xmath = $doc->findnode('ltx:XMath',$math);
-  my $style = ($mode eq 'display' ? 'display' : 'text');
-  if($$self{parallel}){
-    $doc->addNodes($math,$self->translateParallel($doc,$xmath,$style,'ltx:Math')); }
-  else {
-    $doc->addNodes($math,$self->translateNode($doc,$xmath,$style,'ltx:Math')); }}
-
-sub translateNode {
-  my($self,$doc,$xmath,$style,$embedding)=@_;
-  $doc->addNamespace($omURI,'om');
-  my @trans = Expr($xmath);
-  # Wrap unless already embedding within MathML.
-  ($embedding =~ /^om:/ ? @trans : ['om:OMOBJ',{},@trans]); }
-
 sub getEncodingName { 'OpenMath'; }
-
-sub translateParallel {
-  my($self,$doc,$xmath,$style,$embedding)=@_;
-  $doc->addNamespace($omURI,'om');
-  my @trans = ['om:OMATTR',{},
-	       map( (['om:OMS',{cd=>"Alternate", name=>$_->getEncodingName}],
-		     ['om:OMFOREIGN',{},$_->translateNode($doc,$xmath,$style,'om:OMATTR')]),
-		    @{$$self{math_processors}}),
-	       $self->translateNode($doc,$xmath,$style,'om:OMATTR') ];
-  # Wrap unless already embedding within MathML.
-  ($embedding =~ /^om:/ ? @trans : ['om:OMOBJ',{},@trans]); }
+sub rawIDSuffix { '.om'; }
 
 # ================================================================================
 our $OMTable={};
@@ -91,47 +64,40 @@ sub DefOpenMath {
   my($key,$sub) =@_;
   $$OMTable{$key} = $sub; }
 
-# Is it clear that we should just getAttribute('role'),
-# instead of the getOperatorRole like in MML?
 sub Expr {
   my($node)=@_;
+  my $result = Expr_aux($node);
+  # map any ID here, as well, BUT, since we follow split/scan, use the fragid, not xml:id!
+  if(my $id = $node->getAttribute('fragid')){
+    $$result[1]{'xml:id'}=$id.$LaTeXML::Post::MATHPROCESSOR->IDSuffix; }
+  $result; }
+
+# Is it clear that we should just getAttribute('role'),
+# instead of the getOperatorRole like in MML?
+sub Expr_aux {
+  my($node)=@_;
   return OMError("Missing Subexpression") unless $node;
-  my $tag = getQName($node)||''; #DG: Suppress warnings if not defined 
-                                 #(huh?! Possibly due to recursion of the OMSTR treatment!)
-  if($tag eq 'ltx:XMath'){
+  my $tag = getQName($node);
+  if(($tag eq 'ltx:XMath') || ($tag eq 'ltx:XMWrap')){
     my($item,@rest)=  element_nodes($node);
-    print STDERR "Warning! got extra nodes for content!\n".$node->toString."\n\n" if @rest;
+    print STDERR "Warning: got extra nodes for content!\n  ".$node->toString."\n" if @rest;
     Expr($item); }
   elsif($tag eq 'ltx:XMDual'){
     my($content,$presentation) = element_nodes($node);
     Expr($content); }
-  elsif($tag eq 'ltx:XMWrap'){
-    # Note... Error?
-##    Row(grep($_,map(Expr($_),element_nodes($node)))); 
-    (); }
   elsif($tag eq 'ltx:XMApp'){
-    # Experiment: If XMApp has role ID, we treat it as a "Decorated Symbol"
-    if(($node->getAttribute('role')||'') eq 'ID'){
-      om_decoratedSymbol($node); }
-    else {
-      my($op,@args) = element_nodes($node);
-      return OMError("Missing Operator") unless $op;
-      my $approle = $node->getAttribute('role')||$op->getAttribute('role');
-      my $appmeaning = $node->getAttribute('role')||$op->getAttribute('meaning');
-      my $ic = $node->getAttribute('ic')||'variant:default'; #DF: Experiment with notation variants
-      my $sub = lookupConverter('Apply',$approle,$appmeaning);
-      &$sub($ic,$op,@args); }
-  }
+    my($op,@args) = element_nodes($node);
+    return OMError("Missing Operator") unless $op;
+    my $sub = lookupConverter('Apply',$op->getAttribute('role'),$op->getAttribute('meaning'));
+    &$sub($op,@args); }
   elsif($tag eq 'ltx:XMTok'){
     my $sub = lookupConverter('Token',$node->getAttribute('role'),$node->getAttribute('meaning'));
     &$sub($node); }
   elsif($tag eq 'ltx:XMHint'){
     (); }
-  elsif($tag eq 'ltx:XMArg'){	# Only present if parsing failed!
-    (grep($_,map(Expr($_),element_nodes($node)))); }
   #DG: Experimental support for ltx:XMText (sTeX ticket #1627)
-  elsif($tag eq 'ltx:XMText') { # Text may contain math inside
-    #always an extra <ltx:text> wrapper needs to be unwrapped
+  elsif($tag eq 'ltx:XMText') { # Text may contain math inside)
+    #always an extra <ltx:text> wrapper needs to be unwrapped)
     my $qname = getQName($node->firstChild);
     $node = $node->firstChild if ($qname && ($qname eq 'ltx:text'));
     ['om:OMSTR',{},(grep($_,map(Expr($_),$node->childNodes)))];}
@@ -139,48 +105,8 @@ sub Expr {
     #leftover when we unwrap a ltx:XMText, we should simply add its text content
     $node->textContent;
   }
-  elsif($tag eq 'ltx:Math') { # Bootstrap: recursive <Math> should get processed too
-    #Just unwrap to first child (hopefully XMath):
-    # TODO: Make sure this works in general
-    Expr($node->firstChild); }
-  elsif($tag =~ /^ltx:XM(Array|Row|Cell)$/) {
-    my $msg = "$tag is presentational and has no direct OpenMath translation\n".
-      "Please consider improving your binding, e.g. with a DefEnvironment constructor\n";
-    ['om:OMERROR',{},$msg];
-  } else {
+  else {
     ['om:OMSTR',{},$node->textContent]; }}
-
-# Experimental; for an XMApp with role=ID, we treat it as a ci
-# or ultimately as csymbol, if it had defining attributes,
-# but we format its contents as pmml
-sub om_decoratedSymbol {
-  my($item)=@_;
-  my $doc=$LaTeXML::Post::DOCUMENT;
-  my $id=$item->getAttribute('xml:id');
-  #Assuming id="cvar.X" is always supplied, distinguish between a given name
-  #i.e. name="X" and a defaulted one i.e. name="name.cvar.X" where X is \d+
-  my $name=$id;
-  $name=~s/^cvar\.//;
-  $name="name.cvar.$name" if ($name=~/^\d+$/);
-  my $pmml=$pres_processor->translateNode($doc,$item,'text','om:OMATP');
-  my $pmml_nommath=$pmml->[2];
-  ['om:OMATTR',{id=>"$id"},
-   ['om:OMATP',{},
-    ['om:OMS',{name=>'PMML',cd=>'OMPres'}],
-    ['om:OMFOREIGN',{},$pmml_nommath]],
-   ['om:OMV',{name=>$name}]]; }
-
-#OpenMath symbol name specification:
-# See http://www.openmath.org/standard/om20-2004-06-30/omstd20html-2.xml#sec_names
-our $nameStartCharRex = qr/([:]|[A-Z]|[_]|[a-z]|[\xC0-\xD6]|[\xD8-\xF6]|[\xF8-\x{2FF}]|[\x{370}-\x{37D}]|[\x{37F}-\x{1FFF}]|[\x{200C}-\x{200D}]|[\x{2070}-\x{218F}]|[\x{2C00}-\x{2FEF}]|[\x{3001}-\x{D7FF}]|[\x{F900}-\x{FDCF}]|[\x{FDF0}-\x{FFFD}]|[\x{10000}-\x{EFFFF}])/;
-our $nameCharRex = qr/($nameStartCharRex|[-]|[.]|[0-9]|\xB7|[\x{0300}-\x{036F}]|[\x{203F}-\x{2040}])/;
-our $nameRex= qr/($nameStartCharRex($nameCharRex)*)/;
-
-#Tests against the allowed symbol names in the OpenMath standard
-sub isOpenMathName {
-  my ($name) = @_;
-  ($name =~ /^$nameRex$/);
-}
 
 sub lookupConverter {
   my($mode,$role,$name)=@_;
@@ -210,14 +136,7 @@ DefOpenMath('Token:?:?',    sub {
     my $cd = $token->getAttribute('omcd') || 'latexml';
     ['om:OMS',{name=>$meaning, cd=>$cd}]; }
   else {
-    #If the textContent is an admissible OpenMath name, use it as the OMV name:
-    my $name;
-    if (isOpenMathName($token->textContent)) {
-      $name = $token->textContent;
-    }
-    else {
-      $name = $token->getAttribute('name') || $token->textContent; 
-    }
+    my $name = $token->getAttribute('name') || $token->textContent;
     ['om:OMV',{name=>$name}]; }});
 
 # NOTE: Presence of '.' distinguishes float from int !?!?
@@ -235,52 +154,52 @@ DefOpenMath('Token:SUPERSCRIPTOP:?',sub {
 DefOpenMath('Token:SUBSCRIPTOP:?',sub {
    ['om:OMS',{name=>'subscript',cd=>'ambiguous'}];});
 
-DefOpenMath('Token:RELOP:equals', sub {
-   ['om:OMS',{name=>'eq',cd=>'relation1'}];});
-DefOpenMath('Token:ADDOP:plus', sub {
-   ['om:OMS',{name=>'plus',cd=>'arith1'}];});
-DefOpenMath('Token:MULOP:times', sub {
-   ['om:OMS',{name=>'times',cd=>'arith1'}];});
 DefOpenMath("Token:?:\x{2062}", sub {
   ['om:OMS',{name=>'times', cd=>'arith1'}]; });
 
 # ================================================================================
 # Applications.
 
-#NOTE: Experimental sketch for generic binding symbols
-sub findElements_internal {
- my ($type,$name, $attr, @children) = @_;
- if ($name eq $type) {
-   [$name, $attr, @children];
- }
- else {
-   map(findElements_internal($type,@$_),grep(ref $_,@children));
- }}
-
-DefOpenMath('Apply:BINDER:?', sub {
-  my($ic,$op,$bvars,$expr)=@_;
-  my $bvarspost = Expr($bvars);
-  #Recursively fish out all OMV elements:
-  my @vars = findElements_internal('om:OMV',@$bvarspost);
-  ['om:OMBIND',{},
-   Expr($op),
-   ['om:OMBVAR',{},@vars], # Presumably, these yield OMV
-   Expr($expr)]});
-
 # Generic
+
+ DefOpenMath('Apply:?:?', sub {
+   my($op,@args)=@_;
+   ['om:OMA',{},map(Expr($_),$op,@args)]; });
+
 #DG: Adding support for IC Variants (see Christine Mueller's PhD thesis)
-DefOpenMath('Apply:?:?', sub {
-  my($ic,$op,@args)=@_;
-  ['om:OMA',
-   ($ic ne 'variant:default') ? {ic=>$ic}:{},
-   map(Expr($_),$op,@args)]; });
+# TODO: Revise me!
+#DefOpenMath('Apply:?:?', sub {
+#  my($ic,$op,@args)=@_;
+#  ['om:OMA',
+#   ($ic ne 'variant:default') ? {ic=>$ic}:{},
+#   map(Expr($_),$op,@args)]; });
 
 # NOTE: No support for OMATTR here...
+
+#NOTE: Experimental sketch for generic binding symbols
+# sub findElements_internal {
+#  my ($type,$name, $attr, @children) = @_;
+#  if ($name eq $type) {
+#    [$name, $attr, @children];
+#  }
+#  else {
+#    map(findElements_internal($type,@$_),grep(ref $_,@children));
+#  }}
+
+# DefOpenMath('Apply:BINDER:?', sub {
+#   my($ic,$op,$bvars,$expr)=@_;
+#   my $bvarspost = Expr($bvars);
+#   #Recursively fish out all OMV elements:
+#   my @vars = findElements_internal('om:OMV',@$bvarspost);
+#   ['om:OMBIND',{},
+#    Expr($op),
+#    ['om:OMBVAR',{},@vars], # Presumably, these yield OMV
+#    Expr($expr)]});
 
 # NOTE: Sketch of what OMBIND support might look like.
 # Currently, no such construct is created in LaTeXML...
 DefOpenMath('Apply:LambdaBinding:?', sub {
-  my($ic,$op,$expr,@vars)=@_;
+  my($op,$expr,@vars)=@_;
   ['om:OMBIND',{},
    ['om:OMS',{name=>"lambda", cd=>'fns1'},
     ['om:OMBVAR',{},map(Expr($_),@vars)], # Presumably, these yield OMV

@@ -366,12 +366,10 @@ sub convert_post {
 #      pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
 #      push(@csspaths,$csspath);
 #    }}
-
   push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
-					 parameters=>{number_sections
-						      =>("true()"),
+					 parameters=>{
                                                       (@csspaths ? (CSS=>[@csspaths]):()),
-					 ($opts->{styleparam} ? %{$opts->{styleparam}}:())},
+                                                      ($opts->{styleparam} ? (%{$opts->{styleparam}}):())},
                                        %PostOPS)) if $style;
   }
   my $postdoc;
