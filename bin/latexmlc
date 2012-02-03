@@ -35,7 +35,7 @@ $opts->{base}=$cdir unless $opts->{base};
 
 # Record if destination exists, for summary
 
-my $deststat = (stat($opts->{destination}))[9] if ($opts->{summary} && $opts->{destination});
+my $deststat = (stat($opts->{destination}))[9] if ($opts->{destination});
 $deststat = 0 unless $deststat;
 
 # Revert to sockets if no --local
@@ -96,8 +96,9 @@ if ($result) {
 }
 
 # Print summary, if requested, to STDERR
-if ($opts->{summary} && $opts->{destination}) {
-  print STDERR $status,summary($opts->{destination},$deststat);
+if ($opts->{destination}) {
+  print STDERR $status;
+  print STDERR summary($opts->{destination},$deststat);
 }
 
 # == Helpers ==

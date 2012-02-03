@@ -146,7 +146,8 @@ sub ReadOptions {
            "nosummary"    => sub { $opts->{summary} = 0; },
 	   "includestyles"=> sub { $opts->{includestyles} = 1; },
 	   "inputencoding=s"=> sub { $opts->{inputencoding} = $_[1]; },
-	   "post!"      => \$opts->{post},
+	   "post"      => sub { $opts->{post} = 1; },
+	   "nopost"      => sub { $opts->{post} = 0; },
 	   "presentationmathml|pmml"     => sub { addMathFormat($opts,'pmml'); },
 	   "contentmathml|cmml"          => sub { addMathFormat($opts,'cmml'); },
 	   "openmath|om"                 => sub { addMathFormat($opts,'om'); },
@@ -155,7 +156,7 @@ sub ReadOptions {
 	   "nocontentmathml|nocmml"      => sub { removeMathFormat($opts,'cmml'); },
 	   "noopenmath|noom"             => sub { removeMathFormat($opts,'om'); },
 	   "nokeepXMath|noxmath"         => sub { removeMathFormat($opts,'XMath'); },
-	   "parallelmath!"               => sub { $opts->{parallelmath} = 1;},
+	   "parallelmath"               => sub { $opts->{parallelmath} = 1;},
 	   "stylesheet=s"=>  sub {$opts->{stylesheet} = $_[1];},
            "styleparam=s" => sub {my ($k,$v) = split(':',$_[1]);
                                   $opts->{styleparam}->{$k}=$v;},

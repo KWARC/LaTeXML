@@ -25,6 +25,7 @@
 package LaTeXML::Post::OpenMath;
 use strict;
 use LaTeXML::Common::XML;
+use Encode;
 use base qw(LaTeXML::Post::MathProcessor);
 
 our $omURI = "http://www.openmath.org/OpenMath";
@@ -85,7 +86,7 @@ sub Expr_aux {
   }
   elsif(($tag eq 'ltx:XMath') || ($tag eq 'ltx:XMWrap')){
     my($item,@rest)=  element_nodes($node);
-    print STDERR "Warning: got extra nodes for content!\n  ".$node->toString."\n" if grep (defined, @rest);
+    print STDERR "Warning: got extra nodes for content!\n  ".encode('UTF-8',$node->toString)."\n" if grep (defined, @rest);
     Expr($item); }
   elsif($tag eq 'ltx:XMDual'){
     my($content,$presentation) = element_nodes($node);
