@@ -59,7 +59,7 @@ local $SIG{'INT'} = 'doterm';
 
 binmode(STDERR,":utf8");
 
-my $startup =  LaTeXML::Util::Startup->new();
+my $startup =  LaTeXML::Util::Startup->new(cache=>0); # Don't write a DB file
 alarm($g_opts->{timeout});              #Timeout if inactive for too long...
 
 #**********************************************************************

@@ -7,7 +7,7 @@ use Data::Dumper;
 $Data::Dumper::Terse = 1;          # don't output names where feasible
 $Data::Dumper::Indent = 3;         # turn off all pretty print
 
-our $DB_FILE = 'LaTeXML_Startup.cache';
+our $DB_FILE = '.LaTeXML_Startup.cache';
 #TODO: Eliminate redundant options
 our $PROFILES = {
 standard => {
@@ -129,10 +129,14 @@ linguistic => { verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includesty
 
 sub new {
   ($class,%opts) = @_;
-  my $dbfile = $opts{dbfile}||$DB_FILE;
-  if(defined $dbfile && !-f $dbfile){
-    if(my $dbdir = pathname_directory($dbfile)){
-      pathname_mkdir($dbdir); }}
+  $opts{cache}=1 unless defined $opts{cache};
+  my $dbfile;
+  if ($opts{cache}) {
+    my $dbfile = $opts{dbfile}||$DB_FILE;
+    if(defined $dbfile && !-f $dbfile){
+      if(my $dbdir = pathname_directory($dbfile)){
+        pathname_mkdir($dbdir); }}
+  }
   my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile);
   foreach (keys %$PROFILES) { # Cash profiles in DB
     next if defined $DB->lookup("profile:$_");
@@ -143,6 +147,7 @@ sub new {
       next if defined $DB->lookup("profile:$_");
       $DB->register("profile:$_",%{$options->{profiles}->{$_}});
     }}
+
   bless {daemons=>{},db=>$DB}, $class;}
 
 ###########################################
