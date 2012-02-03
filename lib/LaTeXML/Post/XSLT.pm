@@ -53,7 +53,6 @@ sub process {
     $params{CSS} = '"'.join('|',map(pathname_relative($_,$dir),@$css)) .'"'; }
   if(my $icon = $params{ICON}){
     $params{ICON} = '"'. pathname_relative($icon,$dir) . '"'; }
-  print STDERR "DOC: \n",$doc->toString,"\n\n";
   $doc->new($$self{stylesheet}->transform($doc->getDocument,  %params));
  }
 
