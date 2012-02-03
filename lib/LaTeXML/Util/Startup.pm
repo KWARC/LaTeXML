@@ -167,6 +167,7 @@ sub find_daemon {
       $self->{daemons}->{$profile}=$d;
     } else {
       $d = $self->boot_custom($opt);
+      $self->{daemons}->{custom}=$d;
     }
   }
   return $d;
