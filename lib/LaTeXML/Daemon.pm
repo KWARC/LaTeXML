@@ -339,7 +339,7 @@ sub convert_post {
     my @mprocs=();
     ###    # If XMath is not first, it must be at END!  Or... ???
     foreach my $fmt (@$math_formats) {
-      if($fmt eq 'XMath'){
+      if($fmt eq 'xmath'){
 	require 'LaTeXML/Post/XMath.pm';
 	push(@mprocs,LaTeXML::Post::XMath->new(%PostOPS)); }
       elsif($fmt eq 'pmml'){

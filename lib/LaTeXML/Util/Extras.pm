@@ -151,11 +151,11 @@ sub ReadOptions {
 	   "presentationmathml|pmml"     => sub { addMathFormat($opts,'pmml'); },
 	   "contentmathml|cmml"          => sub { addMathFormat($opts,'cmml'); },
 	   "openmath|om"                 => sub { addMathFormat($opts,'om'); },
-	   "keepXMath|xmath"             => sub { addMathFormat($opts,'XMath'); },
+	   "keepXMath|xmath"             => sub { addMathFormat($opts,'xmath'); },
 	   "nopresentationmathml|nopmml" => sub { removeMathFormat($opts,'pmml'); },
 	   "nocontentmathml|nocmml"      => sub { removeMathFormat($opts,'cmml'); },
 	   "noopenmath|noom"             => sub { removeMathFormat($opts,'om'); },
-	   "nokeepXMath|noxmath"         => sub { removeMathFormat($opts,'XMath'); },
+	   "nokeepXMath|noxmath"         => sub { removeMathFormat($opts,'xmath'); },
 	   "parallelmath"               => sub { $opts->{parallelmath} = 1;},
 	   "stylesheet=s"=>  sub {$opts->{stylesheet} = $_[1];},
            "styleparam=s" => sub {my ($k,$v) = split(':',$_[1]);
