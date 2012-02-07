@@ -45,12 +45,10 @@ elsif(($tex =~ /\A\\\(/m) && ($tex =~ /\\\)\z/m)){} # Wrapped in \(...\)
 elsif(($tex =~ /\A\\\[/m) && ($tex =~ /\\\]\z/m)){} # Wrapped in \[...\]
 elsif(($tex =~ /\A\\begin\{($MATHENVS)\}/m) && ($tex =~ /\\end\{$1\}\z/m)){}
 else {
-  $tex = '\[ '.$tex.' \]'; }
+  $tex = '$ '.$tex.' $'; }
 
 my $texdoc = <<"EODOC";
 \\begin{document}
-\\newcounter{equation}
-\\newcounter{Unequation}
 $tex
 \\end{document}
 EODOC
@@ -59,24 +57,27 @@ return $texdoc;
 
 sub GetMath {
   my ($source) = @_;
+  my $math_xpath = '//*[local-name()="math" or local-name()="Math"]';
   return unless defined $source;
   my $math;
-  my $mnodes = $source->findnodes('//*[local-name()="math"]');
-  if ($mnodes->size <= 1) {
-    $math = $source->findnode('//*[local-name()="math"]');
+  my @mnodes = $source->findnodes($math_xpath);
+  if (@mnodes <= 1) {
+    $math = $mnodes[0];
   } else {
-    my $ancestor = $source->findnode('//*[local-name()="math"]')->parentNode;
-    $ancestor = $ancestor->parentNode while ($ancestor->findnodes('.//*[local-name()="math"]')->size != $mnodes->size);
+    my $math_count = scalar(@mnodes);
+    my $ancestor = $mnodes[0]->parentNode;
+    $ancestor = $ancestor->parentNode while ($ancestor->findnodes('.'.$math_xpath)->size != $math_count);
     $math = $ancestor;
   }
   return $math;
 }
 
 sub GetEmbeddable {
-  my ($postdoc) = @_;
-  return unless defined $postdoc;
-  my $docdiv = $postdoc->findnode('//*[@class="document"]');
-  return $docdiv;
+  my ($doc) = @_;
+  return unless defined $doc;
+  my ($embeddable) = $doc->findnodes('//*[@class="document"]');
+  
+  return $embeddable;
 }
 
 our $id_xslt_dom = XML::LibXML->new()->parse_string(<<'EOT');
@@ -133,20 +134,22 @@ sub ReadOptions {
 	   "box"       => sub { $opts->{format} = 'box'; },
 	   "bibtex"    => sub { $opts->{type}='bibtex'; },
 	   "noparse"   => sub { $opts->{noparse} = 1; },
+	   "parse"   => sub { $opts->{noparse} = 0; },
 	   "format=s"   => sub { $opts->{format} = $_[1]; },
 	   "profile=s"  => sub { $opts->{profile} = $_[1]; },
 	   "mode=s"  => sub { $opts->{profile} = $_[1]; },
            "source=s"  => sub { $opts->{source} = $_[1]; },
-           "embed"   => sub { $opts->{embed} = 1; },
+           "embed"   => sub { $opts->{whatsin} = 'fragment'; },
+	   "whatsin=s" => sub {$opts->{whatsin} = $_[1]; },
+	   "whatsout=s" => sub {$opts->{whatsout} = $_[1]; },
            "noembed"   => sub { $opts->{embed} = 0; },
+	   "force_ids" => sub { $opts->{force_ids} = 1; },
 	   "autoflush=s" => sub { $opts->{input_limit} = $_[1]; },
            "timeout=s"   => sub { $opts->{timeout} = $_[1]; },
            "port=s"      => sub { $opts->{port} = $_[1]; },
            "local"       => sub { $opts->{local} = 1; },
            "nolocal"       => sub { $opts->{local} = 0; },
 	   "log=s"       => sub { $opts->{log} = $_[1]; },
-           "summary"    => sub { $opts->{summary} = 1; },
-           "nosummary"    => sub { $opts->{summary} = 0; },
 	   "includestyles"=> sub { $opts->{includestyles} = 1; },
 	   "inputencoding=s"=> sub { $opts->{inputencoding} = $_[1]; },
 	   "post"      => sub { $opts->{post} = 1; },
@@ -175,11 +178,13 @@ sub ReadOptions {
 	   "hackplane1!"                 => \$opts->{hackplane1},
 	   "svg"       => \$opts->{svg},
 	   "help"      => sub { $opts->{help} = 1; } ,
-	  ) or pod2usage(-message => $opts->{identity}, -exitval=>1, -verbose=>99, -sections => ['EXECUTABLES'],
-                         -input => pod_where({-inc => 1}, __PACKAGE__), -output=>\*STDERR);
+	  ) or pod2usage(-message => $opts->{identity}, -exitval=>1, -verbose=>99,
+			 -input => pod_where({-inc => 1}, __PACKAGE__),
+			 -sections => 'OPTIONS/SYNOPSIS', -output=>\*STDERR);
 
-  pod2usage(-message=>$opts->{identity}, -exitval=>1, -verbose=>99, -sections => ['OPTIONS/OVERVIEW'],
-            -input => pod_where({-inc => 1}, __PACKAGE__), -output=>\*STDOUT) if $opts->{help};
+  pod2usage(-message=>$opts->{identity}, -exitval=>1, -verbose=>99,
+	    -input => pod_where({-inc => 1}, __PACKAGE__),
+	    -sections => 'OPTIONS/SYNOPSIS', output=>\*STDOUT) if $opts->{help};
   if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
     {carp "I/O from filesystem not allowed without --local!\n".
        " Will revert to sockets!\n";
@@ -273,40 +278,35 @@ Compares to hashrefs $a and $b, assuming they represent LaTeXML Options objects.
 
 =head1 OPTIONS
 
-=head2 OVERVIEW
+=head2 SYNOPSIS
 
 latexmls/latexmlc [options]
 
  Options:
  --destination=file specifies destination file, requires --local.
  --output=file      [obsolete synonym for --destination]
- --postdest=file    specifies destination file for postprocessing,
-                    requires --local, --post
  --preload=module   requests loading of an optional module;
                     can be repeated
  --includestyles    allows latexml to load raw *.sty file;
                     by default it avoids this.
  --preamble=file    loads a tex file containing document frontmatter.
-                    Useful for fragment profile.
+ --postamble=file   loads a tex file containing document backmatter.
+                    WARNING: Parsed separately from document
+                             can't reuse macros
  --base=dir         Specifies the base directory that the server
-                    operates in. Useful when converting documents 
+                    operates in. Useful when converting documents
                     that employ relative paths.
  --path=dir         adds dir to the paths searched for files,
                     modules, etc; 
  --log=file         specifies log file, reuqires --local
                     default: STDERR
- --postlog=file     specifies log file for postprocessing, 
-                    requires --local, --post 
-                    default is appending to the --log file.
- --summary          print a one line summary message of 
-                    the conversion outcome
  --autoflush=count  Automatically restart the daemon after 
                     "count" inputs. Good practice for vast batch 
-                    jobs. (default: 10000)
+                    jobs. (default: 100)
  --timeout=secs     Set a timeout value for inactivity.
                     Default is 60 seconds, set 0 to disable.
- --port=number      Specify server port (default: 3334 for math, 
-                    3344 for fragment and 3354 for standard)
+                    Also used to terminate processing jobs
+ --port=number      Specify server port (default: 3354)
  --local            Request a local server (default: off)
                     Required for the --log and --destination switches
                     Required for processing filenames on input
@@ -324,9 +324,16 @@ latexmls/latexmlc [options]
                     Supported: standard|math|fragment|...
                     (default: standard)
  --mode=name        Alias for profile
+ --whatsin=chunk    Defines the provided input chunk, choose from
+                    document (default), fragment and formula
+ --whatsout=chunk   Defines the expected output chunk, choose from
+                    document (default), fragment and formula
+
  --post             requests a followup post-processing
  --embed            requests an embeddable XHTML snippet
                     (requires: --post,--profile=fragment)
+                    DEPRECATED: Use --whatsout=fragment
+                    TODO: Remove completely
  --stylesheet       specifies a stylesheet,
                     to be used by the post-processor.
  --css=cssfile           adds a css stylesheet to html/xhtml
@@ -336,12 +343,11 @@ latexmls/latexmlc [options]
                     (default for xhtml format)
  --cmml             converts math to Content MathML
  --openmath         converts math to OpenMath 
- --parallelmath     requests parallel math markup for MathML
-                    (off by default)
  --keepTeX          keeps the TeX source of a formula as a MathML
-                    annotation element (requires --parallelmath)
+                    annotation element
+                    TODO: Add support again, currently broken
  --keepXMath        keeps the XMath of a formula as a MathML
-                    annotation-xml element (requires --parallelmath)
+                    annotation-xml element
  --nocomments       omit comments from the output
  --inputencoding=enc specify the input encoding.
  --VERSION          show version number.
@@ -350,14 +356,17 @@ latexmls/latexmlc [options]
  --help             shows this help message.
 
 In I<math> C<profile>, latexmls accepts one TeX formula on input.
-In I<standard> and I<fragment> C<profile>, latexmls accepts one I<texfile>
-filename per line on input, but only when --local is specified.
-If I<texfile> has an explicit extension of C<.bib>, it is processed
-as a BibTeX bibliography.
+    In I<standard> and I<fragment> C<profile>, latexmls accepts one I<texfile>
+    filename per line on input, but only when --local is specified.
+    If I<texfile> has an explicit extension of C<.bib>, it is processed
+    as a BibTeX bibliography.
 
-Each communication session allows local option overwriting on the first sent line.
-The input will be read until a line containing "END OF REQUEST" is found. Please
-take this into account to avoid hanging.
+    Note that the profiles come with a variety of preset options. To customize your
+    own conversion setup, use --whatsin=math|fragment|document instead, respectively,
+    as well as --whatsout=math|fragment|document.
+
+    For reliable communication and a stable conversion experience, invoke latexmls
+    only through the latexmlc client.
 
 =head2 DETAILS
 
@@ -366,85 +375,48 @@ take this into account to avoid hanging.
 =item C<--destination>=I<file>
 
 Requires: C<--local>
-
 Specifies the destination file; by default the XML is written to STDOUT.
-The Daemon allows using the #name, #dir and #ext patterns as variables for
-the base of the source filename, the source directory and the source file extension.
-
-Example: C<--destination>=I<#dir/#name.xml>
-
-=item C<--postdest>=I<file>
-
-Requires: C<--local>, C<--post>
-
-Behaves like C<--destination>, for the post-processing target. C<#dir>,C<#name>,C<#ext> patterns can be used.
-
-If omitted and C<--destination> is not provided, but C<--post> is specified, 
-the output will be returned via the socket. If C<--destination> is present, 
-but C<--postdest> is omitted, the default will substitute the extension 
-from C<.tex.xml> or C<.xml> to C<.xhtml>. If the C<--destination> extension is different, 
-C<.xhtml> will be simply appended.
-
-Note that for output formats different from .xhtml one should always specify
-the C<--postdest> option.
 
 =item C<--preload>=I<module>
 
 Requests the loading of an optional module or package.  This may be useful if the TeX code
-does not specificly require the module (eg. through input or usepackage).
-For example, use C<--preload=LaTeX.pool> to force LaTeX mode.
+    does not specificly require the module (eg. through input or usepackage).
+    For example, use C<--preload=LaTeX.pool> to force LaTeX mode.
 
 =item C<--includestyles>
 
 This optional allows processing of style files (files with extensions C<sty>,
-C<cls>, C<clo>, C<cnf>).  By default, these files are ignored  unless a latexml
-implementation of them is found (with an extension of C<ltxml>).
+    C<cls>, C<clo>, C<cnf>).  By default, these files are ignored  unless a latexml
+    implementation of them is found (with an extension of C<ltxml>).
 
 These style files generally fall into two classes:  Those
-that merely affect document style are ignorable in the XML.
-Others define new markup and document structure, often using
-deeper LaTeX macros to achieve their ends.  Although the omission
-will lead to other errors (missing macro definitions), it is
-unlikely that processing the TeX code in the style file will
-lead to a correct document.
+    that merely affect document style are ignorable in the XML.
+    Others define new markup and document structure, often using
+    deeper LaTeX macros to achieve their ends.  Although the omission
+    will lead to other errors (missing macro definitions), it is
+    unlikely that processing the TeX code in the style file will
+    lead to a correct document.
 
 =item C<--path>=I<dir>
 
 Add I<dir> to the search paths used when searching for files, modules, style files, etc;
-somewhat like TEXINPUTS.  This option can be repeated.
+    somewhat like TEXINPUTS.  This option can be repeated.
 
 =item C<--log>=I<file>
 
 Requires: C<--local>
-
 Specifies the log file; be default any conversion messages are printed to STDERR.
-The Daemon allows using the C<#name>, C<#dir> and C<#ext> patterns as variables for
-the base of the source filename, the source directory and the source file extension.
-An example would be: C<--log=#dir/#name.log>
-
-=item C<--postlog>=I<file>
-
-Requires: C<--local>, C<--post>
-
-Behaves like C<--log>, but reports on the status of the post-processing exclusively.
-The C<#name>,C<#dir> and C<#ext> patterns can be used.
-Default is merging this log at the original C<--log> target
-
-=item C<--summary>
-
-Return a one line summary message of the conversion outcome. The message is always sent back
-via the socket, strictly after any other return values possible.
 
 =item C<--autoflush>=I<count>
 
 Automatically restart the daemon after converting "count" inputs.
-Good practice for vast batch jobs. (default: 10000)
-
+    Good practice for vast batch jobs. (default: 100)
+    
 =item C<--timeout>=I<secs>
 
 Set an inactivity timeout value in seconds. If the daemon is not given any input
-for the timeout period it will automatically self-destruct.
-The default value is 60 seconds, set to 0 to disable.
+    for the timeout period it will automatically self-destruct.
+    The default value is 60 seconds, set to 0 to disable.
 
 =item C<--port>=I<number>
 
@@ -453,17 +425,17 @@ Specify server port (default: 3334 for math, 3344 for fragment and 3354 for stan
 =item C<--local>
 
 Request a local server (default: off)
-Required for the C<--log> and C<--destination> switches
-Required for processing filenames on input, as well as for any filesystem access.
-If switched off, the only means of communication with the server is via the respective socket.
-Caveat: When C<--local> is disabled, fatal errors cause an empty output at the moment.
+    Required for the C<--log> and C<--destination> switches
+    Required for processing filenames on input, as well as for any filesystem access.
+    If switched off, the only means of communication with the server is via the respective socket.
+    Caveat: When C<--local> is disabled, fatal errors cause an empty output at the moment.
 
 =item C<--documentid>=I<id>
 
 Assigns an ID to the root element of the XML document.  This ID is generally
-inherited as the prefix of ID's on all other elements within the document.
-This is useful when constructing a site of multiple documents so that
-all nodes have unique IDs.
+    inherited as the prefix of ID's on all other elements within the document.
+    This is useful when constructing a site of multiple documents so that
+    all nodes have unique IDs.
 
 =item C<--quiet>
 
@@ -472,26 +444,26 @@ Reduces the verbosity of output during processing, used twice is pretty silent.
 =item C<--verbose>
 
 Increases the verbosity of output during processing, used twice is pretty chatty.
-Can be useful for getting more details when errors occur.
+    Can be useful for getting more details when errors occur.
 
 =item C<--strict>
 
 Specifies a strict processing mode. By default, undefined control sequences and
-invalid document constructs (that violate the DTD) give warning messages, but attempt
-to continue processing.  Using C<--strict> makes them generate fatal errors.
+    invalid document constructs (that violate the DTD) give warning messages, but attempt
+    to continue processing.  Using C<--strict> makes them generate fatal errors.
 
 =item C<--bibtex>
 
 Forces latexml to treat the file as a BibTeX bibliography.
-Note that the timing is slightly different than the usual
-case with BibTeX and LaTeX.  In the latter case, BibTeX simply
-selects and formats a subset of the bibliographic entries; the
-actual TeX expansion is carried out when the result is included
-in a LaTeX document.  In contrast, latexml processes and expands
-the entire bibliography; the selection of entries is done
-during post-processing.  This also means that any packages
-that define macros used in the bibliography must be
-specified using the C<--preload> option.
+    Note that the timing is slightly different than the usual
+    case with BibTeX and LaTeX.  In the latter case, BibTeX simply
+    selects and formats a subset of the bibliographic entries; the
+    actual TeX expansion is carried out when the result is included
+    in a LaTeX document.  In contrast, latexml processes and expands
+    the entire bibliography; the selection of entries is done
+    during post-processing.  This also means that any packages
+    that define macros used in the bibliography must be
+    specified using the C<--preload> option.
 
 =item C<--xml>
 
@@ -499,98 +471,72 @@ Requests XML output; this is the default.
 
 =item C<--tex>
 
-Requests TeX output for debugging purposes;  processing is only carried out through expansion and digestion.
-This may not be quite valid TeX, since Unicode may be introduced.
+Requests TeX output for debugging purposes;
+    processing is only carried out through expansion and digestion.
+    This may not be quite valid TeX, since Unicode may be introduced.
 
 =item C<--box>
 
-Requests Box output for debugging purposes;  processing is carried out through expansion and digestions,
-and the result is printed.
+Requests Box output for debugging purposes;
+    processing is carried out through expansion and digestions,
+    and the result is printed.
 
 =item C<--profile>
 
-fragment: Parses frontmatter and \begin{document}...\end{document} fragments.
-          Assumes that the documentclass is fixed (if any), which achieves a big speedup,
-          since no state reinitialization is necessary. Use the C<--preload> switch
-          to load the document class when invoking the daemon.
-          Example: C<latexmls --preload=LaTeX.pool --preload=article.cls --profile=fragment>
-
-standard: Default, turns on the classic, unoptimized processing of documents as performed by latexml.
-          This is suitable for processing sets of heterogeneous documents, but is slower in general.
-          Example: C<latexmls --profile=standard>
-
-math:     Like latexmlmath, parses a single TeX formula per line.
-          Example: C<latexmls --profile=math --pmml --keepTeX --parallelmath>
+Variety of shorthand profiles, described in detail at LaTeXML::Util::Startup.
+Example: C<latexmlc --profile=math 1+2=3>
 
 =item C<--post>
 
-Request post-processing of converted XML to XHTML. Default behaviour is
-creating XHTML output with Presentational MathML.
+Request post-processing. Enabled by default is processing graphics and cross-referencing.
+
 
 =item C<--embed>
 
-Requests an embeddable XHTML div (requires: --post, --profile=fragment), respectively the
-top division of the document's body.
-Caveat: This experimental mode is enabled only for fragment profile and post-processed
-documents (to XHTML). Also, this option can not be used if an explicit --destination
-or --postdest are provided.
+TODO: Deprecated, use --whatsout=fragment
+Requests an embeddable XHTML div (requires: --post --format=xhtml),
+    respectively the top division of the document's body.
+    Caveat: This experimental mode is enabled only for fragment profile and post-processed
+    documents (to XHTML).
 
 =item C<--pmml>
 
 Requests conversion of math to Presentation MathML.
-Conversion is the default for xhtml format.
+    Presentation MathML is the default math processor for the XHTML/HTML/HTML5 formats.
+    Will enable C<--post>.
 
 =item C<--cmml>
 
 Requests or disables conversion of math to Content MathML.
-Conversion is disabled by default.
-B<Note> that this conversion is only partially implemented.
+    Conversion is disabled by default.
+    B<Note> that this conversion is only partially implemented.
+    Will enable C<--post>.
 
 =item C<--openmath>
 
 Requests or disables conversion of math to OpenMath.
-Conversion is disabled by default.
-B<Note> that this conversion is not yet supported in C<latexmls>.
+    Conversion is disabled by default.
+    B<Note> that this conversion is not yet supported in C<latexmls>.
+    Will enable C<--post>.
 
-=item C<--keepTeX>
-
-By default, when any of the MathML or OpenMath conversions
-are used, the source TeX formula will be removed;
-This option preserves it as a MathML annotation in parallel markup.
-B<Note> that C<--parallelmath> and C<--pmml> or C<--cmml> are required.
-
-=item C<--keepXMath>
+=item C<--xmath> and C<--keepXMath>
 
 By default, when any of the MathML or OpenMath conversions
-are used, the intermediate math representation will be removed;
-This option preserves it as a MathML annotation in parallel markup.
-B<Note> that C<--parallelmath> and C<--pmml> or C<--cmml> are required.
-
-=item C<--parallelmath>
-
-Requests or disables parallel math markup.
-Parallel markup is the default for xhtml formats when multiple math
-formats are requested.
-
-This method uses the MathML C<semantics> element with additional formats
-appearing as C<annotation>'s.
-The first math format requested must be either Presentation or Content MathML;
-additional formats may be MathML or OpenMath.
-
-If this option is disabled and multiple formats are requested, the
-representations are simply stored as separate children of the C<Math> element.
-
+    are used, the intermediate math representation will be removed;
+    Explicitly specifying --xmath|keepXMath preserves this format.
+    Will enable C<--post>.
 
 =item C<--stylesheet>=I<file>
 
-Sets a stylesheet of choice to be used by the postprocessor. Requires C<--post>
+Sets a stylesheet of choice to be used by the postprocessor.
+    Will enable C<--post>.
 
 =item C<--css>=I<cssfile>
 
 Adds I<cssfile> as a css stylesheet to be used in the transformed html/xhtml.
-Multiple stylesheets can be used; they are included in the html in the
-order given, following the default C<core.css>
-(but see C<--nodefaultcss>). Some stylesheets included in the distribution are
+    Multiple stylesheets can be used; they are included in the html in the
+    order given, following the default C<core.css>
+    (but see C<--nodefaultcss>). Some stylesheets included in the distribution are
   --css=navbar-left   Puts a navigation bar on the left.
                       (default omits navbar)
   --css=navbar-right  Puts a navigation bar on the left.
@@ -604,17 +550,17 @@ Disables the inclusion of the default C<core.css> stylesheet.
 =item C<--nocomments>
 
 Normally latexml preserves comments from the source file, and adds a comment every 25 lines as
-an aid in tracking the source.  The option --nocomments discards such comments.
+    an aid in tracking the source.  The option --nocomments discards such comments.
 
 =item C<--inputencoding=>I<encoding>
 
 Specify the input encoding, eg. C<--inputencoding=iso-8859-1>.
-The encoding must be one known to Perl's Encode package.
-Note that this only enables the translation of the input bytes to
-UTF-8 used internally by LaTeXML, but does not affect catcodes.
-In such cases, you should be using the inputenc package.
-Note also that this does not affect the output encoding, which is
-always UTF-8.
+    The encoding must be one known to Perl's Encode package.
+    Note that this only enables the translation of the input bytes to
+    UTF-8 used internally by LaTeXML, but does not affect catcodes.
+    In such cases, you should be using the inputenc package.
+    Note also that this does not affect the output encoding, which is
+    always UTF-8.
 
 =item C<--VERSION>
 
@@ -630,9 +576,9 @@ Shows this help message.
 
 =back
 
-
 =head1 AUTHOR
 
+Bruce Miller <bruce.miller@nist.gov>
 Deyan Ginev <d.ginev@jacobs-university.de>
 
 =head1 COPYRIGHT

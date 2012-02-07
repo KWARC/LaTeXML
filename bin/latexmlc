@@ -11,13 +11,22 @@ use Cwd qw(cwd abs_path);
 use IO::Socket;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
+use LaTeXML;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::Extras;
 use Storable qw(freeze thaw);
 use Encode;
 
 
-my $opts={};
+# Some defaults:
+my $opts={
+	  identity => "latexmlc (LaTeXML version $LaTeXML::VERSION)",
+	  profile => 'standard',
+	  'input_limit' => 100,
+	  timeout => 60,
+	  port => 3354
+	 };
+
 ReadOptions($opts,\@ARGV);
 
 # Standard profile, unless specified

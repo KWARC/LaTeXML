@@ -24,17 +24,18 @@ use LaTeXML::Util::Extras;
 use LaTeXML::Post;
 use LaTeXML::Post::Scan;
 use LaTeXML::Util::ObjectDB;
+use LaTeXML::Util::Extras;
 use Carp;
 
 #**********************************************************************
-our @IGNORABLE = qw(identity input_counter input_limit profile port preamble_loaded port destination log);
+our @IGNORABLE = qw(identity profile port preamble_loaded port destination log removed_math_formats whatsin whatsout math_formats input_limit input_counter);
 
 sub new {
   my ($class,$opts) = @_;
   binmode(STDERR,":utf8");
   prepare_options(undef,$opts);
   bless {defaults=>$opts,opts=>undef,ready=>0,
-         latexml=>undef, digested_preamble=>undef}, $class;
+         latexml=>undef, digested_preamble=>undef, digested_postamble=>undef}, $class;
 }
 
 sub prepare_session {
@@ -50,21 +51,23 @@ sub prepare_session {
   #TODO: Some options like paths and includes are additive, we need special treatment there
   #2. Check if there is some change from the current situation:
   my $opts_tmp={};
+  #2.1 Don't compare ignorable options
   foreach (@IGNORABLE) {
     $opts_tmp->{$_} = $opts->{$_};
-    $opts->{$_} = $self->{opts}->{$_};
+    if (exists $self->{opts}->{$_}) {
+      $opts->{$_} = $self->{opts}->{$_};
+    } else {
+      delete $opts->{$_};
+    }
   }
-
+  #2.2. Compare old and new $opts hash
   my $something_to_do=1 unless LaTeXML::Util::ObjectDB::compare($opts, $self->{opts});
 
-  #2.1. If no change, nothing to do, otherwise set new options
-  if ($something_to_do) {
-    #2.2. Reinstate ignorables:
-    $opts->{$_} = $opts_tmp->{$_} foreach (@IGNORABLE);
-    $self->{opts} = $opts;
-  }
+  #2.3. Reinstate ignorables, set new options to daemon:
+  $opts->{$_} = $opts_tmp->{$_} foreach (@IGNORABLE);
+  $self->{opts} = $opts;
 
-  # ... and initialize a session:
+  #3. If there is something to do, initialize a session:
   $self->initialize_session if ($something_to_do || (! $self->{ready}));
 
   return;
@@ -74,7 +77,6 @@ sub prepare_options {
   my ($self,$opts) = @_;
   undef $self unless ref $self; # Only care about daemon objects, ignore when invoked as static sub
   $opts->{timeout} = 600 unless defined $opts->{timeout}; # 10 minute timeout default
-  $opts->{input_limit} = 100 unless defined $opts->{input_limit};
   $opts->{format} = 'xml' unless defined $opts->{format};
   $opts->{verbosity} = 10 unless defined $opts->{verbosity};
   $opts->{preload} = [] unless defined $opts->{preload};
@@ -84,14 +86,18 @@ sub prepare_options {
   if ($opts->{post}) {
     # Fall back to default post processors if no preferences:
     @{$opts->{math_formats}}=@{$self->{defaults}->{math_formats}} if (defined $self && (! @{$opts->{math_formats}}));
-    # Fall back to pmml as default, when post is wanted
-    unshift @{$opts->{math_formats}}, 'pmml' if (! @{$opts->{math_formats}||[]});
+  }
+  if ($opts->{format}=~/html/i) { #HTML-like? trigger post and default to pmml
+    $opts->{post}=1;
+    if (@{$opts->{math_formats}} == 0) {
+      push @{$opts->{math_formats}}, 'pmml';
+    }
   }
   # use parallel markup if there are multiple formats requested.
   $opts->{parallelmath} = 1 if @{$opts->{math_formats}}>1;
 
   # Any post switch implies post:
-  $opts->{post}=1 if @{$opts->{math_formats}};
+  $opts->{post}=1 if (scalar(@{$opts->{math_formats}}) || ($opts->{stylesheet}));
   $opts->{parallelmath}=0 unless (@{$opts->{math_formats}} > 1);
   # Default: scan and crossref on, other advanced off
   $opts->{prescan}=undef unless defined $opts->{prescan};
@@ -108,6 +114,10 @@ sub prepare_options {
   $opts->{navtoc}=undef unless defined $opts->{numbersections};
   $opts->{urlstyle}='server' unless defined $opts->{urlstyle};
   $opts->{type} = 'auto' unless defined $opts->{type};
+
+  $opts->{whatsin} = 'document' unless defined $opts->{whatsin};
+  $opts->{whatsout} = 'document' unless defined $opts->{whatsout};
+
 }
 
 sub initialize_session {
@@ -119,26 +129,33 @@ sub initialize_session {
   croak $init_status unless ($init_status !~ /error/i);
   # Load preamble:
   my $digested_preamble;
+  my $digested_postamble;
   eval {
     local $SIG{'ALRM'} = sub { die "alarm\n" };
     alarm($self->{opts}->{timeout});
-    $digested_preamble = load_preamble($self->{opts},$latexml,$self->{digested_preamble});
+    $digested_preamble = load_aux('preamble',$self->{opts},$latexml,$self->{digested_preamble});
+    $digested_postamble = load_aux('postamble',$self->{opts},$latexml,$self->{digested_postamble});
     alarm(0);
     1;
   };
   if ($@) { #Fatal error
     if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
       print STDERR "$@\n";
-      print STDERR "Fatal error: preamble conversion timeout after ".$self->{opts}->{timeout}." seconds!\n";
-      print STDERR "\nPreamble conversion incomplete (timeout): ".$latexml->getStatusMessage.".\n";
+      print STDERR "Fatal error: pre/postamble conversion timeout after ".$self->{opts}->{timeout}." seconds!\n";
+      print STDERR "\npre/postamble conversion incomplete (timeout): ".$latexml->getStatusMessage.".\n";
     } else {
       print STDERR "$@\n";
-      print STDERR "\nPreamble conversion complete: ".$latexml->getStatusMessage.".\n";
+      print STDERR "\npre/postamble conversion complete: ".$latexml->getStatusMessage.".\n";
     }
+    undef $self->{latexml};
+    undef $self->{digested_preamble};
+    undef $self->{digested_postamble};
+    $self->{ready}=0; return;
   }
   # Save in object:
   $self->{latexml} = $latexml;
   $self->{digested_preamble} = $digested_preamble;
+  $self->{digested_postamble} = $digested_postamble;
   $self->{ready}=1;
 }
 
@@ -152,11 +169,27 @@ sub convert {
 
   # Initialize session if needed:
   $self->initialize_session unless $self->{ready};
+  unless ($self->{ready}) {
+    # Close and restore STDERR to original condition.
+    close LOG;
+    *STDERR=*ERRORIG;
+    $self->{ready}=0; return {result=>undef,log=>$log};
+  }
 
   # Inform of identity, increase conversion counter
   my $opts = $self->{opts};
   print STDERR $opts->{identity}."\n" if $opts->{verbosity} >= 0;
-  $opts->{input_counter}++;
+
+  # Handle What's IN?
+  # 1. Math profile should get a mathdoc() wrapper
+  if ($opts->{whatsin} eq "math") {
+    $source = MathDoc($source);
+  }
+  # 2. Prepare fragment pre/postambles if needed:
+  elsif ($opts->{whatsin} eq 'fragment') {
+    $opts->{'fragment_preamble'} = 'standard_preamble.tex';
+    $opts->{'fragment_postamble'} = 'standard_postamble.tex';
+  }
 
   # Prepare content and determine source type
   my $content = $self->prepare_content($source);
@@ -165,8 +198,9 @@ sub convert {
   my $latexml = $self->{latexml};
   $latexml->withState(sub {
                         my($state)=@_; # Sandbox state
-                        # Save preamble information for further use:
+                        # Save preamble/postamble information for further use:
                         $state->assignValue('_preamble_loaded',$opts->{preamble},'global');
+                        $state->assignValue('_postamble_loaded',$opts->{postamble},'global');
                         $state->assignValue('_authlist',$opts->{authlist},'global');
                         $state->pushDaemonFrame; });
 
@@ -192,11 +226,21 @@ sub convert {
       $digested = $latexml->digestString($content,preamble=>$opts->{'fragment_preamble'},
                                          postamble=>$opts->{'fragment_postamble'},noinitialize=>1);
     }
-    
+
+    # Clean up:
+    delete $opts->{source_type};
+    if ($opts->{whatsin} eq 'fragment') {
+      delete $opts->{fragment_preamble};
+      delete $opts->{fragment_postamble};
+    }
+
+
     # Now, convert to DOM and output, if desired.
     if ($digested) {
       $digested = LaTeXML::List->new($self->{digested_preamble},$digested)
         if defined $self->{digested_preamble};
+      $digested = LaTeXML::List->new($digested,$self->{digested_postamble})
+        if defined $self->{digested_postamble};
       local $LaTeXML::Global::STATE = $$latexml{state};
       if ($opts->{format} eq 'tex') {
         $serialized = LaTeXML::Global::UnTeX($digested);
@@ -234,10 +278,23 @@ sub convert {
 
   my $result = $dom;
   $result = $self->convert_post($dom) if ($opts->{post} && $dom && (!$opts->{noparse}));
+
+  #Experimental: add id's everywhere if wnated in XHTML
+  $result = InsertIDs($result)
+      if ($opts->{force_ids} && $opts->{format} eq 'xhtml');
+
+  # Handle What's OUT?
+  # 1. If we want an embedable snippet, unwrap to body's "main" div
+  if ($opts->{whatsout} eq 'fragment') {
+    $result = GetEmbeddable($result);
+  } elsif ($opts->{whatsout} eq 'math') {
+    # 2. Fetch math in math profile:
+    $result = GetMath($result);
+  } # 3. Nothing to do in document whatsout (it's default)
+
   # Close and restore STDERR to original condition.
   close LOG;
   *STDERR=*ERRORIG;
-  delete $opts->{source_type};
   my $return = {result=>$result,log=>$log,status=>$status};
 }
 
@@ -438,29 +495,29 @@ sub new_latexml {
   return $latexml;
 }
 
-sub load_preamble {
-  my ($opts,$latexml,$original) = @_;
+sub load_aux {
+  my ($type,$opts,$latexml,$original) = @_;
   my $digested = undef;
-  # Preload the preamble if any (and not loaded)
-  if ($opts->{preamble} && ($opts->{preamble_loaded} ne $opts->{preamble})) {
-    #TODO: It is difficult to digest 2 files via LaTeXML into 1 XML output right now...
-    my $response=auth_get($opts->{preamble},$opts->{authlist});
+  # Preload the pre/postamble if any (and not loaded)
+  if ($opts->{$type} && ($opts->{$type."_loaded"} ne $opts->{$type})) {
+    my $response=auth_get($opts->{$type},$opts->{authlist});
     if ($response->is_success) {
       my $content = $response->content;
-      $digested = $latexml->digestString($content,source=>$opts->{preamble},noinitialize=>1);
-      $opts->{preamble_loaded} = $opts->{preamble};
+      $digested = $latexml->digestString($content,source=>$opts->{$type},noinitialize=>1);
+      $opts->{$type."_loaded"} = $opts->{$type};
     } else {
-      if ($opts->{preamble}=~/\s|\\/) {#Guess it's a string?
-        $digested = $latexml->digestString($opts->{preamble},source=>"Anonymous string",noinitialize=>1);
+      if ($opts->{$type}=~/\s|\\/) {#Guess it's a string?
+        $digested = $latexml->digestString($opts->{$type},source=>"Anonymous string",noinitialize=>1);
       } else {
-        if (!$opts->{local}) { carp "File preamble allowed only when 'local' is enabled!"; return; }
-        $digested = $latexml->digestFile($opts->{preamble},noinitialize=>1);
-        $opts->{preamble_loaded} = $opts->{preamble};
+        if (!$opts->{local}) { carp "File $type allowed only when 'local' is enabled!"; return; }
+        $digested = $latexml->digestFile($opts->{$type},noinitialize=>1);
+        $opts->{$type."_loaded"} = $opts->{$type};
       }}
+
+    # Demand errorless conversion:
+    my $init_status = $latexml->getStatusMessage;
+    croak $init_status unless ($init_status !~ /error/i);
   }
-  # Demand errorless conversion:
-  my $init_status = $latexml->getStatusMessage;
-  croak $init_status unless ($init_status !~ /error/i);
   $digested = $original unless defined $digested;
   return $digested;
 }
@@ -574,9 +631,9 @@ Supplies detailed information of the conversion log ($log),
 
 Creates a new LaTeXML object and initializes its state.
 
-=item C<< my $digested_pre = load_preamble($opts,$latexml,$previous_digested); >>
+=item C<< my $digested_pre = load_aux($type,$opts,$latexml,$previous_digested); >>
 
-Loads a daemon preamble (if needed), adding its definitions to the LaTeXML state and
+Loads a daemon preamble/postamble (if needed), adding its definitions to the LaTeXML state and
       maintaining a list of digested boxes.
 
 =item C<< my $content = $self->prepare_content($source); >>
