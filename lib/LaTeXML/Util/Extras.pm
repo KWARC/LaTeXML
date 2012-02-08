@@ -75,8 +75,8 @@ sub GetMath {
 sub GetEmbeddable {
   my ($doc) = @_;
   return unless defined $doc;
-  my ($embeddable) = $doc->findnodes('//*[@class="document"]')||$doc;
-  return $embeddable;
+  my ($embeddable) = $doc->findnodes('//*[@class="document"]');
+  return $embeddable||$doc;
 }
 
 our $id_xslt_dom = XML::LibXML->new()->parse_string(<<'EOT');

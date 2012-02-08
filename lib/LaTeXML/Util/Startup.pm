@@ -20,7 +20,7 @@ standard => {
              authlist=>{}
             },
 fragment => {
-             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>1,
+             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
              post=>1, parallelmath=>1,
              timeout=>60, format=>'xhtml', base=>q{},
 	     whatsin=>'fragment', whatsout=>'fragment',
@@ -34,7 +34,7 @@ fragment => {
              authlist=>{}, force_ids=>1
             },
 'fragment-xhtml' => {
-             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>1,
+             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
              post=>1, parallelmath=>1,
 	     timeout=>60, format=>'xhtml', base=>q{},
 	     whatsin=>'fragment', whatsout=>'fragment',
@@ -47,7 +47,7 @@ fragment => {
              authlist=>{}, force_ids=>1
             },
 'fragment-html' => {
-             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>1,
+             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
              post=>1, parallelmath=>1,
 	     timeout=>60, format=>'html5', base=>q{},
 	     whatsin=>'fragment', whatsout=>'fragment',

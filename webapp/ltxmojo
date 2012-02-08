@@ -77,9 +77,6 @@ post '/convert' => sub {
   my $tex = $opt->{tex};
   delete $opt->{tex};
 
-  # Math profile should get a mathdoc() wrapper
-  $tex = MathDoc($tex) if (lc($opt->{profile}) eq "math");
-
   # We now have a LaTeXML options object - $opt.
   my $daemon = $startup->find_daemon($opt);
 
@@ -94,16 +91,8 @@ post '/convert' => sub {
   }
   # Delete daemon if Fatal occurred
   undef $daemon unless defined $result;
-  # If we want extra ids, this is where we add them:
-  $result = InsertIDs($result)
-    if $opt->{force_ids};    #Experimental: add id's everywhere
 
-  # If we want an embedable snippet, unwrap to body's "main" div
-  $result = GetEmbeddable($result) if $opt->{embed};
-
-  # Special for math profile: get out the m:math
-  $result = GetMath($result) if (lc($opt->{profile}) eq "math");
-
+  # Serialize XML for output:
   $result = $result->toString(1) if defined $result;
 
   $self->render(json => {result => $result, status => $status, log => $log});
