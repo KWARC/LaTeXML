@@ -75,8 +75,7 @@ sub GetMath {
 sub GetEmbeddable {
   my ($doc) = @_;
   return unless defined $doc;
-  my ($embeddable) = $doc->findnodes('//*[@class="document"]');
-  
+  my ($embeddable) = $doc->findnodes('//*[@class="document"]')||$doc;
   return $embeddable;
 }
 
@@ -320,6 +319,7 @@ latexmls/latexmlc [options]
  --box              requests box output after expansion
                     and digestion.
  --noparse          suppresses parsing math (default: off)
+ --parse          enables parsing math (default: on)
  --profile=name     specify profile as defined in LaTeXML::Util::Startup
                     Supported: standard|math|fragment|...
                     (default: standard)
