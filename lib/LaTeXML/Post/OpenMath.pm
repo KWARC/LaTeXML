@@ -146,7 +146,7 @@ sub om_decoratedSymbol {
   my $name=$id;
   $name=~s/^cvar\.//;
   $name="name.cvar.$name" if ($name=~/^\d+$/);
-  my $pmml=$pres_processor->pmml_tpo($item,'text');
+  my $pmml=$pres_processor->pmml_top($item,'text');
   my $pmml_nommath=$pmml->[2];
   ['om:OMATTR',{id=>"$id"},
    ['om:OMATP',{},
