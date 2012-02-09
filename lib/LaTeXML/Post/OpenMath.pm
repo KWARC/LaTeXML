@@ -25,6 +25,7 @@
 package LaTeXML::Post::OpenMath;
 use strict;
 use LaTeXML::Common::XML;
+use LaTeXML::Post;
 use LaTeXML::Post::MathML;
 use Encode;
 use base qw(LaTeXML::Post::MathProcessor);
@@ -146,12 +147,15 @@ sub om_decoratedSymbol {
   my $name=$id;
   $name=~s/^cvar\.//;
   $name="name.cvar.$name" if ($name=~/^\d+$/);
-  my $pmml=$pres_processor->pmml_top($item,'text');
-  my $pmml_nommath=$pmml->[2];
+  my $pmml;
+  {
+    local $LaTeXML::Post::MATHPROCESSOR = $pres_processor;
+    $pmml=$pres_processor->pmml_top($item,'text');
+  }
   ['om:OMATTR',{id=>"$id"},
    ['om:OMATP',{},
     ['om:OMS',{name=>'PMML',cd=>'OMPres'}],
-    ['om:OMFOREIGN',{},$pmml_nommath]],
+    ['om:OMFOREIGN',{},$pmml]],
    ['om:OMV',{name=>$name}]]; }
 # ================================================================================
 # Tokens
