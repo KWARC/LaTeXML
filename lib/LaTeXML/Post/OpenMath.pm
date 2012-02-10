@@ -150,7 +150,7 @@ sub om_decoratedSymbol {
   my $pmml;
   {
     local $LaTeXML::Post::MATHPROCESSOR = $pres_processor;
-    $pmml=$pres_processor->pmml_top($item,'text');
+    $pmml=$pres_processor->convertNode(undef,$item,'text');
   }
   ['om:OMATTR',{id=>"$id"},
    ['om:OMATP',{},

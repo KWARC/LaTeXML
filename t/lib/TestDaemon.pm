@@ -41,8 +41,9 @@ sub daemon_ok {
   my $opts = read_options("$base.opt");
   my $invocation = "killall latexmls; cd $dir; latexmlc --destination=$localname.test.xml --log=/dev/null --local --noforce_ids ";
   foreach (keys %$opts) {
-    $invocation.= "--".$_."='".$opts->{$_}."' ";
+    $invocation.= "--".$_.($opts->{$_} ? ("='".$opts->{$_}."' ") : (" "));
   }
+  print STDERR "\n$invocation \n";
   is(system("$invocation 2>$localname.test.log"),0,"Progress: processed $localname...\n");
   { local $Test::Builder::Level =  $Test::Builder::Level+1;
     is_filecontent("$base.xml","$base.test.xml",$base);
@@ -55,8 +56,9 @@ sub read_options {
   open (OPT,"<",shift);
   while (<OPT>) {
     chomp;
-    my ($key,$value) = split(/\s+=\s+/,$_);
-    $opts->{$key} = $value;
+    /(\S+)\s*=\s*(.+)/;
+    my ($key,$value) = ($1,$2);
+    $opts->{$key} = $value||'';
   }
   close OPT;
   $opts;

@@ -143,6 +143,7 @@ sub ReadOptions {
 	   "whatsout=s" => sub {$opts->{whatsout} = $_[1]; },
            "noembed"   => sub { $opts->{embed} = 0; },
 	   "force_ids" => sub { $opts->{force_ids} = 1; },
+	   "noforce_ids" => sub { $opts->{force_ids} = 0; },
 	   "autoflush=s" => sub { $opts->{input_limit} = $_[1]; },
            "timeout=s"   => sub { $opts->{timeout} = $_[1]; },
            "port=s"      => sub { $opts->{port} = $_[1]; },
