@@ -7,7 +7,7 @@ our @EXPORT = (qw(daemon_tests daemon_ok),
 	       @Test::More::EXPORT);
 
 # Note that this is a singlet; the same Builder is shared.
-my $Test=Test::Builder->new();
+our $Test=Test::Builder->new();
 
 # Test the invocations of all *.opt files in the given directory (typically t/something)
 # Skip any that have no corresponding *.xml and *.log files.
@@ -41,14 +41,16 @@ sub daemon_ok {
   my $opts = read_options("$base.opt");
   my $invocation = "killall latexmls; cd $dir; latexmlc --destination=$localname.test.xml --log=/dev/null --local --noforce_ids ";
   foreach (keys %$opts) {
-    $invocation.= "--".$_.($opts->{$_} ? ("='".$opts->{$_}."' ") : (" "));
+    $invocation.= "--".$_.($opts->{$_} ? ("='".$opts->{$_}."' ") : (' '));
   }
+  $invocation .= " 2>$localname.test.log; cd -";
   print STDERR "\n$invocation \n";
-  is(system("$invocation 2>$localname.test.log"),0,"Progress: processed $localname...\n");
+  is(system($invocation),0,"Progress: processed $localname...\n");
   { local $Test::Builder::Level =  $Test::Builder::Level+1;
     is_filecontent("$base.xml","$base.test.xml",$base);
     is_filecontent("$base.log","$base.test.log",$base);
   }
+system("rm $base.test.xml $base.test.log");
 }
 
 sub read_options {
@@ -56,9 +58,10 @@ sub read_options {
   open (OPT,"<",shift);
   while (<OPT>) {
     chomp;
-    /(\S+)\s*=\s*(.+)/;
+    /(\S+)\s*=\s*(.*)/;
     my ($key,$value) = ($1,$2);
     $opts->{$key} = $value||'';
+    $opts->{$key} =~ s/\s+$//; #remove trailing spaces
   }
   close OPT;
   $opts;
@@ -81,7 +84,6 @@ sub is_filecontent {
   my($path1,$path2,$name)=@_;
   my $content1 = get_filecontent($path1,$name);
   my $content2 = get_filecontent($path2,$name);
-
   { local $Test::Builder::Level =  $Test::Builder::Level+1;
     is_strings($content1,$content2,$name); }}
 
@@ -90,7 +92,7 @@ sub is_strings {
   my($strings1,$strings2,$name)=@_;
   my $max = $#$strings1 > $#$strings2 ? $#$strings1 : $#$strings2;
   my $ok = 1;
-  for(my $i = 0; $i < $max; $i++){
+  for(my $i = 0; $i <= $max; $i++){
     my $string1 = $$strings1[$i];
     my $string2 = $$strings2[$i];
     if(defined $string1){

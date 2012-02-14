@@ -11,11 +11,7 @@ use TestDaemon;
 #  latexmlc {$triggers} $name
 #).
 
-daemon_tests('t/daemon/profiles');
-#daemon_tests('t/daemon/formats');
-#daemon_tests('t/daemon/runtimes');
-#daemon_tests('t/daemon/complex');
-#daemon_tests('t/daemon/api');
+daemon_tests('t/daemon/complex');
 
 #**********************************************************************
 1;

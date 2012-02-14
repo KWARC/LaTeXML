@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?latexml searchpaths="/home/dig/LaTeXML/branches/arXMLiv/t/daemon,/home/dig/LaTeXML/branches/arXMLiv/t/daemon/formats"?>
+<?latexml RelaxNGSchema="LaTeXML"?>
+<document xmlns="http://dlmf.nist.gov/LaTeXML" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="http://www.w3.org/2000/svg">
+  <para xml:id="p1">
+    <p>Here is a sample fragment:</p>
+  </para>
+  <para xml:id="p2">
+    <p><Math mode="inline" tex="1+2=3" xml:id="p2.m1"><XMath><XMTok meaning="1" role="NUMBER">1</XMTok><XMTok meaning="plus" role="ADDOP">+</XMTok><XMTok meaning="2" role="NUMBER">2</XMTok><XMTok meaning="equals" role="RELOP">=</XMTok><XMTok meaning="3" role="NUMBER">3</XMTok></XMath></Math></p>
+  </para>
+</document>
