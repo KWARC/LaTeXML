@@ -65,8 +65,8 @@ text_attributes =
 
 ## Content model for \elementref{text}.
 ## DG: Quick fix disallowing Misc elements in text:
-## text_model = Inline.model
-text_model = (text | Inline.class | Meta.class)*
+ text_model = Inline.model
+## text_model = (text | Inline.class | Meta.class)*
 
 #======================================================================
 

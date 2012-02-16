@@ -104,18 +104,12 @@ and can thus be effected by CSS.</a:documentation>
   </define>
   <define name="text_model">
     <a:documentation>Content model for \elementref{text}.
-DG: Quick fix disallowing Misc elements in text:
-text_model = Inline.model</a:documentation>
-    <zeroOrMore>
-      <choice>
-        <text/>
-        <ref name="Inline.class"/>
-        <ref name="Meta.class"/>
-      </choice>
-    </zeroOrMore>
+DG: Quick fix disallowing Misc elements in text:</a:documentation>
+    <ref name="Inline.model"/>
   </define>
   <!-- ====================================================================== -->
   <define name="emph">
+    <a:documentation>text_model = (text | Inline.class | Meta.class)*</a:documentation>
     <element name="emph">
       <a:documentation>Emphasized text.</a:documentation>
       <ref name="emph_attributes"/>

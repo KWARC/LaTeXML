@@ -1473,8 +1473,6 @@ DefMacro('\uppercase',sub {
       push(@tokens,$t) if $level; }}
   else {
     push(@tokens,$t); }
-  print STDERR "\n\nRead tokens: ", join(':',map($_->getCatcode,@tokens)),"\n\n";
-  print STDERR "Letter: ",CC_LETTER,"\n";
   map( ($_->getCatcode == CC_LETTER ? T_LETTER(uc($_->getString)):$_), @tokens); });
 
 DefMacro('\lowercase',sub {

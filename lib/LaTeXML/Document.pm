@@ -570,11 +570,11 @@ sub openElement {
 	$node->setNamespace($ns,$attprefix, 0); }
       $node->setNamespace($ns,$prefix, 1); }
     #DG: Force document namespaces to be spec-ed out in <document>
-    my @allns = $$self{model}->getDocumentNamespaces;
-    foreach (@allns) {
-      if(! defined $point->lookupNamespacePrefix($_)){	# namespace not already declared?
-	$self->getDocument->documentElement
-	  ->setNamespace($_,$$self{model}->getDocumentNamespacePrefix($_),0); }}
+    # my @allns = $$self{model}->getDocumentNamespaces;
+    # foreach (@allns) {
+    #   if(! defined $point->lookupNamespacePrefix($_)){	# namespace not already declared?
+    #     $self->getDocument->documentElement
+    #       ->setNamespace($_,$$self{model}->getDocumentNamespacePrefix($_),0); }}
   }
   else {
     if($ns){
