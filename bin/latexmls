@@ -119,6 +119,7 @@ while ( my $client = $server->accept() ) {
       exec($0,@$ARGV_SAVED)
 	  or croak ("Daemon autoflush Failed!\n");
   }
+  dotimeout() if ($opts->{timeout} == -1); # Terminate immediately if desired
   alarm($opts->{timeout});              #Timeout if inactive for too long...
 }
 

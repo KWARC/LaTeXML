@@ -23,7 +23,7 @@ my $opts={
 	  identity => "latexmlc (LaTeXML version $LaTeXML::VERSION)",
 	  profile => 'standard',
 	  'input_limit' => 100,
-	  timeout => 60,
+	  timeout => -1, # Don't start a server as default
 	  port => 3354
 	 };
 
@@ -56,34 +56,52 @@ if (!$opts->{local} && ($opts->{destination} || $opts->{log}))
 push @{$opts->{paths}}, $cdir;#add current path, to ensure never empty
 
 #***************************************************************************
+# Prepare output variables:
+my  ($result, $status, $log);
+
 #Setup client and communicate
 my $sock = new IO::Socket::INET
   ( PeerAddr => '127.0.0.1',
     PeerPort => $opts->{port},
     Proto => 'tcp',
   ); #Attempt connecting to a service
-unless ($sock) {
-  #Startup daemon with @opts and feed in args
-  system('latexmls','--port='.$opts->{port});
+if ((!$sock) && ($opts->{timeout} == -1)) {
+  # Don't boot a server, single job requested:
+  require LaTeXML::Util::Startup;
+  my $startup =  LaTeXML::Util::Startup->new(cache=>0); # Don't write a DB file
+  my $source = $opts->{source}; 
+  delete $opts->{source};
+  my $daemon = $startup->find_daemon($opts);
+  $daemon->prepare_session($opts);
+  my $response = $daemon->convert($source);
+  ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
+  $result=$result->toString(1);
+} else {
+  #Startup daemon and feed in args, if needed
+  system('latexmls','--port='.$opts->{port},'--timeout='.$opts->{timeout}) unless $sock;
+
+  #Daemon is running, reconnect and feed in request
+  $sock = new IO::Socket::INET 
+    ( PeerAddr => '127.0.0.1',
+      PeerPort => $opts->{port},
+      Proto => 'tcp',
+    );
+  croak "Could not create socket: $!\n" unless $sock; 
+  my ($response,$batch);
+  $sock->send(freeze($opts)."\nEND REQUEST\n");
+  do {
+    $sock->recv($batch,1024);
+    $response.=$batch;
+  } while ($batch);
+  close($sock);
+
+  $response = thaw($response);
+  ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
 }
-#Daemon is running, feed in request
-$sock = new IO::Socket::INET 
-  ( PeerAddr => '127.0.0.1',
-    PeerPort => $opts->{port},
-    Proto => 'tcp',
-  );
-croak "Could not create socket: $!\n" unless $sock; 
-my ($response,$batch);
-$sock->send(freeze($opts)."\nEND REQUEST\n");
-do {
-  $sock->recv($batch,1024);
-  $response.=$batch;
-} while ($batch);
-close($sock);
 
-$response = thaw($response);
 
-my  ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
+#***************************************************************************
+### Common treatment of output:
 
 # Special features for latexmls:
 if ($log) {

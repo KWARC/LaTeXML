@@ -39,18 +39,24 @@ sub daemon_ok {
   my $localname = $base;
   $localname =~ s/$dir\///;
   my $opts = read_options("$base.opt");
-  my $invocation = "killall latexmls; cd $dir; latexmlc --destination=$localname.test.xml --log=/dev/null --local --noforce_ids ";
-  foreach (keys %$opts) {
+  $opts->{destination} = "$localname.test.xml";
+  $opts->{log} = "/dev/null";
+  $opts->{local} = '';
+  $opts->{noforce_ids}='';
+  $opts->{timeout}='5';
+
+  my $invocation = "cd $dir; latexmlc ";
+  foreach (sort keys %$opts) {
     $invocation.= "--".$_.($opts->{$_} ? ("='".$opts->{$_}."' ") : (' '));
   }
   $invocation .= " 2>$localname.test.log; cd -";
-  print STDERR "\n$invocation \n";
+
   is(system($invocation),0,"Progress: processed $localname...\n");
   { local $Test::Builder::Level =  $Test::Builder::Level+1;
-    is_filecontent("$base.xml","$base.test.xml",$base);
-    is_filecontent("$base.log","$base.test.log",$base);
+    is_filecontent("$base.test.xml","$base.xml",$base);
+    is_filecontent("$base.test.log","$base.log",$base);
   }
-system("rm $base.test.xml $base.test.log");
+  system("rm $base.test.xml $base.test.log");
 }
 
 sub read_options {
