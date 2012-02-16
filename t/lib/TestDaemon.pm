@@ -11,8 +11,14 @@ our $Test=Test::Builder->new();
 
 # Test the invocations of all *.opt files in the given directory (typically t/something)
 # Skip any that have no corresponding *.xml and *.log files.
+
+# When daemon_tests is run with 'make' as a second argument, it will generate tests, instead of
+# testing against existing ones.
+
 sub daemon_tests {
-  my($directory)=@_;
+  my($directory,$mode)=@_;
+  my $testing='';
+  $testing = '.test' unless ((defined $mode) && ($mode eq 'make'));
 
   if(!opendir(DIR,$directory)){
     # Can't read directory? Fail (assumed single) test.
@@ -22,41 +28,46 @@ sub daemon_tests {
     local $Test::Builder::Level =  $Test::Builder::Level+1;
     my @tests = map("$directory/$_", grep(s/\.opt$//, sort readdir(DIR)));
     closedir(DIR);
-    $Test->expected_tests(3*scalar(@tests)+$Test->expected_tests);
+    $Test->expected_tests(3*scalar(@tests)+$Test->expected_tests) if $testing;
 
     foreach my $test (@tests){
-      if(-f "$test.xml" && -f "$test.log"){
-	daemon_ok($test,$directory); }
+      if((-f "$test.xml" && -f "$test.log") || (!$testing)) {
+	daemon_ok($test,$directory,$testing); }
       else {
 	$Test->skip("Missing $test.xml and/or $test.log"); }
     }
   }
 }
 
-
 sub daemon_ok {
-  my($base,$dir)=@_;
+  my($base,$dir,$testing)=@_;
   my $localname = $base;
   $localname =~ s/$dir\///;
   my $opts = read_options("$base.opt");
-  $opts->{destination} = "$localname.test.xml";
+  $opts->{destination} = "$localname$testing.xml";
   $opts->{log} = "/dev/null";
   $opts->{local} = '';
   $opts->{noforce_ids}='';
   $opts->{timeout}='5';
+  $opts->{nocomments} = '';
 
   my $invocation = "cd $dir; latexmlc ";
   foreach (sort keys %$opts) {
     $invocation.= "--".$_.($opts->{$_} ? ("='".$opts->{$_}."' ") : (' '));
   }
-  $invocation .= " 2>$localname.test.log; cd -";
-
-  is(system($invocation),0,"Progress: processed $localname...\n");
-  { local $Test::Builder::Level =  $Test::Builder::Level+1;
-    is_filecontent("$base.test.xml","$base.xml",$base);
-    is_filecontent("$base.test.log","$base.log",$base);
+  $invocation .= " 2>$localname$testing.log; cd -";
+  if ($testing) {
+    is(system($invocation),0,"Progress: processed $localname...\n");
+    { local $Test::Builder::Level =  $Test::Builder::Level+1;
+      is_filecontent("$base$testing.xml","$base.xml",$base);
+      is_filecontent("$base$testing.log","$base.log",$base);
+    }
+    system("rm $base$testing.xml $base$testing.log");
   }
-  system("rm $base.test.xml $base.test.log");
+  else {
+    print STDERR "$invocation\n";
+    system($invocation);
+  }
 }
 
 sub read_options {
@@ -154,7 +165,5 @@ sub do_fail {
 # 4. Moreover, we should test the option logic by comparing input-output option hashes (again, exhaustively!)
 
 # 5. We need to compare the final document, log and summary produced.
-
-
 
 1;

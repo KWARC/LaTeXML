@@ -10,15 +10,15 @@
       <mn>3</mn>
     </mrow>
     <annotation-xml encoding="MathML-Content">
-      <ns1:apply xmlns:ns1="http://www.w3.org/1998/Math/MathML">
-        <ns1:eq/>
-        <ns1:apply>
-          <ns1:plus/>
-          <ns1:cn type="integer">1</ns1:cn>
-          <ns1:cn type="integer">2</ns1:cn>
-        </ns1:apply>
-        <ns1:cn type="integer">3</ns1:cn>
-      </ns1:apply>
+      <ns2:apply xmlns:ns2="http://www.w3.org/1998/Math/MathML">
+        <ns2:eq/>
+        <ns2:apply>
+          <ns2:plus/>
+          <ns2:cn type="integer">1</ns2:cn>
+          <ns2:cn type="integer">2</ns2:cn>
+        </ns2:apply>
+        <ns2:cn type="integer">3</ns2:cn>
+      </ns2:apply>
     </annotation-xml>
     <annotation encoding="application/x-tex">1+2=3</annotation>
   </semantics>
