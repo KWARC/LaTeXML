@@ -113,6 +113,12 @@ sub getGraphicsSourceTypes {
 # Return the pathname to an appropriate image.
 sub findGraphicFile {
   my($self,$doc,$node)=@_;
+  #DG: Support for candidates lookup (png, jpg, gif are ok)
+  my @candidates = split(/,/,($node->getAttribute('candidates')||()));
+  foreach (@candidates) {
+    return $_ if ($_ =~ /\.(png|jpg|gif)$/);
+  }
+  #DG: End for @candidates support
   if(my $name = $node->getAttribute('graphic')){
     pathname_find($name,paths=>$LaTeXML::Post::Graphics::SEARCHPATHS,
 		  # accept empty type, incase bad type name, but actual file's content is known type.
@@ -158,13 +164,12 @@ sub processGraphic {
     #DG: FIXME Temporary hack to get source attributes for online conversion jobs
     my $srcattr = $node->getAttribute('graphic');
     $self->setGraphicSrc($node,$srcattr) if $srcattr;
-    return; } else {
-      #DG: FIXME!!! FULLY DISABLING IMAGE PROCESSING FOR NOW!!!
-      # Reason: sTeX processing is hacky for Tikz. REWRITE soon!
-      my $srcattr = $node->getAttribute('graphic');
-      $self->setGraphicSrc($node,$srcattr) if $srcattr;
-      return;
-    }
+    return; }
+  #DG: Don't transform if already web usable format:
+  if ($source =~ /\.(png|jpg|gif)$/) {
+    $self->setGraphicSrc($node,$source);
+    return;
+  }
   my $transform = $self->getTransform($node);
   my($image,$width,$height)=$self->transformGraphic($doc,$node,$source,$transform); 
   $self->setGraphicSrc($node,$image,$width,$height) if $image;
