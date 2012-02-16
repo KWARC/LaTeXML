@@ -22,23 +22,20 @@
     exclude-result-prefixes = "ltx">
 
   <xsl:template match="ltx:Math">
-      <xsl:apply-templates select="m:math"/>
+    <xsl:apply-templates select="m:math"/>
   </xsl:template>
+
+    <!-- A note on namespaces: In <xlt:element name="{???}", use
+	 * name() to get the prefixed name (see LaTeXML-xhtml for reqd xmlns:m declaration)
+	 * local-name() gets the unprefixed name, but with xmlns on EACH node.
+	 If you omit the namespace= on xsl:element, you get the un-namespaced name (eg.html5)-->
 
   <!-- Copy MathML, as is -->
   <xsl:template match="*[namespace-uri() = 'http://www.w3.org/1998/Math/MathML']">
-    <xsl:element name="{name()}" namespace='http://www.w3.org/1998/Math/MathML'>
+    <xsl:element name="{local-name()}" namespace='http://www.w3.org/1998/Math/MathML'>
       <xsl:for-each select="@*">
 	<xsl:attribute name="{name()}"><xsl:value-of select="."/></xsl:attribute>
       </xsl:for-each>
-      <!-- firefox needs the xlink:type attribute -->
-      <xsl:if test="@*[namespace-uri() = 'http://www.w3.org/1999/xlink'] and not(@xlink:type)">
-	<xsl:attribute name="type" namespace='http://www.w3.org/1999/xlink'>simple</xsl:attribute>
-      </xsl:if>
-      <!-- copy the ltx:Math xml:id -->
-      <xsl:if test="parent::ltx:Math/@xml:id">
-        <xsl:attribute name="xml:id"><xsl:value-of select="parent::ltx:Math/@xml:id"/></xsl:attribute>
-      </xsl:if>
       <xsl:choose>
 	<xsl:when test="local-name()='annotation-xml'">
 	  <!-- switch to blind-copy if annotation-xml -->
@@ -48,11 +45,14 @@
 	  <xsl:apply-templates/>
 	</xsl:otherwise>
       </xsl:choose>
-    </xsl:element> 
+    </xsl:element>
   </xsl:template>
 
+  <!-- This copies WHATEVER, in WHATEVER namespace (eg. OpenMath, or....)
+       I'm thinking that using local-name(), here, is best,
+       to avoid namespace prefixes altogether -->
   <xsl:template match="*" mode='blind-copy'>
-    <xsl:element name="{name()}" namespace="{namespace-uri()}">
+    <xsl:element name="{local-name()}" namespace="{namespace-uri()}">
       <xsl:for-each select="@*">
 	<xsl:attribute name="{name()}"><xsl:value-of select="."/></xsl:attribute>
       </xsl:for-each>

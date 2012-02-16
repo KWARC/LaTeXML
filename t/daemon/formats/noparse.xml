@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?latexml searchpaths="/home/dig/LaTeXML/branches/arXMLiv/t/daemon,/home/dig/LaTeXML/branches/arXMLiv/t/daemon/formats"?>
 <?latexml RelaxNGSchema="LaTeXML"?>
-<document xmlns="http://dlmf.nist.gov/LaTeXML" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="http://www.w3.org/2000/svg">
+<document xmlns="http://dlmf.nist.gov/LaTeXML">
   <para xml:id="p1">
     <p>Here is a sample fragment:</p>
   </para>
