@@ -164,8 +164,8 @@ sub ReadOptions {
 	   "nokeepXMath|noxmath"         => sub { removeMathFormat($opts,'xmath'); },
 	   "parallelmath"               => sub { $opts->{parallelmath} = 1;},
 	   "stylesheet=s"=>  sub {$opts->{stylesheet} = $_[1];},
-           "styleparam=s" => sub {my ($k,$v) = split(':',$_[1]);
-                                  $opts->{styleparam}->{$k}=$v;},
+           "stylesheetparam=s" => sub {my ($k,$v) = split(':',$_[1]);
+                                  $opts->{stylesheetparam}->{$k}=$v;},
 	   "css=s"       =>  sub {$opts->{css}=$_[1];},
 	   "defaultcss" =>  sub {$opts->{defaultcss} = 1;},
 	   "nodefaultcss" =>  sub {$opts->{defaultcss} = 0;},

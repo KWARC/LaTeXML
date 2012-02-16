@@ -450,7 +450,7 @@ sub convert_post {
     push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
 					 parameters=>{
                                                       (@csspaths ? (CSS=>[@csspaths]):()),
-                                                      ($opts->{styleparam} ? (%{$opts->{styleparam}}):())},
+                                                      ($opts->{stylesheetparam} ? (%{$opts->{stylesheetparam}}):())},
 					 %PostOPS)) if $style;
   }
 
