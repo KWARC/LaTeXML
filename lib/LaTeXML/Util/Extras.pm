@@ -123,6 +123,7 @@ sub ReadOptions {
            "destination=s" => sub {$opts->{destination} = $_[1];},
 	   "preload=s" => sub { push @{$opts->{preload}}, $_[1]},
 	   "preamble=s" => sub {$opts->{preamble} = $_[1];},
+	   "postamble=s" => sub {$opts->{postamble} = $_[1];},
            "base=s"  => sub {$opts->{base} = $_[1];},
 	   "path=s"    => sub { push @{$opts->{paths}}, $_[1]},
 	   "quiet"     => sub { $opts->{verbosity}--; },
