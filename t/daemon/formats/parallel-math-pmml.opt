@@ -1,7 +1,8 @@
 whatsin = fragment
-whatsout = fragment
+whatsout = math
 source = ../fragment.tex
+pmml = 
 cmml = 
 om = 
-pmml = 
+xmath =
 format = xhtml
