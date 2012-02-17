@@ -17,8 +17,8 @@ our $Test=Test::Builder->new();
 
 sub daemon_tests {
   my($directory,$mode)=@_;
-  my $testing='';
-  $testing = '.test' unless ((defined $mode) && ($mode eq 'make'));
+  my $generate;
+  $generate = 1 if ((defined $mode) && ($mode eq 'make'));
 
   if(!opendir(DIR,$directory)){
     # Can't read directory? Fail (assumed single) test.
@@ -28,11 +28,11 @@ sub daemon_tests {
     local $Test::Builder::Level =  $Test::Builder::Level+1;
     my @tests = map("$directory/$_", grep(s/\.opt$//, sort readdir(DIR)));
     closedir(DIR);
-    $Test->expected_tests(3*scalar(@tests)+$Test->expected_tests) if $testing;
+    $Test->expected_tests(3*scalar(@tests)+$Test->expected_tests) unless $generate;
 
     foreach my $test (@tests){
-      if((-f "$test.xml" && -f "$test.log") || (!$testing)) {
-	daemon_ok($test,$directory,$testing); }
+      if((-f "$test.xml" && -f "$test.log") || ($generate)) {
+	daemon_ok($test,$directory,$generate); }
       else {
 	$Test->skip("Missing $test.xml and/or $test.log"); }
     }
@@ -40,11 +40,11 @@ sub daemon_tests {
 }
 
 sub daemon_ok {
-  my($base,$dir,$testing)=@_;
+  my($base,$dir,$generate)=@_;
   my $localname = $base;
   $localname =~ s/$dir\///;
   my $opts = read_options("$base.opt");
-  $opts->{destination} = "$localname$testing.xml";
+  $opts->{destination} = "$localname.test.xml";
   $opts->{log} = "/dev/null";
   $opts->{local} = '';
   $opts->{noforce_ids}='';
@@ -55,18 +55,19 @@ sub daemon_ok {
   foreach (sort keys %$opts) {
     $invocation.= "--".$_.($opts->{$_} ? ("='".$opts->{$_}."' ") : (' '));
   }
-  $invocation .= " 2>$localname$testing.log; cd -";
-  if ($testing) {
+  $invocation .= " 2>$localname.test.log; cd -";
+  if (!$generate) {
     is(system($invocation),0,"Progress: processed $localname...\n");
     { local $Test::Builder::Level =  $Test::Builder::Level+1;
-      is_filecontent("$base$testing.xml","$base.xml",$base);
-      is_filecontent("$base$testing.log","$base.log",$base);
+      is_filecontent("$base.test.xml","$base.xml",$base);
+      is_filecontent("$base.test.log","$base.log",$base);
     }
-    system("rm $base$testing.xml $base$testing.log");
+    system("rm $base.test.xml $base.test.log");
   }
   else {
     print STDERR "$invocation\n";
     system($invocation);
+    system("mv $base.test.xml $base.xml; mv $base.test.log $base.log");
   }
 }
 

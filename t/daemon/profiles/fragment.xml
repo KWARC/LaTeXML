@@ -5,7 +5,7 @@
   </div>
 
   <div class="para" id="p2">
-    <p style="" class="p"><math xmlns="http://www.w3.org/1998/Math/MathML" alttext="1+2=3" display="inline"><semantics><mrow><mrow><mn>1</mn><mo>+</mo><mn>2</mn></mrow><mo>=</mo><mn>3</mn></mrow><annotation-xml encoding="MathML-Content"><ns1:apply xmlns:ns1="http://www.w3.org/1998/Math/MathML"><ns1:eq/><ns1:apply><ns1:plus/><ns1:cn type="integer">1</ns1:cn><ns1:cn type="integer">2</ns1:cn></ns1:apply><ns1:cn type="integer">3</ns1:cn></ns1:apply></annotation-xml><annotation encoding="application/x-tex">1+2=3</annotation></semantics></math></p>
+    <p style="" class="p"><math xmlns="http://www.w3.org/1998/Math/MathML" alttext="1+2=3" display="inline"><semantics><mrow><mrow><mn>1</mn><mo>+</mo><mn>2</mn></mrow><mo>=</mo><mn>3</mn></mrow><annotation-xml encoding="MathML-Content"><apply><eq/><apply><plus/><cn type="integer">1</cn><cn type="integer">2</cn></apply><cn type="integer">3</cn></apply></annotation-xml><annotation encoding="application/x-tex">1+2=3</annotation></semantics></math></p>
   </div>
 
     </div>
