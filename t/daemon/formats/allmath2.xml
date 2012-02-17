@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?latexml RelaxNGSchema="LaTeXML"?>
+<document xmlns="http://dlmf.nist.gov/LaTeXML" xmlns:om="http://www.openmath.org/OpenMath" xmlns:m="http://www.w3.org/1998/Math/MathML" xml:id="Document">
+  <para xml:id="p1" fragid="p1">
+    <p>Here is a sample fragment:</p>
+  </para>
+  <para xml:id="p2" fragid="p2">
+    <p><Math mode="inline" tex="1+2=3" xml:id="p2.m1" text="1 + 2 = 3" fragid="p2.m1"><om:OMOBJ><om:OMATTR><om:OMS cd="Alternate" name="MathML-Presentation"/><om:OMFOREIGN><m:math alttext="1+2=3" display="inline"><m:mrow><m:mrow><m:mn>1</m:mn><m:mo>+</m:mo><m:mn>2</m:mn></m:mrow><m:mo>=</m:mo><m:mn>3</m:mn></m:mrow></m:math></om:OMFOREIGN><om:OMS cd="Alternate" name="MathML-Content"/><om:OMFOREIGN><m:math alttext="1+2=3" display="inline"><m:apply><m:eq/><m:apply><m:plus/><m:cn type="integer">1</m:cn><m:cn type="integer">2</m:cn></m:apply><m:cn type="integer">3</m:cn></m:apply></m:math></om:OMFOREIGN><om:OMS cd="Alternate" name="TeX"/><om:OMFOREIGN>1+2=3</om:OMFOREIGN><om:OMA><om:OMS cd="latexml" name="equals"/><om:OMA><om:OMS cd="latexml" name="plus"/><om:OMI>1</om:OMI><om:OMI>2</om:OMI></om:OMA><om:OMI>3</om:OMI></om:OMA></om:OMATTR></om:OMOBJ></Math></p>
+  </para>
+</document>

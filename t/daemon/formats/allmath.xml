@@ -1,0 +1,11 @@
+<div class="document">
+    
+  <div class="para" id="p1">
+    <p style="" class="p">Here is a sample fragment:</p>
+  </div>
+
+  <div class="para" id="p2">
+    <p style="" class="p"><math xmlns="http://www.w3.org/1998/Math/MathML" alttext="1+2=3" display="inline"><semantics><mrow><mrow><mn>1</mn><mo>+</mo><mn>2</mn></mrow><mo>=</mo><mn>3</mn></mrow><annotation-xml encoding="MathML-Content"><apply><eq/><apply><plus/><cn type="integer">1</cn><cn type="integer">2</cn></apply><cn type="integer">3</cn></apply></annotation-xml><annotation-xml encoding="OpenMath"><om:OMOBJ><om:OMA><om:OMS cd="latexml" name="equals"/><om:OMA><om:OMS cd="latexml" name="plus"/><om:OMI>1</om:OMI><om:OMI>2</om:OMI></om:OMA><om:OMI>3</om:OMI></om:OMA></om:OMOBJ></annotation-xml><annotation encoding="application/x-tex">1+2=3</annotation></semantics></math></p>
+  </div>
+
+    </div>

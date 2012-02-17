@@ -44,16 +44,16 @@ sub daemon_ok {
   my $localname = $base;
   $localname =~ s/$dir\///;
   my $opts = read_options("$base.opt");
-  $opts->{destination} = "$localname.test.xml";
-  $opts->{log} = "/dev/null";
-  $opts->{local} = '';
-  $opts->{noforce_ids}='';
-  $opts->{timeout}='5';
-  $opts->{nocomments} = '';
+  push @$opts, ( ['destination', "$localname.test.xml"],
+		['log', "/dev/null"],
+		['local', ''],
+		['noforce_ids',''],
+		['timeout','5'],
+		['nocomments', ''] );
 
   my $invocation = "cd $dir; latexmlc ";
-  foreach (sort keys %$opts) {
-    $invocation.= "--".$_.($opts->{$_} ? ("='".$opts->{$_}."' ") : (' '));
+  foreach my $opt(@$opts) {
+    $invocation.= "--".$$opt[0].($$opt[1] ? ("='".$$opt[1]."' ") : (' '));
   }
   $invocation .= " 2>$localname.test.log; cd -";
   if (!$generate) {
@@ -72,14 +72,14 @@ sub daemon_ok {
 }
 
 sub read_options {
-  my $opts = {};
+  my $opts = [];
   open (OPT,"<",shift);
   while (<OPT>) {
     chomp;
     /(\S+)\s*=\s*(.*)/;
-    my ($key,$value) = ($1,$2);
-    $opts->{$key} = $value||'';
-    $opts->{$key} =~ s/\s+$//; #remove trailing spaces
+    my ($key,$value) = ($1,$2||'');
+    $value =~ s/\s+$//;
+    push @$opts, [$key, $value];
   }
   close OPT;
   $opts;
