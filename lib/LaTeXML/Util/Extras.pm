@@ -59,15 +59,16 @@ sub GetMath {
   my ($source) = @_;
   my $math_xpath = '//*[local-name()="math" or local-name()="Math"]';
   return unless defined $source;
-  my $math;
   my @mnodes = $source->findnodes($math_xpath);
-  if (@mnodes <= 1) {
-    $math = $mnodes[0];
-  } else {
-    my $math_count = scalar(@mnodes);
-    my $ancestor = $mnodes[0]->parentNode;
-    $ancestor = $ancestor->parentNode while ($ancestor->findnodes('.'.$math_xpath)->size != $math_count);
-    $math = $ancestor;
+  my $math_count = scalar(@mnodes);
+  my $math = $mnodes[0] if $math_count;
+  if ($math_count > 1) {
+    my $math_found = 0;
+    while ($math_found != $math_count) {
+      $math_found = $math->findnodes('.'.$math_xpath)->size;
+      $math_found++ if ($math->localname =~ /^math$/i);
+      $math = $math->parentNode if ($math_found != $math_count);
+    }
   }
   return $math;
 }
