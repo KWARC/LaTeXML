@@ -70,6 +70,14 @@
     </div>
   </xsl:template>
 
+  <xsl:template match="ltx:keywords[not(string(.))]" xml:space="preserve">
+    <div class="RDFa"><xsl:copy-of select="@*"/></div>
+  </xsl:template>
+
+  <xsl:template match="ltx:rdf" xml:space="preserve">
+    <span class="RDFa"><xsl:copy-of select="@*"/><xsl:apply-templates/></span>
+  </xsl:template>
+
   <xsl:template match="ltx:keywords" xml:space="preserve">
     <div class='{f:classes(.)}'><xsl:call-template name="add_id"/>
       <xsl:if test="@name"><h6><xsl:apply-templates select="@name"/><xsl:text>:</xsl:text></h6></xsl:if>
