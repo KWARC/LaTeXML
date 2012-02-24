@@ -34,7 +34,16 @@ sub ReadRequiredKeyVals {
 
 sub ReadOptionalKeyVals {
   my($gullet,$keyset)=@_;
-  ($gullet->ifNext(T_OTHER('[')) ? (readKeyVals($gullet,$keyset,T_OTHER(']'))) : undef); }
+  my $kv = ($gullet->ifNext(T_OTHER('[')) ? (readKeyVals($gullet,$keyset,T_OTHER(']'))) : undef); 
+  # DG: Experimental metadata keyval treatment
+  my $meta_statements = LookupValue('metadata_keyval_hook');
+  if (defined $meta_statements) {
+    foreach (@$meta_statements) {
+      $gullet->unread($_);
+    }
+    AssignValue('metadata_keyval_hook',undef);
+  }
+  $kv;}
 
 #======================================================================
 # This new declaration allows you to define the type associated with
@@ -84,10 +93,14 @@ sub readKeyVals {
     my $key= ToString($ktoks); $key=~s/\s//g;
     if($key){
       my $keydef=LookupValue('KEYVAL@'.$keyset.'@'.$key);
-      my $value;
+      my ($value,$meta);
       if($delim->equals($T_EQ)){	# Got =, so read the value
 	# WHOA!!! Secret knowledge!!!
 	my $type = ($keydef && (scalar(@$keydef)==1) && $keydef->[0]->{type}) || 'Plain';
+        if ($type eq 'Metakey') { #DG: Experimental metadata treatment
+          $type = 'Semiverbatim';
+          $meta=1;
+        }
 	my $typedef = $LaTeXML::Parameters::PARAMETER_TABLE{$type};
 	StartSemiverbatim if $typedef && $$typedef{semiverbatim};
 
@@ -101,6 +114,9 @@ sub readKeyVals {
       }
       else {			# Else, get default value.
 	$value = LookupValue('KEYVAL@'.$keyset.'@'.$key.'@default'); }
+      if ($meta) { #DG: Experimental metadata treatment
+        PushValue('metadata_keyval_hook','\thisrel{'.ToString($key).'}{'.ToString($value).'}');
+      }
       push(@kv,$key);
       push(@kv,$value); }
     Error(":expected:".Stringify($close)." Fell off end expecting ".Stringify($close)." while reading KeyVal value starting at $startloc")
