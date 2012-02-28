@@ -202,7 +202,7 @@ sub processNode {
     foreach my $proc (@{$$self{secondary_processors}}){
       local $LaTeXML::Post::MATHPROCESSOR = $proc;
       my $secondary = $proc->convertNode($doc,$xmath,$style);
-      if(! ( (ref $secondary eq 'ARRAY') && ($$secondary[0]=~/^(\w*):/) && ($1 eq $nsprefix) )){
+      if((ref $secondary eq 'ARRAY') && ($$secondary[0]=~/^(\w*):/) && ($1 ne $nsprefix)){ 
 	$secondary = $proc->outerWrapper($doc,$math,$secondary); }
       push(@secondaries, [$proc,$secondary]); }
     @markup = $self->combineParallel($doc,$math, $primary,@secondaries);
