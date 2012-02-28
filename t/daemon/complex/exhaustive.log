@@ -1,0 +1,3 @@
+Use of uninitialized value $status in print at /home/dig/LaTeXML/branches/arXMLiv/blib/script/latexmlc line 130.
+
+Error! Did not write file exhaustive.test.xml

@@ -1,0 +1,5 @@
+whatsin = math
+whatsout = math
+source = \def\foo{.\foo}
+noparse =
+timeout = 2

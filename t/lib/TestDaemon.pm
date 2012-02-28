@@ -62,12 +62,14 @@ sub daemon_ok {
       is_filecontent("$base.test.xml","$base.xml",$base);
       is_filecontent("$base.test.log","$base.log",$base);
     }
-    system("rm $base.test.xml $base.test.log");
+    system("rm $base.test.xml") if -e "$base.test.xml";
+    system("rm $base.test.log") if -e "$base.test.log";
   }
   else {
     print STDERR "$invocation\n";
     system($invocation);
-    system("mv $base.test.xml $base.xml; mv $base.test.log $base.log");
+    system("mv $base.test.xml $base.xml") if -e "$base.test.xml";
+    system("mv $base.test.log $base.log") if -e "$base.test.log";
   }
 }
 
@@ -88,12 +90,16 @@ sub read_options {
 sub get_filecontent {
   my ($path,$name) = @_;
   my @lines;
-  if(!open(IN,"<",$path)){
-    do_fail($name,"Could not open $path"); }
-  else {
-    { local $\=undef; 
-      @lines = <IN>; }
-    close(IN);
+  if (-e $path) {
+    if(!open(IN,"<",$path)){
+      do_fail($name,"Could not open $path"); }
+    else {
+      { local $\=undef; 
+	@lines = <IN>; }
+      close(IN);
+    }
+  } else {
+    push @lines,'';
   }
   \@lines;
 }
