@@ -181,7 +181,9 @@ examples['wik'] = ['\\wikimarkup',
 '','* etc.',
 ''].join('\n');
 
-examples['met'] = ['%% BEGIN METADATA BLOCK',
+examples['met'] = ['\\usepackage{planetmath-specials}',
+'\\begin{document}',
+'%% BEGIN METADATA BLOCK',
 '\\pmcanonicalname{ZipfsLaw}',
 '\\pmrecord{3}{3422}',
 '\\pmowner{akrowne}{2}',
@@ -199,7 +201,8 @@ examples['met'] = ['%% BEGIN METADATA BLOCK',
 'This example demonstrates embedding document metadata via {\\LaTeX} macros, using the vocabulary and syntax for the encyclopedia \\href{www.planetmath.org}{PlanetMath.org}.',
 'The concrete example is taken from the \\href{http://planetmath.org/encyclopedia/ZipfsLaw.html}{Zipf\'s Law} article.',
 '','',
-'View the generated soure to explore the result metadata as {\\color{blue}HTML+RDFa}.'].join('\n');
+'View the generated soure to explore the result metadata as {\\color{blue}HTML+RDFa}.',
+'\\end{document}'].join('\n');
 
 examples['wgr'] = [
 '\\usepackage{webgraphic}',
