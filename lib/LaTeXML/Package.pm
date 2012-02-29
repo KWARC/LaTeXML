@@ -40,7 +40,7 @@ our @EXPORT = (qw(&DefExpandable
 		  &GenerateID),
 
 	       # Document Model
-	       qw(&Tag &DocType &RelaxNGSchema &RegisterNamespace &RegisterDocumentNamespace),
+	       qw(&Tag &DocType &RelaxNGSchema &RegisterNamespace &RegisterDocumentNamespace &RegisterMetaNamespace),
 
 	       # Document Rewriting
 	       qw(&DefRewrite &DefMathRewrite
@@ -984,6 +984,12 @@ sub RelaxNGSchema {
 sub RegisterNamespace {
   my($prefix,$namespace)=@_;
   $STATE->getModel->registerNamespace($prefix=>$namespace);
+  return; }
+
+# DG: Support for metadata namespaces
+sub RegisterMetaNamespace {
+  my($prefix,$namespace)=@_;
+  $STATE->getModel->registerMetaNamespace($prefix=>$namespace);
   return; }
 
 sub RegisterDocumentNamespace {

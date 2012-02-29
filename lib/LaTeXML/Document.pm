@@ -120,6 +120,12 @@ sub getNodeQName {
 sub finalize {
   my($self)=@_;
   if(my $root = $self->getDocument->documentElement){
+    # DG: Support for RDFa namespaces
+    my $RDFa_Prefix;
+    if (my $ns = $STATE->getModel->getMetaNamespaces) {
+      $RDFa_Prefix.=$ns->{$_}.": $_ " foreach (keys %$ns);
+      $root->setAttribute('prefix',$RDFa_Prefix) if $RDFa_Prefix;
+    }
     local $LaTeXML::FONT = $self->getNodeFont($root);
     $self->finalize_rec($root); }
   $$self{document}; }

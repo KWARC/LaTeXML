@@ -59,6 +59,20 @@ fragment => {
                        "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty'],
              authlist=>{}, force_ids=>1
             },
+'planetmath' => {
+             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
+             post=>1, parallelmath=>1,
+	     timeout=>60, format=>'html5', base=>q{},
+	     whatsin=>'fragment', whatsout=>'fragment',
+             math_formats=>[qw(pmml cmml)], help=>0, showversion=>0, preamble=>q{}, preamble_loaded=>q{},
+             stylesheet=>q{},defaultcss=>1,icon=>0, inputencoding=>q{},
+             documentid =>q{}, type=>'auto', css => [], debugs=>[],
+             paths => ['.'],
+             preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty",
+                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty',
+                       'planetmath-specials.sty'],
+             authlist=>{}, force_ids=>1
+           },
 'fragment-omdoc' => {
              verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>1,
              post=>1, parallelmath=>1,

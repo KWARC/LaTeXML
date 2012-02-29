@@ -33,6 +33,7 @@
 
   <xsl:template match="/">
     <html>
+      <xsl:copy-of select="/ltx:document/@prefix"/><!-- DG: RDFa prefix -->
       <xsl:call-template name="head"/>
       <xsl:call-template name="body"/>
     </html>

@@ -40,6 +40,7 @@
        and change local-name() to name() in LaTeXML-math-mathml & LaTeXML-picture-svg. -->
     <html xmlns     = "http://www.w3.org/1999/xhtml">
       <xsl:copy-of select="/ltx:document/namespace::*[not(local-name() = 'ltx')]"/>
+      <xsl:copy-of select="/ltx:document/@prefix"/><!-- DG: RDFa prefix -->
       <xsl:call-template name="head"/>
       <xsl:call-template name="body"/><xsl:text>
     </xsl:text>

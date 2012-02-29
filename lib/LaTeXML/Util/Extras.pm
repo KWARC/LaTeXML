@@ -84,6 +84,9 @@ sub GetEmbeddable {
     foreach ($doc->getDocumentElement->getNamespaces) {
       $embeddable->setNamespace( $_->getData , $_->getLocalName, 0 );
     }
+    # Also, copy the prefix attribute, for RDFa:
+    my $prefix = $doc->getDocumentElement->getAttribute('prefix');
+    $embeddable->setAttribute('prefix',$prefix) if ($prefix);
   }
   return $embeddable||$doc;
 }

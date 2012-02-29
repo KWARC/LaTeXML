@@ -32,6 +32,7 @@
   <xsl:template match="/">
     <xsl:text disable-output-escaping='yes'>&lt;!DOCTYPE html></xsl:text>
     <html>
+      <xsl:copy-of select="/ltx:document/@prefix"/><!-- DG: RDFa prefix -->
       <xsl:call-template name="head"/>
       <xsl:call-template name="body"/>
     </html>

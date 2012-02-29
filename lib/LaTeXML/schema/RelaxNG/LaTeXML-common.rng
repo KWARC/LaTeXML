@@ -75,6 +75,10 @@ for more convenience in using CSS.]</a:documentation>
         <data type="NMTOKENS"/>
       </attribute>
     </optional>
+    <optional>
+      <!-- DG: A prefix attribute for RDFa 1.1 namespaces: -->
+      <attribute name="prefix"/>
+    </optional>
   </define>
   <define name="ID.attributes">
     <a:documentation>Attributes for elements that can be cross-referenced

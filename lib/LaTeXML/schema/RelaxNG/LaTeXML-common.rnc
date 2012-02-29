@@ -63,7 +63,10 @@ Common.attributes =
   ## [Note that the default XSLT stylesheets for html and xhtml
   ## add the latexml element names to the class of html elements
   ## for more convenience in using CSS.]
-  attribute class { xsd:NMTOKENS }?
+  attribute class { xsd:NMTOKENS }?,
+  
+  # DG: A prefix attribute for RDFa 1.1 namespaces:
+  attribute prefix { text }?
 
 ## Attributes for elements that can be cross-referenced
 ## from inside or outside the document.
