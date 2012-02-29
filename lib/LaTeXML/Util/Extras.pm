@@ -18,6 +18,8 @@ use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 use Pod::Find qw(pod_where);
 
+use Data::Dumper;
+
 use XML::LibXSLT;
 use XML::LibXML;
 use LaTeXML::Util::Pathname;
@@ -77,6 +79,12 @@ sub GetEmbeddable {
   my ($doc) = @_;
   return unless defined $doc;
   my ($embeddable) = $doc->findnodes('//*[@class="document"]');
+  if ($embeddable) {
+    # Copy over document namespace declarations:
+    foreach ($doc->getDocumentElement->getNamespaces) {
+      $embeddable->setNamespace( $_->getData , $_->getLocalName, 0 );
+    }
+  }
   return $embeddable||$doc;
 }
 
