@@ -77,6 +77,7 @@ sub read_options {
   my $opts = [];
   open (OPT,"<",shift);
   while (<OPT>) {
+    next if /^#/;
     chomp;
     /(\S+)\s*=\s*(.*)/;
     my ($key,$value) = ($1,$2||'');

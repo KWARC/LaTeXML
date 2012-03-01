@@ -1,5 +1,5 @@
+# Timeout in 5 seconds, no file should be written
 whatsin = math
 whatsout = math
 source = \def\foo{.\foo}
 noparse =
-timeout = 2
