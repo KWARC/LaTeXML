@@ -71,9 +71,6 @@ DefMacro('\pmmodifier{}{}','\pmmeta@uri@adhoc{modifier}{\userURI{#2}}'); # Note 
 #  foaf:mbox "email@addre.ss"
 #etc.
 
-#Experimental: MathWebSearch
-DefConstructor('\qvar Semiverbatim','<ltx:XMTok name="qvar" meaning="qvar" color="red">#1</ltx:XMTok>',requireMath=>1);
-
 # Basically, we're transforming the graphics options into graphicx format.
 my $graphicURL = 'http://alpha.planetmath.org/sites/default/files/pictures/';
 DefMacro('\includegraphics OptionalMatch:* [][] Semiverbatim',
