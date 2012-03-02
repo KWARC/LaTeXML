@@ -97,6 +97,19 @@ math => {
                        "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty'],
              debugs=>[], authlist=>{}
         },
+mws => {
+             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
+             post=>1, parallelmath=>1,
+             timeout=>60, format=>'xhtml', base=>q{},
+	     whatsin=>'math', whatsout=>'math',
+             math_formats=>[qw(pmml cmml)],
+             help=>0, showversion=>0, preamble=>q{}, preamble_loaded=>q{},
+             stylesheet=>q{},defaultcss=>1,icon=>0, inputencoding=>q{}, 
+             documentid =>q{}, type=>'auto', css => [], paths => [q{.}],
+             preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", 
+                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty','mws.sty'],
+             debugs=>[], authlist=>{}
+        },
 
 'stex-oregano' => {identity=>"Mojo for LaTeXML, v$LaTeXML::VERSION; Profile: stex",
          paths=>['/arXMLiv/trunk/build/contrib/package/webgraphic',
