@@ -171,7 +171,7 @@ DefOpenMath('Token:?:?',    sub {
     my $cd = $token->getAttribute('omcd') || 'latexml';
     ['om:OMS',{name=>$meaning, cd=>$cd}]; }
   else {
-    my $name = $token->getAttribute('name') || $token->textContent;
+    my $name = $token->textContent || $token->getAttribute('name');
     ['om:OMV',{name=>$name}]; }});
 
 # NOTE: Presence of '.' distinguishes float from int !?!?
