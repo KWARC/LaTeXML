@@ -71,6 +71,7 @@ post '/convert' => sub {
   #TODO: Make sure lists go to array refs, etc.
   my $opt = {};
   foreach ($param->param) { $opt->{lc($_)} = $param->param($_) || 1; }
+
   $opt = $self->prepare_options($opt);
 
   # TeX is data, separate

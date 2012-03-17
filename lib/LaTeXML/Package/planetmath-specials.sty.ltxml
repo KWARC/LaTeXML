@@ -18,12 +18,12 @@ use LaTeXML::Package;
 # Metadata namespaces:
 my $pmbaseURI = "http://alpha.planetmath.org"; # Careful: Get the URI right before we publish LOD
 RegisterMetaNamespace('dct'=>'http://purl.org/dc/terms/');
+RegisterMetaNamespace('msc'=>"http://msc2010.org/resources/MSC/2010/");
+RegisterMetaNamespace('xsd'=>'http://www.w3.org/2001/XMLSchema#');
 RegisterMetaNamespace('pm'=>"$pmbaseURI/ns/");
-RegisterMetaNamespace('msc'=>"$pmbaseURI/msc/");
 RegisterMetaNamespace('pmarticle'=>"$pmbaseURI/article/");
 RegisterMetaNamespace('pmuser'=>"$pmbaseURI/user/");
 RegisterMetaNamespace('pmconcept'=>"$pmbaseURI/concept/");
-RegisterMetaNamespace('xsd'=>'http://www.w3.org/2001/XMLSchema#');
 
 # URIs for Metadata Resources:
 DefMacro('\articleURI{}','pmarticle:#1');
