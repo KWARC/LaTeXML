@@ -71,11 +71,13 @@
   </xsl:template>
 
   <xsl:template match="ltx:keywords[not(string(.))]" xml:space="preserve">
-    <div class="RDFa"><xsl:copy-of select="@*"/></div>
+    <div class="RDFa"><xsl:copy-of select="@*"/><xsl:apply-templates/>
+    </div>
   </xsl:template>
 
   <xsl:template match="ltx:rdf" xml:space="preserve">
-    <span class="RDFa"><xsl:copy-of select="@*"/><xsl:apply-templates/></span>
+    <span class="RDFa"><xsl:copy-of select="@*"/><xsl:apply-templates/>
+    </span>
   </xsl:template>
 
   <xsl:template match="ltx:keywords" xml:space="preserve">
