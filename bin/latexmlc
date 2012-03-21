@@ -78,7 +78,7 @@ if ((!$sock) && ($opts->{timeout} == -1)) {
   $result=$result->toString(1) if $result;
 } else {
   #Startup daemon and feed in args, if needed
-  system('latexmls','--port='.$opts->{port},'--timeout='.$opts->{timeout},'--input_limit='.$opts->{input_limit}) unless $sock;
+  system('latexmls','--port='.$opts->{port},'--timeout='.$opts->{timeout},'--autoflush='.$opts->{input_limit}) unless $sock;
 
   #Daemon is running, reconnect and feed in request
   $sock = new IO::Socket::INET 
