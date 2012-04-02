@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 plus MathML 2.0//EN" "http://www.w3.org/Math/DTD/mathml2/xhtml-math11-f.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:svg="http://www.w3.org/2000/svg">
+  <head>
+    
+    <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8"/>
+  </head>
+  <body>
+    <div class="main">
+    <div class="content">
+    <div class="document">
+    
+  <div class="para" id="p1">
+    <p style="" class="p">A sample citation <cite class="cite">[<a href="#bib.bib1" title="Handbook of mathematical functions with formulas, graphs, and mathematical tables" class="ref">1</a>]</cite>, then point to bibliography:</p>
+  </div>
+
+    <div class="bibliography" id="bib">
+    <h2 class="title bibliography-title"/>
+    <ul class="biblist" id="L1">
+      
+    <li class="bibitem bib-book" id="bib.bib1">
+      <span class="bibtag bib-author-year">M. Abramowitz and I. A. Stegun (1964)</span>
+    <div class="bibblock">
+      <span style="" class="text bib-title">Handbook of mathematical functions with formulas, graphs, and mathematical tables</span>,
+    </div>
+  
+    <div class="bibblock">
+      <span style="" class="text bib-edition">ninth Dover printing, tenth GPO printing edition</span>,  <span style="" class="text bib-publisher">Dover</span>, <span style="" class="text bib-place">New York</span>.
+    </div>
+  
+    <div class="bibblock">
+      Cited by: <a href="#p1" title="" class="ref citedby">?</a>.
+    </div>
+  
+    </li>
+  
+    </ul>
+  
+    </div>
+  
+    </div>
+  
+        </div>
+      </div>
+    </body>
+    </html>

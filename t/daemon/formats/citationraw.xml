@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 plus MathML 2.0//EN" "http://www.w3.org/Math/DTD/mathml2/xhtml-math11-f.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:svg="http://www.w3.org/2000/svg">
+  <head>
+    
+    <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8"/>
+  </head>
+  <body>
+    <div class="main">
+    <div class="content">
+    <div class="document">
+    
+  <div class="para" id="p1">
+    <p style="" class="p">A sample citation <cite class="cite">[]</cite>, then point to bibliography:</p>
+  </div>
+
+    <div class="bibliography" id="bib">
+    <h2 class="title bibliography-title"/>
+    </div>
+  
+    </div>
+  
+        </div>
+      </div>
+    </body>
+    </html>

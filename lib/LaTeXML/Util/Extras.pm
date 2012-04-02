@@ -145,6 +145,7 @@ sub ReadOptions {
 	   "tex"       => sub { $opts->{format} = 'tex'; },
 	   "box"       => sub { $opts->{format} = 'box'; },
 	   "bibtex"    => sub { $opts->{type}='bibtex'; },
+	   "bibliography=s" => \@{$opts->{bibliographies}}, # TODO: Document
 	   "noparse"   => sub { $opts->{noparse} = 1; },
 	   "parse"   => sub { $opts->{noparse} = 0; },
 	   "format=s"   => sub { $opts->{format} = $_[1]; },

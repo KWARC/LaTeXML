@@ -114,6 +114,7 @@ sub prepare_options {
   $opts->{navtoc}=undef unless defined $opts->{numbersections};
   $opts->{urlstyle}='server' unless defined $opts->{urlstyle};
   $opts->{type} = 'auto' unless defined $opts->{type};
+  $opts->{bibliographies} = [] unless defined $opts->{bibliographies};
 
   $opts->{whatsin} = 'document' unless defined $opts->{whatsin};
   $opts->{whatsout} = 'document' unless defined $opts->{whatsout};
@@ -216,8 +217,7 @@ sub convert {
     } elsif ($opts->{source_type} eq 'file') {
       if ($opts->{type} eq 'bibtex') {
         # TODO: Do we want URL support here?
-        $digested = $latexml->digestBibTeXFile($content,preamble=>$opts->{'fragment_preamble'},
-                                               postamble=>$opts->{'fragment_postamble'},noinitialize=>1);
+        $digested = $latexml->digestBibTeXFile($content);
       } else {
         $digested = $latexml->digestFile($content,preamble=>$opts->{'fragment_preamble'},
                                          postamble=>$opts->{'fragment_postamble'},noinitialize=>1);
@@ -351,7 +351,6 @@ sub convert_post {
     }
   }
   my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile,%PostOPS);
-  my @bibliographies = undef;
   ### Advanced Processors:
   if ($opts->{split}) {
     require 'LaTeXML/Post/Split.pm';
@@ -365,9 +364,9 @@ sub convert_post {
       push(@procs,LaTeXML::Post::MakeIndex->new(db=>$DB, permuted=>$opts->{permutedindex},
                                                 split=>$opts->{splitindex}, scanner=>$scanner,
                                                 %PostOPS)); }
-    if (@bibliographies) {
+    if (@{$opts->{bibliographies}}) {
       require 'LaTeXML/Post/MakeBibliography.pm';
-      push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>[@bibliographies],
+      push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>$opts->{bibliographies},
 						       split=>$opts->{splitbibliography}, scanner=>$scanner,
 						       %PostOPS)); }
     if ($opts->{crossref}) {
