@@ -237,10 +237,9 @@ sub convert {
 
     # Now, convert to DOM and output, if desired.
     if ($digested) {
-      $digested = LaTeXML::List->new($self->{digested_preamble},$digested)
-        if defined $self->{digested_preamble};
-      $digested = LaTeXML::List->new($digested,$self->{digested_postamble})
-        if defined $self->{digested_postamble};
+      # Adding preamble and postamble material (why does the first preamble box get thrown out?!)
+      $digested = LaTeXML::List->new($self->{digested_preamble},$self->{digested_preamble},$digested,$self->{digested_postamble});
+
       local $LaTeXML::Global::STATE = $$latexml{state};
       if ($opts->{format} eq 'tex') {
         $serialized = LaTeXML::Global::UnTeX($digested);
