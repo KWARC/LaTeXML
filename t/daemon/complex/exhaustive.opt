@@ -1,11 +1,12 @@
+preload = article.cls
 preload = LaTeX.pool
 embed =
-whatsout = math
+whatsin = fragment
 source = ../fragment.tex
 preamble = ../pre.tex
 postamble = ../post.tex
-base = .
-path = .
+base = ./
+path = ../
 quiet = 
 verbose = 
 strict = 

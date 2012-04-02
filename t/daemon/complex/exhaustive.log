@@ -1,3 +1,2 @@
-Use of uninitialized value $status in print at /usr/local/bin/latexmlc line 130.
-
-Error! Did not write file exhaustive.test.xml
+No obvious problems
+Wrote exhaustive.test.xml
