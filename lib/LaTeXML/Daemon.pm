@@ -18,6 +18,7 @@ use lib "$FindBin::RealBin/../lib";
 use Pod::Usage;
 use Data::Dumper;
 use LaTeXML;
+use LaTeXML::Global;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::WWW;
 use LaTeXML::Util::Extras;
@@ -35,7 +36,7 @@ sub new {
   binmode(STDERR,":utf8");
   prepare_options(undef,$opts);
   bless {defaults=>$opts,opts=>undef,ready=>0,
-         latexml=>undef, digested_preamble=>undef, digested_postamble=>undef}, $class;
+         latexml=>undef, digested_preamble=>undef}, $class;
 }
 
 sub prepare_session {
@@ -119,6 +120,12 @@ sub prepare_options {
   $opts->{whatsin} = 'document' unless defined $opts->{whatsin};
   $opts->{whatsout} = 'document' unless defined $opts->{whatsout};
 
+  # Default: fragment pre/postambles
+  if ($opts->{whatsin} eq 'fragment') {
+    $opts->{'preamble_wrapper'} =  'standard_preamble.tex' unless defined $opts->{preamble_wrapper};
+    $opts->{'postamble_wrapper'} =  'standard_postamble.tex' unless defined $opts->{postamble_wrapper};
+  }
+
 }
 
 sub initialize_session {
@@ -128,35 +135,32 @@ sub initialize_session {
   # Demand errorless initialization
   my $init_status = $latexml->getStatusMessage;
   croak $init_status unless ($init_status !~ /error/i);
+  # Save latexml in object:
+  $self->{latexml} = $latexml;
   # Load preamble:
   my $digested_preamble;
-  my $digested_postamble;
   eval {
     local $SIG{'ALRM'} = sub { die "alarm\n" };
     alarm($self->{opts}->{timeout});
-    $digested_preamble = load_aux('preamble',$self->{opts},$latexml,$self->{digested_preamble});
-    $digested_postamble = load_aux('postamble',$self->{opts},$latexml,$self->{digested_postamble});
+    $digested_preamble = $self->load_aux();
     alarm(0);
     1;
   };
   if ($@) { #Fatal error
     if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
       print STDERR "$@\n";
-      print STDERR "Fatal error: pre/postamble conversion timeout after ".$self->{opts}->{timeout}." seconds!\n";
-      print STDERR "\npre/postamble conversion incomplete (timeout): ".$latexml->getStatusMessage.".\n";
+      print STDERR "Fatal error: preamble conversion timeout after ".$self->{opts}->{timeout}." seconds!\n";
+      print STDERR "\npreamble conversion incomplete (timeout): ".$latexml->getStatusMessage.".\n";
     } else {
       print STDERR "$@\n";
-      print STDERR "\npre/postamble conversion complete: ".$latexml->getStatusMessage.".\n";
+      print STDERR "\npreamble conversion complete: ".$latexml->getStatusMessage.".\n";
     }
     undef $self->{latexml};
     undef $self->{digested_preamble};
-    undef $self->{digested_postamble};
     $self->{ready}=0; return;
   }
   # Save in object:
-  $self->{latexml} = $latexml;
   $self->{digested_preamble} = $digested_preamble;
-  $self->{digested_postamble} = $digested_postamble;
   $self->{ready}=1;
 }
 
@@ -186,11 +190,6 @@ sub convert {
   if ($opts->{whatsin} eq "math") {
     $source = MathDoc($source);
   }
-  # 2. Prepare fragment pre/postambles if needed:
-  elsif ($opts->{whatsin} eq 'fragment') {
-    $opts->{'fragment_preamble'} = 'standard_preamble.tex';
-    $opts->{'fragment_postamble'} = 'standard_postamble.tex';
-  }
 
   # Prepare content and determine source type
   my $content = $self->prepare_content($source);
@@ -205,6 +204,11 @@ sub convert {
                         $state->assignValue('_authlist',$opts->{authlist},'global');
                         $state->pushDaemonFrame; });
 
+  # Check on the wrappers:
+  if ($opts->{whatsin} eq 'fragment') {
+    $opts->{'preamble_wrapper'} = 'standard_preamble.tex' unless defined $opts->{'preamble_wrapper'};
+    $opts->{'postamble_wrapper'} = $opts->{postamble}||'standard_postamble.tex';
+  }
   # First read and digest whatever we're given.
   my ($digested,$dom,$serialized);
   # Digest source:
@@ -212,34 +216,28 @@ sub convert {
     local $SIG{'ALRM'} = sub { die "alarm\n" };
     alarm($opts->{timeout});
     if ($opts->{source_type} eq 'url') {
-      $digested = $latexml->digestString($content,preamble=>$opts->{'fragment_preamble'},
-                                         postamble=>$opts->{'fragment_postamble'},source=>$source,noinitialize=>1);
+      $digested = $latexml->digestString($content,preamble=>$opts->{'preamble_wrapper'},
+                                         postamble=>$opts->{'postamble_wrapper'},source=>$source,noinitialize=>1);
     } elsif ($opts->{source_type} eq 'file') {
       if ($opts->{type} eq 'bibtex') {
         # TODO: Do we want URL support here?
         $digested = $latexml->digestBibTeXFile($content);
       } else {
-        $digested = $latexml->digestFile($content,preamble=>$opts->{'fragment_preamble'},
-                                         postamble=>$opts->{'fragment_postamble'},noinitialize=>1);
+        $digested = $latexml->digestFile($content,preamble=>$opts->{'preamble_wrapper'},
+                                         postamble=>$opts->{'postamble_wrapper'},noinitialize=>1);
       }}
     elsif ($opts->{source_type} eq 'string') {
-      $digested = $latexml->digestString($content,preamble=>$opts->{'fragment_preamble'},
-                                         postamble=>$opts->{'fragment_postamble'},noinitialize=>1);
+      $digested = $latexml->digestString($content,preamble=>$opts->{'preamble_wrapper'},
+                                         postamble=>$opts->{'postamble_wrapper'},noinitialize=>1);
     }
 
     # Clean up:
     delete $opts->{source_type};
-    if ($opts->{whatsin} eq 'fragment') {
-      delete $opts->{fragment_preamble};
-      delete $opts->{fragment_postamble};
-    }
-
 
     # Now, convert to DOM and output, if desired.
     if ($digested) {
-      # Adding preamble and postamble material (why does the first preamble box get thrown out?!)
-      $digested = LaTeXML::List->new($self->{digested_preamble},$self->{digested_preamble},$digested,$self->{digested_postamble});
-
+      # Adding preamble material
+      $digested = LaTeXML::List->new($self->{digested_preamble},$digested);
       local $LaTeXML::Global::STATE = $$latexml{state};
       if ($opts->{format} eq 'tex') {
         $serialized = LaTeXML::Global::UnTeX($digested);
@@ -494,30 +492,52 @@ sub new_latexml {
 }
 
 sub load_aux {
-  my ($type,$opts,$latexml,$original) = @_;
-  my $digested = undef;
-  # Preload the pre/postamble if any (and not loaded)
-  if ($opts->{$type} && ($opts->{$type."_loaded"} ne $opts->{$type})) {
-    my $response=auth_get($opts->{$type},$opts->{authlist});
+  my ($self) = @_;
+  my $needs_reset=0;
+  my $with_preamble=1;
+  my $opts = $self->{opts};
+  my $latexml= $self->{latexml};
+  my $digested = $self->{"digested_preamble"};
+  # Preload the preamble if any (and not loaded)
+  if ($opts->{preamble} && (($opts->{'preamble_loaded'}||'') ne $opts->{preamble})) {
+    my $response=auth_get($opts->{preamble},$opts->{authlist});
     if ($response->is_success) {
-      my $content = $response->content;
-      $digested = $latexml->digestString($content,source=>$opts->{$type},noinitialize=>1);
-      $opts->{$type."_loaded"} = $opts->{$type};
-    } else {
-      if ($opts->{$type}=~/\s|\\/) {#Guess it's a string?
-        $digested = $latexml->digestString($opts->{$type},source=>"Anonymous string",noinitialize=>1);
+	my $content = $response->content;
+	$digested = $latexml->digestString($content,source=>$opts->{preamble},noinitialize=>1);
       } else {
-        if (!$opts->{local}) { carp "File $type allowed only when 'local' is enabled!"; return; }
-        $digested = $latexml->digestFile($opts->{$type},noinitialize=>1);
-        $opts->{$type."_loaded"} = $opts->{$type};
+	if ($opts->{preamble}=~/\s|\\/) {#Guess it's a string?
+	  $digested = $latexml->digestString($opts->{preamble},source=>"Anonymous string",noinitialize=>1);
+	} else {
+        if (!$opts->{local}) { carp "File preamble allowed only when 'local' is enabled!"; return; }
+        $digested = $latexml->digestFile($opts->{preamble},noinitialize=>1);
       }}
+    $opts->{"preamble_loaded"} = $opts->{preamble};
 
     # Demand errorless conversion:
     my $init_status = $latexml->getStatusMessage;
     croak $init_status unless ($init_status !~ /error/i);
+
+    # Reset the wrapper, based on what we get:
+    delete $opts->{"preamble_wrapper"};
+    if (defined $digested) {
+      # Scan for \begin-\end{document} and insert it if needed:
+      if (scan_aux($digested,'begin')) {
+	$opts->{"preamble_wrapper"} = $opts->{preamble};
+	$needs_reset=1; # Will reset.
+	undef $digested;
+      }
+    }
+    $opts->{"preamble_wrapper"} = "standard_preamble.tex" unless defined $opts->{"preamble_wrapper"};
   }
-  $digested = $original unless defined $digested;
+  # Reset the LaTeXML object appropriately, if the state got mangled:
+  $self->{latexml} = new_latexml($opts) if $needs_reset;
+
   return $digested;
+}
+
+sub scan_aux {
+  my ($boxes,$string) = @_;
+  $boxes->toString =~ /$string/;
 }
 
 sub prepare_content {
@@ -629,9 +649,9 @@ Supplies detailed information of the conversion log ($log),
 
 Creates a new LaTeXML object and initializes its state.
 
-=item C<< my $digested_pre = load_aux($type,$opts,$latexml,$previous_digested); >>
+=item C<< my $digested_pre = load_aux; >>
 
-Loads a daemon preamble/postamble (if needed), adding its definitions to the LaTeXML state and
+Loads a daemon preamble and postamble (if specified), adding its definitions to the LaTeXML state and
       maintaining a list of digested boxes.
 
 =item C<< my $content = $self->prepare_content($source); >>
