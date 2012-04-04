@@ -536,12 +536,27 @@ DefConstructor('\@@smallmatrix DigestedBody',
 # \negmedspace
 # \negthickspace
 # I think only these are new
-DefConstructor('\medspace',"?#isMath(<ltx:XMHint name='medspace'/>)(\x{2005})");  # FOUR-PER-EM SPACE
-DefConstructor('\negthinspace',"?#isMath(<ltx:XMHint name='negthinspace'/>)()");
-DefConstructor('\negmedspace',"?#isMath(<ltx:XMHint name='negmedspace'/>)()");
-DefConstructor('\negthickspace',"?#isMath(<ltx:XMHint name='negthickspace'/>)()");
 
-DefConstructor('\mspace{MuDimension}',"<ltx:XMHint name='#1'/>");
+DefConstructorI('\thinspace',undef,
+		"?#isMath(<ltx:XMHint name='thinspace' width='#width'/>)(\x{2009})",
+		properties=>{isSpace=>1, width=>sub{ LookupValue('\thinmuskip'); }});
+DefConstructorI('\negthinspace',undef,
+		"?#isMath(<ltx:XMHint name='negthinspace' width='#width'/>)()",
+		properties=>{isSpace=>1, width=>sub{ LookupValue('\thinmuskip')->negate; }});
+DefConstructorI('\medspace',undef,
+		"?#isMath(<ltx:XMHint name='medspace' width='#width'/>)()",
+		properties=>{isSpace=>1, width=>sub{ LookupValue('\medmuskip'); }});
+DefConstructorI('\negmedspace',undef,
+		"?#isMath(<ltx:XMHint name='negmedspace' width='#width'/>)()",
+		properties=>{isSpace=>1, width=>sub{ LookupValue('\medmuskip')->negate; }});
+DefConstructorI('\thickspace',undef,
+		"?#isMath(<ltx:XMHint name='thickspace' width='#width'/>)(\x{2004})",
+		properties=>{isSpace=>1, width=>sub{ LookupValue('\thickmuskip'); }});
+DefConstructorI('\negthickspace',undef,
+		"?#isMath(<ltx:XMHint name='negthickspace' width='#width'/>)(\x{2004})",
+		properties=>{isSpace=>1, width=>sub{ LookupValue('\thickmuskip')->negate; }});
+
+DefConstructor('\mspace{MuDimension}',"<ltx:XMHint name='mspace' width='#1'/>");
 
 #======================================================================
 # Section 4.3 Dots
@@ -584,7 +599,7 @@ DefMacro('\uproot{}','');
 # Section 4.7 Boxed formulas
 DefMacro('\boxed{}','\ifmmode\boxed@math{#1}\else\boxed@text{#1}\fi');
 DefConstructor('\boxed@math{}',
-	       "<ltx:XMWrap style='boxed'><ltx:XMArg>#1</ltx:XMArg></ltx:XMWrap>");
+	       "<ltx:XMWrap enclose='box'>#1</ltx:XMWrap>");
 DefConstructor('\boxed@text{}',sub {
   my($document,$body,%props)=@_;
   my @new = insertBlock($document,$body);
@@ -645,19 +660,19 @@ DefConstructor('\underset{}{}',
 
 DefConstructor('\tfrac{}{}',
 	       "<ltx:XMApp>"
-	       . "<ltx:XMTok meaning='divide' role='MULOP' style='#style'/>"
+	       . "<ltx:XMTok meaning='divide' role='MULOP' fracstyle='#fracstyle'/>"
 	       . "<ltx:XMArg>#1</ltx:XMArg><ltx:XMArg>#2</ltx:XMArg>"
 	       ."</ltx:XMApp>",
 	       beforeDigest=>\&beforeTFrac, afterDigest =>\&afterTFrac);
 DefConstructor('\dfrac{}{}',
 	       "<ltx:XMApp>"
-	       . "<ltx:XMTok meaning='divide' role='MULOP' style='#style'/>"
+	       . "<ltx:XMTok meaning='divide' role='MULOP' fracstyle='#fracstyle'/>"
 	       . "<ltx:XMArg>#1</ltx:XMArg><ltx:XMArg>#2</ltx:XMArg>"
 	       ."</ltx:XMApp>",
 	       beforeDigest=>\&beforeDFrac, afterDigest =>\&afterDFrac);
 DefConstructor('\ifrac{}{}',
 	       "<ltx:XMApp>"
-	       . "<ltx:XMTok meaning='divide' role='MULOP' style='inline'/>"
+	       . "<ltx:XMTok meaning='divide' role='MULOP' fracstyle='inline'/>"
 	       . "<ltx:XMArg>#1</ltx:XMArg><ltx:XMArg>#2</ltx:XMArg>"
 	       ."</ltx:XMApp>",
 	       beforeDigest=>\&beforeFrac, afterDigest =>\&afterFrac);
@@ -665,20 +680,20 @@ DefConstructor('\ifrac{}{}',
 # Section 4.11.2 The \binom, \dbinom, and \tbinom commands
 DefConstructor('\binom{}{}',
 	       "<ltx:XMApp open='(' close=')'>"
-	       . "<ltx:XMTok meaning='binomial' role='STACKED' style='#style'/>"
+	       . "<ltx:XMTok meaning='binomial' role='STACKED' fracstyle='#fracstyle'/>"
 	       . "<ltx:XMArg>#1</ltx:XMArg><ltx:XMArg>#2</ltx:XMArg>"
 	       ."</ltx:XMApp>",
 	       beforeDigest=>\&beforeFrac, afterDigest =>\&afterFrac);
 
 DefConstructor('\tbinom{}{}',
 	       "<ltx:XMApp open='(' close=')'>"
-	       . "<ltx:XMTok meaning='binomial' role='STACKED' style='#style'/>"
+	       . "<ltx:XMTok meaning='binomial' role='STACKED' fracstyle='#fracstyle'/>"
 	       . "<ltx:XMArg>#1</ltx:XMArg><ltx:XMArg>#2</ltx:XMArg>"
 	       ."</ltx:XMApp>",
 	       beforeDigest=>\&beforeTFrac, afterDigest =>\&afterTFrac);
 DefConstructor('\dbinom{}{}',
 	       "<ltx:XMApp open='(' close=')'>"
-	       . "<ltx:XMTok meaning='binomial' role='STACKED' style='#style'/>"
+	       . "<ltx:XMTok meaning='binomial' role='STACKED' fracstyle='#fracstyle'/>"
 	       . "<ltx:XMArg>#1</ltx:XMArg><ltx:XMArg>#2</ltx:XMArg>"
 	       ."</ltx:XMApp>",
 	       beforeDigest=>\&beforeDFrac, afterDigest =>\&afterDFrac);
@@ -687,20 +702,22 @@ DefConstructor('\dbinom{}{}',
 DefConstructor('\genfrac{}{}{Dimension}{}{}{}',
 	       "<ltx:XMApp open='#open' close='#close'>"
 	       . "<ltx:XMTok ?&IsZero(#3)(role='STACKED')(role='MULOP' meaning='divide')"
-	       .           " thickness='#3' style='?#4(#4)(#style)'/>"
+	       .           " thickness='#3' fracstyle='?#4(#4)(#fracstyle)'/>"
 	       . "<ltx:XMArg>#5</ltx:XMArg>"
 	       . "<ltx:XMArg>#6</ltx:XMArg>"
 	       ."</ltx:XMApp>",
 	      afterDigest=>sub{ my($stomach,$whatsit)=@_;
 				my $open  = ToString($whatsit->getArg(1));
 				my $close = ToString($whatsit->getArg(2));
+				my $style = LookupValue('mathstyle');
 				if(my $entry = LaTeXML::Package::Pool::lookup_delimiter($open)){
 				  $open = $$entry{char}; }
 				if(my $entry = LaTeXML::Package::Pool::lookup_delimiter($close)){
 				  $close = $$entry{char}; }
 				$whatsit->setProperties(open=>$open,
 							close=>$close,
-							style=>LookupValue('mathstyle')); });
+							fracstyle=>($style eq 'display'
+								    ? $style : 'text')); });
 
 #======================================================================
 # Section 4.12 Continued fractions
@@ -710,12 +727,16 @@ DefConstructor('\genfrac{}{}{Dimension}{}{}{}',
 # I've left it to a special case in conversion to pmml.
 DefConstructor('\cfrac{}{}',
 	       "<ltx:XMApp>"
-	       . "<ltx:XMTok name='cfrac' style='#cstyle' meaning='continued-fraction'/>"
+	       . "<ltx:XMTok name='cfrac' fracstyle='#cfracstyle' meaning='continued-fraction'/>"
 	       . "<ltx:XMArg>#1</ltx:XMArg>"
 	       . "<ltx:XMArg>#2</ltx:XMArg>"
 	       ."</ltx:XMApp>",
-	       properties=>sub{ (cstyle=>LookupValue('CFRACSTYLE')); },
-	       beforeDigest=>\&beforeFrac, afterDigest =>\&afterFrac);
+	       beforeDigest=>sub {
+		 $_[0]->bgroup;
+		 AssignValue(mathstyle=>'text'); },
+	       afterDigest=>sub {
+		 $_[0]->egroup;
+		 $_[1]->setProperties(cfracstyle=>LookupValue('CFRACSTYLE')); });
 
 AssignValue(CFRACSTYLE=>'display');
 # This should get incorporated into any \cfrac's that are constructed in scope.

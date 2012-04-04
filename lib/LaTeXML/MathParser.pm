@@ -174,6 +174,9 @@ sub parse {
 }
 
 our %TAG_FEEDBACK=('ltx:XMArg'=>'a','ltx:XMWrap'=>'w');
+# These attributes on an XMArg or XMWrap will be copied to parsed content
+our @preserve_xmwrap_attributes = (qw(role xml:id open close enclose punctuation));
+
 # Recursively parse a node with some internal structure
 # by first parsing any structured children, then it's content.
 sub parse_rec {
@@ -187,6 +190,7 @@ sub parse_rec {
   my $tag  = getQName($node);
   if(my $requested_rule = $node->getAttribute('rule')){
     $rule = $requested_rule; }
+  $self->translate_hints($document,$node);
   if(my $result= $self->parse_single($node,$document,$rule)){
     $$self{passed}{$tag}++;
    if($tag eq 'ltx:XMath'){	# Replace the content of XMath with parsed result
@@ -196,13 +200,11 @@ sub parse_rec {
      $result = [element_nodes($node)]->[0]; }
     else {			# Replace the whole node for XMArg, XMWrap; preserve some attributes
       NoteProgress($TAG_FEEDBACK{$tag}||'.') if $LaTeXML::Global::STATE->lookupValue('VERBOSITY') >= 1;
-      $result = Annotate($result,
-			 role=>$node->getAttribute('role'),
-			 'xml:id'=>$node->getAttribute('xml:id'));
+      $result = Annotate($result,map( ($_=>$node->getAttribute($_)), @preserve_xmwrap_attributes));
       $result = XML_replaceNode($result,$node); }
     $result; }
   else {
-    $self->parse_kludgeScripts($node);
+    $self->parse_kludge($node);
     if($tag eq 'ltx:XMath'){
       NoteProgress('[F'.++$$self{n_parsed}.']'); }
     elsif($tag eq 'ltx:XMArg'){
@@ -223,6 +225,21 @@ sub parse_children {
     elsif($tag =~ /^ltx:(XMApp|XMDual|XMArray|XMRow|XMCell)$/){
       $self->parse_children($child,$document); }
 }}
+
+# Move any spacing XMHints to the previous node's rspace (other alternatives exist!)
+# and them remove them from the stream.
+sub translate_hints {
+  my($self,$document,$node)=@_;
+  my @children = element_nodes($node);
+  my $prev = undef;
+  foreach my $c (element_nodes($node)){
+    if(getQName($c) eq 'ltx:XMHint'){
+      if($prev){
+	my $width = $c->getAttribute('width');
+	$prev->setAttribute(rspace=>$width) if $width; }
+      $node->removeChild($c); }
+    else {
+      $prev = $c; }}}
 
 #======================================================================
 # Candidates for Common::XML ?
@@ -268,7 +285,7 @@ sub XML_addNodes {
 	      $new->setAttribute($key, $value); }#}
 	  elsif($attrprefix && ($attrprefix ne 'xml')){
 	    my $attrnsuri = $attrprefix && $LaTeXML::MathParser::DOCUMENT->getModel->getNamespace($attrprefix);
-	    $new->setAttributeNS($attrnsuri,$attrname, $$attributes{$key}); }
+	    $new->setAttributeNS($attrnsuri,$key, $$attributes{$key}); }
 	  else {
 	    $new->setAttribute($key, $$attributes{$key}); }
 	}}
@@ -287,7 +304,7 @@ sub XML_addNodes {
 #		$$self{idcache}{$value} = $new;
 		$new->setAttribute($key, $value); }#}
 	    elsif(my $ns = $attr->namespaceURI){
-	      $new->setAttributeNS($ns,$attr->localname,$attr->getValue); }
+	      $new->setAttributeNS($ns,$attr->name,$attr->getValue); }
 	    else {
 	      $new->setAttribute( $attr->localname,$attr->getValue); }}
 	}
@@ -303,22 +320,38 @@ sub XML_addNodes {
       $node->appendTextNode($child); }}}
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Low-Level hack when parsing fails;
-# attach sub/superscripts to something plausible.
-# For a node whose content could not be parsed, we at least try
-# to attach stray sub/superscripts to reasonable neighbors.
+# Low-Level hack parsing when "real" parsing fails;
+# Two issues cause generated Presentation MathML to be really bad:
+# (1) not having mrow/mfenced structures wrapping OPEN...CLOSE sequences
+#     throws off MathML's stretchiness treatment of the fences
+#     (they're all the same size; big)
+# (2) un-attached sub/superscripts won't position correctly,
+#     unless they're attached to something plausible.
 # NOTE: we should be able to optionally switch this off.
 # Especially, when we want to try alternative parse strategies.
-sub parse_kludgeScripts {
+sub parse_kludge {
   my($self,$mathnode)=@_;
-  my @nodes = map( [$_,$self->getGrammaticalRole($_)],
-		   grep( getQName($_) ne 'ltx:XMHint', # Strip out Hints
-			 element_nodes($mathnode)));
-  if(grep( $$_[1]=~/^(FLOAT|POST)(SUB|SUPER)SCRIPT$/, @nodes)){
-    my @kludged = $self->parse_kludgeScripts_rec(@nodes);
-    # Now remove & replace the previous nodes
-    map($mathnode->removeChild($$_[0]),@nodes);
-    XML_addNodes($mathnode,@kludged); }}
+  my @nodes = element_nodes($mathnode);
+  # the 1st array in stack accumlates the nodes within the current fenced row.
+  # When there's only a single array, it's single entry will be the complete row.
+  my @stack=([],[]);
+  my @pairs = map( [$_,$self->getGrammaticalRole($_)], @nodes);
+  while(scalar(@pairs) || (scalar(@stack)>1)){
+    my $pair = shift(@pairs);
+    my $role = ($pair ? $$pair[1] : 'CLOSE');
+    if($role eq 'OPEN'){
+      unshift(@stack,[$pair]); }	# Start new fenced row;
+    elsif($role eq 'CLOSE'){		# Close the current row
+      my $row = shift(@stack);		# get the current list of items
+      push(@$row,$pair) if $pair;	# Put the close (if any) into it
+      $row = [ ['ltx:XMWrap',{}, $self->parse_kludgeScripts_rec(@$row)], 'FENCED']; # handle scripts
+      push(@{$stack[0]}, $row); } # and put this constructed row at end of containing row.
+    else {
+      push(@{$stack[0]}, $pair); }} # Otherwise, just put this item into current row.
+
+  # If we got to here, remove the nodes and replace them by the kludged structure.
+  map($mathnode->removeChild($_),@nodes);
+  XML_addNodes($mathnode,$stack[0][0][0]); }
 
 sub parse_kludgeScripts_rec {
   my($self,$a,$b,@more)=@_;
@@ -340,8 +373,7 @@ sub parse_kludgeScripts_rec {
 # Convert to textual form for processing by MathGrammar
 sub parse_single {
   my($self,$mathnode,$document,$rule)=@_;
-  my @nodes = grep( getQName($_) ne 'ltx:XMHint', # Strip out Hints
-		    element_nodes($mathnode));
+  my @nodes = element_nodes($mathnode);
 
   my($punct,$result,$unparsed);
   # Extract trailing punctuation, if rule allows it.
@@ -853,7 +885,7 @@ sub ApplyNary {
     if(((p_getTokenMeaning($op1)||'__undef_meaning__') eq $opname)
        && ((p_getValue($op1) || '__undef_content__') eq $opcontent)
        && !grep($_ ,map((p_getAttribute($op,$_)||'<none>') ne (p_getAttribute($op1,$_)||'<none>'),
-			qw(style)))) { # Check ops are used in similar way
+			qw(fracstyle)))) { # Check ops are used in similar way
       push(@args,@args1); }
     else {
       push(@args,$arg1); }}

@@ -23,6 +23,7 @@
     extension-element-prefixes="string f">
 
 <xsl:param name="CSS"></xsl:param>
+<xsl:param name="JAVASCRIPT"></xsl:param>
 <xsl:param name="ICON"></xsl:param>
 
 <!--  ======================================================================
@@ -36,13 +37,19 @@
   </xsl:text>
   <head><xsl:text>
     </xsl:text>
-    <xsl:if test="*/ltx:title">
-      <title>
-	<xsl:apply-templates select="*/ltx:title" mode="visible-text"/>
-	<xsl:for-each select="//ltx:navigation/ltx:ref[@class='up']"
-		      > &#x2023; <xsl:value-of select="@title"/></xsl:for-each>
-      </title>
-    </xsl:if>
+    <xsl:choose>
+      <xsl:when test="*/ltx:title">
+	<title>
+	  <xsl:apply-templates select="*/ltx:title" mode="visible-text"/>
+	  <xsl:for-each select="//ltx:navigation/ltx:ref[@class='up']"
+			> &#x2023; <xsl:value-of select="@title"/></xsl:for-each>
+	</title>
+      </xsl:when>
+      <!-- must have a title for validity! -->
+      <xsl:otherwise>
+	<title></title>
+      </xsl:otherwise>
+    </xsl:choose>
     <xsl:text>
     </xsl:text>
     <xsl:call-template name="metatype"/>
@@ -68,6 +75,12 @@
       <xsl:for-each select="string:split($CSS,'|')"><xsl:text>
     </xsl:text>
 	<link rel='stylesheet' type="text/css" href="{text()}"/>
+      </xsl:for-each>
+    </xsl:if>
+    <xsl:if test='$JAVASCRIPT'>
+      <xsl:for-each select="string:split($JAVASCRIPT,'|')"><xsl:text>
+    </xsl:text>
+	<script src="{text()}" type="text/javascript"/>
       </xsl:for-each>
     </xsl:if>
     <xsl:if test="//ltx:indexphrase"><xsl:text>

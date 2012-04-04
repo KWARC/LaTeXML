@@ -2573,10 +2573,9 @@ sub chooseArgHandler {
   my @top = $stomach->regurgitate;
   my @bot = $stomach->digestNextBody();
   my $closing = pop(@bot);	# We'll leave whatever closed the list (endmath, endgroup...)
-#  $whatsit->setArgs(LaTeXML::MathList->new(@top),LaTeXML::MathList->new(@bot));
   $whatsit->setProperty(top=>LaTeXML::MathList->new(@top));
   $whatsit->setProperty(bottom=>LaTeXML::MathList->new(@bot));
-  $whatsit->setProperty(style=>LookupValue('mathstyle'));
+  $whatsit->setProperty(fracstyle=>$style);
 
   AssignValue(mathstyle=>$style);
   $closing; }			# leave the closing bit
@@ -2587,14 +2586,14 @@ sub beforeFrac {
   AssignValue(mathstyle=>$fracstylemap{LookupValue('mathstyle')}); }
 sub afterFrac  {
   $_[0]->egroup;
-  $_[1]->setProperty('style',LookupValue('mathstyle')); }
+  $_[1]->setProperty(fracstyle=>LookupValue('mathstyle')); }
 
 # Needed by amsmath (at least)
 sub beforeTFrac { $_[0]->bgroup; AssignValue(mathstyle=>'text');
 		  beforeFrac(@_); }
 sub afterTFrac  { afterFrac(@_); $_[0]->egroup; }
 
-sub beforeDFrac { $_[0]->bgroup; AssignValue(mathstyle=>'display'); 
+sub beforeDFrac { $_[0]->bgroup; AssignValue(mathstyle=>'display');
 		  beforeFrac(@_); }
 sub afterDFrac  { afterFrac(@_); $_[0]->egroup; }
 
@@ -2605,7 +2604,7 @@ sub afterDFrac  { afterFrac(@_); $_[0]->egroup; }
 # No, because constructor doesn't know there are 2 extra args!!
 DefConstructorI('\choose',undef,
 	       "<ltx:XMApp open='(' close=')'>"
-	       . "<ltx:XMTok meaning='binomial' role='STACKED' style='#style'/>"
+	       . "<ltx:XMTok meaning='binomial' role='STACKED' fracstyle='#fracstyle'/>"
 	       . "<ltx:XMArg>#top</ltx:XMArg>"
 	       . "<ltx:XMArg>#bottom</ltx:XMArg>"
 	       ."</ltx:XMApp>",
@@ -2617,7 +2616,7 @@ DefConstructorI('\choose',undef,
 		  Revert($whatsit->getProperty('bottom'))); });
 DefConstructorI('\brace',undef,
 	       "<ltx:XMApp open='{' close='}'>"
-	       . "<ltx:XMTok role='STACKED' style='#style'/>" # what meaning?
+	       . "<ltx:XMTok role='STACKED' fracstyle='#fracstyle'/>" # what meaning?
 	       . "<ltx:XMArg>#top</ltx:XMArg>"
 	       . "<ltx:XMArg>#bottom</ltx:XMArg>"
 	       ."</ltx:XMApp>",
@@ -2629,7 +2628,7 @@ DefConstructorI('\brace',undef,
 		  Revert($whatsit->getProperty('bottom'))); });
 DefConstructorI('\brack',undef,
 	       "<ltx:XMApp open='[' close=']'>"
-	       . "<ltx:XMTok role='STACKED' style='#style'/>" # what meaning?
+	       . "<ltx:XMTok role='STACKED' fracstyle='#fracstyle'/>" # what meaning?
 	       . "<ltx:XMArg>#top</ltx:XMArg>"
 	       . "<ltx:XMArg>#bottom</ltx:XMArg>"
 	       ."</ltx:XMApp>",
@@ -2641,7 +2640,7 @@ DefConstructorI('\brack',undef,
 		  Revert($whatsit->getProperty('bottom'))); });
 DefConstructorI('\over',undef,
 	       "<ltx:XMApp>"
-	       . "<ltx:XMTok meaning='divide' style='#style' role='MULOP'/>"
+	       . "<ltx:XMTok meaning='divide' fracstyle='#fracstyle' role='MULOP'/>"
 	       . "<ltx:XMArg>#top</ltx:XMArg>"
 	       . "<ltx:XMArg>#bottom</ltx:XMArg>"
 	       ."</ltx:XMApp>",
@@ -2653,7 +2652,7 @@ DefConstructorI('\over',undef,
 		  Revert($whatsit->getProperty('bottom'))); });
 DefConstructorI('\atop',undef,
 	       "<ltx:XMApp>"
-	       . "<ltx:XMTok role='STACKED' style='#style'/>"
+	       . "<ltx:XMTok role='STACKED' fracstyle='#fracstyle'/>"
 	       . "<ltx:XMArg>#top</ltx:XMArg>"
 	       . "<ltx:XMArg>#bottom</ltx:XMArg>"
 	       ."</ltx:XMApp>",
@@ -2665,7 +2664,7 @@ DefConstructorI('\atop',undef,
 		  Revert($whatsit->getProperty('bottom'))); });
 DefConstructor('\overwithdelims Token Token',
 	       "<ltx:XMApp open='#1' close='#2'>"
-	       . "<ltx:XMTok meaning='divide' style='#style' role='MULOP'/>"
+	       . "<ltx:XMTok meaning='divide' fracstyle='#fracstyle' role='MULOP'/>"
 	       . "<ltx:XMArg>#top</ltx:XMArg>"
 	       . "<ltx:XMArg>#bottom</ltx:XMArg>"
 	       ."</ltx:XMApp>",
@@ -2678,7 +2677,7 @@ DefConstructor('\overwithdelims Token Token',
 # But, wonder what the _meaning_ is!
 DefConstructor('\atopwithdelims Token Token',
 	       "<ltx:XMApp open='#1' close='#2'>"
-	       . "<ltx:XMTok role='STACKED'  style='#style'/>"
+	       . "<ltx:XMTok role='STACKED' fracstyle='#fracstyle'/>"
 	       . "<ltx:XMArg>#top</ltx:XMArg>"
 	       . "<ltx:XMArg>#bottom</ltx:XMArg>"
 	       ."</ltx:XMApp>",
@@ -2696,7 +2695,7 @@ sub IsZero {
 DefConstructor('\above Dimension',
 	       "<ltx:XMApp>"
 	       . "<ltx:XMTok ?&IsZero(#1)(role='STACKED')(role='MULOP' meaning='divide')"
-	       .           " style='#style' thickness='#1'/>"
+	       .           " fracstyle='#fracstyle' thickness='#1'/>"
 	       . "<ltx:XMArg>#top</ltx:XMArg>"
 	       . "<ltx:XMArg>#bottom</ltx:XMArg>"
 	       ."</ltx:XMApp>",
@@ -2710,7 +2709,7 @@ DefConstructor('\above Dimension',
 DefConstructor('\abovewithdelims Token Token Dimension',
 	       "<ltx:XMApp open='#1' close='#2'>"
 	       . "<ltx:XMTok ?&IsZero(#3)(role='STACKED')(role='MULOP' meaning='divide')"
-	       .           " style='#style' thickness='#3'/>"
+	       .           " fracstyle='#fracstyle' thickness='#3'/>"
 	       . "<ltx:XMArg>#top</ltx:XMArg>"
 	       . "<ltx:XMArg>#bottom</ltx:XMArg>"
 	       ."</ltx:XMApp>",
@@ -2792,7 +2791,7 @@ DefMathI('=',undef,'=', role=>'RELOP', meaning=>'equals');
 DefMathI('+',undef,'+', role=>'ADDOP', meaning=>'plus');
 DefMathI('-',undef,'-', role=>'ADDOP', meaning=>'minus');
 DefMathI('*',undef,'*', role=>'MULOP', meaning=>'times');
-DefMathI('/',undef,'/', role=>'MULOP', meaning=>'divide', style=>'inline');
+DefMathI('/',undef,'/', role=>'MULOP', meaning=>'divide', fracstyle=>'inline');
 DefMathI('!',undef,'!', role=>'POSTFIX', meaning=>'factorial');
 DefMathI(',',undef,',', role=>'PUNCT');
 DefMathI('.',undef,'.', role=>'PERIOD');
@@ -3105,24 +3104,28 @@ RawTeX(' \def\loop#1\repeat{\def\body{#1}\iterate}
          \def\iterate{\body \let\next=\iterate \else\let\next=\relax\fi \next}
          \let\repeat=\fi ');
 
-DefConstructorI('\enskip',  undef,"?#isMath(<ltx:XMHint name='enskip'/>)(\x{2000})",
-	       properties=>{isSpace=>1}); # EN QUAD
-DefConstructorI('\enspace', undef,"?#isMath(<ltx:XMHint name='enskip'/>)(\x{2000})",
-	      properties=>{isSpace=>1}); # EN QUAD
-DefConstructorI('\quad',   undef,"?#isMath(<ltx:XMHint name='quad'/>)(\x{2001})",
-	      properties=>{isSpace=>1}); # EM QUAD
-DefConstructorI('\qquad',  undef,"?#isMath(<ltx:XMHint name='qquad'/>)(\x{2001}\x{2001})",
-	      properties=>{isSpace=>1}); # EM QUAD
+DefConstructorI('\enskip',  undef,
+		"?#isMath(<ltx:XMHint name='enskip' width='#width'/>)(\x{2000})",
+		properties=>{isSpace=>1, width=>sub{ Dimension('0.5em'); }});
+DefConstructorI('\enspace', undef,
+		"?#isMath(<ltx:XMHint name='enskip' width='#width'/>)(\x{2000})",
+		properties=>{isSpace=>1, width=>sub{ Dimension('0.5em'); }});
+DefConstructorI('\quad',   undef,
+		"?#isMath(<ltx:XMHint name='quad' width='#width'/>)(\x{2001})",
+		properties=>{isSpace=>1, width=>sub{ Dimension('1em'); }});
+# Conceivably should be treated as punctuation! (but maybe even \quad should !?!)
+DefConstructorI('\qquad',  undef,
+		"?#isMath(<ltx:XMHint name='qquad' width='#width'/>)(\x{2001}\x{2001})",
+		properties=>{isSpace=>1, width=>sub{ Dimension('2em'); }});
+DefConstructorI('\thinspace',   undef,
+		"?#isMath(<ltx:XMHint name='thinspace' width='#width'/>)( )",
+		properties=>{isSpace=>1, width=>sub{ Dimension('0.16667em'); }});
+DefConstructorI('\negthinspace',undef,
+		"?#isMath(<ltx:XMHint name='negthinspace' width='#width'/>)()",
+		properties=>{isSpace=>1, width=>sub{ Dimension('-0.16667em'); }});
 
-DefConstructorI('\thinspace',   undef,"?#isMath(<ltx:XMHint name='thinspace'/>)( )",
+DefConstructor('\hglue Glue', "?#isMath(<ltx:XMHint name='hglue' width='#1'/>)(\x{2001})",
 	      properties=>{isSpace=>1});
-DefConstructorI('\negthinspace',undef,"?#isMath(<ltx:XMHint name='negthinspace'/>)()",
-	      properties=>{isSpace=>1});
-DefConstructorI('\thickspace',  undef,"?#isMath(<ltx:XMHint name='thickspace'/>)( )",
-	      properties=>{isSpace=>1});
-
-DefConstructor('\hglue Glue', "?#isMath(<ltx:XMHint name='#1'/>)(\x{2001})",
-	      properties=>{isSpace=>1}); # EM QUAD
 DefPrimitive('\vglue Glue', undef);
 DefPrimitiveI('\topglue',         undef,undef);
 DefPrimitiveI('\nointerlineskip', undef,undef);
@@ -3138,12 +3141,13 @@ DefMacroI('\bigskip', undef,  '\vskip\bigskipamount');
 DefPrimitiveI('\break',     undef,undef);
 DefPrimitiveI('\nobreak',   undef,undef);
 DefPrimitiveI('\allowbreak',undef,undef);
-DefConstructorI("~",  undef,"?#isMath(<ltx:XMHint name='nobreakspace'/>)(".UTF(0xA0).")",
-	      properties=>{isSpace=>1}); # NO-BREAK SPACE
-DefMacroI('\nobreakspace',undef,'\ifmmode\math@nobreakspace\else\text@nobreakspace\fi');
+DefMacroI('\nobreakspace',undef, '\ifmmode\math@nobreakspace\else\text@nobreakspace\fi');
+
 DefPrimitiveI('\text@nobreakspace',undef,UTF(0xA0));
-DefConstructorI('\math@nobreakspace',undef,"<ltx:XMHint name='nobreakspace'/>",
-		properties=>{isSpace=>1}); # NO-BREAK SPACE
+DefConstructorI('\math@nobreakspace',undef,
+		"<ltx:XMHint name='nobreakspace' width='#width'/>",
+		properties=>{isSpace=>1, width=>sub{ Dimension('1em'); }}); # NO-BREAK SPACE
+DefMacro("~",'\nobreakspace{}');
 
 DefMacroI('\slash',undef,'/');
 DefPrimitiveI('\filbreak',undef,undef);
@@ -3294,7 +3298,7 @@ sub insertFrontMatter {
 	$document->closeElement($tag); }}}
   return; }
 
-Tag('ltx:document', afterOpen=>\&insertFrontMatter);
+Tag('ltx:document', 'afterOpen:late'=>\&insertFrontMatter);
 
 DefConstructor('\beginsection Until:\par',
 	       "<ltx:section><ltx:title>#1</ltx:title>");
@@ -3447,20 +3451,25 @@ Let(T_CS('\bye'),T_CS('\end'));
 
 Let(T_CS('\sp'),T_SUPER);
 Let(T_CS('\sb'),T_SUB);
-DefConstructorI('\,',undef,"?#isMath(<ltx:XMHint name='thinspace'/>)(\x{2009})",
-	      properties=>{isSpace=>1}); # THIN SPACE
-DefConstructorI('\!',undef,"?#isMath(<ltx:XMHint name='negthinspace'/>)()",
-	       properties=>{isSpace=>1});
-DefConstructorI('\>',undef,"?#isMath(<ltx:XMHint name='\>'/>)()",
-	      properties=>{isSpace=>1});	# ??
-DefConstructorI('\;',undef,"?#isMath(<ltx:XMHint name='thickspace'/>)(\x{2004})",
-	      properties=>{isSpace=>1}); # THREE-PER-EM SPACE
-DefConstructorI('\:',undef,"?#isMath(<ltx:XMHint name='medspace'/>)(\x{2005})",
-	      properties=>{isSpace=>1});  # FOUR-PER-EM SPACE
-DefConstructorI('\ ',undef,"?#isMath(<ltx:XMHint name='medspace'/>)(".UTF(0xA0).")",
-	      properties=>{isSpace=>1}); # EN SPACE
-DefConstructorI('\	',undef,"?#isMath(<ltx:XMHint name='medspace'/>)(".UTF(0xA0).")", # TAB!!!
-	      properties=>{isSpace=>1}); # EN SPACE
+DefConstructorI('\,',undef,
+		"?#isMath(<ltx:XMHint name='thinspace' width='#width'/>)(\x{2009})",
+		properties=>{isSpace=>1, width=>sub{ LookupValue('\thinmuskip'); }});
+DefConstructorI('\!',undef,
+		"?#isMath(<ltx:XMHint name='negthinspace' width='#width'/>)()",
+		properties=>{isSpace=>1, width=>sub{ LookupValue('\thinmuskip')->negate; }});
+DefConstructorI('\>',undef,
+		"?#isMath(<ltx:XMHint name='medspace' width='#width'/>)()",
+		properties=>{isSpace=>1, width=>sub{ LookupValue('\medmuskip'); }});
+DefConstructorI('\;',undef,
+		"?#isMath(<ltx:XMHint name='thickspace' width='#width'/>)(\x{2004})",
+		properties=>{isSpace=>1, width=>sub{ LookupValue('\thickmuskip'); }});
+Let(T_CS('\:'),T_CS('\>'));
+DefConstructorI('\ ',undef,
+		"?#isMath(<ltx:XMHint name='medspace' width='#width'/>)(".UTF(0xA0).")",
+		properties=>{isSpace=>1, width=>sub{ Dimension('1em'); }});
+DefConstructorI('\	',undef, # Tab!!
+		"?#isMath(<ltx:XMHint name='medspace' width='#width'/>)(".UTF(0xA0).")",
+		properties=>{isSpace=>1, width=>sub{ Dimension('1em'); }});
 DefConstructorI('\/',undef,"?#isMath(<ltx:XMHint name='italiccorr'/>)()",
 	      properties=>{isSpace=>1});
 
@@ -3667,7 +3676,7 @@ DefMathI('\dashv',     undef,"\x{22A3}", role=>'METARELOP', meaning=>'does-not-p
 # I have the impression think that "identical" is a stronger notion than "equivalence"
 # Note that the unicode here is called "Identical To",
 # and that the notion of "equivalent to" usually involves the tilde operator.
-DefMathI('\equiv',     undef,"\x{2261}", role=>'RELOP', meaning=>'equivalant-to');
+DefMathI('\equiv',     undef,"\x{2261}", role=>'RELOP', meaning=>'equivalent-to');
 DefMathI('\sim',       undef,"\x{223C}", role=>'RELOP', meaning=>'similar-to');
 DefMathI('\simeq',     undef,"\x{2243}", role=>'RELOP', meaning=>'similar-to-or-equals');
 DefMathI('\asymp',     undef,"\x{224D}", role=>'RELOP', meaning=>'asymptotically-equals');
@@ -4492,37 +4501,6 @@ DefRewrite(xpath=>'descendant-or-self::ltx:XMWrap[count(child::*)=1]',
 			   ## WHY THIS????
 			   $document->getNode->appendChild($node); }});
 #======================================================================
-# This is a somewhat strange situation; There are commands and environments
-# that do some interesting thing to their contents. This include things like
-# center, flushleft, or rotate, or ...
-# Naively one is tempted to create a containing block with appropriate type & attributes.
-# However, since these things can be allowed in so many places by LaTeX, that
-# one has a difficult time creating a sensible document model.
-# The purpose of transformingBlock is to set the contents (possibly creating a
-# consistent <p> around them, if called for), and returning the list of newly
-# created nodes. These nodes can then have appropriate attributes added as needed
-# for each specific case.
-
-# Since this situation can occur in both LaTeX and AmSTeX type documents,
-# we'll put it in the TeX pool so it can be reused.
-
-# Tricky bit for creating nodes late in the game,
-# 
-sub addNewChildLate {
-  my($document,$node,$tag)=@_;
-  my ($nsuri,$localname) = (undef,$tag);
-  ($nsuri,$localname)= $document->getModel->decodeQName($tag);
-  # Note that (currently), any afterOpen/afterClose are NOT run on this node!!!
-  my $newnode = 
-    ($nsuri ? $node->addNewChild($nsuri,$localname)
-     : $node->appendChild($document->getDocument->createElement($localname)));
-  # Copy essentials to new node.
-  if(my $font = $node->getAttribute('_font')){
-    $newnode->setAttribute(_font=>$font); }
-  if(my $box = $node->getAttribute('_box')){
-    $newnode->setAttribute(_box=>$box); }
-  $newnode; }
-
 # HACKERY!!!  This seems to require too much knowledge about inline vs block and such.
 # Perhaps this really should be done as a daemon that runs when the current node is closed?
 # Or perhaps even better, it should temporarily modify the Model such that the current node
@@ -4565,7 +4543,7 @@ sub insertBlock {
 	$document->setNode( (@new ? $new[-1] : $parent) ) if $moved_current;
       }		   # Watch out if we've deleted the current node!
       elsif (@x) { # Some worthwhile inline nodes to wrap in a <ltx:p>
-	my $para = addNewChildLate($document,$parent,'ltx:p');
+	my $para = $document->openElementAt($parent,'ltx:p');
 	$parent->removeChild($para);
 	$parent->replaceChild($para,$x[0]); # replace 1st child by the <ltx:p>
 	$document->setNode($para) if $moved_current; # This new <ltx:p> will be current if we've wrapped current.
