@@ -83,7 +83,6 @@ sub loadSchema {
     my @body = @{$$self{elements}{$tag}};
     my($content,$attributes) = $self->extractContent($tag,@body);
     $$self{model}->setTagProperty($tag,'model',$content);
-    #print STDERR "\n".$tag." ".join(" ",keys %$content)."\n" if $tag eq "ltx:text";
     $$self{model}->setTagProperty($tag,'attributes',$attributes); }
   NoteEnd("Loading RelaxNG $$self{name}"); }
 

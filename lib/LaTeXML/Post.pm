@@ -208,7 +208,8 @@ sub processNode {
   # (if there's an XMath PostProcessing module, it will add it back, with appropriate id's
   $doc->removeNodes($xmath);
   # Then, we add all the conversion results to ltx:Math
-  $doc->addNodes($math, $self->outerWrapper($doc,$math, @markup)); }
+  $doc->addNodes($math, $self->outerWrapper($doc,$math, @markup));
+}
 
 # NOTE: Sort out how parallel & outerWrapper should work.
 # It probably ought to be that if the conversion is being embedded in
