@@ -36,7 +36,7 @@ sub new {
   binmode(STDERR,":utf8");
   prepare_options(undef,$opts);
   bless {defaults=>$opts,opts=>undef,ready=>0,
-         latexml=>undef, digested_preamble=>undef}, $class;
+         latexml=>undef}, $class;
 }
 
 sub prepare_session {
