@@ -102,7 +102,8 @@ sub prepare_options {
   # II. Sanity check and Completion of Post options.
   #======================================================================
   # Any post switch implies post (TODO: whew, lots of those, add them all!):
-  $opts->{post}=1 if (scalar(@{$opts->{math_formats}}) || ($opts->{stylesheet}) || ($opts->{format}=~/html/i) );
+  $opts->{post}=1 if ( ($opts->{math_formats} && scalar(@{$opts->{math_formats}}) ) ||
+    ($opts->{stylesheet}) || ($opts->{format}=~/html/i));
                        # || ... || ... || ...
   if ($opts->{post}) { # No need to bother if we're not post-processing
 
@@ -117,7 +118,7 @@ sub prepare_options {
     $opts->{navtoc}=undef unless defined $opts->{numbersections};
     $opts->{navtocstyles}={context=>1,normal=>1,none=>1} unless defined $opts->{navtocstyles};
     $opts->{navtoc} = lc($opts->{navtoc}) if defined $opts->{navtoc};
-    delete $opts->{navtoc} if ($opts->{navtoc} eq 'none');
+    delete $opts->{navtoc} if ($opts->{navtoc} && ($opts->{navtoc} eq 'none'));
     if($opts->{navtoc}){
       if(!$opts->{navtocstyles}->{$opts->{navtoc}}){
 	croak($opts->{navtoc}." is not a recognized style of navigation TOC"); }
@@ -172,9 +173,14 @@ sub prepare_options {
     $opts->{picimages}  = 1 unless defined $opts->{picimages};
 
     # Math Format fallbacks:
-    @{$opts->{math_formats}}=@{$self->{defaults}->{math_formats}} if (defined $self && (! @{$opts->{math_formats}}));
+    $opts->{math_formats}=[@{$self->{defaults}->{math_formats}}] if (defined $self && (! 
+                                                                       ( (defined $opts->{math_formats}) &&
+                                                                         scalar(@{$opts->{math_formats}})
+                                                                       )));
     # PMML default if all else fails and no mathimages:
-    if ((! @{$opts->{math_formats}}) && !$opts->{mathimages}) {
+    if  (((! defined $opts->{math_formats}) || (!scalar(@{$opts->{math_formats}}))) &&
+      (!$opts->{mathimages}))
+    {
       push @{$opts->{math_formats}}, 'pmml';
     }
     # use parallel markup if there are multiple formats requested.
@@ -431,7 +437,7 @@ sub convert_post {
       # TODO: Rethink full-fledged graphics support
       require 'LaTeXML/Post/Graphics.pm';
       my @g_options=();
-      if(@{$opts->{graphicsmaps}}){
+      if($opts->{graphicsmaps} && scalar(@{$opts->{graphicsmaps}})){
 	my @maps = map([split(/\./,$_)], @{$opts->{graphicsmaps}});
 	push(@g_options, (graphicsSourceTypes=>[map($$_[0],@maps)],
 			  typeProperties=>{map( ($$_[0]=>{destination_type=>($$_[1] || $$_[0])}), @maps)})); }
@@ -667,6 +673,8 @@ Typically used only internally by C<convert>.
 =back
 
 =head2 CUSTOMIZATION OPTIONS
+
+ TODO: OBSOLETE!!! All such documentation belongs in Util::Extras::ReadOptions!
 
  Options: key=>value pairs
  preload => [modules]   optional modules to be loaded

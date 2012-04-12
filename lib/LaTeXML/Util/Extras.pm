@@ -188,6 +188,8 @@ sub ReadOptions {
 	   "VERSION"   => sub { $opts->{showversion}=1;},
 	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
            "documentid=s" => sub { $opts->{documentid} = $_[1];},
+	   "mathimages!"                 => \$opts->{mathimages},
+	   "mathimagemagnification=f"    => \$opts->{mathimagemag},
 	   "plane1!"                     => \$opts->{plane1},
 	   "hackplane1!"                 => \$opts->{hackplane1},
 	   # For graphics: vaguely similar issues, but more limited.
@@ -360,13 +362,14 @@ latexmls/latexmlc [options]
  --css=cssfile           adds a css stylesheet to html/xhtml
                          (can be repeated)
  --nodefaultcss          disables the default css stylesheet
+ --mathimages            converts math to images
+                         (default for html format)
+ --nomathimages          disables the above
+ --mathimagemagnification=mag specifies magnification factor
  --pmml             converts math to Presentation MathML
                     (default for xhtml format)
  --cmml             converts math to Content MathML
- --openmath         converts math to OpenMath 
- --keepTeX          keeps the TeX source of a formula as a MathML
-                    annotation element
-                    TODO: Add support again, currently broken
+ --openmath         converts math to OpenMath
  --keepXMath        keeps the XMath of a formula as a MathML
                     annotation-xml element
  --nocomments       omit comments from the output
@@ -537,6 +540,16 @@ Requests an embeddable XHTML div (requires: --post --format=xhtml),
     respectively the top division of the document's body.
     Caveat: This experimental mode is enabled only for fragment profile and post-processed
     documents (to XHTML).
+
+=item C<--mathimages>, C<--nomathimages>
+
+Requests or disables the conversion of math to images.
+Conversion is the default for html format.
+
+=item C<--mathimagemagnification=>I<factor>
+
+Specifies the magnification used for math images, if they are made.
+Default is 1.75.
 
 =item C<--pmml>
 

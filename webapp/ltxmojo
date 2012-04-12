@@ -55,12 +55,13 @@ helper prepare_options => sub {
   }
   $opt->{identity} =
     "Mojo for LaTeXML, v$version; Profile: " . $opt->{profile};
-  delete $opt->{procs_post};
-  if ($opt->{pmml}) { $opt->{procs_post}->{pmml} = 1; delete $opt->{pmml}; }
-  if ($opt->{cmml}) { $opt->{procs_post}->{cmml} = 1; delete $opt->{cmml}; }
-  if ($opt->{keepTeX}) {
-    $opt->{procs_post}->{keepTeX} = 1;
-    delete $opt->{keepTeX};
+  if ($opt->{pmml}) { push @{$opt->{math_formats}}, 'pmml'; delete $opt->{pmml}; }
+  if ($opt->{cmml}) { push @{$opt->{math_formats}}, 'cmml'; delete $opt->{cmml}; }
+  if ($opt->{xmath}) { push @{$opt->{math_formats}}, 'xmath'; delete $opt->{xmath}; }
+  if ($opt->{openmath}) { push @{$opt->{math_formats}}, 'om'; delete $opt->{openmath}; }
+  # Ugh, disallow 'null' as a value!!! (TODO: Smarter fix??)
+  foreach (keys %$opt) {
+    $opt->{$_} = '' if ($opt->{$_} eq 'null');
   }
   return $opt;
 };
@@ -73,7 +74,6 @@ post '/convert' => sub {
   foreach ($param->param) { $opt->{lc($_)} = $param->param($_) || 1; }
 
   $opt = $self->prepare_options($opt);
-
   # TeX is data, separate
   my $tex = $opt->{tex};
   delete $opt->{tex};
