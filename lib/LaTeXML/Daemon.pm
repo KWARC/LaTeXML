@@ -29,7 +29,10 @@ use LaTeXML::Util::Extras;
 use Carp;
 
 #**********************************************************************
-our @IGNORABLE = qw(identity profile port preamble postamble port destination log removed_math_formats whatsin whatsout math_formats input_limit input_counter);
+our @IGNORABLE = qw(identity timeout profile port preamble postamble port destination log removed_math_formats whatsin whatsout math_formats input_limit input_counter dographics mathimages mathimagemag );
+# TODO: Should I change from exclusive to inclusive? What is really important to compare?
+# paths, preload, preamble, ... all the LaTeXML->new() params?
+# If we're not daemonizing postprocessing we can safely ignore all its options and reuse the conversion objects.
 
 sub new {
   my ($class,$opts) = @_;
@@ -73,52 +76,141 @@ sub prepare_session {
   return;
 }
 
+# TODO: Best way to throw errors when options don't work out? 
+#       How about in the case of Extras::ReadOptions?
+#       Error() and Warn() would be neat, but we have to make sure STDERR is caught beforehand.
+#       Also, there is no eval() here, so we might need a softer handling of Error()s.
 sub prepare_options {
   my ($self,$opts) = @_;
   undef $self unless ref $self; # Only care about daemon objects, ignore when invoked as static sub
+
+  #======================================================================
+  # I. Sanity check and Completion of Core options.
+  #======================================================================
   $opts->{timeout} = 600 unless defined $opts->{timeout}; # 10 minute timeout default
-  $opts->{format} = 'xml' unless defined $opts->{format};
+  $opts->{format} = 'xml' unless defined $opts->{format}; #TODO: Careful, POST overlap!
+  $opts->{dographics} = 1 unless defined $opts->{dographics}; #TODO: Careful, POST overlap!
   $opts->{verbosity} = 10 unless defined $opts->{verbosity};
   $opts->{preload} = [] unless defined $opts->{preload};
   $opts->{paths} = ['.'] unless defined $opts->{paths};
-  $opts->{dographics} = 1 unless defined $opts->{dographics};
   @{$opts->{paths}} = map {pathname_canonical($_)} @{$opts->{paths}};
-  if ($opts->{post}) {
-    # Fall back to default post processors if no preferences:
-    @{$opts->{math_formats}}=@{$self->{defaults}->{math_formats}} if (defined $self && (! @{$opts->{math_formats}}));
-  }
-  if ($opts->{format}=~/html/i) { #HTML-like? trigger post and default to pmml
-    $opts->{post}=1;
-    if (@{$opts->{math_formats}} == 0) {
-      push @{$opts->{math_formats}}, 'pmml';
-    }
-  }
-  # use parallel markup if there are multiple formats requested.
-  $opts->{parallelmath} = 1 if @{$opts->{math_formats}}>1;
-
-  # Any post switch implies post:
-  $opts->{post}=1 if (scalar(@{$opts->{math_formats}}) || ($opts->{stylesheet}));
-  $opts->{parallelmath}=0 unless (@{$opts->{math_formats}} > 1);
-  # Default: scan and crossref on, other advanced off
-  $opts->{prescan}=undef unless defined $opts->{prescan};
-  $opts->{dbfile}=undef unless defined $opts->{dbfile};
-  $opts->{scan}=1 unless defined $opts->{scan};
-  $opts->{index}=1 unless defined $opts->{index};
-  $opts->{split}=undef unless defined $opts->{split};
-  $opts->{splitat}='section' unless defined $opts->{splitat};
-  $opts->{splitpath}=undef unless defined $opts->{splitpath};
-  $opts->{splitnaming}='id' unless defined $opts->{splitnaming};
-  $opts->{crossref}=1 unless defined $opts->{crossref};
-  $opts->{sitedir}=undef unless defined $opts->{sitedir};
-  $opts->{numbersections}=1 unless defined $opts->{numbersections};
-  $opts->{navtoc}=undef unless defined $opts->{numbersections};
-  $opts->{urlstyle}='server' unless defined $opts->{urlstyle};
-  $opts->{type} = 'auto' unless defined $opts->{type};
-  $opts->{bibliographies} = [] unless defined $opts->{bibliographies};
 
   $opts->{whatsin} = 'document' unless defined $opts->{whatsin};
   $opts->{whatsout} = 'document' unless defined $opts->{whatsout};
+
+  #======================================================================
+  # II. Sanity check and Completion of Post options.
+  #======================================================================
+  # Any post switch implies post (TODO: whew, lots of those, add them all!):
+  $opts->{post}=1 if (scalar(@{$opts->{math_formats}}) || ($opts->{stylesheet}) || ($opts->{format}=~/html/i) );
+                       # || ... || ... || ...
+  if ($opts->{post}) { # No need to bother if we're not post-processing
+
+    # Default: scan and crossref on, other advanced off
+    $opts->{prescan}=undef unless defined $opts->{prescan};
+    $opts->{dbfile}=undef unless defined $opts->{dbfile};
+    $opts->{scan}=1 unless defined $opts->{scan};
+    $opts->{index}=1 unless defined $opts->{index};
+    $opts->{crossref}=1 unless defined $opts->{crossref};
+    $opts->{sitedir}=undef unless defined $opts->{sitedir};
+    $opts->{numbersections}=1 unless defined $opts->{numbersections};
+    $opts->{navtoc}=undef unless defined $opts->{numbersections};
+    $opts->{navtocstyles}={context=>1,normal=>1,none=>1} unless defined $opts->{navtocstyles};
+    $opts->{navtoc} = lc($opts->{navtoc}) if defined $opts->{navtoc};
+    delete $opts->{navtoc} if ($opts->{navtoc} eq 'none');
+    if($opts->{navtoc}){
+      if(!$opts->{navtocstyles}->{$opts->{navtoc}}){
+	croak($opts->{navtoc}." is not a recognized style of navigation TOC"); }
+      if(!$opts->{crossref}){
+	croak("Cannot use option \"navigationtoc\" (".$opts->{navtoc}.") without \"crossref\""); }}
+
+    $opts->{urlstyle}='server' unless defined $opts->{urlstyle};
+    $opts->{type} = 'auto' unless defined $opts->{type};
+    $opts->{bibliographies} = [] unless defined $opts->{bibliographies};
+
+    # Validation:
+    $opts->{validate} = 1 unless defined $opts->{validate};
+    $opts->{omit_doctype} = 0 unless defined $opts->{omit_doctype};
+    # Graphics:
+    $opts->{svg} = 1 unless defined $opts->{svg};
+    $opts->{dographics} = 1 unless defined $opts->{dographics};
+    $opts->{mathimages} = undef unless defined $opts->{mathimages};
+    $opts->{mathimagemag} = 1.75 unless defined $opts->{mathimagemag};
+    $opts->{picimages} = 1 unless defined $opts->{picimages};
+    # Split:
+    $opts->{split}=undef unless defined $opts->{split};
+    $opts->{splitat}='section' unless defined $opts->{splitat};
+    $opts->{splitpath}=undef unless defined $opts->{splitpath};
+    $opts->{splitnaming}='id' unless defined $opts->{splitnaming};
+    $opts->{splitback} = "//ltx:bibliography | //ltx:appendix | //ltx:index" unless defined $opts->{splitback};
+    $opts->{splitpaths} =
+      {chapter=>"//ltx:chapter | ".$opts->{splitback},
+       section=>"//ltx:chapter | //ltx:section | ".$opts->{splitback},
+       subsection=>"//ltx:chapter | //ltx:section | //ltx:subsection | ".$opts->{splitback},
+       subsubsection=>"//ltx:chapter | //ltx:section | //ltx:subsection | //ltx:subsubsection | ".$opts->{splitback}}
+	unless defined $opts->{splitpaths};
+    # Format:
+    #Default is XHTML, XML otherwise (TODO: Expand)
+    $opts->{format}="xml" if ($opts->{stylesheet});
+    $opts->{format}="xhtml" unless defined $opts->{format};
+    if (!$opts->{stylesheet}) {
+      if ($opts->{format} eq "xhtml") {$opts->{stylesheet} = "LaTeXML-xhtml.xsl";}
+      elsif ($opts->{format} eq "html") {$opts->{stylesheet} = "LaTeXML-html.xsl";}
+      elsif ($opts->{format} eq "html5") {$opts->{stylesheet} = "LaTeXML-html5.xsl";}
+      elsif ($opts->{format} eq "xml") {delete $opts->{stylesheet};}
+      else {croak("Unrecognized target format: ".$opts->{format});}
+    }
+    # Check format and complete math and image options
+    if ($opts->{format} eq 'html') {
+      croak("Default html stylesheet only supports math images, not ".join(', ',@{$opts->{math_formats}}))
+	if scalar(@{$opts->{math_formats}});
+      croak("Default html stylesheet does not support svg") if $opts->{svg};
+      $opts->{mathimages} = 1;
+      $opts->{math_formats} = [];
+    }
+    $opts->{dographics} = 1 unless defined $opts->{dographics};
+    $opts->{picimages}  = 1 unless defined $opts->{picimages};
+
+    # Math Format fallbacks:
+    @{$opts->{math_formats}}=@{$self->{defaults}->{math_formats}} if (defined $self && (! @{$opts->{math_formats}}));
+    # PMML default if all else fails and no mathimages:
+    if ((! @{$opts->{math_formats}}) && !$opts->{mathimages}) {
+      push @{$opts->{math_formats}}, 'pmml';
+    }
+    # use parallel markup if there are multiple formats requested.
+    $opts->{parallelmath} = 1 if @{$opts->{math_formats}}>1;
+  }
 }
+# TODO: $sourcedir   = $sourcedir   && pathname_canonical($sourcedir);
+# TODO: $sitedir     = $sitedir     && pathname_canonical($sitedir);
+# TODO: All of the below
+# Check for appropriate combination of split, scan, prescan, dbfile, crossref
+# if($split && !defined $destination){
+#   Error("Must supply --destination when using --split"); }
+# if($split){
+#   $splitnaming = checkOptionValue('--splitnaming',$splitnaming,
+# 				  qw(id idrelative label labelrelative)); 
+#   $splitat = checkOptionValue('--splitat',$splitat,keys %splitpaths);
+#   $splitpath = $splitpaths{$splitat} unless defined $splitpath;
+# }
+# if($prescan && !$scan){
+#   Error("Makes no sense to --prescan with scanning disabled (--noscan)"); }
+# if($prescan && (!defined $dbfile)){
+#   Error("Cannot prescan documents (--prescan) without specifying --dbfile"); }
+# if(!$prescan && $crossref && ! ($scan || (defined $dbfile))){
+#   Error("Cannot cross-reference (--crossref) without --scan or --dbfile "); }
+# if($crossref){
+#   $urlstyle = checkOptionValue('--urlstyle',$urlstyle,qw(server negotiated file)); }
+# if(($permutedindex || $splitindex) && (! defined $index)){
+#   $index=1; }
+# if(!$prescan && $index && ! ($scan || defined $crossref)){
+#   Error("Cannot generate index (--index) without --scan or --dbfile"); }
+# if(!$prescan && @bibliographies && ! ($scan || defined $crossref)){
+#   Error("Cannot generate bibliography (--bibliography) without --scan or --dbfile"); }
+#if((!defined $destination) && ($mathimages || $dographics || $picimages)){
+#  Error("Must supply --destination unless all auxilliary file writing is disabled"
+#	."(--nomathimages --nographicimages --nopictureimages --nodefaultcss)"); }
+#}
 
 sub initialize_session {
   my ($self) = @_;
@@ -269,16 +361,6 @@ sub convert_post {
   $verbosity = $verbosity||0;
   our %PostOPS = (verbosity=>$verbosity,siteDirectory=>".",nocache=>1,destination=>'.');
   #Postprocess
-  #Default is XHTML, XML otherwise (TODO: Expand)
-  $format="xml" if ($style);
-  $format="xhtml" unless (defined $format);
-  if (!$style) {
-    if ($format eq "xhtml") {$style = "LaTeXML-xhtml.xsl";}
-    elsif ($format eq "html") {$style = "LaTeXML-html.xsl";}
-    elsif ($format eq "html5") {$style = "LaTeXML-html5.xsl";}
-    elsif ($format eq "xml") {undef $style;}
-    else {Error("Unrecognized target format: $format");}
-  }
   my @css=();
   unshift (@css,"core.css") if ($defaultcss);
   $parallel = $parallel||0;
@@ -337,7 +419,6 @@ sub convert_post {
 					       ($opts->{numbersections} ? (number_sections=>1):()),
 					       ($opts->{navtoc} ? (navigation_toc=>$opts->{navtoc}):()),
 					       %PostOPS)); }
-    
     if ($opts->{mathimages}) {
       require 'LaTeXML/Post/MathImages.pm';
       push(@procs,LaTeXML::Post::MathImages->new(magnification=>$opts->{mathimagemag},%PostOPS));
@@ -350,9 +431,15 @@ sub convert_post {
       # TODO: Rethink full-fledged graphics support
       require 'LaTeXML/Post/Graphics.pm';
       my @g_options=();
+      if(@{$opts->{graphicsmaps}}){
+	my @maps = map([split(/\./,$_)], @{$opts->{graphicsmaps}});
+	push(@g_options, (graphicsSourceTypes=>[map($$_[0],@maps)],
+			  typeProperties=>{map( ($$_[0]=>{destination_type=>($$_[1] || $$_[0])}), @maps)})); }
       push(@procs,LaTeXML::Post::Graphics->new(@g_options,%PostOPS));
     }
-
+    if($opts->{svg}){
+      require 'LaTeXML/Post/SVG.pm';
+      push(@procs,LaTeXML::Post::SVG->new(%PostOPS)); }
     my @mprocs=();
     ###    # If XMath is not first, it must be at END!  Or... ???
     foreach my $fmt (@$math_formats) {
@@ -585,9 +672,10 @@ Typically used only internally by C<convert>.
  preload => [modules]   optional modules to be loaded
  includestyles          allows latexml to load raw *.sty file;
                         off by default.
- preamble => [files]    loads tex files with document frontmatter.
- postamble => [files]   loads tex files with document backmatter. (TODO)
-
+ preamble => file       loads a tex file with document frontmatter.
+                        MUST! include \begin{document} or equivalent
+ postamble => file      loads a tex file with document backmatter.
+                        MUST! include \end{document} or equivalent
  paths => [dir]         paths searched for files,
                         modules, etc;
  log => file            specifies log file, reuqires 'local'

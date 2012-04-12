@@ -190,7 +190,13 @@ sub ReadOptions {
            "documentid=s" => sub { $opts->{documentid} = $_[1];},
 	   "plane1!"                     => \$opts->{plane1},
 	   "hackplane1!"                 => \$opts->{hackplane1},
-	   "svg"       => \$opts->{svg},
+	   # For graphics: vaguely similar issues, but more limited.
+	   # includegraphics images (eg. ps) can be converted to webimages (eg.png)
+	   # picture/pstricks images can be converted to png or possibly svg.
+	   "graphicimages!"=>\$opts->{dographics},
+	   "graphicsmap=s" =>\@{$opts->{graphicsmaps}},
+	   "svg!"       => \$opts->{svg},
+	   "pictureimages!"=>\$opts->{picimages},
 	   "help"      => sub { $opts->{help} = 1; } ,
 	  ) or pod2usage(-message => $opts->{identity}, -exitval=>1, -verbose=>99,
 			 -input => pod_where({-inc => 1}, __PACKAGE__),
@@ -301,12 +307,12 @@ latexmls/latexmlc [options]
  --output=file      [obsolete synonym for --destination]
  --preload=module   requests loading of an optional module;
                     can be repeated
+ --preamble=file    loads a tex file containing document frontmatter.
+                    MUST! include \begin{document} or equivalent
+ --postamble=file   loads a tex file containing document backmatter.
+                    MUST! include \end{document} or equivalent
  --includestyles    allows latexml to load raw *.sty file;
                     by default it avoids this.
- --preamble=file    loads a tex file containing document frontmatter.
- --postamble=file   loads a tex file containing document backmatter.
-                    WARNING: Parsed separately from document
-                             can't reuse macros
  --base=dir         Specifies the base directory that the server
                     operates in. Useful when converting documents
                     that employ relative paths.
@@ -397,6 +403,24 @@ Specifies the destination file; by default the XML is written to STDOUT.
 Requests the loading of an optional module or package.  This may be useful if the TeX code
     does not specificly require the module (eg. through input or usepackage).
     For example, use C<--preload=LaTeX.pool> to force LaTeX mode.
+
+=item C<--preamble>=I<file>
+
+Requests the loading of a tex file with document frontmatter, to be read in before the converted document, 
+    but after all --preload entries.
+
+Note that the given file MUST contain \begin{document} or an equivalent environment start,
+    when processing LaTeX documents.
+
+If the file does not contain content to appear in the final document, but only macro definitions and 
+    setting of internal counters, it is more appropriate to use --preload instead.
+
+=item C<--postamble>=I<file>
+
+Requests the loading of a tex file with document backmatter, to be read in after the converted document.
+
+Note that the given file MUST contain \end{document} or an equivalent environment end,
+    when processing LaTeX documents.
 
 =item C<--includestyles>
 

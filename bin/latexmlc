@@ -43,7 +43,7 @@ $cdir =~ s/ /\\ /g;
 $opts->{base}=$cdir unless $opts->{base};
 
 # Record if destination exists, for summary
-
+$opts->{destination} = pathname_canonical($opts->{destination}) if $opts->{destination};
 my $deststat = (stat($opts->{destination}))[9] if ($opts->{destination});
 $deststat = 0 unless $deststat;
 
