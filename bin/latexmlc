@@ -75,7 +75,6 @@ if ((!$sock) && ($opts->{timeout} == -1)) {
   $daemon->prepare_session($opts);
   my $response = $daemon->convert($source);
   ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
-  $result=$result->toString(1) if $result;
 } else {
   #Startup daemon and feed in args, if needed
   system('latexmls','--port='.$opts->{port},'--timeout='.$opts->{timeout},'--autoflush='.$opts->{input_limit}) unless $sock;

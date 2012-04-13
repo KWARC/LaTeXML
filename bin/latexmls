@@ -109,9 +109,6 @@ while ( my $client = $server->accept() ) {
   undef $daemon unless defined $result;
 
   # Send back the serialized XML, log and status:
-  $result = $result->toString(1) if defined $result;
-  $response->{result} = $result;
-
   print $client freeze($response);
 
   #Flush daemon, every $input_limit files:

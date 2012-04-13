@@ -88,7 +88,6 @@ sub prepare_options {
   # I. Sanity check and Completion of Core options.
   #======================================================================
   $opts->{timeout} = 600 unless defined $opts->{timeout}; # 10 minute timeout default
-  $opts->{format} = 'xml' unless defined $opts->{format}; #TODO: Careful, POST overlap!
   $opts->{dographics} = 1 unless defined $opts->{dographics}; #TODO: Careful, POST overlap!
   $opts->{verbosity} = 10 unless defined $opts->{verbosity};
   $opts->{preload} = [] unless defined $opts->{preload};
@@ -98,6 +97,17 @@ sub prepare_options {
   $opts->{whatsin} = 'document' unless defined $opts->{whatsin};
   $opts->{whatsout} = 'document' unless defined $opts->{whatsout};
 
+  # Destination extension might indicate the format:
+  print STDERR " \n\nDest? ",$opts->{destination},"\n";
+  if(!defined $opts->{format}){
+    if ($opts->{destination}=~/\.xhtml$/) {
+      $opts->{format}='xhtml';
+    } elsif ($opts->{destination}=~/\.html$/) {
+      $opts->{format}='html';
+    } elsif ($opts->{destination}=~/\.html5$/) {
+      $opts->{format}='html5';
+    }}
+  print STDERR " \n\nFormat? ",$opts->{format},"\n";
   #======================================================================
   # II. Sanity check and Completion of Post options.
   #======================================================================
@@ -105,6 +115,7 @@ sub prepare_options {
   $opts->{post}=1 if ( ($opts->{math_formats} && scalar(@{$opts->{math_formats}}) ) ||
     ($opts->{stylesheet}) || ($opts->{format}=~/html/i));
                        # || ... || ... || ...
+  print STDERR " \n\nPost? ",$opts->{post},"\n";
   if ($opts->{post}) { # No need to bother if we're not post-processing
 
     # Default: scan and crossref on, other advanced off
@@ -131,7 +142,6 @@ sub prepare_options {
 
     # Validation:
     $opts->{validate} = 1 unless defined $opts->{validate};
-    $opts->{omit_doctype} = 0 unless defined $opts->{omit_doctype};
     # Graphics:
     $opts->{svg} = 1 unless defined $opts->{svg};
     $opts->{dographics} = 1 unless defined $opts->{dographics};
@@ -152,7 +162,7 @@ sub prepare_options {
 	unless defined $opts->{splitpaths};
     # Format:
     #Default is XHTML, XML otherwise (TODO: Expand)
-    $opts->{format}="xml" if ($opts->{stylesheet});
+    $opts->{format}="xml" if ($opts->{stylesheet}) && (!defined $opts->{format});
     $opts->{format}="xhtml" unless defined $opts->{format};
     if (!$opts->{stylesheet}) {
       if ($opts->{format} eq "xhtml") {$opts->{stylesheet} = "LaTeXML-xhtml.xsl";}
@@ -249,7 +259,7 @@ sub convert {
 
   # Inform of identity, increase conversion counter
   my $opts = $self->{opts};
-  print STDERR $opts->{identity}."\n" if $opts->{verbosity} >= 0;
+  print STDERR "\n",$opts->{identity},"\n" if $opts->{verbosity} >= 0;
 
   # Handle What's IN?
   # 1. Math profile should get a mathdoc() wrapper
@@ -305,7 +315,7 @@ sub convert {
         $serialized = LaTeXML::Global::UnTeX($digested);
       } elsif ($opts->{format} eq 'box') {
         $serialized = $digested->toString;
-      } else {
+      } else { # Default is XML
         $dom = $latexml->convertDocument($digested);
         $serialized = $dom->toString(1) unless $opts->{post};
       }}
@@ -354,6 +364,16 @@ sub convert {
   # Close and restore STDERR to original condition.
   close LOG;
   *STDERR=*ERRORIG;
+
+  # Serialize result for direct use:
+  if (defined $result) {
+    if ($opts->{format} =~ 'x(ht)?ml') {
+      $result = $result->toString(1);
+    } elsif ($opts->{format} =~ /^html/) {
+      $result = $result->getDocument->toStringHTML;
+    }
+  }
+
   my $return = {result=>$result,log=>$log,status=>$status};
 }
 
@@ -500,7 +520,7 @@ sub convert_post {
 #      pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
 #      push(@csspaths,$csspath);
 #    }}
-    push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
+      push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
 					 parameters=>{
                                                       (@csspaths ? (CSS=>[@csspaths]):()),
                                                       ($opts->{stylesheetparam} ? (%{$opts->{stylesheetparam}}):())},
