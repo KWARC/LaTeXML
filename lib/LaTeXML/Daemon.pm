@@ -16,7 +16,6 @@ use warnings;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use Pod::Usage;
-use Data::Dumper;
 use LaTeXML;
 use LaTeXML::Global;
 use LaTeXML::Util::Pathname;
@@ -83,7 +82,6 @@ sub prepare_session {
 sub prepare_options {
   my ($self,$opts) = @_;
   undef $self unless ref $self; # Only care about daemon objects, ignore when invoked as static sub
-
   #======================================================================
   # I. Sanity check and Completion of Core options.
   #======================================================================
@@ -96,26 +94,33 @@ sub prepare_options {
 
   $opts->{whatsin} = 'document' unless defined $opts->{whatsin};
   $opts->{whatsout} = 'document' unless defined $opts->{whatsout};
+  $opts->{type} = 'auto' unless defined $opts->{type};
 
   # Destination extension might indicate the format:
-  print STDERR " \n\nDest? ",$opts->{destination},"\n";
-  if(!defined $opts->{format}){
+  if ((!defined $opts->{format}) && (defined $opts->{destination})){
     if ($opts->{destination}=~/\.xhtml$/) {
       $opts->{format}='xhtml';
     } elsif ($opts->{destination}=~/\.html$/) {
       $opts->{format}='html';
     } elsif ($opts->{destination}=~/\.html5$/) {
       $opts->{format}='html5';
+    } elsif ($opts->{destination}=~/\.xml$/) {
+      $opts->{format}='xml';
     }}
-  print STDERR " \n\nFormat? ",$opts->{format},"\n";
+
+  # Unset destinations unless local conversion has been requested:
+  if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
+    {carp "I/O from filesystem not allowed without --local!\n".
+       " Will revert to sockets!\n";
+     undef $opts->{destination}; undef $opts->{log};
+     undef $opts->{postdest}; undef $opts->{postlog};}
   #======================================================================
   # II. Sanity check and Completion of Post options.
   #======================================================================
   # Any post switch implies post (TODO: whew, lots of those, add them all!):
-  $opts->{post}=1 if ( ($opts->{math_formats} && scalar(@{$opts->{math_formats}}) ) ||
-    ($opts->{stylesheet}) || ($opts->{format}=~/html/i));
+  $opts->{post}=1 if ( (! defined $opts->{post}) && ($opts->{math_formats} && scalar(@{$opts->{math_formats}}) ) ||
+    ($opts->{stylesheet}) || ($opts->{format} && ($opts->{format}=~/html/i)));
                        # || ... || ... || ...
-  print STDERR " \n\nPost? ",$opts->{post},"\n";
   if ($opts->{post}) { # No need to bother if we're not post-processing
 
     # Default: scan and crossref on, other advanced off
@@ -135,15 +140,12 @@ sub prepare_options {
 	croak($opts->{navtoc}." is not a recognized style of navigation TOC"); }
       if(!$opts->{crossref}){
 	croak("Cannot use option \"navigationtoc\" (".$opts->{navtoc}.") without \"crossref\""); }}
-
     $opts->{urlstyle}='server' unless defined $opts->{urlstyle};
-    $opts->{type} = 'auto' unless defined $opts->{type};
     $opts->{bibliographies} = [] unless defined $opts->{bibliographies};
 
     # Validation:
     $opts->{validate} = 1 unless defined $opts->{validate};
     # Graphics:
-    $opts->{svg} = 1 unless defined $opts->{svg};
     $opts->{dographics} = 1 unless defined $opts->{dographics};
     $opts->{mathimages} = undef unless defined $opts->{mathimages};
     $opts->{mathimagemag} = 1.75 unless defined $opts->{mathimagemag};
@@ -173,6 +175,7 @@ sub prepare_options {
     }
     # Check format and complete math and image options
     if ($opts->{format} eq 'html') {
+      $opts->{svg}=0 unless defined $opts->{svg}; # No SVG by default.
       croak("Default html stylesheet only supports math images, not ".join(', ',@{$opts->{math_formats}}))
 	if scalar(@{$opts->{math_formats}});
       croak("Default html stylesheet does not support svg") if $opts->{svg};
@@ -181,7 +184,7 @@ sub prepare_options {
     }
     $opts->{dographics} = 1 unless defined $opts->{dographics};
     $opts->{picimages}  = 1 unless defined $opts->{picimages};
-
+    $opts->{svg} = 1 unless defined $opts->{svg};
     # Math Format fallbacks:
     $opts->{math_formats}=[@{$self->{defaults}->{math_formats}}] if (defined $self && (! 
                                                                        ( (defined $opts->{math_formats}) &&
@@ -196,6 +199,8 @@ sub prepare_options {
     # use parallel markup if there are multiple formats requested.
     $opts->{parallelmath} = 1 if @{$opts->{math_formats}}>1;
   }
+  # If really nothing hints to define format, then default it to XML
+  $opts->{format} = 'xml' unless defined $opts->{format};
 }
 # TODO: $sourcedir   = $sourcedir   && pathname_canonical($sourcedir);
 # TODO: $sitedir     = $sitedir     && pathname_canonical($sitedir);
@@ -579,7 +584,7 @@ sub prepare_content {
 	my $file = pathname_find($source,types=>['tex',q{}]);
 	$file = pathname_canonical($file) if $file;
 	#Recognize bibtex case
-	$opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && ($file =~ /\.bib$/);
+	$opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && $file && ($file =~ /\.bib$/);
 	return $file; }
       else {print STDERR "File input only allowed when 'local' is enabled,"
 	      ."falling back to string input..";
@@ -596,7 +601,7 @@ sub prepare_content {
       my $file = pathname_find($source,types=>['tex',q{}]);
       $file = pathname_canonical($file) if $file;
       #Recognize bibtex case
-      $opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && ($file =~ /\.bib$/);
+      $opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && $file && ($file =~ /\.bib$/);
       if ($file) {$opts->{source_type}="file"; return $file; }
     }
     my $response = auth_get($source,$opts->{authlist});

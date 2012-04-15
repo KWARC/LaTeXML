@@ -155,19 +155,15 @@ sub ReadOptions {
            "embed"   => sub { $opts->{whatsin} = 'fragment'; },
 	   "whatsin=s" => sub {$opts->{whatsin} = $_[1]; },
 	   "whatsout=s" => sub {$opts->{whatsout} = $_[1]; },
-           "noembed"   => sub { $opts->{embed} = 0; },
-	   "force_ids" => sub { $opts->{force_ids} = 1; },
-	   "noforce_ids" => sub { $opts->{force_ids} = 0; },
+	   "force_ids!" => \$opts->{force_ids},
 	   "autoflush=s" => sub { $opts->{input_limit} = $_[1]; },
            "timeout=s"   => sub { $opts->{timeout} = $_[1]; },
            "port=s"      => sub { $opts->{port} = $_[1]; },
-           "local"       => sub { $opts->{local} = 1; },
-           "nolocal"       => sub { $opts->{local} = 0; },
+           "local!"       => \$opts->{local},
 	   "log=s"       => sub { $opts->{log} = $_[1]; },
 	   "includestyles"=> sub { $opts->{includestyles} = 1; },
 	   "inputencoding=s"=> sub { $opts->{inputencoding} = $_[1]; },
-	   "post"      => sub { $opts->{post} = 1; },
-	   "nopost"      => sub { $opts->{post} = 0; },
+	   "post!"      => \$opts->{post},
 	   "presentationmathml|pmml"     => sub { addMathFormat($opts,'pmml'); },
 	   "contentmathml|cmml"          => sub { addMathFormat($opts,'cmml'); },
 	   "openmath|om"                 => sub { addMathFormat($opts,'om'); },
@@ -181,10 +177,8 @@ sub ReadOptions {
            "stylesheetparam=s" => sub {my ($k,$v) = split(':',$_[1]);
                                   $opts->{stylesheetparam}->{$k}=$v;},
 	   "css=s"       =>  sub {$opts->{css}=$_[1];},
-	   "defaultcss" =>  sub {$opts->{defaultcss} = 1;},
-	   "nodefaultcss" =>  sub {$opts->{defaultcss} = 0;},
-	   "comments" =>  sub { $opts->{comments} = 1; },
-	   "nocomments"=> sub { $opts->{comments} = 0; },
+	   "defaultcss!" =>  \$opts->{defaultcss},
+	   "comments!" =>  \$opts->{comments},
 	   "VERSION"   => sub { $opts->{showversion}=1;},
 	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
            "documentid=s" => sub { $opts->{documentid} = $_[1];},
@@ -207,21 +201,12 @@ sub ReadOptions {
   pod2usage(-message=>$opts->{identity}, -exitval=>1, -verbose=>99,
 	    -input => pod_where({-inc => 1}, __PACKAGE__),
 	    -sections => 'OPTIONS/SYNOPSIS', output=>\*STDOUT) if $opts->{help};
-  if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
-    {carp "I/O from filesystem not allowed without --local!\n".
-       " Will revert to sockets!\n";
-     undef $opts->{destination}; undef $opts->{log};
-     undef $opts->{postdest}; undef $opts->{postlog};}
-  
+
   # Check that destination is valid before wasting any time...
   if($opts->{destination}){
     $opts->{destination} = pathname_canonical($opts->{destination});
     if(my $dir =pathname_directory($opts->{destination})){
       pathname_mkdir($dir) or croak "Couldn't create destination directory $dir: $!"; }}
-  
-  # HOWEVER, any post switch implies post:
-  $opts->{math_formats} = [] if ((defined $opts->{post}) && ($opts->{post} == 0));
-  $opts->{post}=1 if (@{$opts->{math_formats}});
   # Removed math formats are irrelevant for conversion:
   delete $opts->{removed_math_formats};
 

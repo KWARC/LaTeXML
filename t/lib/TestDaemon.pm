@@ -2,6 +2,7 @@ package TestDaemon;
 use strict;
 use base qw(Test::Builder Exporter);
 use Test::More;
+use FindBin;
 
 our @EXPORT = (qw(daemon_tests daemon_ok),
 	       @Test::More::EXPORT);
@@ -48,10 +49,10 @@ sub daemon_ok {
 		['log', "/dev/null"],
 		['local', ''],
 		['noforce_ids',''],
-		['timeout','5'],
+		['timeout',-1], #TODO: explicitly override where we want multiple runs.
 		['nocomments', ''] );
 
-  my $invocation = "cd $dir; latexmlc ";
+  my $invocation = "cd $dir; $FindBin::Bin/../bin/latexmlc ";
   foreach my $opt(@$opts) {
     $invocation.= "--".$$opt[0].($$opt[1] ? ("='".$$opt[1]."' ") : (' '));
   }

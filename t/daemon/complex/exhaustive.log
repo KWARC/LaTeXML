@@ -1,2 +1,6 @@
-1 warning
+
+(Loading ../../../lib/LaTeXML/Package/TeX.pool.ltxml...
+(Loading ../../../lib/LaTeXML/Package/eTeX.pool.ltxml... 0.01 sec) 0.18 sec)
+(Loading ../../../lib/LaTeXML/Package/article.cls.ltxml... 0.02 sec)
+(Loading ../../../lib/LaTeXML/Package/LaTeX.pool.ltxml... 0.14 sec)No obvious problems
 Wrote exhaustive.test.xml

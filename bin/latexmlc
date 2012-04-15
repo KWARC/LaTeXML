@@ -21,10 +21,11 @@ use Encode;
 # Some defaults:
 my $opts={
 	  identity => "latexmlc (LaTeXML version $LaTeXML::VERSION)",
-	  profile => 'standard',
+	  profile => 'custom',
 	  'input_limit' => 100,
 	  timeout => -1, # Don't start a server as default
-	  port => 3354
+	  port => 3354,
+          verbosity=>0
 	 };
 
 ReadOptions($opts,\@ARGV);
@@ -36,6 +37,15 @@ my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
 $opts->{port} = $portlist{$opts->{profile}} unless $opts->{port};
 $opts->{port} = 3334 unless $opts->{port}; #Fall back to 3334 if all fails...
 
+# Local if no timeout wanted (classic latexml invocation):
+$opts->{local} = 1 unless (($opts->{timeout} != -1) || (defined $opts->{local}));
+# TODO: Rethink this carefully, where does the "local" security get inspected?
+# Unset destinations unless local conversion has been requested:
+if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
+  {carp "I/O from filesystem not allowed without --local!\n".
+     " Will revert to sockets!\n";
+   undef $opts->{destination}; undef $opts->{log};
+   undef $opts->{postdest}; undef $opts->{postlog};}
 #***************************************************************************
 #Add some base, so that relative paths work
 my $cdir = abs_path(cwd());
@@ -69,7 +79,7 @@ if ((!$sock) && ($opts->{timeout} == -1)) {
   # Don't boot a server, single job requested:
   require LaTeXML::Util::Startup;
   my $startup =  LaTeXML::Util::Startup->new(cache=>0); # Don't write a DB file
-  my $source = $opts->{source}; 
+  my $source = $opts->{source};
   delete $opts->{source};
   my $daemon = $startup->find_daemon($opts);
   $daemon->prepare_session($opts);
@@ -77,7 +87,9 @@ if ((!$sock) && ($opts->{timeout} == -1)) {
   ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
 } else {
   #Startup daemon and feed in args, if needed
-  system('latexmls','--port='.$opts->{port},'--timeout='.$opts->{timeout},'--autoflush='.$opts->{input_limit}) unless $sock;
+  my $destopt = (($opts->{local}) && ($opts->{destination}) && ('--destination='.$opts->{destination})) || '';
+  my $formatopt = (($opts->{format}) && ('--format='.$opts->{format})) || '';
+  system("$FindBin::Bin/latexmls",'--port='.$opts->{port},'--timeout='.$opts->{timeout},'--autoflush='.$opts->{input_limit}, $destopt, $formatopt) unless $sock;
 
   #Daemon is running, reconnect and feed in request
   $sock = new IO::Socket::INET 
