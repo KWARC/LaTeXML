@@ -113,7 +113,7 @@ while ( my $client = $server->accept() ) {
 
   #Flush daemon, every $input_limit files:
   if ($g_opts->{input_limit} && (($g_opts->{input_counter}||0) >= $g_opts->{input_limit})) {
-      exec($0,@$ARGV_SAVED)
+      exec("$FindBin::RealBin/latexmls",@$ARGV_SAVED)
 	  or croak ("Daemon autoflush Failed!\n");
   }
   dotimeout() if ($opts->{timeout} == -1); # Terminate immediately if desired

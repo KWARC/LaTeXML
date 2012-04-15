@@ -49,7 +49,8 @@ sub daemon_ok {
 		['log', "/dev/null"],
 		['local', ''],
 		['noforce_ids',''],
-		['timeout',1],
+		['timeout',5],
+		['autoflush',1],
 		['nocomments', ''] );
 
   my $invocation = "cd $dir; $FindBin::Bin/../bin/latexmlc ";
@@ -57,7 +58,6 @@ sub daemon_ok {
     $invocation.= "--".$$opt[0].($$opt[1] ? ("='".$$opt[1]."' ") : (' '));
   }
   $invocation .= " 2>$localname.test.log; cd -";
-  sleep 1.5; # Terminate previous server
   if (!$generate) {
     is(system($invocation),0,"Progress: processed $localname...\n");
     { local $Test::Builder::Level =  $Test::Builder::Level+1;
