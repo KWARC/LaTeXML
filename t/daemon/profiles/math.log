@@ -1,19 +1,2 @@
-
-(Loading ../../../lib/LaTeXML/Package/TeX.pool.ltxml...
-(Loading ../../../lib/LaTeXML/Package/eTeX.pool.ltxml... 0.01 sec) 0.18 sec)
-(Loading ../../../lib/LaTeXML/Package/LaTeX.pool.ltxml... 0.13 sec)
-(Loading ../../../lib/LaTeXML/Package/article.cls.ltxml... 0.02 sec)
-(Loading ../../../lib/LaTeXML/Package/amsmath.sty.ltxml...
-(Loading ../../../lib/LaTeXML/Package/amsbsy.sty.ltxml... 0.00 sec)
-(Loading ../../../lib/LaTeXML/Package/amstext.sty.ltxml... 0.00 sec)
-(Loading ../../../lib/LaTeXML/Package/amsopn.sty.ltxml... 0.01 sec) 0.08 sec)
-(Loading ../../../lib/LaTeXML/Package/amsthm.sty.ltxml... 0.01 sec)
-(Loading ../../../lib/LaTeXML/Package/amssymb.sty.ltxml...
-(Loading ../../../lib/LaTeXML/Package/amsfonts.sty.ltxml... 0.01 sec) 0.05 sec)
-(Loading ../../../lib/LaTeXML/Package/eucal.sty.ltxml... 0.00 sec)
-(Loading ../../../lib/LaTeXML/Package/color.sty.ltxml...
-(Style ../../../../../../../../../usr/share/texmf-texlive/tex/latex/graphics/dvipsnam.def...[#25][#50][#75] 0.15 sec) 0.29 sec)
-(Loading ../../../lib/LaTeXML/Package/url.sty.ltxml... 0.00 sec)
-(Loading ../../../lib/LaTeXML/Package/hyperref.sty.ltxml... 0.01 sec)
-(Loading ../../../lib/LaTeXML/Package/mws.sty.ltxml... 0.00 sec)No obvious problems
+No obvious problems
 Wrote math.test.xml

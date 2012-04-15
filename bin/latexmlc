@@ -77,6 +77,9 @@ my $sock = new IO::Socket::INET
   ); #Attempt connecting to a service
 if ((!$sock) && ($opts->{timeout} == -1)) {
   # Don't boot a server, single job requested:
+  # NOTE: Log will differ, single run gets initialization log at STDERR
+  #       while server communication suppresses that part of the log otherwise
+  #   (except when errors occur)
   require LaTeXML::Util::Startup;
   my $startup =  LaTeXML::Util::Startup->new(cache=>0); # Don't write a DB file
   my $source = $opts->{source};
