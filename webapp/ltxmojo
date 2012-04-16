@@ -42,6 +42,11 @@ helper rand_str => sub {
 
 helper prepare_options => sub {
   my ($self, $opt) = @_;
+  # Mode and Profile are synonyms
+  if (defined $opt->{mode} && (! defined $opt->{profile})) {
+    $opt->{profile} = $opt->{mode};
+    delete $opt->{mode};
+  }
   if (!defined $opt->{profile}) {
     if (defined $opt->{user}
       && $startup->verify_user($opt->{user}, $opt->{password}))
