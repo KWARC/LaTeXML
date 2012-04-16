@@ -1,0 +1,37 @@
+# -*- CPERL -*-
+# /=====================================================================\ #
+# |  pmath.sty - Implementation for LaTeXML                             | #
+# |                                                                     | #
+# |=====================================================================| #
+# | NOT Part of LaTeXML:                                                | #
+# |  Public domain software, produced as part of work done by the       | #
+# |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | Deyan Ginev <d.ginev@jacobs-university.de>                          | #
+# | http://dlmf.nist.gov/LaTeXML/                                       | #
+# \=====================================================================/ #
+
+package LaTeXML::Package::Pool;
+use strict;
+use LaTeXML::Package;
+RequirePackage('html');
+RequirePackage('url');
+RequirePackage('hyperref');
+
+# This is a package for rendering PlanetMath entries at home
+#
+# In order for this package to render hyperlinks to PlanetMath
+# one of the following packages has to be loaded _before_
+# this package: html, hyperref, url.
+DefMacro('\PMURI','http://alpha.planetmath.org/index.php?p=/article/');
+DefMacro('\PMEXT',''); # Do we need an extension at all here?
+DefMacro('\pmathhref{}{}','\htmladdnormallink{#2}{#1}');
+DefMacro('\PMlinkexternal{}{}','\pmathhref{#2}{#1}');
+DefMacro('\PMlinkname{}{}','\pmathhref{\PMURI#2\PMEXT}{#1}');
+DefMacro('\PMlinkid{}{}','\pmathhref{\PMURI#2\PMEXT}{#1}');
+DefMacro('\PMlinkescapetext','');
+DefMacro('\PMlinkescapeword{}','');
+DefMacro('\PMlinkescapephrase{}','');
+DefMacro('\PMlinktofile{}{}','#1'); # not implemented
+
+1;

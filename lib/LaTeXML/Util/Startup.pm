@@ -69,7 +69,7 @@ fragment => {
              paths => ['.'],
              preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty",
                        "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty',
-                       'planetmath-specials.sty'],
+                       'planetmath-specials.sty','pmath.sty'],
              authlist=>{}, force_ids=>1
            },
 'fragment-omdoc' => {
