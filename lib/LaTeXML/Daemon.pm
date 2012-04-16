@@ -375,7 +375,12 @@ sub convert {
     if ($opts->{format} =~ 'x(ht)?ml') {
       $result = $result->toString(1);
     } elsif ($opts->{format} =~ /^html/) {
-      $result = $result->getDocument->toStringHTML;
+      if ($result =~ /LaTeXML/) { # Special for documents
+        $result = $result->getDocument;
+        $result = $result->toStringHTML;
+      } else { # Regular for fragments
+        $result = $result->toString(1);
+      }
     }
   }
 
