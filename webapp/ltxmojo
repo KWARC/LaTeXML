@@ -93,9 +93,6 @@ post '/convert' => sub {
   # Delete daemon if Fatal occurred
   undef $daemon unless defined $result;
 
-  # Serialize XML for output:
-  $result = $result->toString(1) if defined $result;
-
   $self->render(json => {result => $result, status => $status, log => $log});
 };
 
