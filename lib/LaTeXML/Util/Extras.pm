@@ -129,7 +129,6 @@ sub InsertIDs {
 sub ReadOptions {
   my ($opts,$argref) = @_;
   local @ARGV = @$argref;
-  $opts->{math_formats} = [] unless defined $opts->{math_formats};
   GetOptions(
 	   "output=s"  => sub {$opts->{destination} = $_[1];},
            "destination=s" => sub {$opts->{destination} = $_[1];},
@@ -218,6 +217,7 @@ sub ReadOptions {
 
 sub addMathFormat {
   my($opts,$fmt)=@_;
+  $opts->{math_formats} = [] unless defined $opts->{math_formats};
   push(@{$opts->{math_formats}},$fmt) 
     unless grep($_ eq $fmt,@{$opts->{math_formats}}) || $opts->{removed_math_formats}->{$fmt}; }
 sub removeMathFormat {

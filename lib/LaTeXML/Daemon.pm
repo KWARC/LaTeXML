@@ -50,7 +50,6 @@ sub prepare_session {
   }
   # 1. Ensure option "sanity"
   $self->prepare_options($opts);
-
   #TODO: Some options like paths and includes are additive, we need special treatment there
   #2. Check if there is some change from the current situation:
   my $opts_tmp={};
