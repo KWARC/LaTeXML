@@ -92,7 +92,7 @@ math => {
              help=>0, showversion=>0,
              stylesheet=>q{},defaultcss=>1,icon=>0, inputencoding=>q{}, 
              documentid =>q{}, type=>'auto', css => [], paths => [q{.}],
-             paths => ['/home/dginev/misc','/home/dginev/misc/xcolor','/home/dginev/misc/swon'],
+             paths => ['.'],
              preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", 
                        "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty','mws.sty'],
              debugs=>[], authlist=>{}
