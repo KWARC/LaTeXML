@@ -27,7 +27,7 @@ foreach my $option (qw(10pt 11pt 12pt
 		       openbib
 		       leqno fleqn)){
   DeclareOption($option,undef); }
-  ProcessOptions();
+ProcessOptions();
 
 #**********************************************************************
 # Document structure.

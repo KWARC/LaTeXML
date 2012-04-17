@@ -16,6 +16,7 @@ use LaTeXML::Package;
 use Unicode::Normalize;
 use LaTeXML::Util::Alignment;
 use LaTeXML::Util::KeyVal;
+use LaTeXML::Array;
 use LaTeXML::Util::Pathname;
 use Data::Dumper;
 no warnings 'redefine';
@@ -267,6 +268,23 @@ DefParameterType('DigestedBody', sub {
 ## DefParameterType('Length', sub {
 ##   my($gullet,$unit)=@_;
 
+# A comma separated List;
+# You can also write CommaList:Dimension to read a list of dimensions
+# [Note that this should act like Semiverbatim if the supplied type does! Ugh]
+DefParameterType('CommaList', sub {
+  my($gullet,$type)=@_;
+  my$typedef = $type && LaTeXML::Parameters::parseParameters(ToString($type),"CommaList");
+  if($gullet->ifNext(T_BEGIN)){
+    $gullet->readToken;
+    my @items=();
+    my($item,$delim);
+    while((($item,$delim)=$gullet->readUntil(T_END,T_OTHER(','))) && defined $item){
+      if($typedef){
+	($item) = $typedef->reparseArgument($gullet,$item); }
+      push(@items,$item);
+      last if Equals($delim,T_END); }
+    LaTeXML::Array->new(open=>T_BEGIN,close=>T_END,type=>$type,values=>[@items]); }});
+
 #**********************************************************************
 # Expandable Primitives
 # See The TeXBook, Ch. 20, Definitions (also called Macros) pp. 212--215
@@ -371,47 +389,44 @@ DefMacroI('\jobname',undef,Tokens()); # Set to the filename by initialization
 
 DefMacroI('\fontname', undef,sub { Explode("fontname not implemented"); });
 
+# DefMacro('\meaning Token',sub {
+#   my($gullet,$tok)=@_;
+#   my $meaning = LookupMeaning($tok);
+#   ExplodeText(defined $meaning ? $meaning : 'undefined'); });
+
+our @CATCODE_MEANING=("the escape character",     "begin-group character",
+		      "end-group character",      "math shift character",
+		      "alignment tab character",  "end-of-line character",
+		      "macro parameter character","superscript character",
+		      "subscript character",      "ignored character",
+		      "space character",          "the letter",
+		      "the character",            "active character",
+		      "comment character",        "invalid character");
+
+# Not sure about this yet...
 DefMacro('\meaning Token',sub {
   my($gullet,$tok)=@_;
-  my $definition = LookupMeaning($tok);
-  if ($tok == T_ALIGN) {$definition = $tok;}
-  my $meaning;
-  if (defined $definition) {
+  my $meaning = 'undefined';
+  if(my $definition = (Equals($tok, T_ALIGN) ? $tok : LookupMeaning($tok))){
     my $type = ref $definition;
     $type =~ s/^LaTeXML:://;
-    #LaTeXML::Expandable and LaTeXML::Cosntructor = macro
-    #LaTeXML::Primitive and LaTeXML::Token = letter/character
+    #LaTeXML::Expandable and LaTeXML::Constructor = macro [What?!?!?!?!]
+    #LaTeXML::Primitive and LaTeXML::Token = letter/character [Um... No...]
+    # I don't understand what this is about
     if (lc($type)=~/primitive/) {
       $definition = $definition->getCS;
       $type = ref $definition;
-      $type =~ s/^LaTeXML:://;
-    }
+      $type =~ s/^LaTeXML:://; }
     if (lc($type)=~/con(ditional|structor)/) {
-      $definition = $definition->{cs};
+      $definition = $definition->getCS;
       $type = ref $definition;
-      $type =~ s/^LaTeXML:://;
-    }
+      $type =~ s/^LaTeXML:://; }
+
     if (lc($type)=~/token/) {
       my $cc = $definition->getCatcode;
       my $char = $definition->getString;
-
-      if ($cc == CC_LETTER) {$meaning="the letter";}
-      elsif ($cc == CC_OTHER) {$meaning="the character";}
-      elsif ($cc == CC_ESCAPE) {$meaning="the escape character";}
-      elsif ($cc == CC_SUB) {$meaning="subscript character";}
-      elsif ($cc == CC_SUPER) {$meaning="superscript character";}
-      elsif ($cc == CC_MATH) {$meaning="math shift character";}
-      elsif ($cc == CC_BEGIN) {$meaning="begin-group character";}
-      elsif ($cc == CC_END) {$meaning="end-group character";}
-      elsif ($cc == CC_PARAM) {$meaning="macro parameter character";}
-      elsif ($cc == CC_ALIGN) {$meaning="alignment tab character";}
-      elsif ($cc == CC_SPACE) {$meaning="space character";}
-      elsif ($cc == CC_IGNORE) {$meaning="ignored character";}
-      elsif ($cc == CC_INVALID) {$meaning="invalid character";}
-      elsif ($cc == CC_COMMENT) {$meaning="comment character";}
-      
-      $meaning .=" $char";
-    } elsif (lc($type)=~/expandable/) {
+      $meaning = ($CATCODE_MEANING[$cc]||'') . ' '. $char; }
+    elsif (lc($type)=~/expandable/) {
       my $expansion = $definition->getExpansion;
       my $ltxps = $$definition{parameters};
       my @params;
@@ -430,11 +445,8 @@ DefMacro('\meaning Token',sub {
       $spec=~s/\{\}//g;
       $spec=~s/Token//g;
       $meaning="macro:".ToString($spec)."->".ToString($expansion);
-    }
-    else {$meaning = 'undefined';}
-    Explode($meaning);
-  } else {
-  Explode('undefined'); }});
+    }}
+  Explode($meaning); });
 
 DefParameterType('CSName', sub {
   my($gullet)=@_;
@@ -3143,10 +3155,11 @@ DefPrimitiveI('\nobreak',   undef,undef);
 DefPrimitiveI('\allowbreak',undef,undef);
 DefMacroI('\nobreakspace',undef, '\ifmmode\math@nobreakspace\else\text@nobreakspace\fi');
 
-DefPrimitiveI('\text@nobreakspace',undef,UTF(0xA0));
+DefPrimitiveI('\text@nobreakspace',undef,UTF(0xA0), alias=>'~');
 DefConstructorI('\math@nobreakspace',undef,
 		"<ltx:XMHint name='nobreakspace' width='#width'/>",
-		properties=>{isSpace=>1, width=>sub{ Dimension('1em'); }}); # NO-BREAK SPACE
+		properties=>{isSpace=>1, width=>sub{ Dimension('1em'); }},
+		alias=>'~');
 DefMacro("~",'\nobreakspace{}');
 
 DefMacroI('\slash',undef,'/');

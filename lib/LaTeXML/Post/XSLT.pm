@@ -52,6 +52,7 @@ sub process {
   if(my $js = $params{JAVASCRIPT}){ $params{JAVASCRIPT} = pathnameParameter($dir,@$js); }
   if(my $icon = $params{ICON})    { $params{ICON} = pathnameParameter($dir,$icon); }
   $doc->new($$self{stylesheet}->transform($doc->getDocument,  %params)); }
+
 sub pathnameParameter {
   my($dir,@paths)=@_;
   '"'.join('|',map(pathname_relative($_,$dir),@paths)) .'"'; }
