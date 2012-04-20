@@ -145,6 +145,8 @@ sub ReadOptions {
 	   "box"       => sub { $opts->{format} = 'box'; },
 	   "bibtex"    => sub { $opts->{type}='bibtex'; },
 	   "bibliography=s" => \@{$opts->{bibliographies}}, # TODO: Document
+	   "sitedirectory=s"=>\$opts->{sitedirectory},
+	   "sourcedirectory=s"=>\$opts->{sourcedirectory},
 	   "noparse"   => sub { $opts->{noparse} = 1; },
 	   "parse"   => sub { $opts->{noparse} = 0; },
 	   "format=s"   => sub { $opts->{format} = $_[1]; },
@@ -203,7 +205,10 @@ sub ReadOptions {
 
   # Check that destination is valid before wasting any time...
   if($opts->{destination}){
-    $opts->{destination} = pathname_canonical($opts->{destination});
+    # TODO: This needs reworking when entire folders start getting converted through the web service
+    # We would extract in a folder somewhere, use that path as a base, and make all paths absolute with respect
+    # to this path.
+    $opts->{destination} = pathname_absolute($opts->{destination},pathname_cwd());
     if(my $dir =pathname_directory($opts->{destination})){
       pathname_mkdir($dir) or croak "Couldn't create destination directory $dir: $!"; }}
   # Removed math formats are irrelevant for conversion:
@@ -347,6 +352,9 @@ latexmls/latexmlc [options]
  --css=cssfile           adds a css stylesheet to html/xhtml
                          (can be repeated)
  --nodefaultcss          disables the default css stylesheet
+ --sitedirectory=dir     specifies the base directory of the site
+ --sourcedirectory=dir   specifies the base directory of the
+                           original TeX source
  --mathimages            converts math to images
                          (default for html format)
  --nomathimages          disables the above
@@ -588,6 +596,19 @@ Disables the inclusion of the default C<core.css> stylesheet.
 
 Normally latexml preserves comments from the source file, and adds a comment every 25 lines as
     an aid in tracking the source.  The option --nocomments discards such comments.
+
+=item C<--sitedirectory=>I<dir>
+
+Specifies the base directory of the overall web site.
+Pathnames in the database are stored in a form relative
+to this directory to make it more portable.
+
+=item C<--sourcedirectory>=I<source>
+
+Specifies the directory where the original latex source is located.
+Unless LaTeXML is run from that directory, or it can be determined
+from the xml filename, it may be necessary to specify this option in
+order to find graphics and style files.
 
 =item C<--inputencoding=>I<encoding>
 

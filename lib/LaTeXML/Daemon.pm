@@ -90,6 +90,11 @@ sub prepare_options {
   $opts->{preload} = [] unless defined $opts->{preload};
   $opts->{paths} = ['.'] unless defined $opts->{paths};
   @{$opts->{paths}} = map {pathname_canonical($_)} @{$opts->{paths}};
+  foreach my $dirname(('sourcedirectory','sitedirectory')) {
+    #TODO: Switch away from this rude absolute treatment when we support URLs
+    # (or could we still leverage this by a smart pathname_cwd?)
+    $opts->{$dirname} = pathname_absolute($opts->{$dirname},pathname_cwd()) if defined $opts->{$dirname};
+  }
 
   $opts->{whatsin} = 'document' unless defined $opts->{whatsin};
   $opts->{whatsout} = 'document' unless defined $opts->{whatsout};
@@ -128,7 +133,8 @@ sub prepare_options {
     $opts->{scan}=1 unless defined $opts->{scan};
     $opts->{index}=1 unless defined $opts->{index};
     $opts->{crossref}=1 unless defined $opts->{crossref};
-    $opts->{sitedir}=undef unless defined $opts->{sitedir};
+    $opts->{sitedirectory}=undef unless defined $opts->{sitedirectory};
+    $opts->{sourcedirectory}=undef unless defined $opts->{sourcedirectory};
     $opts->{numbersections}=1 unless defined $opts->{numbersections};
     $opts->{navtoc}=undef unless defined $opts->{numbersections};
     $opts->{navtocstyles}={context=>1,normal=>1,none=>1} unless defined $opts->{navtocstyles};
@@ -387,14 +393,13 @@ sub convert {
 }
 
 ########## Helper routines: ############
-
 sub convert_post {
   my ($self,$dom) = @_;
   my $opts = $self->{opts};
   my ($style,$parallel,$math_formats,$format,$verbosity,$defaultcss,$embed) = 
     map {$opts->{$_}} qw(stylesheet parallelmath math_formats format verbosity defaultcss embed);
   $verbosity = $verbosity||0;
-  our %PostOPS = (verbosity=>$verbosity,siteDirectory=>".",nocache=>1,destination=>'.');
+  my %PostOPS = (verbosity=>$verbosity,sourceDirectory=>$opts->{sourcedirectory}||'.',siteDirectory=>$opts->{sitedirectory}||".",nocache=>1,destination=>$opts->{destination});
   #Postprocess
   my @css=();
   unshift (@css,"core.css") if ($defaultcss);

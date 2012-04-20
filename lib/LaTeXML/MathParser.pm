@@ -477,11 +477,7 @@ sub failureReport {
     if(! $LaTeXML::MathParser::WARNED){
       $LaTeXML::MathParser::WARNED=1;
       my $box = $document->getNodeBox($LaTeXML::MathParser::XNODE);
-      #Deyan: @Bruce - in my noparse->tex.xml plugin some boxes are undefined?
-      # Seems fishy to me, I am noting down  the example URI here:
-      # arxmliv.kwarc.info/files/math/papers/0001071/0001071.tex.xml
-      $loc = "In formula \"".ToString($box)." from ".$box->getLocator."\n" if $box; 
-    }
+      $loc = "In formula \"".ToString($box)." from ".$box->getLocator."\n"; }
     $unparsed =~ s/^\s*//;
     my @rest=split(/ /,$unparsed);
     my $pos = scalar(@nodes) - scalar(@rest);
