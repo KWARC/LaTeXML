@@ -205,10 +205,7 @@ sub ReadOptions {
 
   # Check that destination is valid before wasting any time...
   if($opts->{destination}){
-    # TODO: This needs reworking when entire folders start getting converted through the web service
-    # We would extract in a folder somewhere, use that path as a base, and make all paths absolute with respect
-    # to this path.
-    $opts->{destination} = pathname_absolute($opts->{destination},pathname_cwd());
+    $opts->{destination} = pathname_canonical($opts->{destination});
     if(my $dir =pathname_directory($opts->{destination})){
       pathname_mkdir($dir) or croak "Couldn't create destination directory $dir: $!"; }}
   # Removed math formats are irrelevant for conversion:
