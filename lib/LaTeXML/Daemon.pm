@@ -90,7 +90,7 @@ sub prepare_options {
   $opts->{preload} = [] unless defined $opts->{preload};
   $opts->{paths} = ['.'] unless defined $opts->{paths};
   @{$opts->{paths}} = map {pathname_canonical($_)} @{$opts->{paths}};
-  foreach my $pathname(('desitnation','sourcedirectory','sitedirectory')) {
+  foreach my $pathname(('destination','sourcedirectory','sitedirectory')) {
     #TODO: Switch away from this rude absolute treatment when we support URLs
     # (or could we still leverage this by a smart pathname_cwd?)
     $opts->{$pathname} = pathname_absolute($opts->{$pathname},pathname_cwd()) if defined $opts->{$pathname};

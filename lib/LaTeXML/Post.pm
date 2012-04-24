@@ -404,7 +404,7 @@ sub siteRelativeResource {
   # absolute path where that file ought to go in the destination directory.
   my $dest = pathname_absolute($relsrc,$$self{destinationDirectory});
   # Now check whether it is relative to the site, and return the relative path, if so.
-  pathname_is_contained($dest,$$self{siteDirectory}); }
+  pathname_relative($dest,$$self{destinationDirectory}) if pathname_is_contained($dest,$$self{siteDirectory}); }
 
 sub getParentDocument { $_[0]->{parentDocument}; }
 sub getAncestorDocument { 
