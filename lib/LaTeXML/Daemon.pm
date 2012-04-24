@@ -586,37 +586,51 @@ sub prepare_content {
   my ($self,$source)=@_;
   $source=~s/\n$//g; # Eliminate trailing new lines
   my $opts=$self->{opts};
-  if (defined $opts->{source_type}) {
-    if ($opts->{source_type} eq "string") {return $source;}
-    elsif ($opts->{source_type} eq "file") {
-      if ($opts->{local}) {
-	my $file = pathname_find($source,types=>['tex',q{}]);
-	$file = pathname_canonical($file) if $file;
-	#Recognize bibtex case
-	$opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && $file && ($file =~ /\.bib$/);
-	return $file; }
-      else {print STDERR "File input only allowed when 'local' is enabled,"
-	      ."falling back to string input..";
-	    $opts->{source_type}="string"; return $source; }}
-    elsif ($opts->{source_type} eq "url") {
-      my $response = auth_get($source,$opts->{authlist});
-      if ($response->is_success) {return $response->content;} else {
-	print STDERR "TODO: Flag a retrieval error and do something smart?"; return undef;}}
+
+  # 0. If we're given junk, give junk back
+  if (! $source) {
+    $opts->{source_type} = 'string';
+    return undef;
   }
-  else { # Guess the input type:
-    my @source_lines = split(/\n/,$source);
-    if (scalar(@source_lines)>1) {$opts->{source_type}="string"; return $source; }
+  # 1. Decide it's a string, if we are told so or it looks like one:
+  if (($opts->{source_type} eq "string") || ((! defined $opts->{source_type}) &&
+					     (($source =~ tr/\n//) >1))) {
+    $opts->{source_type} = "string";
+    return $source;
+  }
+  # 2. Try to find a file, unless we are told it's not one:
+  if ((! defined $opts->{source_type}) || ($opts->{source_type} eq 'file')) {
     if ($opts->{local}) {
       my $file = pathname_find($source,types=>['tex',q{}]);
       $file = pathname_canonical($file) if $file;
       #Recognize bibtex case
       $opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && $file && ($file =~ /\.bib$/);
-      if ($file) {$opts->{source_type}="file"; return $file; }
-    }
+      if ($file) {
+	$opts->{source_type}='file';
+	return $file;
+      }}
+    else { # Fallback when local not allowed:
+      print STDERR "File input only allowed when 'local' is enabled,"
+	           ."falling back to string input..";
+      $opts->{source_type}="string";
+      return $source; }}
+  # 3. Try to find a URL, unless we are told it's not one:
+  if ((! defined $opts->{source_type}) || ($opts->{source_type} eq 'url')) {
     my $response = auth_get($source,$opts->{authlist});
-    if ($response->is_success) {$opts->{source_type}="url"; return $response->content; }
-    $opts->{source_type}="string"; return $source;
+    if ($response->is_success) {
+      $opts->{source_type} = 'url';
+      return $response->content; }
+    elsif ($opts->{source_type} eq 'url') { # When we know it's a URL, retrieval error:
+      print STDERR "TODO: Flag a retrieval error and do something smart?"; return undef; }
   }
+  # 4.1. Last guess, if it really looks like a file but it's not found:
+  if ($source=~/\.(\w{1-3})$/) {
+    $opts->{source_type}="file";
+  } else {
+  # 4.2. When we don't have any good guess, just switch to string mode:
+    $opts->{source_type}="string";
+  }
+  return $source;
 }
 
 1;

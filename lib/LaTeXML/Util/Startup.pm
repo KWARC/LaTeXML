@@ -88,6 +88,7 @@ math => {
              post=>1, parallelmath=>1,
              timeout=>60, format=>'xhtml', base=>q{},
 	     whatsin=>'math', whatsout=>'math',
+	     source_type=>'string', # always works on strings!
              math_formats=>[qw(pmml cmml)],
              help=>0, showversion=>0,
              stylesheet=>q{},defaultcss=>1,icon=>0, inputencoding=>q{}, 
