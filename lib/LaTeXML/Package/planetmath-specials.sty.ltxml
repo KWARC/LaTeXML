@@ -71,26 +71,25 @@ DefMacro('\pmmodifier{}{}','\pmmeta@uri@adhoc{modifier}{\userURI{#2}}'); # Note 
 #  foaf:mbox "email@addre.ss"
 #etc.
 
+# TODO: Make this robust and relativize paths when we have Drupal rewriting!
 # Basically, we're transforming the graphics options into graphicx format.
 my $graphicURL = 'http://alpha.planetmath.org/sites/default/files/pictures/';
-DefMacro('\includegraphics OptionalMatch:* [][] Semiverbatim',
-	 '\@includegraphics#1[#2][#3]{#4}',locked=>1);
-
-DefConstructor('\@includegraphics OptionalMatch:* [][] Semiverbatim', sub {
-  my($document,$starred,$op1,$op2,$graphic)=@_;
-  my $bb = ($op2 ? ToString($op1)." ".ToString($op2) : ($op1 ? "0 0 ".ToString($op1) : ''));
-  $bb=~ s/,/ /g;
-  my $options=($starred ? ($bb ? "viewport=$bb, clip" : "clip") : '');
-  $graphic = ToString($graphic); $graphic =~ s/^\s+//; $graphic=~ s/\s+$//;
-  my @candidates = pathname_findall($graphic,types=>['*'],paths=>LookupValue('GRAPHICSPATHS'));
-  # Web, if no candidates:
-  if (!@candidates) {
-    $graphic=~s/(\.(\w+)$)//;
-    $graphic .= ".png"; # All images in PM are .png
-    $graphic = $graphicURL.$graphic
-  }
-  $document->insertElement('ltx:graphics',undef,graphic=>$graphic,options=>$options,
-			   candidates=>join(',',@candidates)); },
-	       alias=>'\includegraphics',locked=>1);
+DefMacro('\includegraphics','\webgraphic');
+DefKeyVal('webgraphic','width','Semiverbatim');
+DefKeyVal('webgraphic','height','Semiverbatim');
+DefKeyVal('webgraphic','local','Semiverbatim');
+DefKeyVal('webgraphic','alt','Semiverbatim');
+DefConstructor('\webgraphic OptionalKeyVals:webgraphic {}',
+       "<ltx:graphics imagesrc='#url' "
+       . "?#1("
+       . "?&KeyVal(#1,'width')(imagewidth='&KeyVal(#1,'width')' )()"
+       . "?&KeyVal(#1,'height')(imageheight='&KeyVal(#1,'height')' )()"
+       . "?&KeyVal(#1,'alt')(description='&KeyVal(#1,'alt')' )()"
+       . ")() />",
+  properties=> sub {
+    my $src = $graphicURL.ToString($_[2]);
+    $src .= '.png' unless ($src =~ /\.(\w{3})$/);
+    (url=>$src);
+});
 
 1;
