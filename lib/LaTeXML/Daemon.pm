@@ -593,8 +593,8 @@ sub prepare_content {
     return undef;
   }
   # 1. Decide it's a string, if we are told so or it looks like one:
-  if (($opts->{source_type} eq "string") || ((! defined $opts->{source_type}) &&
-					     (($source =~ tr/\n//) >1))) {
+  if (($opts->{source_type} && ($opts->{source_type} eq "string")) ||
+      ((! defined $opts->{source_type}) && (($source =~ tr/\n//) >1))) {
     $opts->{source_type} = "string";
     return $source;
   }
@@ -609,7 +609,7 @@ sub prepare_content {
 	$opts->{source_type}='file';
 	return $file;
       }}
-    else { # Fallback when local not allowed:
+    elsif ($opts->{source_type} && ($opts->{source_type} eq 'file')) { # Fallback when local not allowed:
       print STDERR "File input only allowed when 'local' is enabled,"
 	           ."falling back to string input..";
       $opts->{source_type}="string";
@@ -620,7 +620,8 @@ sub prepare_content {
     if ($response->is_success) {
       $opts->{source_type} = 'url';
       return $response->content; }
-    elsif ($opts->{source_type} eq 'url') { # When we know it's a URL, retrieval error:
+    elsif ($opts->{source_type} && ($opts->{source_type} eq 'url')) {
+      # When we know it's a URL, retrieval error:
       print STDERR "TODO: Flag a retrieval error and do something smart?"; return undef; }
   }
   # 4.1. Last guess, if it really looks like a file but it's not found:
