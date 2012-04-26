@@ -278,7 +278,7 @@ sub modify_user {
 
 sub delete_user {
   my ($self,$user) = @_;
-  $self->{db}->purge("user:$user");
+  $self->{db}->unregister("user:$user");
   return "Successfully deleted user $user!\n";
 }
 
@@ -424,6 +424,19 @@ sub status {
 }
 
  #TODO: Also provide an interface for examining and changing the options of existing daemons
+
+###########################################
+#### ObjectDB helpers #####
+###########################################
+package LaTeXML::Util::ObjectDB::Entry;
+sub as_hashref {
+  my($self)=@_;
+  my $hashref = {};
+  foreach (keys %$self) {
+    $hashref->{$_} = decodeValue($self->{$_});
+  }
+  return $hashref;
+}
 
 1;
 

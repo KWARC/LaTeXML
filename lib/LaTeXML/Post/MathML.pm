@@ -792,7 +792,7 @@ sub cmml_unparsed {
   ['m:cerror',{},
    ['m:csymbol',{cd=>'ambiguous',name=>'fragments'}],
 ###   map(cmml($_),@nodes)]; }
-   map( ((getQName($_) eq 'XMTok')&&(($_->getAttribute('role')||'UNKNOWN') eq 'UNKNOWN')
+   map( ((getQName($_) eq 'ltx:XMTok')&&(($_->getAttribute('role')||'UNKNOWN') eq 'UNKNOWN')
 	 ? ['m:csymbol',{cd=>'unknown'},$_->textContent]
 	 : cmml($_)),
 	@nodes)]; }
@@ -800,8 +800,12 @@ sub cmml_unparsed {
 # Or csymbol if there's some kind of "defining" attribute?
 sub cmml_ci {
   my($item)=@_;
-  my $content = (ref $item ?  $item->textContent : $item);
-  ['m:ci',{},$content]; }
+  if(my $meaning = (ref $item) && $item->getAttribute('meaning')){
+    my $cd = $item->getAttribute('cd') || 'latexml';
+    ['m:csymbol',{cd=>$cd},$meaning]; }
+  else {
+    my $content = (ref $item ?  $item->textContent : $item);
+    ['m:ci',{},$content]; }}
 
 # Experimental; for an XMApp with role=ID, we treat it as a ci
 # or ultimately as csymbol, if it had defining attributes,
@@ -1442,6 +1446,7 @@ sub preprocess {
     my $layout = $breaker->bestFitToWidth($xmath,$pmml,$linelength,1);
 ##print STDERR "MATH ".($math->getAttribute('xml:id')||'<unk>')
 ##  ." = ".$$layout{width}.($$layout{hasbreak} ? " (broken $$layout{penalty})":" (unbroken)")."\n";
+    my $id = $math->getAttribute('xml:id');
     if($$layout{hasbreak}){	# YES it did linebreak!
       my $n = $math->parentNode;
       my $path = '';
@@ -1450,22 +1455,25 @@ sub preprocess {
       # That branch won't get other parallel markup,
       # but the main, more semantic(?) one, will and will get the unbroken pmml, as well.
       my $p = $math->parentNode;
+      my $bid = $id && $id.".mbr";
       $doc->replaceNode($math,['ltx:MathFork',{},$math,
 			       ['ltx:MathBranch',{},
-				['ltx:Math',{},
+				['ltx:Math',{'xml:id'=>$bid},
 				 $self->outerWrapper($doc,$math,
 						     $breaker->applyLayout($pmml,$layout))]]]);
       # Might as well cache the converted pmml?
-      # Find the actual node that $math became
-      my $newxmath = $doc->findnode('ltx:MathFork/ltx:Math/ltx:XMath',$p);
-      $$doc{converted_pmml_cache}{$$newxmath} = $pmml; }
+      # [But note that applyLayout MODIFIED the orignal $pmml, so it's got linebreaks!]
+      if($bid){
+	$$doc{converted_pmml_cache}{$bid} = $pmml; }
+    }
+    elsif($id){
+      $$doc{converted_pmml_cache}{$id} = $pmml; }
  }}
   
 sub convertNode {
   my($self,$doc,$xmath,$style)=@_;
-  if(my $pmml = $$doc{converted_pmml_cache}{$$xmath}){ # NEED SAFER WAY TO STORE!!!
-    # Hmmm.... we're not actually picking up many of these cached!?!?!?!?!
-    print STDERR "USING cached pmml!!\n";
+  my $id = $xmath->parentNode->getAttribute('xml:id');
+  if(my $pmml = $id && $$doc{converted_pmml_cache}{$id}){
     $pmml; }
   # A straight displayed Math will have been handled by preprocess, above,
   # and, if it needed line-breaking, will have generated a MathFork/MathBranch.

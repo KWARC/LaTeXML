@@ -74,31 +74,6 @@ sub status {
 #======================================================================
 # This saves the db
 
-sub XXXfinish {
-  my($self)=@_;
-  if($$self{externaldb} && $$self{dbfile}){
-    my $n=0;
-    my %types=();
-    my $opened = $$self{opened_timestamp};
-    foreach my $key (keys %{$$self{objects}}){
-      my $row = $$self{objects}{$key};
-      next if $$row{timestamp} < $opened;
-      $n++;
-      my %item = %$row;
-      delete $item{key}; 		# Don't store these
-      #    $$row{timestamp}=$opened;
-##print STDERR "Saving: ".$row->show."\n";
-      $$self{externaldb}{Encode::encode('utf8',$key)} = nfreeze({%item}); }
-
-    print STDERR "ObjectDB Stored $n objects (".scalar(keys %{$$self{externaldb}})." total)\n"
-      if $$self{verbosity} > 0; 
-    untie %{$$self{externaldb}};  }
-
- $$self{externaldb}=undef;
- $$self{objects}=undef;
-}
-
-
 sub finish {
   my($self)=@_;
   if($$self{externaldb} && $$self{dbfile}){
@@ -111,7 +86,6 @@ sub finish {
 	next if compare_hash($row,thaw($stored)); }
       $n++;
       my %item = %$row;
-##print STDERR "Saving: ".$row->show."\n";
       $$self{externaldb}{Encode::encode('utf8',$key)} = nfreeze({%item}); }
 
     print STDERR "ObjectDB Stored $n objects (".scalar(keys %{$$self{externaldb}})." total)\n"
@@ -125,7 +99,7 @@ sub finish {
 sub compare {
   my($a,$b)=@_;
   my $ra = ref $a;
-  if(! $ra) {
+  if(! $ra){
     if(ref $b){ 0; }
     else { compare_scalar($a,$b); }}
   elsif($ra ne ref $b){ 0; }
@@ -136,8 +110,7 @@ sub compare {
 sub compare_scalar {
   my ($a,$b) = @_;
   ((! defined $a) && (! defined $b)) ||
-    (defined $a && defined $b && $a eq $b);
-}
+    (defined $a && defined $b && $a eq $b); }
 
 sub compare_hash {
   my($a,$b)=@_;
@@ -198,13 +171,14 @@ sub register {
     bless $entry, 'LaTeXML::Util::ObjectDB::Entry';
     $$self{objects}{$key}=$entry; }
   $entry->setValues(%props);
+
   $entry; }
 
-sub purge {
-  my ($self,$key) = @_;
+sub unregister {
+  my($self,$key)=@_;
   delete $$self{objects}{$key};
-  delete $$self{externaldb}{Encode::encode('utf8',$key)};
-}
+  # Must remove external entry (if any) as well, else it'll get pulled back in!
+  delete $$self{externaldb}{Encode::encode('utf8',$key)} if $$self{externaldb}; }
 
 #********************************************************************************
 # DB Entries
@@ -221,16 +195,15 @@ sub new {
 
 sub key { $_[0]->{key}; }
 
+sub getAttributes {
+  my($self)=@_;
+  keys %$self; }
+
 # Get/Set a value (column) in the DBRow entry, noting whether it modifies the entry.
 # Note that XML data is stored in it's serialized form, prefixed by "XML::".
 sub getValue {
   my($self,$attr)=@_;
   decodeValue($$self{$attr}); }
-
-sub getKeys {
- my($self)=@_;
- keys %$self;
-}
 
 sub setValues {
   my($self,%avpairs)=@_;
@@ -267,15 +240,6 @@ sub noteAssociation {
       $hash = $$hash{$key}; }
     else {
       $hash = $$hash{$key} = (@keys ? {} : 1); }}}
-
-sub as_hashref {
-  my($self)=@_;
-  my $hashref = {};
-  foreach (keys %$self) {
-    $hashref->{$_} = decodeValue($self->{$_});
-  }
-  return $hashref;
-}
 
 # Debugging aid
 use Text::Wrap;
