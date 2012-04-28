@@ -183,6 +183,8 @@ sub loadPreamble {
   my $gullet  = $$self{state}->getStomach->getGullet;
   if($preamble eq 'standard_preamble.tex'){
      $gullet->openMouth(LaTeXML::Mouth->new('\documentclass{article}\begin{document}'),0); }
+  elsif($preamble =~ /\n/) {# Multiline are strings #TODO: DO this in a GOOD way
+    $gullet->openMouth(LaTeXML::Mouth->new($preamble),0); }
   else {
      $gullet->input($preamble); }}
 
