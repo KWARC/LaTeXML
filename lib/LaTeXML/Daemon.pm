@@ -565,7 +565,20 @@ sub convert_post {
 
 sub new_latexml {
   my $opts = shift;
-  my $latexml = LaTeXML->new(preload=>[@{$opts->{preload}}], searchpaths=>[@{$opts->{paths}}],
+
+  # TODO: Do this in a GOOD way to support filepath/URL/string snippets
+  # If we are given string preloads, load them and remove them from the preload list:
+  my $preloads = $opts->{preload};
+  my (@pre,@str_pre);
+  foreach my $pre(@$preloads) {
+    if ($pre=~/\n/) {
+      push @str_pre, $pre;
+    } else {
+      push @pre, $pre;
+    }
+  }
+
+  my $latexml = LaTeXML->new(preload=>[@pre], searchpaths=>[@{$opts->{paths}}],
                           graphicspaths=>['.'],
 			  verbosity=>$opts->{verbosity}, strict=>$opts->{strict},
 			  includeComments=>$opts->{comments},inputencoding=>$opts->{inputencoding},
@@ -579,6 +592,10 @@ sub new_latexml {
                         my($state)=@_;
                         $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
                       });
+
+  # TODO: Do again, need to do this in a GOOD way as well:
+  $latexml->digestString($_,source=>"Anonymous string",noinitialize=>1) foreach (@str_pre);
+
   return $latexml;
 }
 
