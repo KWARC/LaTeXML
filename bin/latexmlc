@@ -63,7 +63,7 @@ if (!$opts->{local} && ($opts->{destination} || $opts->{log}))
      " Will revert to sockets!\n";
    undef $opts->{destination}; undef $opts->{log}; }
 
-push @{$opts->{paths}}, $cdir;#add current path, to ensure never empty
+push @{$opts->{paths}}, $cdir; #add current path, to ensure never empty
 
 #***************************************************************************
 # Prepare output variables:
@@ -84,10 +84,13 @@ if ((!$sock) && ($opts->{timeout} == -1)) {
   my $startup =  LaTeXML::Util::Startup->new(cache=>0); # Don't write a DB file
   my $source = $opts->{source};
   delete $opts->{source};
+
   my $daemon = $startup->find_daemon($opts);
   $daemon->prepare_session($opts);
   my $response = $daemon->convert($source);
+
   ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
+
 } else {
   #Startup daemon and feed in args, if needed
   my $destopt = (($opts->{local}) && ($opts->{destination}) && ('--destination='.$opts->{destination})) || '';
@@ -112,7 +115,6 @@ if ((!$sock) && ($opts->{timeout} == -1)) {
   $response = thaw($response);
   ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
 }
-
 
 #***************************************************************************
 ### Common treatment of output:

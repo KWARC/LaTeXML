@@ -37,7 +37,7 @@ sub new {
   my ($class,$opts) = @_;
   binmode(STDERR,":utf8");
   prepare_options(undef,$opts);
-  bless {defaults=>$opts,opts=>undef,ready=>0,
+  bless {defaults=>$opts,opts=>undef,ready=>0,log=>q{},
          latexml=>undef}, $class;
 }
 
@@ -240,33 +240,47 @@ sub prepare_options {
 
 sub initialize_session {
   my ($self) = @_;
-  # Prepare LaTeXML object
-  my $latexml= new_latexml($self->{opts});
-  # Demand errorless initialization
-  my $init_status = $latexml->getStatusMessage;
-  croak $init_status unless ($init_status !~ /error/i);
+  $self->bind_loging;
+  my $latexml;
+  eval {
+    # Prepare LaTeXML object
+    $latexml = new_latexml($self->{opts});
+    1;
+  };
+  if ($@) {#Fatal occured!
+    print STDERR "$@\n";
+    print STDERR "\nInitialization complete: ".$latexml->getStatusMessage.". Aborting.\n" if defined $latexml;
+    # Close and restore STDERR to original condition.
+    $self->{log} = $self->flush_loging;
+    $self->{ready}=0; return;
+  } else {
+    # Demand errorless initialization
+    my $init_status = $latexml->getStatusMessage;
+    if ($init_status =~ /error/i) {
+      print STDERR "\nInitialization complete: ".$init_status.". Aborting.\n";
+      $self->{log} = $self->flush_loging; 
+      $self->{ready}=0;
+      return;
+    }
+  }
+
   # Save latexml in object:
+  $self->{log} = $self->flush_loging;
   $self->{latexml} = $latexml;
   $self->{ready}=1;
 }
 
 sub convert {
   my ($self,$source) = @_;
-  # Tie STDERR to log:
-  my $log=q{}; my $status=q{};
-  open(LOG,">",\$log) or croak "Can't redirect STDERR to log! Dying...";
-  *ERRORIG=*STDERR;
-  *STDERR = *LOG;
-
   # Initialize session if needed:
   $self->initialize_session unless $self->{ready};
-  unless ($self->{ready}) {
-    # Close and restore STDERR to original condition.
-    close LOG;
-    *STDERR=*ERRORIG;
+  unless ($self->{ready}) { # We can't initialize, return error:
+    my $log=$self->flush_loging;
     $self->{ready}=0; return {result=>undef,log=>$log};
   }
 
+  $self->bind_loging;
+  my $status=q{};
   # Inform of identity, increase conversion counter
   my $opts = $self->{opts};
   print STDERR "\n",$opts->{identity},"\n" if $opts->{verbosity} >= 0;
@@ -342,8 +356,7 @@ sub convert {
       print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
     }
     # Close and restore STDERR to original condition.
-    close LOG;
-    *STDERR=*ERRORIG;
+    my $log=$self->flush_loging;
     $self->{ready}=0; return {result=>undef,log=>$log,status=>$latexml->getStatusMessage};
   }
   print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
@@ -371,10 +384,6 @@ sub convert {
     $result = GetMath($result);
   } # 3. Nothing to do in document whatsout (it's default)
 
-  # Close and restore STDERR to original condition.
-  close LOG;
-  *STDERR=*ERRORIG;
-
   # Serialize result for direct use:
   if (defined $result) {
     if ($opts->{format} =~ 'x(ht)?ml') {
@@ -388,8 +397,8 @@ sub convert {
       }
     }
   }
-
-  my $return = {result=>$result,log=>$log,status=>$status};
+  my $log = $self->flush_loging;
+  return {result=>$result,log=>$log,status=>$status};
 }
 
 ########## Helper routines: ############
@@ -649,6 +658,24 @@ sub prepare_content {
     $opts->{source_type}="string";
   }
   return $source;
+}
+
+sub bind_loging {
+  # TODO: Move away from global file handles, they will inevitably end up causing problems..
+  my ($self) = @_;
+  # Tie STDERR to log:
+  open(LOG,">",\$self->{log}) or croak "Can't redirect STDERR to log! Dying...";
+  *ERRORIG=*STDERR;
+  *STDERR = *LOG;
+}
+sub flush_loging {
+  my ($self) = @_;
+  # Close and restore STDERR to original condition.
+  close LOG;
+  *STDERR=*ERRORIG;
+  my $log = $self->{log};
+  $self->{log}=q{};
+  return $log;
 }
 
 1;
