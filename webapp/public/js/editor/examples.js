@@ -165,8 +165,9 @@ examples['xii'] = ['Source: \\url{http://ctan.org/pkg/xii}','','',
 'LcYlaDLbJsW,SWXJW ree @rzchLhzsW,;WERcesInW qt.\'oL.Rtrul;e',
 'doTsW,Wk;Rri@stW aHAHHFndZPpqar.tridgeLinZpe.LtYer.W,:jbye'].join('\n');
 
-examples['wik'] = ['\\usepackage{wiki}',
-'\\begin{document}',
+examples['wik'] = ['\\documentclass{article}',
+'\\usepackage{wiki}%',
+'\\begin{document}%',
 '\\wikimarkup',
 '','== Section One ==',
 'An introduction to wiki.sty',
