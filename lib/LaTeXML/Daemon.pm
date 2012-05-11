@@ -357,7 +357,7 @@ sub convert {
     }
     # Close and restore STDERR to original condition.
     my $log=$self->flush_loging;
-    $self->{ready}=0; return {result=>undef,log=>$log,status=>$latexml->getStatusMessage};
+    return {result=>undef,log=>$log,status=>$latexml->getStatusMessage};
   }
   print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
   $status = $latexml->getStatusMessage;

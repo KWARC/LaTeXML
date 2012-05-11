@@ -165,9 +165,7 @@ examples['xii'] = ['Source: \\url{http://ctan.org/pkg/xii}','','',
 'LcYlaDLbJsW,SWXJW ree @rzchLhzsW,;WERcesInW qt.\'oL.Rtrul;e',
 'doTsW,Wk;Rri@stW aHAHHFndZPpqar.tridgeLinZpe.LtYer.W,:jbye'].join('\n');
 
-examples['wik'] = ['\\documentclass{article}',
-'\\usepackage{wiki}%',
-'\\begin{document}%',
+examples['wik'] = [
 '\\wikimarkup',
 '','== Section One ==',
 'An introduction to wiki.sty',
@@ -182,7 +180,6 @@ examples['wik'] = ['\\documentclass{article}',
 '* Future work: itemize',
 '','* also enumerate',
 '','* etc.',
-'\\end{document}',
 ''].join('\n');
 
 examples['met'] = ['\\usepackage{planetmath-specials}',
