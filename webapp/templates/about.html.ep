@@ -1,7 +1,7 @@
 % layout 'default';
 % title 'About';
 <%= javascript 'js/external/jquery.min.js' %>
-<%= javascript '' => begin %>
+%= javascript begin
 var hasError = /error/;
 $(document).ready(function() {
 	$('div.latex-fragment, span.latex-fragment').each(function(index) {
@@ -17,7 +17,7 @@ $(document).ready(function() {
    			}, "json");
 	});
    });
-<% end %>
+% end
 <div style="margin:10px;"><div class="latex-fragment">
 \title{The LaTeXML Daemon: Editable Math for
 the Collaborative Web}

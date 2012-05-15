@@ -166,7 +166,8 @@ examples['xii'] = ['Source: \\url{http://ctan.org/pkg/xii}','','',
 'doTsW,Wk;Rri@stW aHAHHFndZPpqar.tridgeLinZpe.LtYer.W,:jbye'].join('\n');
 
 examples['wik'] = [
-'\\wikimarkup',
+'\\usepackage{wiki}',
+'\\begin{document}\\wikimarkup',
 '','== Section One ==',
 'An introduction to wiki.sty',
 '=== A subsection ===',
@@ -180,6 +181,7 @@ examples['wik'] = [
 '* Future work: itemize',
 '','* also enumerate',
 '','* etc.',
+'\\end{document}',
 ''].join('\n');
 
 examples['met'] = ['\\usepackage{planetmath-specials}',
@@ -214,7 +216,7 @@ examples['wgr'] = [
 '\\url{http://perl.org}',
 '\\end{document}'].join('\n');
 
-    examples['tik'] = ['\\documentclass{article}\\usepackage{tikz}\\begin{document}',
+examples['tik'] = ['\\documentclass{article}\\usepackage{tikz}\\begin{document}',
 '\\title{A TikZ gallery of basic examples}',
 '\\section{Connecting squares}',
 '\\begin{tikzpicture}',

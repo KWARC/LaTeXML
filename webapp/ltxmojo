@@ -1,14 +1,14 @@
 #!/usr/bin/perl
-
+use FindBin;
+use lib "../lib"; # LaTeXML lib
 use Mojolicious::Lite;
-use lib "lib";
-use LaTeXML::Util::Startup;
-use LaTeXML::Util::Extras;
-use LaTeXML::Daemon;
 use Archive::Zip;
 use File::Path;
 use Data::Dumper;
-use feature 'switch';
+
+use LaTeXML::Util::Startup;
+use LaTeXML::Util::Extras;
+use LaTeXML::Daemon;
 
 our $version = '0.1';
 our $dbfile  = '.LaTeXML_Mojo.cache';

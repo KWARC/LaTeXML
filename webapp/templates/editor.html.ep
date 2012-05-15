@@ -4,7 +4,7 @@
 <%= javascript 'js/external/jquery-ui.min.js' %>
 <%= javascript 'js/external/jquery.jeditable.js'  %>
 <%= javascript 'js/editor/examples.js' %>
-<%= javascript '' => begin %>
+%= javascript begin
 function show_log() {
     $('#onthefly').hide();
     $('#log').show();
@@ -135,7 +135,7 @@ $(document).ready(function() {
           $('#result').focus();
         });
 });
-<% end %>
+% end
 
 
 <div class="edit_area" id="result" 
