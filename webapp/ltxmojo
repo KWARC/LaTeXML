@@ -24,7 +24,7 @@ my $startup =
   LaTeXML::Util::Startup->new(dbfile => $ENV{MOJO_HOME} . '/' . $dbfile);
 
 # Do a one-time check for admin, add if none:
-print $startup->modify_user('admin', 'admin', 'admin')
+$startup->modify_user('admin', 'admin', 'admin')
   unless $startup->exists_user('admin');
 
 # Adapted From: http://th.atguy.com/mycode/generate_random_string/
