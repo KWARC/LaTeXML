@@ -167,7 +167,8 @@ examples['xii'] = ['Source: \\url{http://ctan.org/pkg/xii}','','',
 
 examples['wik'] = [
 '\\usepackage{wiki}',
-'\\begin{document}\\wikimarkup',
+'\\begin{document}',
+'\\wikimarkup',
 '','== Section One ==',
 'An introduction to wiki.sty',
 '=== A subsection ===',
@@ -181,8 +182,9 @@ examples['wik'] = [
 '* Future work: itemize',
 '','* also enumerate',
 '','* etc.',
-'\\end{document}',
-''].join('\n');
+'','Enjoy! % You need trailing text to close the implicit itemize',
+'%No trailing whitespace or you get Fatals errors!!%',
+'\\end{document}'].join('\n');
 
 examples['met'] = ['\\usepackage{planetmath-specials}',
 '\\begin{document}',
