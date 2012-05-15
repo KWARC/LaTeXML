@@ -1,0 +1,19 @@
+# -*- CPERL -*-
+# /=======================================================\ #
+# |  pgf - Implementation for LaTeXML                     | #
+# |=======================================================| #
+# | Part of LaTeXML : http://dlmf.nist.gov/LaTeXML/       | #
+# | Copyright (c) 2011 arXMLiv group                      | #
+# | Released under the GNU Public License                 | #
+# |=======================================================| #
+# | Author: Silviu Vlad Oprea                             | #
+# | E-mail: s.oprea@jacobs-university.de                  | #
+# \=======================================================/ #
+
+DefMacro('\pgfsysdriver', 'pgfsvg.def');
+
+AssignValue('pgf.sty_loaded'=>undef,'global');
+InputDefinitions('pgf',type=>'sty',noltxml=>1)
+  || Warn(":missing:pgf.sty Couldn't find pgf.sty");
+
+1;
