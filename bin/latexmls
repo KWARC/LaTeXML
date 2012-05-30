@@ -17,8 +17,9 @@ use Data::Dumper;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use Storable qw(freeze thaw);
-use LaTeXML::Util::Startup;
-use LaTeXML::Util::Extras;
+use LaTeXML;
+use LaTeXML::Daemon;
+use LaTeXML::Util::Config;
 # Server-specific
 use POSIX qw( setsid );
 use IO::Socket;
@@ -29,26 +30,26 @@ use IO::Socket;
 my $ARGV_SAVED = [@ARGV], #Save, so that we reinvoke when flushed
 
 # Global Options, with defaults
-my $g_opts = {
+my $g_opts = LaTeXML::Util::Config->new(
  identity => "latexmls (LaTeXML version $LaTeXML::VERSION)",
  profile => 'standard',
  input_limit => 100,
  input_counter => 0,
  timeout => 60,
  port => 3354
-};
+);
 
-my $opts={};
+my $opts=LaTeXML::Util::Config->new();
 
 # Read default options
-ReadOptions($g_opts,\@ARGV);
+$g_opts->read(\@ARGV);
 
 # Daemonize
 daemonize();
 
 #**********************************************************************
 # Set up the server
-my $server = setup_server($g_opts->{port});
+my $server = setup_server($g_opts->get('port'));
 
 #**********************************************************************
 # Set up the processing.
@@ -60,8 +61,7 @@ local $SIG{'INT'} = 'doterm';
 
 binmode(STDERR,":utf8");
 
-my $startup =  LaTeXML::Util::Startup->new(cache=>0); # Don't write a DB file
-alarm($g_opts->{timeout});              #Timeout if inactive for too long...
+alarm($g_opts->get('timeout'));              #Timeout if inactive for too long...
 
 #**********************************************************************
 # Process files on demand:
@@ -79,26 +79,27 @@ while ( my $client = $server->accept() ) {
   alarm(0);                    # We are processing, ignore timeout here
 
   # Thaw request into options:
-  $opts = thaw($request);
+  $opts = LaTeXML::Util::Config->new(%{thaw($request)});
   # Prepare TeX source
-  my $source = $opts->{source};
-  delete $opts->{source};
+  my $source = $opts->get('source');
+  $opts->delete('source');
 
-  if ($opts->{base} && $opts->{base}!~/(\w+):\/\//) 
-  { chdir $opts->{base} or croak "Can't chdir to ".$opts->{base}.": $!";};
+  if ($opts->get('base') && $opts->get('base')!~/(\w+):\/\//)
+  { chdir $opts->get('base') or croak "Can't chdir to ".$opts->get('base').": $!";}
+
 
   # We now have a LaTeXML options object - $opts.
   # Make sure the g_opts are included as defaults
-  foreach (keys %$g_opts) { $opts->{$_} = $g_opts->{$_} unless exists $opts->{$_};}
+  foreach ($g_opts->keys) { $opts->set($_, $g_opts->get($_)) unless $opts->exists($_); }
 
   # Boot/find a daemon:
-  my $daemon = $startup->find_daemon($opts);
+  my $daemon = LaTeXML::Daemon->get_converter($opts);
 
   #Override/extend with session-specific options in $opt:
   $daemon->prepare_session($opts);
 
   #Send a request:
-  $g_opts->{input_counter}++;
+  $g_opts->set('input_counter',$g_opts->get('input_counter')+1);
   my $response = $daemon->convert($source);
   my ($result, $status, $log);
   if (defined $response) {
@@ -112,12 +113,12 @@ while ( my $client = $server->accept() ) {
   print $client freeze($response);
 
   #Flush daemon, every $input_limit files:
-  if ($g_opts->{input_limit} && (($g_opts->{input_counter}||0) >= $g_opts->{input_limit})) {
+  if ($g_opts->get('input_limit') && (($g_opts->get('input_counter')||0) >= $g_opts->get('input_limit'))) {
       exec("$FindBin::RealBin/latexmls",@$ARGV_SAVED)
 	  or croak ("Daemon autoflush Failed!\n");
   }
-  dotimeout() if ($opts->{timeout} == -1); # Terminate immediately if desired
-  alarm($opts->{timeout});              #Timeout if inactive for too long...
+  dotimeout() if ($opts->get('timeout') == -1); # Terminate immediately if desired
+  alarm($opts->get('timeout'));              #Timeout if inactive for too long...
 }
 
 sub dotimeout {

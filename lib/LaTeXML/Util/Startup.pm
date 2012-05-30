@@ -9,138 +9,6 @@ $Data::Dumper::Indent = 3;         # turn off all pretty print
 
 our $DB_FILE = '.LaTeXML_Startup.cache';
 #TODO: Eliminate redundant options
-our $PROFILES = {
-standard => {
-             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
-             post=>0, parallelmath=>0,
-             embed=>0, timeout=>60, format=>'xml', base=>q{},
-             math_formats=>[], help=>0, showversion=>0,
-             stylesheet=>q{},defaultcss=>1,icon=>0, inputencoding=>q{},
-             documentid =>q{}, type=>'auto', css => [], paths => [q{.}], preload=>[], debugs=>[],
-             authlist=>{}, force_ids=>1
-            },
-fragment => {
-             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
-             post=>1, parallelmath=>1,
-             timeout=>60, format=>'xhtml', base=>q{},
-	     whatsin=>'fragment', whatsout=>'fragment',
-             math_formats=>[qw(pmml cmml)], help=>0, showversion=>0,
-             stylesheet=>q{},defaultcss=>1,icon=>0, inputencoding=>q{},
-             documentid =>q{}, type=>'auto', css => [], debugs=>[],
-             paths => ['.'],
-             preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty",
-                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty'],
-             authlist=>{}, force_ids=>1
-            },
-'fragment-xhtml' => {
-             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
-             post=>1, parallelmath=>1,
-	     timeout=>60, format=>'xhtml', base=>q{},
-	     whatsin=>'fragment', whatsout=>'fragment',
-             math_formats=>[qw(pmml cmml)], help=>0, showversion=>0,
-             stylesheet=>q{},defaultcss=>1,icon=>0, inputencoding=>q{},
-             documentid =>q{}, type=>'auto', css => [], debugs=>[],
-             paths => ['.'],
-             preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty",
-                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty'],
-             authlist=>{}, force_ids=>1
-            },
-'fragment-html' => {
-             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
-             post=>1, parallelmath=>1,
-	     timeout=>60, format=>'html5', base=>q{},
-	     whatsin=>'fragment', whatsout=>'fragment',
-             math_formats=>[qw(pmml cmml)], help=>0, showversion=>0,
-             stylesheet=>q{},defaultcss=>1,icon=>0, inputencoding=>q{},
-             documentid =>q{}, type=>'auto', css => [], debugs=>[],
-             paths => ['.'],
-             preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty",
-                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty'],
-             authlist=>{}, force_ids=>1
-            },
-'planetmath' => {
-             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
-             post=>1, parallelmath=>1,
-	     timeout=>60, format=>'html5', base=>q{},
-	     whatsin=>'fragment', whatsout=>'fragment',
-             math_formats=>[qw(pmml cmml)], help=>0, showversion=>0,
-             stylesheet=>q{},defaultcss=>1,icon=>0, inputencoding=>q{},
-             documentid =>q{}, type=>'auto', css => [], debugs=>[],
-             paths => ['.'],
-             preload=>["article.cls", "LaTeX.pool", "amsmath.sty", "amsthm.sty", "amstext.sty",
-                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty',
-                       'planetmath-specials.sty','pmath.sty'],
-             authlist=>{}, force_ids=>1
-           },
-'fragment-omdoc' => {
-             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>1,
-             post=>1, parallelmath=>1,
-             timeout=>60, format=>'xml', base=>q{},
-             math_formats=>[qw(xmath pmml om)], help=>0, showversion=>0,
-       	     whatsin=>'fragment', whatsout=>'document',
-             stylesheet=>q{},defaultcss=>0,icon=>0, inputencoding=>q{},
-             documentid =>q{}, type=>'auto', css => [], debugs=>[],
-             paths => ['.'],
-             authlist=>{}, force_ids=>0
-            },
-math => {
-             verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
-             post=>1, parallelmath=>1,
-             timeout=>60, format=>'xhtml', base=>q{},
-	     whatsin=>'math', whatsout=>'math',
-	     source_type=>'string', # always works on strings!
-             math_formats=>[qw(pmml cmml)],
-             help=>0, showversion=>0,
-             stylesheet=>q{},defaultcss=>1,icon=>0, inputencoding=>q{}, 
-             documentid =>q{}, type=>'auto', css => [], paths => [q{.}],
-             paths => ['.'],
-             preload=>["LaTeX.pool", "article.cls", "amsmath.sty", "amsthm.sty", "amstext.sty", 
-                       "amssymb.sty", "eucal.sty","[dvipsnames]color.sty",'url.sty','hyperref.sty','mws.sty'],
-             debugs=>[], authlist=>{}
-        },
-'stex-oregano' => {identity=>"Mojo for LaTeXML, v$LaTeXML::VERSION; Profile: stex",
-         paths=>['/arXMLiv/trunk/build/contrib/package/webgraphic',
-                 '/arXMLiv/trunk/build/contrib/stex/sty',
-                 '/arXMLiv/trunk/build/contrib/stex/rnc',
-                 '/arXMLiv/trunk/build/contrib/stex/rnc/omdoc',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/modules',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/statements',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/sproof',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/omtext',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/omdoc',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/sref',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/presentation',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/dcm',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/reqdoc',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/metakeys',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/mikoslides',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/problem',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/hwexam',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/cmath',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/etc',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/stc-sty',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/stc-sty/ded',
-                 '/arXMLiv/trunk/build/contrib/stex/sty/stc-sty/ed',
-                 '/arXMLiv/trunk/sty'],
-         stylesheet=>'/arXMLiv/trunk/build/contrib/stex/xsl/omdocpost.xsl',
-         nodefaultcss=>1, post=>1, math_formats=>[qw(pmml openmath)],
-         preload=>'http://srv.tntbase.org/repos/cicm/ex/webpre.tex',
-         verbosity=>0,  strict=>0,  comments=>1,  noparse=>0,  includestyles=>0,
-         timeout=>60, format=>'xml', base=>q{},
-         whatsin=>'fragment', whatsout=>'document',
-         help=>0, showversion=>0,icon=>0, inputencoding=>q{},
-         documentid =>q{}, type=>'auto', css => [],
-         preload=>['.'], debugs=>[], authlist=>{}},
-
-#bibtex => {identity=>"Mojo for LaTeXML, v$LaTeXML::VERSION; Profile: bibtex"}, #TODO
-linguistic => { verbosity=>0,  strict=>0,  comments=>1, includestyles=>0,
-             noparse=>1, post=>0, parallelmath=>0,
-             timeout=>60, format=>'xml', base=>q{},
-             math_formats=>[], help=>0, showversion=>0,
-             stylesheet=>q{},defaultcss=>1,icon=>0, inputencoding=>q{},
-             documentid =>q{}, type=>'auto', css => [], paths => [q{.}], preload=>[], debugs=>[],
-             authlist=>{}}
-};
 
 sub new {
   ($class,%opts) = @_;
@@ -153,73 +21,7 @@ sub new {
         pathname_mkdir($dbdir); }}
   }
   my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile);
-  foreach (keys %$PROFILES) { # Cash profiles in DB
-    next if defined $DB->lookup("profile:$_");
-    $DB->register("profile:$_",%{$PROFILES->{$_}});
-  }
-  if (defined $options->{profiles}) {# Also cash $options' profiles in DB
-    foreach (keys %{$options->{profiles}}) {
-      next if defined $DB->lookup("profile:$_");
-      $DB->register("profile:$_",%{$options->{profiles}->{$_}});
-    }}
-
   bless {daemons=>{},db=>$DB}, $class;}
-
-###########################################
-#### Daemon Management #####
-###########################################
-
-
-sub find_daemon {
-  my ($self,$opt) = @_;
-  my  $profile = lc($opt->{profile})||'custom';
-
-  # Merge the new options with the profile defaults:
-  my $p_opt = $self->{db}->lookup("profile:$profile");
-  for my $key (keys %$opt) {
-    if ($key =~ /^p(ath|reload)/) { # Paths and preloads get merged in
-      $p_opt->{$key} = [] unless defined $p_opt->{$key};
-      foreach my $entry (@{$opt->{$key}}) {
-        my $new=1;
-        foreach (@{$p_opt->{$key}}) {
-          if ($entry eq $_) { $new=0; last; }
-        }
-        # If new to the array, push:
-        push (@{$p_opt->{$key}}, $entry) if ($new);
-      }
-    } else { # The rest get overwritten
-      $p_opt->{$key} = $opt->{$key};
-    }
-  }
-  %$opt=%$p_opt; # Add profile defaults to user options
-
-  # TODO: Make this more flexible via an admin interface later
-  my $d = $self->{daemons}->{$profile};
-  if (! defined $d) {
-    #Boot a daemon of this profile:
-    if ($profile ne 'custom') {
-      $d = $self->boot_profile($profile,$opt);
-      $self->{daemons}->{$profile}=$d;
-    } else {
-      $d = $self->boot_custom($opt);
-      $self->{daemons}->{custom}=$d;
-    }
-  }
-  return $d;
-}
-
-sub boot_profile {
-  my ($self,$profile,$opt) = @_;
-  #Start with the options set for this profile
-  my $p_opt = $self->{db}->lookup("profile:$profile");
-  $self->boot_custom($p_opt->as_hashref);
-}
-
-sub boot_custom {
-  my ($self,$opt) = @_;
-  #TODO: Do we need some care and attention for $opt here?
-  return LaTeXML::Daemon->new($opt);
-}
 
 ###########################################
 #### User Management #####
@@ -452,7 +254,6 @@ Additionally, uses LaTeXML::ObjectDB to provide basic support for user and conve
 =head1 SYNOPSIS
 
 my $startup = LaTeXML::Util::Startup->new();
-my $daemon = $startup->find_daemon($opts);
 
 =head1 DESCRIPTION
 
@@ -481,10 +282,6 @@ Initializes a new Startup driver and connects to (or creates) its database file.
 =head3 Daemon Management
 
 =over 4
-
-=item C<< my $daemon = $startup->find_daemon($opts); >>
-
-Finds a daemon compatible with the prescribed options. In case the search fails, a new daemon is started.
 
 =item C<< $startup->boot_profile($profile); >>
 

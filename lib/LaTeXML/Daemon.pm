@@ -33,6 +33,8 @@ our @IGNORABLE = qw(identity timeout profile port preamble postamble port destin
 # paths, preload, preamble, ... all the LaTeXML->new() params?
 # If we're not daemonizing postprocessing we can safely ignore all its options and reuse the conversion objects.
 
+our $DAEMON_DB={}; # Class-wide, caches all daemons that got booted
+
 sub new {
   my ($class,$opts) = @_;
   binmode(STDERR,":utf8");
@@ -43,13 +45,15 @@ sub new {
 
 sub prepare_session {
   my ($self,$opts) = @_;
+  # TODO: The defaults feature was never used, do we really want it??
   #0. Ensure all default keys are present:
   # (always, as users can specify partial options that build on the defaults)
-  foreach (keys %{$self->{defaults}}) {
-    $opts->{$_} = $self->{defaults}->{$_} unless exists $opts->{$_};
-  }
+  #foreach (keys %{$self->{defaults}}) {
+  #  $opts->{$_} = $self->{defaults}->{$_} unless exists $opts->{$_};
+  #}
   # 1. Ensure option "sanity"
-  $self->prepare_options($opts);
+  $opts->check;
+  $opts = $opts->options;
   #TODO: Some options like paths and includes are additive, we need special treatment there
   #2. Check if there is some change from the current situation:
   my $opts_tmp={};
@@ -78,6 +82,7 @@ sub prepare_session {
 #       How about in the case of Extras::ReadOptions?
 #       Error() and Warn() would be neat, but we have to make sure STDERR is caught beforehand.
 #       Also, there is no eval() here, so we might need a softer handling of Error()s.
+# TODO: Move entirely into LaTeXML::Util::Config! and continue reworking
 sub prepare_options {
   my ($self,$opts) = @_;
   undef $self unless ref $self; # Only care about daemon objects, ignore when invoked as static sub
@@ -676,6 +681,22 @@ sub flush_loging {
   my $log = $self->{log};
   $self->{log}=q{};
   return $log;
+}
+
+###########################################
+#### Daemon Management                #####
+###########################################
+sub get_converter {
+  my ($self,$conf) = @_;
+  $conf->check; # Options are fully expanded
+  # TODO: Make this more flexible via an admin interface later
+  my $profile = $conf->get('profile')||'custom';
+  my $d = $DAEMON_DB->{$profile};
+  if (! defined $d) {
+    $d = LaTeXML::Daemon->new($conf->clone->options);
+    $DAEMON_DB->{$profile}=$d;
+  }
+  return $d;
 }
 
 1;

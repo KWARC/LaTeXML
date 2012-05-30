@@ -13,57 +13,59 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use LaTeXML;
 use LaTeXML::Util::Pathname;
-use LaTeXML::Util::Extras;
+use LaTeXML::Util::Config;
 use Storable qw(freeze thaw);
 use Encode;
 
-
 # Some defaults:
-my $opts={
+my $opts=LaTeXML::Util::Config->new(
 	  identity => "latexmlc (LaTeXML version $LaTeXML::VERSION)",
 	  profile => 'custom',
 	  'input_limit' => 100,
 	  timeout => -1, # Don't start a server as default
 	  port => 3354,
           verbosity=>0
-	 };
+	 );
 
-ReadOptions($opts,\@ARGV);
+$opts->read(\@ARGV);
 
 # Standard profile, unless specified
-$opts->{profile} = 'custom' unless defined $opts->{profile};
+$opts->set('profile','custom') unless defined $opts->get('profile');
 #Need to make all paths absolute
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
-$opts->{port} = $portlist{$opts->{profile}} unless $opts->{port};
-$opts->{port} = 3334 unless $opts->{port}; #Fall back to 3334 if all fails...
+$opts->set('port', $portlist{$opts->get('profile')}) unless $opts->get('port');
+$opts->set('port', 3334) unless $opts->get('port'); #Fall back to 3334 if all fails...
 
 # Local if no timeout wanted (classic latexml invocation):
-$opts->{local} = 1 unless (($opts->{timeout} != -1) || (defined $opts->{local}));
+$opts->set('local', 1) unless (($opts->get('timeout') != -1) || (defined $opts->get('local')));
 # TODO: Rethink this carefully, where does the "local" security get inspected?
 # Unset destinations unless local conversion has been requested:
-if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
+if (!$opts->get('local') && ($opts->get('destination') || $opts->get('log') || $opts->get('postdest') || $opts->get('postlog'))) 
   {carp "I/O from filesystem not allowed without --local!\n".
      " Will revert to sockets!\n";
-   undef $opts->{destination}; undef $opts->{log};
-   undef $opts->{postdest}; undef $opts->{postlog};}
+   $opts->set('destination',undef);
+   $opts->set('log',undef);
+   $opts->set('postdest',undef);
+   $opts->set('postlog',undef);}
 #***************************************************************************
 #Add some base, so that relative paths work
 my $cdir = abs_path(cwd());
 $cdir =~ s/ /\\ /g;
-$opts->{base}=$cdir unless $opts->{base};
+$opts->set('base',$cdir) unless $opts->get('base');
 
 # Record if destination exists, for summary
-$opts->{destination} = pathname_canonical($opts->{destination}) if $opts->{destination};
-my $deststat = (stat($opts->{destination}))[9] if ($opts->{destination});
+$opts->set('destination', pathname_canonical($opts->get('destination'))) if $opts->get('destination');
+my $deststat = (stat($opts->get('destination')))[9] if ($opts->get('destination'));
 $deststat = 0 unless $deststat;
 
 # Revert to sockets if no --local
-if (!$opts->{local} && ($opts->{destination} || $opts->{log}))
+if (!$opts->get('local') && ($opts->get('destination') || $opts->get('log')))
   {carp "I/O from filesystem not allowed without --local!\n".
      " Will revert to sockets!\n";
-   undef $opts->{destination}; undef $opts->{log}; }
+   $opts->set('destination',undef);
+   $opts->set('log',undef); }
 
-push @{$opts->{paths}}, $cdir; #add current path, to ensure never empty
+push @{$opts->get('paths')}, $cdir; #add current path, to ensure never empty
 
 #***************************************************************************
 # Prepare output variables:
@@ -72,40 +74,40 @@ my  ($result, $status, $log);
 #Setup client and communicate
 my $sock = new IO::Socket::INET
   ( PeerAddr => '127.0.0.1',
-    PeerPort => $opts->{port},
+    PeerPort => $opts->get('port'),
     Proto => 'tcp',
   ); #Attempt connecting to a service
-if ((!$sock) && ($opts->{timeout} == -1)) {
+if ((!$sock) && ($opts->get('timeout') == -1)) {
   # Don't boot a server, single job requested:
   # NOTE: Log will differ, single run gets initialization log at STDERR
   #       while server communication suppresses that part of the log otherwise
   #   (except when errors occur)
   require LaTeXML::Util::Startup;
   my $startup =  LaTeXML::Util::Startup->new(cache=>0); # Don't write a DB file
-  my $source = $opts->{source};
-  delete $opts->{source};
+  my $source = $opts->get('source');
+  $opts->delete('source');
 
-  my $daemon = $startup->find_daemon($opts);
-  $daemon->prepare_session($opts);
+  my $daemon = $startup->find_daemon($opts->options);
+  $daemon->prepare_session($opts->options);
   my $response = $daemon->convert($source);
 
   ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
 
 } else {
   #Startup daemon and feed in args, if needed
-  my $destopt = (($opts->{local}) && ($opts->{destination}) && ('--destination='.$opts->{destination})) || '';
-  my $formatopt = (($opts->{format}) && ('--format='.$opts->{format})) || '';
-  system("$FindBin::Bin/latexmls",'--port='.$opts->{port},'--timeout='.$opts->{timeout},'--autoflush='.$opts->{input_limit}, $destopt, $formatopt) unless $sock;
+  my $destopt = (($opts->get('local')) && ($opts->get('destination')) && ('--destination='.$opts->get('destination'))) || '';
+  my $formatopt = (($opts->get('format')) && ('--format='.$opts->get('format'))) || '';
+  system("$FindBin::Bin/latexmls",'--port='.$opts->get('port'),'--timeout='.$opts->get('timeout'),'--autoflush='.$opts->get('input_limit'), $destopt, $formatopt) unless $sock;
 
   #Daemon is running, reconnect and feed in request
   $sock = new IO::Socket::INET 
     ( PeerAddr => '127.0.0.1',
-      PeerPort => $opts->{port},
+      PeerPort => $opts->get('port'),
       Proto => 'tcp',
     );
   croak "Could not create socket: $!\n" unless $sock; 
   my ($response,$batch);
-  $sock->send(freeze($opts)."\nEND REQUEST\n");
+  $sock->send(freeze($opts->options)."\nEND REQUEST\n");
   do {
     $sock->recv($batch,1024);
     $response.=$batch;
@@ -121,8 +123,8 @@ if ((!$sock) && ($opts->{timeout} == -1)) {
 
 # Special features for latexmls:
 if ($log) {
-  if ($opts->{log} && $opts->{local}) {
-    my $clog = $opts->{log};
+  if ($opts->get('log') && $opts->get('local')) {
+    my $clog = $opts->get('log');
     open(LOG,">",$clog) or croak "Couldn't open log file $clog : $!\n";
     print LOG encode('UTF-8',$log);
     close LOG;
@@ -131,17 +133,17 @@ if ($log) {
 
 if ($result) {
 
-  if ($opts->{destination} && $opts->{local}) {
-    open(OUT,">",$opts->{destination}) or croak "Couldn't open output file ".$opts->{destination}.": $!";
+  if ($opts->get('destination') && $opts->get('local')) {
+    open(OUT,">",$opts->get('destination')) or croak "Couldn't open output file ".$opts->get('destination').": $!";
     print OUT encode('UTF-8',$result);
     close OUT;
   } else { print STDOUT encode('UTF-8',$result),"\n"; } #Output to STDOUT
 }
 
 # Print summary, if requested, to STDERR
-if ($opts->{destination}) {
+if ($opts->get('destination')) {
   print STDERR $status;
-  print STDERR summary($opts->{destination},$deststat);
+  print STDERR summary($opts->get('destination'),$deststat);
 }
 
 # == Helpers ==

@@ -1,0 +1,21 @@
+# Identical to fragment.opt
+comments =
+parse =
+post =
+timeout = 60
+format = xhtml
+whatsin = fragment
+whatsout = fragment
+pmml =
+cmml =
+preload = LaTeX.pool
+preload = article.cls
+preload = amsmath.sty
+preload = amsthm.sty
+preload = amstext.sty
+preload = amssymb.sty
+preload = eucal.sty
+preload = [dvipsnames]color.sty
+preload = url.sty
+preload = hyperref.sty
+force_ids = 
