@@ -87,8 +87,8 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
   my $source = $opts->get('source');
   $opts->delete('source');
 
-  my $daemon = $startup->find_daemon($opts->options);
-  $daemon->prepare_session($opts->options);
+  my $daemon = LaTeXML::Daemon->get_converter($opts);
+  $daemon->prepare_session($opts);
   my $response = $daemon->convert($source);
 
   ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
