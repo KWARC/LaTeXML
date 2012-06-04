@@ -11,7 +11,7 @@ use Cwd qw(cwd abs_path);
 use IO::Socket;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
-use LaTeXML;
+use LaTeXML::Daemon;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::Config;
 use Storable qw(freeze thaw);
@@ -82,8 +82,6 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
   # NOTE: Log will differ, single run gets initialization log at STDERR
   #       while server communication suppresses that part of the log otherwise
   #   (except when errors occur)
-  require LaTeXML::Util::Startup;
-  my $startup =  LaTeXML::Util::Startup->new(cache=>0); # Don't write a DB file
   my $source = $opts->get('source');
   $opts->delete('source');
 

@@ -20,7 +20,6 @@ use LaTeXML;
 use LaTeXML::Global;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::WWW;
-use LaTeXML::Util::Extras;
 use LaTeXML::Post;
 use LaTeXML::Post::Scan;
 use LaTeXML::Util::ObjectDB;
