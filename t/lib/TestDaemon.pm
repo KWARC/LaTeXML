@@ -3,6 +3,7 @@ use strict;
 use base qw(Test::Builder Exporter);
 use Test::More;
 use FindBin;
+use File::Copy;
 
 our @EXPORT = (qw(daemon_tests daemon_ok),
 	       @Test::More::EXPORT);
@@ -53,7 +54,7 @@ sub daemon_ok {
 		['autoflush',1],
 		['nocomments', ''] );
 
-  my $invocation = "cd $dir; $FindBin::Bin/../bin/latexmlc ";
+  my $invocation = "cd $dir; $FindBin::Bin/../blib/script/latexmlc ";
   foreach my $opt(@$opts) {
     $invocation.= "--".$$opt[0].($$opt[1] ? ("='".$$opt[1]."' ") : (' '));
   }
@@ -64,14 +65,14 @@ sub daemon_ok {
       is_filecontent("$base.test.xml","$base.xml",$base);
       is_filecontent("$base.test.log","$base.log",$base);
     }
-    system("rm $base.test.xml") if -e "$base.test.xml";
-    system("rm $base.test.log") if -e "$base.test.log";
+    unlink "$base.test.xml" if -e "$base.test.xml";
+    unlink "$base.test.log" if -e "$base.test.log";
   }
   else {
     print STDERR "$invocation\n";
     system($invocation);
-    system("mv $base.test.xml $base.xml") if -e "$base.test.xml";
-    system("mv $base.test.log $base.log") if -e "$base.test.log";
+    move("$base.test.xml","$base.xml") if -e "$base.test.xml";
+    move("$base.test.log","$base.log") if -e "$base.test.log";
   }
 }
 

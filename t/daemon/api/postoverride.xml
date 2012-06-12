@@ -1,4 +1,4 @@
-<Math mode="inline" tex="1+2=3" xml:id="p2.m1">
+<Math mode="inline" xml:id="p2.m1" tex="1+2=3">
   <XMath>
     <XMTok meaning="1" role="NUMBER">1</XMTok>
     <XMTok meaning="plus" role="ADDOP">+</XMTok>

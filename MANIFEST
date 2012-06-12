@@ -61,6 +61,7 @@ lib/LaTeXML/Post/SVG.pm
 lib/LaTeXML/Post/Writer.pm
 lib/LaTeXML/Post/XSLT.pm
 lib/LaTeXML/Post/XMath.pm
+lib/LaTeXML/LaTeXML.catalog
 #==================================================
 # Common Modules
 #==================================================
@@ -79,7 +80,6 @@ lib/LaTeXML/Util/Transform.pm
 #==================================================
 # Document Model
 #==================================================
-lib/LaTeXML/schema/catalog
 lib/LaTeXML/schema/LaTeXML.model
 lib/LaTeXML/schema/dtd/LaTeXML.dtd
 lib/LaTeXML/schema/RelaxNG/LaTeXML.rnc
@@ -353,6 +353,7 @@ lib/LaTeXML/Package/revtex.cls.ltxml
 lib/LaTeXML/Package/revtex.sty.ltxml
 lib/LaTeXML/Package/rsfs.sty.ltxml
 lib/LaTeXML/Package/scalefnt.sty.ltxml
+lib/LaTeXML/Package/slides.cls.ltxml
 lib/LaTeXML/Package/subfigure.sty.ltxml
 lib/LaTeXML/Package/supertabular.sty.ltxml
 lib/LaTeXML/Package/svjour.cls.ltxml

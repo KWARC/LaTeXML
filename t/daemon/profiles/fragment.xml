@@ -1,11 +1,8 @@
 <div xmlns="http://www.w3.org/1999/xhtml" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:svg="http://www.w3.org/2000/svg" class="document">
-    
-  <div class="para" id="p1">
-    <p style="" class="p">Here is a sample fragment:</p>
+  <div id="p1" class="para">
+    <p class="p">Here is a sample fragment:</p>
   </div>
-
-  <div class="para" id="p2">
-    <p style="" class="p"><math xmlns="http://www.w3.org/1998/Math/MathML" alttext="1+2=3" display="inline"><semantics><mrow><mrow><mn>1</mn><mo>+</mo><mn>2</mn></mrow><mo>=</mo><mn>3</mn></mrow><annotation-xml encoding="MathML-Content"><apply><eq/><apply><plus/><cn type="integer">1</cn><cn type="integer">2</cn></apply><cn type="integer">3</cn></apply></annotation-xml><annotation encoding="application/x-tex">1+2=3</annotation></semantics></math></p>
+  <div id="p2" class="para">
+    <p class="p"><math xmlns="http://www.w3.org/1998/Math/MathML" alttext="1+2=3" display="inline"><semantics><mrow><mrow><mn>1</mn><mo>+</mo><mn>2</mn></mrow><mo>=</mo><mn>3</mn></mrow><annotation-xml encoding="MathML-Content"><apply><eq/><apply><plus/><cn type="integer">1</cn><cn type="integer">2</cn></apply><cn type="integer">3</cn></apply></annotation-xml><annotation encoding="application/x-tex">1+2=3</annotation></semantics></math></p>
   </div>
-
-    </div>
+</div>

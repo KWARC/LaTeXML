@@ -1,4 +1,4 @@
-<Math mode="inline" tex="1+2=3" xml:id="p2.m1" text="1 + 2 = 3" fragid="p2.m1">
+<Math mode="inline" xml:id="p2.m1" tex="1+2=3" text="1 + 2 = 3" fragid="p2.m1">
   <XMath>
     <XMApp>
       <XMTok meaning="equals" role="RELOP">=</XMTok>

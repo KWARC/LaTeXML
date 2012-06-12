@@ -7,39 +7,7 @@
   </head>
   <body>
     <div class="main">
-    <div class="content">
-    <div class="document">
-    
-  <div class="para" id="p1">
-    <p style="" class="p">A sample citation <cite class="cite">[<a href="#bib.bib1" title="Handbook of mathematical functions with formulas, graphs, and mathematical tables" class="ref">1</a>]</cite>, then point to bibliography:</p>
-  </div>
-
-    <div class="bibliography" id="bib">
-    <h2 class="title bibliography-title">References</h2>
-    <ul class="biblist" id="L1">
-      
-    <li class="bibitem bib-book" id="bib.bib1">
-      <span class="bibtag bib-author-year">M. Abramowitz and I. A. Stegun (1964)</span>
-    <div class="bibblock">
-      <span style="" class="text bib-title">Handbook of mathematical functions with formulas, graphs, and mathematical tables</span>,
-    </div>
-  
-    <div class="bibblock">
-      <span style="" class="text bib-edition">ninth Dover printing, tenth GPO printing edition</span>,  <span style="" class="text bib-publisher">Dover</span>, <span style="" class="text bib-place">New York</span>.
-    </div>
-  
-    <div class="bibblock">
-      Cited by: <a href="#p1" title="" class="ref citedby">?</a>.
-    </div>
-  
-    </li>
-  
-    </ul>
-  
-    </div>
-  
-    </div>
-  
+    <div class="content"><div class="document"><div id="p1" class="para"><p class="p">A sample citation <cite class="cite">[<a href="#bib.bib1" title="Handbook of mathematical functions with formulas, graphs, and mathematical tables" class="ref">1</a>]</cite>, then point to bibliography:</p></div><div id="bib" class="bibliography"><h2 class="title bibliography-title">References</h2><ul id="L1" class="biblist"><li id="bib.bib1" class="bibitem bib-book"><span class="bibtag bib-author-year">M. Abramowitz and I. A. Stegun (1964)</span><div class="bibblock"><span class="text bib-title">Handbook of mathematical functions with formulas, graphs, and mathematical tables</span>,</div><div class="bibblock"><span class="text bib-edition">ninth Dover printing, tenth GPO printing edition</span>,  <span class="text bib-publisher">Dover</span>, <span class="text bib-place">New York</span>.</div><div class="bibblock bib-cited">Cited by: <a href="#p1" title="" class="ref citedby">?</a>.</div></li></ul></div></div>
         </div>
       </div>
     </body>

@@ -7,19 +7,7 @@
   </head>
   <body>
     <div class="main">
-    <div class="content">
-    <div class="document">
-    
-  <div class="para" id="p1">
-    <p style="" class="p">A sample citation <cite class="cite">[]</cite>, then point to bibliography:</p>
-  </div>
-
-    <div class="bibliography" id="bib">
-    <h2 class="title bibliography-title">References</h2>
-    </div>
-  
-    </div>
-  
+    <div class="content"><div class="document"><div id="p1" class="para"><p class="p">A sample citation <cite class="cite">[]</cite>, then point to bibliography:</p></div><div id="bib" class="bibliography"><h2 class="title bibliography-title">References</h2></div></div>
         </div>
       </div>
     </body>
