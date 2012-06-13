@@ -36,7 +36,6 @@ our $DAEMON_DB={}; # Class-wide, caches all daemons that got booted
 
 sub new {
   my ($class,$opts) = @_;
-  binmode(STDERR,":utf8");
   prepare_options(undef,$opts);
   bless {defaults=>$opts,opts=>undef,ready=>0,log=>q{},
          latexml=>undef}, $class;
@@ -331,22 +330,24 @@ sub convert {
       $digested = $latexml->digestString($content,preamble=>$opts->{'preamble_wrapper'},
                                          postamble=>$opts->{'postamble_wrapper'},noinitialize=>1);
     }
-
     # Clean up:
     delete $opts->{source_type};
     delete $opts->{'preamble_wrapper'};
     delete $opts->{'postamble_wrapper'};
     # Now, convert to DOM and output, if desired.
-    if ($digested) {
-      local $LaTeXML::Global::STATE = $$latexml{state};
-      if ($opts->{format} eq 'tex') {
-        $serialized = LaTeXML::Global::UnTeX($digested);
-      } elsif ($opts->{format} eq 'box') {
-        $serialized = $digested->toString;
-      } else { # Default is XML
-        $dom = $latexml->convertDocument($digested);
-        $serialized = $dom->toString(1) unless $opts->{post};
-      }}
+    $dom = $latexml->convertDocument($digested) if $digested;
+    # if ($digested) {
+    #   local $LaTeXML::Global::STATE = $$latexml{state};
+      # TODO: Serialized is no longer used, so 'tex' and 'box' won't work
+      # Reintegrate them !!!!!
+      # if ($opts->{format} eq 'tex') {
+      #   $serialized = LaTeXML::Global::UnTeX($digested);
+      # } elsif ($opts->{format} eq 'box') {
+      #   $serialized = $digested->toString;
+      # } elsif (!$opts->{post}) { # Default is XML
+      #   $dom = $latexml->convertDocument($digested);
+      #   $serialized = $dom->toString(1);
+      # }}
     alarm(0);
     1;
   };
@@ -374,7 +375,6 @@ sub convert {
 
   my $result = $dom;
   $result = $self->convert_post($dom) if ($opts->{post} && $dom && (!$opts->{noparse}));
-
   #Experimental: add id's everywhere if wnated in XHTML
   $result = InsertIDs($result)
       if ($opts->{force_ids} && $opts->{format} eq 'xhtml');
@@ -386,8 +386,9 @@ sub convert {
   } elsif ($opts->{whatsout} eq 'math') {
     # 2. Fetch math in math profile:
     $result = GetMath($result);
-  } # 3. Nothing to do in document whatsout (it's default)
-
+  } else { # 3. Just grab the root for document whatsout (it's default)
+    $result = $result->getDocumentElement;
+  }
   # Serialize result for direct use:
   if (defined $result) {
     if ($opts->{format} =~ 'x(ht)?ml') {
@@ -594,7 +595,8 @@ sub new_latexml {
   my $latexml = LaTeXML->new(preload=>[@pre], searchpaths=>[@{$opts->{paths}}],
                           graphicspaths=>['.'],
 			  verbosity=>$opts->{verbosity}, strict=>$opts->{strict},
-			  includeComments=>$opts->{comments},inputencoding=>$opts->{inputencoding},
+			  includeComments=>$opts->{comments},
+			  inputencoding=>$opts->{inputencoding},
 			  includeStyles=>$opts->{includestyles},
 			  documentid=>$opts->{documentid},
 			  nomathparse=>$opts->{noparse});
