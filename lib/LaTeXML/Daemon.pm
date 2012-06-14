@@ -16,6 +16,8 @@ use warnings;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use Pod::Usage;
+use Carp;
+use Encode;
 use LaTeXML;
 use LaTeXML::Global;
 use LaTeXML::Util::Pathname;
@@ -24,7 +26,7 @@ use LaTeXML::Post;
 use LaTeXML::Post::Scan;
 use LaTeXML::Util::ObjectDB;
 use LaTeXML::Util::Extras;
-use Carp;
+
 
 #**********************************************************************
 our @IGNORABLE = qw(identity timeout profile port preamble postamble port destination log removed_math_formats whatsin whatsout math_formats input_limit input_counter dographics mathimages mathimagemag );
@@ -310,7 +312,7 @@ sub convert {
     $opts->{'postamble_wrapper'} = $opts->{postamble}||'standard_postamble.tex';
   }
   # First read and digest whatever we're given.
-  my ($digested,$dom,$serialized);
+  my ($digested,$dom); #,$serialized
   # Digest source:
   eval {
     local $SIG{'ALRM'} = sub { die "alarm\n" };
@@ -386,24 +388,29 @@ sub convert {
   } elsif ($opts->{whatsout} eq 'math') {
     # 2. Fetch math in math profile:
     $result = GetMath($result);
-  } else { # 3. Just grab the root for document whatsout (it's default)
-    $result = $result->getDocumentElement;
+  } else { # 3. No need to do anything for document whatsout (it's default)
   }
   # Serialize result for direct use:
+  my $serialized;
   if (defined $result) {
     if ($opts->{format} =~ 'x(ht)?ml') {
-      $result = $result->toString(1);
+      $serialized = $result->toString(1);
     } elsif ($opts->{format} =~ /^html/) {
       if ($result =~ /LaTeXML/) { # Special for documents
-        $result = $result->getDocument;
-        $result = $result->toStringHTML;
+        $serialized = $result->getDocument->toStringHTML;
       } else { # Regular for fragments
-        $result = $result->toString(1);
+	  $serialized = $result->toString(1);
       }
+    }
+
+    if ($opts->{post} && ($result =~ /LibXML/)) { # LibXML nodes need an extra encoding pass?
+	                       # But only for post-processing ?!
+	                       # TODO: Why?!?! Find what is fishy here
+	$serialized = encode('UTF-8',$serialized);
     }
   }
   my $log = $self->flush_loging;
-  return {result=>$result,log=>$log,status=>$status};
+  return {result=>$serialized,log=>$log,status=>$status};
 }
 
 ########## Helper routines: ############

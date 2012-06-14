@@ -15,7 +15,6 @@ use LaTeXML::Daemon;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::Config;
 use Storable qw(freeze thaw);
-use Encode;
 
 # Some defaults:
 my $opts=LaTeXML::Util::Config->new(
@@ -124,18 +123,18 @@ if ($log) {
   if ($opts->get('log') && $opts->get('local')) {
     my $clog = $opts->get('log');
     open(LOG,">",$clog) or croak "Couldn't open log file $clog : $!\n";
-    print LOG encode('UTF-8',$log);
+    print LOG $log;
     close LOG;
-  } else {print STDERR encode('UTF-8',$log),"\n";}#STDERR log otherwise
+  } else {print STDERR $log,"\n";}#STDERR log otherwise
 }
 
 if ($result) {
 
   if ($opts->get('destination') && $opts->get('local')) {
     open(OUT,">",$opts->get('destination')) or croak "Couldn't open output file ".$opts->get('destination').": $!";
-    print OUT encode('UTF-8',$result);
+    print OUT $result;
     close OUT;
-  } else { print STDOUT encode('UTF-8',$result),"\n"; } #Output to STDOUT
+  } else { print STDOUT $result,"\n"; } #Output to STDOUT
 }
 
 # Print summary, if requested, to STDERR
