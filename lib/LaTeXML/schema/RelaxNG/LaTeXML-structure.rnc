@@ -30,8 +30,8 @@ document_attributes = Sectional.attributes
 ## Content model for \elementref{document}.
 document_model =
  (FrontMatter.class | SectionalFrontMatter.class | Meta.class | titlepage)*,
- (document.body.class | element slide {document_attributes,document.body.class})*,
- BackMatter.class*
+  document.body.class*,
+  BackMatter.class*
 
 #======================================================================
 
@@ -46,8 +46,7 @@ part.body.class = Para.model | chapter  | slide
 part_attributes = Sectional.attributes
 
 ## Content model for \elementref{part}.
-part_model = SectionalFrontMatter.class*, 
-	   (part.body.class | element slide {part_attributes,part.body.class})*
+part_model = SectionalFrontMatter.class*, part.body.class*
 
 #----------------------------------------------------------------------
 
@@ -63,8 +62,7 @@ chapter.body.class = Para.model | subparagraph | paragraph
 chapter_attributes = Sectional.attributes
 
 ## Content model for \elementref{chapter}.
-chapter_model = SectionalFrontMatter.class*, 
-	      (chapter.body.class| element slide {chapter_attributes,chapter.body.class})*
+chapter_model = SectionalFrontMatter.class*, chapter.body.class*
 
 #----------------------------------------------------------------------
 
@@ -80,9 +78,8 @@ section.body.class = Para.model | subparagraph | paragraph
 section_attributes = Sectional.attributes
 
 ## Content model for \elementref{section}.
-section_model = SectionalFrontMatter.class*, 
-	      (section.body.class| element slide {section_attributes,section.body.class})*
- 
+section_model = SectionalFrontMatter.class*, section.body.class*
+
 #----------------------------------------------------------------------
 
 subsection =
@@ -96,8 +93,7 @@ subsection.body.class = Para.model | subparagraph | paragraph | subsubsection | 
 subsection_attributes = Sectional.attributes
 
 ## Content model for \elementref{subsection}.
-subsection_model = SectionalFrontMatter.class*,
-	      (subsection.body.class| element slide {subsection_attributes,subsection.body.class})*
+subsection_model = SectionalFrontMatter.class*, subsection.body.class*
 
 #----------------------------------------------------------------------
 
@@ -112,8 +108,7 @@ subsubsection.body.class = Para.model | subparagraph | paragraph | slide
 subsubsection_attributes = Sectional.attributes
 
 ## Content model for \elementref{subsubsection}.
-subsubsection_model = SectionalFrontMatter.class*,
-	      (subsubsection.body.class| element slide {subsubsection_attributes,subsubsection.body.class})*
+subsubsection_model = SectionalFrontMatter.class*, subsubsection.body.class*
 
 #----------------------------------------------------------------------
 
@@ -129,8 +124,7 @@ paragraph.body.class = Para.model | subparagraph | slide
 paragraph_attributes = Sectional.attributes
 
 ## Content model for \elementref{paragraph}.
-paragraph_model = SectionalFrontMatter.class*, 
-	      (paragraph.body.class| element slide {paragraph_attributes,paragraph.body.class})*
+paragraph_model = SectionalFrontMatter.class*, paragraph.body.class*
 
 
 #----------------------------------------------------------------------
@@ -146,8 +140,7 @@ subparagraph.body.class = Para.model | slide
 subparagraph_attributes = Sectional.attributes
 
 ## Content model for \elementref{subparagraph}.
-subparagraph_model = SectionalFrontMatter.class*,
-	      (subparagraph.body.class| element slide {subparagraph_attributes,subparagraph.body.class})*
+subparagraph_model = SectionalFrontMatter.class*, subparagraph.body.class*
 
 #======================================================================
 
@@ -400,25 +393,7 @@ keywords =
 element keywords { keywords_attributes, keywords_model }
 
 ## Attributes for \elementref{keywords}.
-keywords_attributes = Common.attributes, FrontMatter.attributes,
-
-  ## indicates the RDFa property.
-  attribute property { text }?,
-
-  ## indicates the RDFa content.
-  attribute content { text }?,
-
-  ## indicates the RDFa relation.
-  attribute rel { text }?,
-
-  ## indicates the RDFa content datatype.
-  attribute datatype { text }?,
-
-  ## indicates the RDFa relation.
-  attribute resource { text }?,
-
-  ## indicates the RDFa about.
-  attribute about { text }?
+keywords_attributes = Common.attributes, FrontMatter.attributes
 
 ## Content model for \elementref{keywords}.
 keywords_model = Inline.model

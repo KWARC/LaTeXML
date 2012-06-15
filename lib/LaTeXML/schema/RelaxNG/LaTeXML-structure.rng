@@ -49,13 +49,7 @@
       </choice>
     </zeroOrMore>
     <zeroOrMore>
-      <choice>
-        <ref name="document.body.class"/>
-        <element name="slide">
-          <ref name="document_attributes"/>
-          <ref name="document.body.class"/>
-        </element>
-      </choice>
+      <ref name="document.body.class"/>
     </zeroOrMore>
     <zeroOrMore>
       <ref name="BackMatter.class"/>
@@ -87,13 +81,7 @@
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <choice>
-        <ref name="part.body.class"/>
-        <element name="slide">
-          <ref name="part_attributes"/>
-          <ref name="part.body.class"/>
-        </element>
-      </choice>
+      <ref name="part.body.class"/>
     </zeroOrMore>
   </define>
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -126,13 +114,7 @@
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <choice>
-        <ref name="chapter.body.class"/>
-        <element name="slide">
-          <ref name="chapter_attributes"/>
-          <ref name="chapter.body.class"/>
-        </element>
-      </choice>
+      <ref name="chapter.body.class"/>
     </zeroOrMore>
   </define>
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -164,13 +146,7 @@
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <choice>
-        <ref name="section.body.class"/>
-        <element name="slide">
-          <ref name="section_attributes"/>
-          <ref name="section.body.class"/>
-        </element>
-      </choice>
+      <ref name="section.body.class"/>
     </zeroOrMore>
   </define>
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -201,13 +177,7 @@
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <choice>
-        <ref name="subsection.body.class"/>
-        <element name="slide">
-          <ref name="subsection_attributes"/>
-          <ref name="subsection.body.class"/>
-        </element>
-      </choice>
+      <ref name="subsection.body.class"/>
     </zeroOrMore>
   </define>
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -237,13 +207,7 @@
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <choice>
-        <ref name="subsubsection.body.class"/>
-        <element name="slide">
-          <ref name="subsubsection_attributes"/>
-          <ref name="subsubsection.body.class"/>
-        </element>
-      </choice>
+      <ref name="subsubsection.body.class"/>
     </zeroOrMore>
   </define>
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -273,13 +237,7 @@ LaTeX Paragraph,  in distinction from an unlabelled logical paragraph.</a:docume
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <choice>
-        <ref name="paragraph.body.class"/>
-        <element name="slide">
-          <ref name="paragraph_attributes"/>
-          <ref name="paragraph.body.class"/>
-        </element>
-      </choice>
+      <ref name="paragraph.body.class"/>
     </zeroOrMore>
   </define>
   <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -307,13 +265,7 @@ LaTeX Paragraph,  in distinction from an unlabelled logical paragraph.</a:docume
       <ref name="SectionalFrontMatter.class"/>
     </zeroOrMore>
     <zeroOrMore>
-      <choice>
-        <ref name="subparagraph.body.class"/>
-        <element name="slide">
-          <ref name="subparagraph_attributes"/>
-          <ref name="subparagraph.body.class"/>
-        </element>
-      </choice>
+      <ref name="subparagraph.body.class"/>
     </zeroOrMore>
   </define>
   <!-- ====================================================================== -->
@@ -746,36 +698,6 @@ Commonly useful values are specified, but is open-ended to support extension.</a
     <a:documentation>Attributes for \elementref{keywords}.</a:documentation>
     <ref name="Common.attributes"/>
     <ref name="FrontMatter.attributes"/>
-    <optional>
-      <attribute name="property">
-        <a:documentation>indicates the RDFa property.</a:documentation>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name="content">
-        <a:documentation>indicates the RDFa content.</a:documentation>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name="rel">
-        <a:documentation>indicates the RDFa relation.</a:documentation>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name="datatype">
-        <a:documentation>indicates the RDFa content datatype.</a:documentation>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name="resource">
-        <a:documentation>indicates the RDFa relation.</a:documentation>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name="about">
-        <a:documentation>indicates the RDFa about.</a:documentation>
-      </attribute>
-    </optional>
   </define>
   <define name="keywords_model">
     <a:documentation>Content model for \elementref{keywords}.</a:documentation>
