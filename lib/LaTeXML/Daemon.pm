@@ -422,7 +422,7 @@ sub convert_post {
   $verbosity = $verbosity||0;
   my %PostOPS = (verbosity=>$verbosity,sourceDirectory=>$opts->{sourcedirectory}||'.',siteDirectory=>$opts->{sitedirectory}||".",nocache=>1,destination=>$opts->{destination});
   #Postprocess
-  my @css=();
+  my @css=@{$opts->{css}};
   unshift (@css,"core.css") if ($defaultcss);
   $parallel = $parallel||0;
   my $doc;
@@ -539,23 +539,24 @@ sub convert_post {
 
     require LaTeXML::Post::XSLT;
     my @csspaths=();
-#  if (@css) {
-#    foreach my $css (@css) {
-#      $css .= '.css' unless $css =~ /\.css$/;
-#      # Dance, if dest is current dir, we'll find the old css before the new one!
-#      my @csssources = map {pathname_canonical($_)}
-#                            pathname_findall($css,types=>['css'],
-#                                            (),
-#                                            installation_subdir=>'style');
-#      my $csspath = pathname_absolute($css,pathname_directory('.'));
-#      while (@csssources && ($csssources[0] eq $csspath)) {
-#        shift(@csssources);
-#      }
-#      my $csssource = shift(@csssources);
-#      pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
-#      push(@csspaths,$csspath);
-#    }}
-      push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
+    if (@css) {
+      foreach my $css (@css) {
+	$css .= '.css' unless $css =~ /\.css$/;
+	# Dance, if dest is current dir, we'll find the old css before the new one!
+	my @csssources = map {pathname_canonical($_)}
+	  pathname_findall($css,types=>['css'],
+			   (),
+			   installation_subdir=>'style');
+	my $csspath = pathname_absolute($css,pathname_directory('.'));
+	while (@csssources && ($csssources[0] eq $csspath)) {
+	  shift(@csssources);
+	}
+	my $csssource = shift(@csssources);
+	pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
+	push(@csspaths,$csspath);
+      }
+    }
+    push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
 					 parameters=>{
                                                       (@csspaths ? (CSS=>[@csspaths]):()),
                                                       ($opts->{stylesheetparam} ? (%{$opts->{stylesheetparam}}):())},

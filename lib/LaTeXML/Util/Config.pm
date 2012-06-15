@@ -93,7 +93,7 @@ sub read {
 	   "stylesheet=s"=>  \$opts->{stylesheet},
            "stylesheetparam=s" => sub {my ($k,$v) = split(':',$_[1]);
                                   $opts->{stylesheetparam}->{$k}=$v;},
-	   "css=s"       =>  \$opts->{css},
+	   "css=s"       =>  \@{$opts->{css}},
 	   "defaultcss!" =>  \$opts->{defaultcss},
 	   "comments!" =>  \$opts->{comments},
 	   "VERSION"   => sub { $opts->{showversion}=1;},
