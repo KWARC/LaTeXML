@@ -105,7 +105,7 @@ post '/convert' => sub {
       my $json_result = $self->render(
 	  json => {result => decode('UTF-8',$result), 
 		   status => $status, log => $log, partial=>1});
-      $self->render(data => "jsonp($json_result)", format => 'js');
+      $self->render(data => "$is_jsonp($json_result)", format => 'js');
   } else {
       $self->render(json => {result => decode('UTF-8',$result), status => $status, log => $log});
   }
