@@ -384,7 +384,7 @@ Let(T_CS('\protect'),T_CS('\relax'));
 #======================================================================
 
 DefMacro('\romannumeral Number', sub { roman($_[1]->valueOf); });
-DefMacro('\string Token ',        sub { ExplodeText($_[1]->getString); });
+DefMacro('\string Token',        sub { ExplodeText($_[1]->getString); });
 DefMacroI('\jobname',undef,Tokens()); # Set to the filename by initialization
 
 DefMacroI('\fontname', undef,sub { Explode("fontname not implemented"); });
@@ -1358,11 +1358,11 @@ DefParameterType('VBoxContents',sub {
 # This re-binds a number of important control sequences to their default text binding.
 # This is useful within common boxing or footnote macros that can appear within
 # alignments or special environments that have redefined many of these.
+PushValue(TEXT_MODE_BINDINGS=>[T_MATH,T_CS('\@dollar@in@textmode')]);
+PushValue(TEXT_MODE_BINDINGS=>[T_CS('\centerline'),T_CS('\relax')]);
+
 sub reenterTextMode {
-  Let(T_MATH,T_CS('\@dollar@in@textmode'));
-  Let(T_CS('\centerline'),T_CS('\relax'));
-  Let(T_CS("\\\\"), T_CS('\default@cr'));
-}
+  map( Let($$_[0],$$_[1]), @{ LookupValue('TEXT_MODE_BINDINGS') }); }
 
 sub REF { $_[0] && $_[0]->{$_[1]}; }
 
@@ -3417,16 +3417,17 @@ AssignValue(frontmatter=>{},'global');
 # \@add@frontmatter{tag}[attributes]{content}
 DefPrimitive('\@add@frontmatter {} OptionalKeyVals {}', sub {
   my($stomach,$tag,$keys,$tokens)=@_;
-  $tag = ToString($tag);
-  my $attr = ($keys ? {$keys->beDigested($stomach)->getHash} : undef);
-
-  my $frontmatter = LookupValue('frontmatter');
+  # Digest this as if we're already in the document body!
   my $inpreamble = LookupValue('inPreamble');
+  AssignValue(inPreamble=>0);
   # Be careful since the contents may also want to add frontmatter
   # (which should be inside or after this one!)
-  my $entry = [$tag,$attr,'to-be-filled-in'];
-  push(@{$$frontmatter{$tag}},$entry);
-  AssignValue(inPreamble=>0);
+  # So, we append this entry before digesting
+  $tag = ToString($tag);
+  my $entry = [$tag,undef,'to-be-filled-in'];
+  push(@{ LookupValue('frontmatter')->{$tag}},$entry);
+  if($keys){
+    $$entry[1] = {$keys->beDigested($stomach)->getHash}; }
   $$entry[2] = Digest(Tokens(T_BEGIN,$tokens,T_END));
   AssignValue(inPreamble=>$inpreamble);
   return; });
@@ -3634,42 +3635,6 @@ DefPrimitive('\accent Number {}',sub {
   else {
     Warn(":unexpected:accent$n Accent $n not recognized");
     Box(ToString($letter),undef,undef,$reversion); }});
-
-DefConstructor('\mathchar Number',
-	       "?#glyph(<ltx:XMTok role='#role'>#glyph</ltx:XMTok>)",
-	       afterDigest=>sub {
-		 my($stomach,$whatsit)=@_;
-		 my $n = $whatsit->getArg(1)->valueOf;
-		 my($role,$glyph) = decodeMathChar($n);
-		 $whatsit->setProperty(glyph=>$glyph) if $glyph;
-		 $whatsit->setProperty(role=>$role) if defined $role; 
-		 $whatsit->setProperty(font=>LookupValue('font')->specialize($glyph)) if $glyph;
-		 return; });
-
-# Almost like a register, but different...
-DefPrimitive('\mathchardef Token SkipMatch:= Number', sub {
-  my($stomach,$newcs,$value)=@_;
-  my $csname = $newcs->getCSName;
-  my($role, $glyph) = decodeMathChar($value->valueOf);
-  my $internalcs = $glyph && T_CS('\@mathchardef@'.$csname);
-  DefConstructorI($internalcs,undef,"<ltx:XMTok role='#role'>#glyph</ltx:XMTok>",
-		  properties=>{role=>$role,glyph=>$glyph,
-			       font=>sub{ LookupValue('font')->specialize($glyph); }},
-		  reversion=>$csname) if $glyph;
-  $STATE->installDefinition(LaTeXML::CharDef->new($newcs,$value, $internalcs));
-  return; });
-
-DefConstructor('\mathaccent Number Digested',
-	       "<ltx:XMApp><ltx:XMTok role='OVERACCENT'>#glyph</ltx:XMTok><ltx:XMWrap>#2</ltx:XMWrap></ltx:XMApp>",
-	       afterDigest=>sub {
-		 my($stomach,$whatsit)=@_;
-		 my $n = $whatsit->getArg(1)->valueOf;
-		 my($role,$glyph) = decodeMathChar($n);
-		 $whatsit->setProperty(glyph=>$glyph) if $glyph;
-		 $whatsit->setProperty(font=>LookupValue('font')->specialize($glyph)) if $glyph;
-		 return; });
-
-
 
 #======================================================================
 # TeX Book, Appendix B. p. 357
