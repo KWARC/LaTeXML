@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use FindBin;
-use lib "../lib"; # LaTeXML lib
-use lib "lib";
+use Data::Dumper;
+use lib ("$FindBin::RealBin/../lib", "$FindBin::RealBin/../webapp/lib","lib","../lib");
 use Mojolicious::Lite;
 use Archive::Zip;
 use File::Path;
