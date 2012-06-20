@@ -79,6 +79,7 @@ post '/convert' => sub {
   #TODO: Make sure lists go to array refs, etc.
   my $opt = {};
   foreach ($param->param) { $opt->{lc($_)} = $param->param($_) || 1; }
+  my $is_jsonp = $opt->{'jsonp'}; delete $opt->{'jsonp'};
 
   $opt = $self->prepare_options($opt);
   # TeX is data, separate
@@ -100,7 +101,14 @@ post '/convert' => sub {
   # Delete daemon if Fatal occurred
   undef $daemon unless defined $result;
   # TODO: This decode business is fishy... very fishy!
-  $self->render(json => {result => decode('UTF-8',$result), status => $status, log => $log});
+  if ($is_jsonp) {
+      my $json_result = $self->render(
+	  json => {result => decode('UTF-8',$result), 
+		   status => $status, log => $log, partial=>1});
+      $self->render(data => "jsonp($json_result)", format => 'js');
+  } else {
+      $self->render(json => {result => decode('UTF-8',$result), status => $status, log => $log});
+  }
 };
 
 get '/login' => sub {
