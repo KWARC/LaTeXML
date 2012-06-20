@@ -213,8 +213,8 @@ examples['wgr'] = [
 '\\usepackage{webgraphic}',
 '\\begin{document}',
 'Welcome to \\\\',
-'\\def\\w{500}',
-'\\webgraphic[width=\\w]{http://mdk.per.ly/files/2011/05/raptor-black.png}',
+'\\def\\w{450}',
+'\\webgraphic[width=\\w]{img/external/raptor-black.png}',
 '\\url{http://perl.org}',
 '\\end{document}'].join('\n');
 
