@@ -1,7 +1,13 @@
 #!/usr/bin/perl
 use FindBin;
 use Data::Dumper;
-use lib ("$FindBin::RealBin/../lib", "$FindBin::RealBin/../webapp/lib","lib","../lib");
+use File::Basename;
+my $FILE_BASE;
+BEGIN {
+    $FILE_BASE = dirname(__FILE__);
+}
+use lib $FILE_BASE."/../lib";
+use lib $FILE_BASE."/lib";
 use Mojolicious::Lite;
 use Archive::Zip;
 use File::Path;
