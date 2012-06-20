@@ -6,6 +6,7 @@ use Mojolicious::Lite;
 use Archive::Zip;
 use File::Path;
 use Data::Dumper;
+use Encode;
 
 use Startup;
 use LaTeXML::Util::Extras;
@@ -98,8 +99,8 @@ post '/convert' => sub {
   }
   # Delete daemon if Fatal occurred
   undef $daemon unless defined $result;
-
-  $self->render(json => {result => $result, status => $status, log => $log});
+  # TODO: This decode business is fishy... very fishy!
+  $self->render(json => {result => decode('UTF-8',$result), status => $status, log => $log});
 };
 
 get '/login' => sub {
