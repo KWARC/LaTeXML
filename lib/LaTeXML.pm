@@ -82,6 +82,9 @@ sub convertString {
 sub getStatusMessage {
   my($self)=@_;
   $$self{state}->getStatusMessage; }
+sub getStatusCode {
+  my($self)=@_;
+  $$self{state}->getStatusCode; }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Mid-level API.

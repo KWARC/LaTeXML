@@ -286,6 +286,7 @@ sub convert {
 
   $self->bind_loging;
   my $status=q{};
+  my $status_code;
   # Inform of identity, increase conversion counter
   my $opts = $self->{opts};
   print STDERR "\n",$opts->{identity},"\n" if $opts->{verbosity} >= 0;
@@ -364,10 +365,11 @@ sub convert {
     }
     # Close and restore STDERR to original condition.
     my $log=$self->flush_loging;
-    return {result=>undef,log=>$log,status=>$latexml->getStatusMessage};
+    return {result=>undef,log=>$log,status=>$latexml->getStatusMessage,status_code=>$latexml->getStatusCode};
   }
   print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
   $status = $latexml->getStatusMessage;
+  $status_code = $latexml->getStatusCode;
   # End daemon run, by popping frame:
   $latexml->withState(sub {
                         my($state)=@_; # Remove current state frame
@@ -410,7 +412,7 @@ sub convert {
     }
   }
   my $log = $self->flush_loging;
-  return {result=>$serialized,log=>$log,status=>$status};
+  return {result=>$serialized,log=>$log,status=>$status,'status_code'=>$status_code};
 }
 
 ########## Helper routines: ############
@@ -723,7 +725,8 @@ C<LaTeXML::Daemon> - Daemon object and API for LaTeXML and LaTeXMLPost conversio
     use LaTeXML::Daemon;
     my $daemon = LaTeXML::Daemon->new($opts);
     $daemon->prepare_session($opts);
-    my ($result,$status,$log) = $daemon->convert($tex);
+    $hashref = $daemon->convert($tex);
+    my ($result,$log,$status) = map {$hashref->{$_}} qw(result log status);
 
 =head1 DESCRIPTION
 
