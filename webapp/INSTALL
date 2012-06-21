@@ -60,7 +60,7 @@ II. Apache + Mod_Perl and Plack
 <VirtualHost *:80>
     ServerName latexml.example.com 
     DocumentRoot /path/to/LaTeXML/webapp
-
+    Header set Access-Control-Allow-Origin *                                                                                                  
     <Perl>
       $ENV{PLACK_ENV} = 'production';
       $ENV{MOJO_HOME} = '/path/to/LaTeXML/webapp';
@@ -77,4 +77,5 @@ II. Apache + Mod_Perl and Plack
     CustomLog /var/log/apache2/latexml.access.log combined
 </VirtualHost>
 
+   
 Note: Due to the current setup in Mojolicious, the server would work properly only if it is deployed as a top-level domain or subdomain. In other words, while "latexml.example.com" would work fine, "example.com/latexml" would run into quite some problems.
