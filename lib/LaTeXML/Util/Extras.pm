@@ -82,14 +82,23 @@ sub GetEmbeddable {
   if ($embeddable) {
     # Only one child? Then get it, must be a inline-compatible one!
     while (($embeddable->nodeName eq 'div') && (scalar(@{$embeddable->childNodes}) == 1) &&
-	  ($embeddable->getAttribute('class') =~ /^main|content|document|para$/) && 
-	  (! defined $embeddable->getAttribute('style'))) {
+	   ($embeddable->getAttribute('class') =~ /^main|content|document|para$/) && 
+	   (! defined $embeddable->getAttribute('style'))) {
       if (defined $embeddable->firstChild) {
 	$embeddable=$embeddable->firstChild;
       } else {
 	last;
       }
     }
+    # Is the root a <p>? Make it a span then, if it has only math/text/spans - it should be inline
+    # For MathJax-like inline conversion mode
+    # TODO: Make sure we are schema-complete wrt nestable inline elements, and maybe find a smarter way to do this?
+    if (($embeddable->nodeName eq 'p') &&
+	((@{$embeddable->childNodes}) == (grep {$_->nodeName =~ /math|text|span/} $embeddable->childNodes))) {
+      $embeddable->setNodeName('span');
+      $embeddable->setAttribute('class','text');
+    }
+
     # Copy over document namespace declarations:
     foreach ($doc->getDocumentElement->getNamespaces) {
       $embeddable->setNamespace( $_->getData , $_->getLocalName, 0 );
