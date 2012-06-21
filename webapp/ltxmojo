@@ -322,7 +322,6 @@ any '/ajax' => sub {
           $lines++ while ($form =~ /<[tb]r/g);
           my $minh = "min-height: " . ($lines * 5) . "px;";
           my $message = "Selected profile: " . $pname;
-          use Mojo::JSON;
           my $json = Mojo::JSON->new;
           open TMP, ">", "/tmp/json.txt";
           print TMP $json->encode(
