@@ -11,6 +11,7 @@ use Archive::Zip;
 use File::Path;
 use Data::Dumper;
 use Encode;
+use Mojo::JSON;
 
 use Startup;
 use LaTeXML::Util::Extras;
@@ -113,6 +114,41 @@ post '/convert' => sub {
   } else {
       $self->render(json => {result => decode('UTF-8',$result), status => $status, log => $log});
   }
+};
+
+websocket '/convert' => sub {
+  my $self  = shift;
+  my $json = Mojo::JSON->new;
+  # Connected
+  $self->app->log->debug('WebSocket connected.');
+  $self->on(message => sub {
+	      my ($tx, $bytes) = @_;
+	      my $opt = {};
+	      $opt = $json->decode($bytes);
+	      my $tex = $opt->{tex}; delete $opt->{tex};
+	      $opt = $self->prepare_options($opt);
+	      my $config = LaTeXML::Util::Config->new(%$opt);
+	      # We now have a LaTeXML options object - $opt.
+	      my $daemon = LaTeXML::Daemon->get_converter($config);
+	      #Override/extend with session-specific options in $opt:
+	      $daemon->prepare_session($config);
+	      #Send a request:
+	      my $response = $daemon->convert($tex);
+	      my ($result, $status, $log);
+	      if (defined $response) {
+		# Delete daemon if Fatal occurred
+		undef $daemon unless defined $response->{result};
+	      }
+		$tx->send($json->encode($response));
+	    });
+
+  # Increase inactivity timeout for connection a bit
+  Mojo::IOLoop->stream($self->tx->connection)->timeout(300);
+  # Disconnected
+  $self->on(finish => sub {
+	      my $self = shift;
+	      $self->app->log->debug('WebSocket disconnected.');
+	    });
 };
 
 get '/login' => sub {
