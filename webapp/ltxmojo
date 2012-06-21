@@ -6,12 +6,15 @@ BEGIN {
 }
 use lib $FILE_BASE."/../blib";
 use lib $FILE_BASE."/lib";
+
 use Mojolicious::Lite;
+use Mojo::JSON;
+use Mojo::IOLoop;
+
 use Archive::Zip;
 use File::Path;
 use Data::Dumper;
 use Encode;
-use Mojo::JSON;
 
 use Startup;
 use LaTeXML::Util::Extras;
@@ -121,6 +124,8 @@ websocket '/convert' => sub {
   my $json = Mojo::JSON->new;
   # Connected
   $self->app->log->debug('WebSocket connected.');
+  # Increase inactivity timeout for connection a bit
+  Mojo::IOLoop->stream($self->tx->connection)->timeout(300);
   $self->on('message' => sub {
 	      my ($tx, $bytes) = @_;
 	      my $opt = {};
