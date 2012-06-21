@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 use FindBin;
-use Data::Dumper;
 use File::Basename;
 my $FILE_BASE;
 BEGIN {
