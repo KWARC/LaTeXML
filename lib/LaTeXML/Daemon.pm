@@ -313,7 +313,7 @@ sub convert {
     $opts->{'postamble_wrapper'} = $opts->{postamble}||'standard_postamble.tex';
   }
   # First read and digest whatever we're given.
-  my ($digested,$dom); #,$serialized
+  my ($digested,$dom,$serialized);
   # Digest source:
   eval {
     local $SIG{'ALRM'} = sub { die "alarm\n" };
@@ -338,19 +338,15 @@ sub convert {
     delete $opts->{'preamble_wrapper'};
     delete $opts->{'postamble_wrapper'};
     # Now, convert to DOM and output, if desired.
-    $dom = $latexml->convertDocument($digested) if $digested;
-    # if ($digested) {
-    #   local $LaTeXML::Global::STATE = $$latexml{state};
-      # TODO: Serialized is no longer used, so 'tex' and 'box' won't work
-      # Reintegrate them !!!!!
-      # if ($opts->{format} eq 'tex') {
-      #   $serialized = LaTeXML::Global::UnTeX($digested);
-      # } elsif ($opts->{format} eq 'box') {
-      #   $serialized = $digested->toString;
-      # } elsif (!$opts->{post}) { # Default is XML
-      #   $dom = $latexml->convertDocument($digested);
-      #   $serialized = $dom->toString(1);
-      # }}
+    if ($digested) {
+	local $LaTeXML::Global::STATE = $$latexml{state};
+	if ($opts->{format} eq 'tex') {
+	    $serialized = LaTeXML::Global::UnTeX($digested);
+	} elsif ($opts->{format} eq 'box') {
+	    $serialized = $digested->toString;
+	} else { # Default is XML
+	    $dom = $latexml->convertDocument($digested);
+	}}
     alarm(0);
     1;
   };
@@ -376,7 +372,11 @@ sub convert {
                         $state->popDaemonFrame;
                         $$state{status} = {};
                       });
-
+  if ($serialized) {
+      # If serialized has been set, we are done with the job
+      my $log = $self->flush_loging;
+      return {result=>$serialized,log=>$log,status=>$status,'status_code'=>$status_code};
+  } # Else, continue with the regular XML workflow...
   my $result = $dom;
   $result = $self->convert_post($dom) if ($opts->{post} && $dom && (!$opts->{noparse}));
   #Experimental: add id's everywhere if wnated in XHTML
@@ -393,7 +393,7 @@ sub convert {
   } else { # 3. No need to do anything for document whatsout (it's default)
   }
   # Serialize result for direct use:
-  my $serialized;
+  undef $serialized;
   if (defined $result) {
     if ($opts->{format} =~ 'x(ht)?ml') {
       $serialized = $result->toString(1);
