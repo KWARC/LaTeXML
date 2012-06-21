@@ -1,11 +1,10 @@
 #!/usr/bin/perl
-use FindBin;
 use File::Basename;
 my $FILE_BASE;
 BEGIN {
     $FILE_BASE = dirname(__FILE__);
 }
-use lib $FILE_BASE."/../lib";
+use lib $FILE_BASE."/../blib";
 use lib $FILE_BASE."/lib";
 use Mojolicious::Lite;
 use Archive::Zip;
