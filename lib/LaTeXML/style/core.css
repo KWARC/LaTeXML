@@ -77,13 +77,23 @@ dl.description dd { margin-left:5em; }
 dl.description dl.description dd { margin-left:3em; }
 
 li.nobullet { list-style-type:none; }
+li span.tag:first-child {
+ display: inline-block;
+ font-weight: bold;
+ margin-left: -2em;
+ width: 2em;
+}
+
+div.para:nth-child(2) { display:inline-block; }
 
 .theorem  {margin:1em 0em 1em 0em; }
 
 .bibliography dt { margin-right:0.5em; float:left; }
 .bibliography dd { margin-left:3em; }
 .biblist { list-style-type:none; }
-.bibtag { font-weight:bold; margin-left:-2em; width:3em; }
+.bibtag { font-weight:bold; margin-left:-2em; display: inline-block; width:2em; }
+.bibblock { display:inline; }
+
 /*.bibitem-tag + div { display:inline; }*/
 .bib-title { font-style:italic; }
 .bib-article .bib-title { font-style:normal !important; }
