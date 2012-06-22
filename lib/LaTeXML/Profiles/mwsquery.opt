@@ -1,7 +1,7 @@
 comments =
 post =
 timeout = 60
-format = xhtml
+format = xml
 whatsin = math
 whatsout = document
 stylesheet = MWSquery.xsl
