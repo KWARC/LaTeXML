@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-		xmlns="http://dlmf.nist.gov/LaTeXML" 
 		xmlns:m="http://www.w3.org/1998/Math/MathML"
 		xmlns:mws = "http://search.mathweb.org/ns"
+		exclude-result-prefixes="mws"
                 version="1.0">
-
 
 <xsl:output method="xml" indent="yes" cdata-section-elements="data"/>
 <xsl:strip-space elements="*"/>
