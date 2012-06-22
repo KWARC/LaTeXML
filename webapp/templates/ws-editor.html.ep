@@ -34,7 +34,7 @@ var timeout = null;
 var hasFatal = /fatal error/;
 var hasPreamble = /^([\s\S]*\\begin{document})([\s\S]*)\\end{document}([\s\S]*)$/;
 // open socket using standard syntax
-var ws = $.gracefulWebSocket("ws:///localhost:3000");
+var ws = $.gracefulWebSocket("ws://localhost:3000/convert");
 
 var sendRequest = function(tex, my_counter, onthefly){
     if (my_counter == ac_counter) {
