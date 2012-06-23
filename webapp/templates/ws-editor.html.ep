@@ -153,6 +153,6 @@ $(document).ready(function() {
 <div style="clear:both; font-size:0px;">&nbsp;</div>
 <div id="counter" style="width: 40%; background-color: #cccccc; display: inline;">&nbsp;</div>
 <br /><div style="float:left"><%= select_field example =>
-  [["Equations"=>"eqn"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Color"=>"clr"],["Obfuscated"=>"xii"],["Web
-  Graphics"=>"wgr"],["Metadata"=>"met"],["Wiki Syntax"=>"wik"],["Tikz Graphics"=>"tik"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
+  [["Equations"=>"eqn"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Color"=>"clr"],["Web
+  Graphics"=>"wgr"],["Metadata"=>"met"],["Wiki Syntax"=>"wik"],["Tikz Graphics"=>"tik"],["Obfuscated"=>"xii"],["Turing Machine"=>"tur"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
 <div style="display:none"><div id="source"></div></div>
