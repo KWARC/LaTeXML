@@ -9,7 +9,7 @@
 <xsl:strip-space elements="*"/>
 
 <xsl:template match="/">
-  <mws:query>
+  <mws:query limitmin="0" answsize="30">
     <mws:expr>
       <xsl:apply-templates select="//m:annotation-xml[@encoding='MathML-Content']/*[1]"/>
     </mws:expr>
