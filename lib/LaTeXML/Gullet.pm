@@ -351,6 +351,7 @@ sub readMatch {
 
 # Match the input against a set of keywords; Similar to readMatch, but the keywords are strings,
 # and Case and catcodes are ignored; additionally, leading spaces are skipped.
+# AND, macros are expanded.
 sub readKeyword {
   my($self,@keywords)=@_;
   $self->skipSpaces;
@@ -359,23 +360,7 @@ sub readKeyword {
     my @tomatch=split('',uc($keyword));
     my @matched=();
     my $tok;
-    while(@tomatch && defined ($tok=$self->readToken) && push(@matched,$tok) 
-	  && (uc($tok->getString) eq $tomatch[0])){ 
-      shift(@tomatch); }
-    return $keyword unless @tomatch;	# All matched!!!
-    $self->unread(@matched);	# Put 'em back and try next!
-  }
-  return undef; }
-
-sub readXKeyword {
-  my($self,@keywords)=@_;
-  $self->skipSpaces;
-  foreach my $keyword (@keywords){
-    $keyword = ToString($keyword) if ref $keyword;
-    my @tomatch=split('',uc($keyword));
-    my @matched=();
-    my $tok;
-    while(@tomatch && defined ($tok=$self->readXToken) && push(@matched,$tok) 
+    while(@tomatch && defined ($tok=$self->readXToken(0)) && push(@matched,$tok) 
 	  && (uc($tok->getString) eq $tomatch[0])){ 
       shift(@tomatch); }
     return $keyword unless @tomatch;	# All matched!!!
