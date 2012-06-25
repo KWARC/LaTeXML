@@ -17,6 +17,8 @@ use LaTeXML::Package;
 
 #Experimental: MathWebSearch
 DefConstructor('\qvar Semiverbatim','<ltx:XMTok name="qvar" meaning="qvar" color="red">#1</ltx:XMTok>',requireMath=>1);
-AssignCatcode('math:?'=>1, 'global');
+
+AssignMathcode('?'=>0x8000, 'global');
 DefMacro('?','\qvar');
+
 1;

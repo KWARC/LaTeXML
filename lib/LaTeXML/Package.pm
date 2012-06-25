@@ -60,6 +60,7 @@ our @EXPORT = (qw(&DefExpandable
 	       qw(&LookupValue &AssignValue
 		  &PushValue &PopValue &UnshiftValue &ShiftValue
 		  &LookupCatcode &AssignCatcode
+		  &LookupMathcode &AssignMathcode
 		  &LookupMeaning &LookupDefinition &InstallDefinition),
 
 	       # Random low-level token or string operations.
@@ -140,6 +141,8 @@ sub UnshiftValue { $STATE->unshiftValue(@_);  return; }
 sub ShiftValue   { $STATE->shiftValue(@_); }
 sub LookupCatcode{ $STATE->lookupCatcode(@_); }
 sub AssignCatcode{ $STATE->assignCatcode(@_); return; }
+sub LookupMathcode{ $STATE->lookupMathcode(@_); return; }
+sub AssignMathcode{ $STATE->assignMathcode(@_); return; }
 sub LookupMeaning      { $STATE->lookupMeaning(@_); }
 sub LookupDefinition   { $STATE->lookupDefinition(@_); }
 sub InstallDefinition  { $STATE->installDefinition(@_); }
