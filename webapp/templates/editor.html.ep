@@ -103,6 +103,7 @@ $(document).ready(function() {
             str = $(this).attr("value");
 	});
 	if (str.length>0) {
+	    $('#onthefly').html('');
 	    $('#editarea').val(examples[str]).change();
 	}
     });
