@@ -1,8 +1,8 @@
 % layout 'default';
 % title 'In-browser Editor of LaTeX Fragments';
+<link rel="stylesheet" type="text/css" href="css/editor.css" />
 <%= javascript 'js/external/jquery.min.js' %>
 <%= javascript 'js/external/jquery-ui.min.js' %>
-<%= javascript 'js/external/jquery.jeditable.js' %>
 <%= javascript 'js/external/jquery.gracefulWebSocket.js' %>
 <%= javascript 'js/editor/examples.js' %>
 %= javascript begin
@@ -15,8 +15,7 @@ function show_result() {
     $('#onthefly').show();
 }
 function setup_message(data) {
- $('#message').html("<br /><p style=\"margin-bottom:0; \">"+data.status+"</p><br />"+
-                    "<p style=\"font-size: 70%; font-style:italic; margin-top:0; \">Hover over for details.</p>");
+ $('#message').html(data.status+"<a href='#'>(Details)</a>");
  $('#message').hover( function () {show_log();}, function () {show_result();} );
  $('#message').click(  function () {
     $('#message').unbind('mouseenter').unbind('mouseleave');
@@ -38,6 +37,9 @@ var ws = $.gracefulWebSocket("ws://localhost:3000/convert");
 
 var sendRequest = function(tex, my_counter, onthefly){
     if (my_counter == ac_counter) {
+	$('#message').html('');
+	$('#log').html('');
+	$('#previewtext').text('Converting...');
         $("body").css("cursor","progress");
 	if (ac_counter == 1) send_called = 0;
 	send_called++;
@@ -60,98 +62,74 @@ var sendRequest = function(tex, my_counter, onthefly){
 			show_result();
 		    }
 		} else {show_log();}
-	    } else {
-  		if (!hasFatal.test(response.status)) { 
-      		    $('#result').html(response.result);
-      		    $('#onthefly').hide();
-		} else { show_log(); }}
+	    }
+	    $('#previewtext').text('On-the-Fly Preview');
 	    $("body").css("cursor", "auto");
 	};
     }
 }
 
 function do_convert_on_the_fly(e) {
-	if (e) { 
-		var key = e.keyCode;
-		if (!key) key = 0;
-	} else {
-		var key = 0;
+    if (e) { 
+	var key = e.keyCode;
+	if (!key) key = 0;
+    } else {
+	var key = 0;
+    }
+    
+    ac_counter++;
+    //console.log(key);
+    if (((key < 37 || key > 40) && key > 32 && key <= 250) || key == 8 || key == 0){
+	// immediately cancel outstanding requests
+	if (timeout) clearTimeout(timeout);
+        ac_counter--;
+   	var tex = $('textarea').val();
+	//alert(key);
+	if (!tex) {
+	    ac_counter = 0;
+	    $('#onthefly').html(' ');
+	    return;
 	}
 	
-	ac_counter++;
-	//console.log(key);
-	if (((key < 37 || key > 40) && key > 32 && key <= 250) || key == 8 || key == 0){
-		// immediately cancel outstanding requests
-		if (timeout) clearTimeout(timeout);
-                ac_counter--;
-   		var tex = $('textarea').val();
-		//alert(key);
-	    if (!tex) {
-	        ac_counter = 0;
-	        $('#onthefly').html(' ');
-	        return;
-		}
-
-		// call erst nach 300ms
-		timeout = setTimeout(function(){sendRequest(tex, ac_counter, true)}, 300);
-	}
+	// call erst nach 300ms
+	timeout = setTimeout(function(){sendRequest(tex, ac_counter, true)}, 300);
+    }
 }	
 
 
-function do_convert(str, settings) {
-	$('#source').val(str);
-	if (!str) {
-		$('#result').html('');
-	} else { 
-		sendRequest(str, ac_counter, false);
-		$('#onthefly').hide();
-	}
-}		
-
 var examples = new Array();
 load_examples(examples);
-
 $(document).ready(function() {
-	$('.edit_area').editable(do_convert, { 
-		data	:  function(value, settings) {
-                 	       var retval = $('#source').val();
-                               var str = "";
-                               $("#example_select option:selected").each(function () {
-                                str += $(this).attr("value");
-                               });
-                               if (str.length>0) {
-                                 retval = examples[str];
-                               }
-
-				setTimeout(do_convert_on_the_fly, 100);
-                                show_result();
-				return retval;
-	},
-		type    : 'textarea',
-                loadtext : 'Converting...',
-                onblur : 'submit',
-                placeholder: 'Enter LaTeX snippets here...'
+    $('#example_select').change(function () {
+	var str = "";
+	$('#example_select option:selected').each(function () {
+            str = $(this).attr("value");
 	});
-	$('textarea').live('keyup', do_convert_on_the_fly);
-        $("select").change(function() {
-          $('#result').text('Example Loaded! Click to convert...');
-          $('#result').focus();
-        });
+	if (str.length>0) {
+	    $('#editarea').val(examples[str]).change();
+	}
+    });
+
+    $('#editarea').bind('keyup change', function() {
+	setTimeout(do_convert_on_the_fly, 100);
+	show_result();
+    });
 });
 % end
 
 
-<div class="edit_area" id="result" 
-     style="display:inline; width: 40%; height: 500px;
-     word-wrap:break-word; float:left; margin: 15px; overflow-y:auto;"></div>
-<div style="display:inline; float:left; height: 500px; width: 40%; overflow-y:auto;"><br />
+<div style="display:inline; float:left; height: 95%; width: 45%; overflow-y:auto;">
+  <h2 class="bodyslogan"></h2>
+  <form><textarea class="editarea" id="editarea">Enter LaTeX here...</textarea></form>
+</div>
+<div style="display:inline; float:left; height: 500px; width: 45%; overflow-y:auto;"><h2 class="bodyslogan" id="previewtext">On-the-Fly Preview</h2><br />
 <div style="background-color: #FFFFFF; display: none;
-            word-wrap:break-word; margin: 15px;" id="onthefly"></div>
+            word-wrap:break-word; margin: 5px;" id="onthefly"></div>
 <div style="background-color: #ffddbb; display: none;
-            word-wrap:break-word; margin: 15px;" id="log"></div>
+            word-wrap:break-word; margin: 5px;" id="log"></div>
 </div>
 <div style="clear:both; font-size:0px;">&nbsp;</div>
-<div id="counter" style="width: 40%; background-color: #cccccc; display: inline;">&nbsp;</div>
+<div id="counter" style="width: 45%; background-color: #cccccc; display: inline;">&nbsp;</div>
 <br /><div style="float:left"><%= select_field example =>
   [["Equations"=>"eqn"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Color"=>"clr"],["Web
   Graphics"=>"wgr"],["Metadata"=>"met"],["Wiki Syntax"=>"wik"],["Tikz Graphics"=>"tik"],["Obfuscated"=>"xii"],["Turing Machine"=>"tur"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
