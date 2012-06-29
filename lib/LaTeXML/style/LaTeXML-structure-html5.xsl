@@ -16,9 +16,7 @@
     version     = "1.0"
     xmlns:xsl   = "http://www.w3.org/1999/XSL/Transform"
     xmlns:ltx   = "http://dlmf.nist.gov/LaTeXML"
-    xmlns:f     = "http://dlmf.nist.gov/LaTeXML/functions"
-    extension-element-prefixes="f"
-    exclude-result-prefixes = "ltx f">
+    exclude-result-prefixes = "ltx">
 
   <!-- ======================================================================
        Document Structure
@@ -158,14 +156,17 @@
 
 
   <xsl:template match="ltx:title">
-    <hgroup>
-      <h1>
-	<xsl:call-template name="add_id"/>
-	<xsl:call-template name="add_attributes"/>
-	<xsl:apply-templates/>
-      </h1>
-      <xsl:apply-templates select="../ltx:subtitle"/>
-    </hgroup>
+    <!-- Skip title, if there's a titlepage! -->
+    <xsl:if test="not(parent::*/child::ltx:titlepage)">    
+      <hgroup>
+	<h1>
+	  <xsl:call-template name="add_id"/>
+	  <xsl:call-template name="add_attributes"/>
+	  <xsl:apply-templates/>
+	</h1>
+	<xsl:apply-templates select="../ltx:subtitle"/>
+      </hgroup>
+    </xsl:if>
   </xsl:template>
 
   <xsl:template match="ltx:subtitle">

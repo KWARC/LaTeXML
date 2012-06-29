@@ -17,9 +17,7 @@
     xmlns:xsl   = "http://www.w3.org/1999/XSL/Transform"
     xmlns:ltx   = "http://dlmf.nist.gov/LaTeXML"
     xmlns       = "http://www.w3.org/1999/xhtml"
-    xmlns:f     = "http://dlmf.nist.gov/LaTeXML/functions"
-    extension-element-prefixes="f"
-    exclude-result-prefixes = "ltx f">
+    exclude-result-prefixes = "ltx">
 
   <!-- ======================================================================
        Document Structure
@@ -155,9 +153,12 @@
   </xsl:param>
 
   <xsl:template match="ltx:document/ltx:title">
-    <xsl:call-template name="maketitle">
-      <xsl:with-param name="title_level" select="$document_level"/>
-    </xsl:call-template>
+    <!-- Skip title, if there's a titlepage! -->
+    <xsl:if test="not(parent::*/child::ltx:titlepage)">    
+      <xsl:call-template name="maketitle">
+	<xsl:with-param name="title_level" select="$document_level"/>
+      </xsl:call-template>
+    </xsl:if>
   </xsl:template>
 
   <xsl:param name="part_level">
