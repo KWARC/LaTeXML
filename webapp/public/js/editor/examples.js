@@ -264,7 +264,7 @@ examples['met'] = ['\\usepackage{planetmath-specials}',
 'This example demonstrates embedding document metadata via {\\LaTeX} macros, using the vocabulary and syntax for the encyclopedia \\href{www.planetmath.org}{PlanetMath.org}.',
 'The concrete example is taken from the \\href{http://planetmath.org/encyclopedia/ZipfsLaw.html}{Zipf\'s Law} article.',
 '','',
-'View the generated soure to explore the result metadata as {\\color{blue}HTML+RDFa}.',
+'View the generated source to explore the result metadata as {\\color{blue}HTML+RDFa}.',
 '\\end{document}'].join('\n');
 
 examples['wgr'] = [

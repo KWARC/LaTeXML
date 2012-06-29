@@ -133,5 +133,6 @@ $(document).ready(function() {
 <div id="counter" style="width: 45%; background-color: #cccccc; display: inline;">&nbsp;</div>
 <br /><div style="float:left"><%= select_field example =>
   [["Equations"=>"eqn"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Color"=>"clr"],["Web
-  Graphics"=>"wgr"],["Metadata"=>"met"],["Wiki Syntax"=>"wik"],["Tikz Graphics"=>"tik"],["Obfuscated"=>"xii"],["Turing Machine"=>"tur"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
+  Graphics"=>"wgr"],["Metadata"=>"met"],["Wiki Syntax"=>"wik"],["Obfuscated"=>"xii"],["Turing Machine"=>"tur"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
+<!-- ["Tikz Graphics"=>"tik"], -->
 <div style="display:none"><div id="source"></div></div>
