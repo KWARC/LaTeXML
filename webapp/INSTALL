@@ -42,6 +42,13 @@ I. Standalone
 
  Using the default "morbo" development server of the Mojolicious suite deploys a server at http://127.0.0.1:3000
 
+ Another approach for standalone deployment is to reverse-proxy through Apache, which currently is the only way to deploy with good
+ websocket support. Install additionally:
+ 
+ sudo apt-get install libapache2-mod-proxy-html
+
+ Then follow the instructions at: https://github.com/kraih/mojo/wiki/Apache-deployment#wiki-___top
+
 II. Apache + Mod_Perl and Plack
 
  1. Install Apache as usual
