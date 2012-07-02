@@ -16,6 +16,7 @@ complex multi-folder projects, please send a single ZIP archive,
 <h3>Choose file(s)</h3>
 <p>
 	<input id="files-upload" type="file" multiple>
+	<input id="convert-button" type="submit" value="Convert" />
 </p>
 <div style="display:inline; width: 40%;
      word-wrap:break-word; float:left; margin: 15px;">
@@ -33,14 +34,6 @@ complex multi-folder projects, please send a single ZIP archive,
      word-wrap:break-word; float:left; margin: 15px;"><b>
 </b></div>
 
-<!--<div style="display:inline; width: 40%;
-     word-wrap:break-word; float:left; margin: 15px;">
-  <%= form_for upload =>
-  (method => 'post', enctype => 'multipart/form-data') => begin %>
-  <%= file_field 'uploaded_archive' %>
-  <%= submit_button 'Upload' %>
-  <% end %>
-</div>-->
 <div style="clear:both; font-size:0px;">&nbsp;</div>
 
 <p><strong>Note:</strong> For uploads of several files the service

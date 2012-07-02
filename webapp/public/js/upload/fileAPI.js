@@ -5,8 +5,9 @@ $(document).ready(function() {
     } else {
         alert('The File APIs are not fully supported in this browser.');
     }
-    var filesUpload = document.getElementById("files-upload"),
-    dropArea = document.getElementById("drop-area"),
+    var filesUpload = document.getElementById("files-upload");
+    var convertGo = document.getElementById("convert-button");
+    dropArea = document.getElementById("drop-area");
     fileList = document.getElementById("file-list");
     function uploadFile (file) {
         
@@ -55,7 +56,7 @@ $(document).ready(function() {
         	    /*
 	              If the file is an image and the web browser supports FileReader,
 	              present a preview in the file list
-
+	            */            		
                     if ((/image/i).test(file.type)) {
 	                img = document.createElement("img");
 	                li.appendChild(img);
@@ -67,13 +68,13 @@ $(document).ready(function() {
 	                }(img));
 	                reader.readAsDataURL(file);  
                     }
-	            */            		
+
 	            xhr.open("post", "/upload", true);
 	            
 	            // Set appropriate headers
 	            xhr.setRequestHeader("Content-Type", "multipart/form-data");
-	            xhr.setRequestHeader("X-File-Name", file.fileName);
-	            xhr.setRequestHeader("X-File-Size", file.fileSize);
+	            xhr.setRequestHeader("X-File-Name", file.name);
+	            xhr.setRequestHeader("X-File-Size", file.size);
 	            xhr.setRequestHeader("X-File-Type", file.type);
                     
 	            // Send the file (doh)
@@ -106,6 +107,9 @@ $(document).ready(function() {
     }
     
     filesUpload.addEventListener("change", function (evt) {
+	traverseFiles(this.files);
+    }, false);
+    convertGo.addEventListener("change", function (evt) {
 	traverseFiles(this.files);
     }, false);
     

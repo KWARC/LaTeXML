@@ -12,7 +12,8 @@ use Mojo::JSON;
 use Mojo::IOLoop;
 use Mojo::ByteStream qw(b);
 
-use Archive::Zip;
+use Archive::Zip qw(:CONSTANTS :ERROR_CODES);
+use IO::String;
 use File::Path;
 use Data::Dumper;
 use Encode;
@@ -231,39 +232,38 @@ get '/upload' => sub {
 
 post '/upload' => sub {
   my $self = shift;
-  # # TODO: Need a session?
-  # my $headers = $self->req->headers;
-  # my $type = $headers->header('x-file-type');
-  # if ($type && $type =~ 'zip' && ($headers->header('content-type') eq 'multipart/form-data')) {
-  #   #.zip (can't support others for now)
-  #   my $zipcontent = $self->req->body;
-  #   my $rname = $self->rand_str(6);
-  #   #TODO: This is a Unix treatment, make it scale under windows! (CPAN module?)
-  #   my $rdir = "/tmp/$rname/";
-  #   mkdir $rdir;
-  #   $rname = $rname.".zip";
-  #   open ZIP, ">", $rdir.$rname;
-  #   print ZIP $zipcontent;
-  #   close ZIP;
-  #   `cd $rdir; unzip -o $rname`;
-  #   #Add $rdir to LaTeXML path, convert with standard profile.    
-  #   my $opt = {profile=>'standard', paths=>[$rdir]};
-  #   $opt = $self->prepare_options($opt);
-  #   my $daemon = $startup->find_daemon($opt);
-  #   #Override/extend with session-specific options in $opt:
-  #   $daemon->prepare_session($opt);
-  #   #Send a request:
-  #   my $response = $daemon->convert($rdir.$rname);
-  #   if (defined $response) {
-  #     my ($result, $status, $log) = map { $response->{$_} } qw(result status log);
-  #     print Dumper($result);
-  #   }
-  #   File::Path::remove_tree($rdir);
-  #   $self->render(text=>"Uploaded!");
-  # } else {
-  #   #.tex , .sty , .jpg and so on - write to filesystem (when are we done?)
-   $self->render(text=>"Uploaded, but ignored!");
-  # }
+  # TODO: Need a session?
+  my $headers = $self->req->headers;
+  my $type = $headers->header('x-file-type');
+  if ($type && $type =~ 'zip' && ($headers->header('content-type') eq 'multipart/form-data')) {
+    my $rdir = '/tmp/';
+    #.zip (can't support others for now)
+    my $content_handle = IO::String->new($self->req->body);
+    my $zip = Archive::Zip->new();
+    self->render(text=>"Archive is corrupt!") unless
+      ($zip->readFromFileHandle( $content_handle ) == AZ_OK);
+    $zip->extractTree('',$rdir);
+    #Add $rdir to LaTeXML path, convert with standard profile.
+    my $opt = LaTeXML::Util::Config->new(profile=>'standard', paths=>[$rdir], local=>1);
+    $opt = $self->prepare_options($opt);
+    my $daemon = LaTeXML::Daemon->get_converter($opt);
+    #Override/extend with session-specific options in $opt:
+    $daemon->prepare_session($opt);
+    my $name = $headers->header('x-file-name');
+    $name =~ s/\.zip//;
+    $name .= ".tex";
+    #Send a request:
+    my $response = $daemon->convert($rdir.$name);
+    if (defined $response) {
+      my ($result, $status, $log) = map { $response->{$_} } qw(result status log);
+      print Dumper($result);
+    }
+    #File::Path::remove_tree($rdir);
+    $self->render(text=>"Converted!");
+  } else {
+    #.tex , .sty , .jpg and so on - write to filesystem (when are we done?)
+    $self->render(text=>"Uploaded, but ignored!");
+  }
 };
 
 any '/ajax' => sub {
