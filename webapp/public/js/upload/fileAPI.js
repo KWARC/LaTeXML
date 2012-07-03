@@ -98,10 +98,12 @@ $(document).ready(function() {
 	            fileInfo += "<div><strong>Size:</strong> " + fileSize + "</div>";
 	            fileInfo += "<div><strong>Type:</strong> " + file.type + "</div>";
 	            div.innerHTML = fileInfo;
-	            
+
+		    $('.no-items').hide();	            
 	            fileList.insertBefore(li,fileList.firstChild);
 	        }
                 else {
+		    $('.no-items').hide();
                     $('<p>The MIME type "'+file.type+'" of the file "'+ file.name +'" is not supported, skipping...</p><hr class="separator">').insertBefore(fileList.firstChild);
                 }
             }  

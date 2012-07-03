@@ -16,7 +16,7 @@
 <li>src/<ul><li>fragment1.tex</li><li>fragment2.tex</li></ul>
 <li>mybib.bib</li></ul></ul>
 </p>
-<p>We will soon support flat setups of TeX files directly (no
+<p>We will soon support flat setups of TeX files (no
   subfolders) also directly in this web interface.</p>
 
 <h3>Choose ZIP file:</h3>
