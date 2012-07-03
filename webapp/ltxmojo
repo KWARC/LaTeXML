@@ -84,8 +84,68 @@ helper prepare_options => sub {
   return $opt;
 };
 
-post '/convert' => sub {
-  my $self  = shift;
+helper convert_zip => sub {
+  my ($self) = @_;
+  my $rdir = '/tmp/' . $self->rand_str(6) . '/';
+  mkdir $rdir;
+  #.zip (can't support others for now)
+  my $content_handle = IO::String->new($self->req->body);
+  my $zip = Archive::Zip->new();
+  self->render(text=>"Archive is corrupt!") unless
+    ($zip->readFromFileHandle( $content_handle ) == AZ_OK);
+  $zip->extractTree('',$rdir);
+  #Add $rdir to LaTeXML path, convert with standard profile.
+  my $opt = LaTeXML::Util::Config->new(%{$self->prepare_options({profile=>'standard', format=>'xhtml', post=>1, paths=>[$rdir], local=>1})});
+  my $daemon = LaTeXML::Daemon->get_converter($opt);
+  #Override/extend with session-specific options in $opt:
+  $daemon->prepare_session($opt);
+  my $name = $self->req->headers->header('x-file-name');
+  $name =~ s/\.zip//;
+  #Send a request:
+  my $response = $daemon->convert($rdir.$name.'.tex');
+  if (defined $response) {
+      my ($result, $status, $log) = map { $response->{$_} } qw(result status log);
+      if ($result) {
+        my $destination = $opt->get('destination');
+        if (!$destination) {
+          my $ext = '.'.$opt->get('format')||'xml';
+          $destination = $rdir.$name.$ext;
+        }
+        open(OUT,">",$destination) or $self->render(text=>"Couldn't open output file ".$destination.": $!");
+        print OUT encode('UTF-8',$result);
+        close OUT;
+      } else {
+	# Delete daemon if Fatal occurred
+	undef $daemon;
+      }
+      if ($log) {
+        my $logfile = $opt->get('log');
+        if (!$logfile) {
+          my $ext = '.log';
+          $logfile = $rdir.$name.$ext;
+        }
+        open(OUT,">",$logfile) or $self->render(text=>"Couldn't open log file ".$logfile.": $!");
+        print OUT encode('UTF-8',$log);
+        close OUT;
+      }
+    }
+  # Zip and send back
+  my $returnzip = Archive::Zip->new();
+  my $payload='';
+  $returnzip->addTree($rdir,$name);
+  $content_handle = IO::String->new($payload);
+  $self->render(text=>'final Archive creation failed') unless ($returnzip->writeToFileHandle( $content_handle ) == AZ_OK);
+  # Clean up
+  File::Path::remove_tree($rdir);
+  my $headers = Mojo::Headers->new;
+  $headers->add('Content-Type',"application/zip;name=$name.zip");
+  $headers->add('Content-Disposition',"attachment;filename=$name.zip");
+  $self->res->content->headers($headers);
+  return $self->render(data=>$payload);
+};
+
+helper convert_string => sub {
+  my ($self) = @_;
   my $param = $self->req->body_params;
   #TODO: Make sure lists go to array refs, etc.
   my $opt = {};
@@ -119,6 +179,16 @@ post '/convert' => sub {
       $self->render(data => "$is_jsonp($json_result)", format => 'js');
   } else {
       $self->render(json => {result => decode('UTF-8',$result), status => $status, log => $log});
+  }
+};
+
+post '/convert' => sub {
+  my $self = shift;
+  my $type = $self->req->headers->header('x-file-type');
+  if ($type && $type =~ 'zip' && ($self->req->headers->header('content-type') eq 'multipart/form-data')) {
+    $self->convert_zip;
+  } else {
+    $self->convert_string;
   }
 };
 
@@ -233,62 +303,9 @@ get '/upload' => sub {
 post '/upload' => sub {
   my $self = shift;
   # TODO: Need a session?
-  my $headers = $self->req->headers;
-  my $type = $headers->header('x-file-type');
-  if ($type && $type =~ 'zip' && ($headers->header('content-type') eq 'multipart/form-data')) {
-    my $rdir = '/tmp/' . $self->rand_str(6) . '/';
-    mkdir $rdir;
-    #.zip (can't support others for now)
-    my $content_handle = IO::String->new($self->req->body);
-    my $zip = Archive::Zip->new();
-    self->render(text=>"Archive is corrupt!") unless
-      ($zip->readFromFileHandle( $content_handle ) == AZ_OK);
-    $zip->extractTree('',$rdir);
-    #Add $rdir to LaTeXML path, convert with standard profile.
-    my $opt = LaTeXML::Util::Config->new(%{$self->prepare_options({profile=>'standard', format=>'xhtml', post=>1, paths=>[$rdir], local=>1})});
-    my $daemon = LaTeXML::Daemon->get_converter($opt);
-    #Override/extend with session-specific options in $opt:
-    $daemon->prepare_session($opt);
-    my $name = $headers->header('x-file-name');
-    $name =~ s/\.zip//;
-    #Send a request:
-    my $response = $daemon->convert($rdir.$name.'.tex');
-    if (defined $response) {
-      my ($result, $status, $log) = map { $response->{$_} } qw(result status log);
-      if ($result) {
-        my $destination = $opt->get('destination');
-        if (!$destination) {
-          my $ext = '.'.$opt->get('format')||'xml';
-          $destination = $rdir.$name.$ext;
-        }
-        open(OUT,">",$destination) or $self->render(text=>"Couldn't open output file ".$destination.": $!");
-        print OUT encode('UTF-8',$result);
-        close OUT;
-      }
-      if ($log) {
-        my $logfile = $opt->get('log');
-        if (!$logfile) {
-          my $ext = '.log';
-          $logfile = $rdir.$name.$ext;
-        }
-        open(OUT,">",$logfile) or $self->render(text=>"Couldn't open log file ".$logfile.": $!");
-        print OUT encode('UTF-8',$log);
-        close OUT;
-      }
-    }
-    # Zip and send back
-    my $returnzip = Archive::Zip->new();
-    my $payload='';
-    $returnzip->addTree($rdir,$name);
-    $content_handle = IO::String->new($payload);
-    $self->render(text=>'final Archive creation failed') unless ($returnzip->writeToFileHandle( $content_handle ) == AZ_OK);
-    # Clean up
-    File::Path::remove_tree($rdir);
-    my $headers = Mojo::Headers->new;
-    $headers->add('Content-Type',"application/zip;name=$name.zip");
-    $headers->add('Content-Disposition',"attachment;filename=$name.zip");
-    $self->res->content->headers($headers);
-    return $self->render(data=>$payload);
+  my $type = $self->req->headers->header('x-file-type');
+  if ($type && $type =~ 'zip' && ($self->req->headers->header('content-type') eq 'multipart/form-data')) {
+    $self->convert_zip;
   } else {
     #.tex , .sty , .jpg and so on - write to filesystem (when are we done?)
     $self->render(text=>"Uploaded, but ignored!");

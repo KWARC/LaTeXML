@@ -22,9 +22,13 @@ try <it>fragment</it> for best daemon results"
 Also useful for converting files that are already hosted online. Just
 send their URL (http://www.example.com/foo.tex) as the "tex" parameter.</li>
 </ul>
-<h3> Command-line example:</h3>
+<h3> Command-line examples:</h3>
+<ul><li>Textual fragments:</li>
 <p>curl -d "profile=fragment&tex=\textbf{Hello World}" http://latexml.mathweb.org/convert</p>
-
+<li>Archive bundles:</li>
+<p> curl --data-binary @somezip.zip http://latexml.mathweb.org/convert -H"Content-Type: multipart/form-data" -H"X-File-Type: application/zip" -H"X-File-Name: somezip.zip" > result.zip
+</p>
+</ul>
 <h2>Classic Setup</h2>
 Try the classic interface at <a href="http://tex2xml.kwarc.info/">http://tex2xml.kwarc.info/</a>
 
