@@ -94,7 +94,7 @@ option:hover {
     href="http://dlmf.nist.gov/LaTeXML/"><strong>LaTeXML
     0.7</strong></a><br />
   </p><p class="right">
-  <a href="jquery.com"><img alt="jQuery Logo" width="100" src="img/external/JQuery_logo.svg" /></a>
+  <a href="http://jquery.com"><img alt="jQuery Logo" width="100" src="img/external/JQuery_logo.svg" /></a>
   <a href="http://mojolicio.us">
     <img alt="Mojolicious logo" width="100" src="img/external/mojolicious-white.png" />
   </a>
