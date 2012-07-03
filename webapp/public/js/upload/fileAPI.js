@@ -48,19 +48,16 @@ $(document).ready(function() {
 	                }
 	            }, false);
 	            // File uploaded
-	            xhr.upload.addEventListener("load", function () {
-	                progressBarContainer.className += " uploaded";
-	                progressBar.innerHTML = "<p>Uploaded!</p>";
-	            }, false);
+	            // xhr.upload.addEventListener("load", function () {
+	            //     progressBarContainer.className += " uploaded";
+	            //     progressBar.innerHTML = "<p>Uploaded!</p>";
+	            // }, false);
 	            xhr.addEventListener("load", function () {
-                         // Note: not xhr.responseText  
-                        //var bb = new BlobBuilder();
-                        //bb.append(arrayBuffer);
-                        //var blob = bb.getBlob(); // <-- Here's the Blob!
                         // Use the URL object to create a temporary URL
+			progressBarContainer.className += " uploaded";
                         var URL = self.URL || self.webkitURL || self;
                         var object_url = URL.createObjectURL(xhr.response);
-	                progressBar.innerHTML += "<p><a href='"+object_url+"'>Converted!</a></p>";
+	                progressBar.innerHTML += "<p>Converted! <a href='"+object_url+"'>Download</a></p>";
 	            }, false);
         	    /*
 	              If the file is an image and the web browser supports FileReader,
@@ -78,13 +75,19 @@ $(document).ready(function() {
 	                reader.readAsDataURL(file);  
                     }
 
+		    var fileSize = 0;
+		    if (file.size > 1024 * 1024)
+			fileSize = (Math.round(file.size * 100 / (1024 * 1024)) / 100).toString() + 'MB';
+		    else
+			fileSize = (Math.round(file.size * 100 / 1024) / 100).toString() + 'KB';
+
 	            xhr.open("post", "/upload", true);
                     xhr.responseType = "blob";
 	            // Set appropriate headers
 	            xhr.setRequestHeader("Content-Type", "multipart/form-data");
                     xhr.setRequestHeader("Accept","application/zip;q=0.9,*/*;q=0.8");
 	            xhr.setRequestHeader("X-File-Name", file.name);
-	            xhr.setRequestHeader("X-File-Size", file.size);
+	            xhr.setRequestHeader("X-File-Size", fileSize);
 	            xhr.setRequestHeader("X-File-Type", file.type);
                     
 	            // Send the file (doh)
@@ -92,7 +95,7 @@ $(document).ready(function() {
 	            
 	            // Present file info and append it to the list of files
 	            fileInfo = "<div><strong>Name:</strong> " + file.name + "</div>";
-	            fileInfo += "<div><strong>Size:</strong> " + parseInt(file.size / 1024, 10) + " kb</div>";
+	            fileInfo += "<div><strong>Size:</strong> " + fileSize + "</div>";
 	            fileInfo += "<div><strong>Type:</strong> " + file.type + "</div>";
 	            div.innerHTML = fileInfo;
 	            

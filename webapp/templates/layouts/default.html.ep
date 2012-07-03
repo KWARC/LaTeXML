@@ -93,10 +93,9 @@ option:hover {
 <%= content %>
 <div id="footer" lang="en" xml:lang="en"><hr />
   <p class="left">
-    <a alt="LaTeXML"
-    href="http://dlmf.nist.gov/LaTeXML/"><strong>LaTeXML
-    0.7</strong></a><br />
-  </p><p class="right">
+    <a alt="LaTeXML" href="http://dlmf.nist.gov/LaTeXML/"><strong>LaTeXML 0.7</strong></a>
+  </p>
+<p class="right">
   <a href="jquery.com"><img alt="jQuery Logo" width="100" src="img/external/JQuery_logo.svg" /></a>
   <a href="http://mojolicio.us">
     <img alt="Mojolicious logo" width="100" src="img/external/mojolicious-white.png" />
@@ -104,6 +103,9 @@ option:hover {
   <a href="http://www.perl.org/">
     <img alt="Perl 5" width="100" src="img/external/raptor-black.png" />
   </a></p>
+  <p class="right">
+    <a href="http://kwarc.info"><img alt="KWARC Research Group" width="60" src="img/external/kwarc-logo-transparent.png"/></a>
+  </p>
 </div>
     <div align="center">
     <div id="sitefooter">

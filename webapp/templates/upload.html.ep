@@ -7,11 +7,17 @@
 
 <h2>Upload Interface</h2>
 <p>This service converts TeX/LaTeX documents into XHTML.</p>
-<p>We can support flat setups of TeX files directly (no
-  subfolders).</p>
-<p>For
-complex multi-folder projects, please send a single ZIP archive,
-  containing all relevant sources (no styles required).</p>
+<p>Currently, please send a single self-sufficient ZIP archive,
+  containing all relevant sources.<br></br> The <b>only</b> supported archive trees contain a single directory which shares its name with the main TeX file to be converted. </p>
+<p>An example archived tree would be:<br></br>
+<ul><li><span style="color: rgb(184, 20, 11);">mainname</span>/
+<ul><li><span style="color: rgb(184, 20, 11);">mainname</span>.tex</li>
+<li>img/<ul><li>graphic1.eps</li><li>graphic2.pdf</li></ul></li>
+<li>src/<ul><li>fragment1.tex</li><li>fragment2.tex</li></ul>
+<li>mybib.bib</li></ul></ul>
+</p>
+<p>We will soon support flat setups of TeX files directly (no
+  subfolders) also directly in this web interface.</p>
 
 <h3>Choose file(s)</h3>
 <p>
@@ -21,7 +27,7 @@ complex multi-folder projects, please send a single ZIP archive,
 <div style="display:inline; width: 40%;
      word-wrap:break-word; float:left; margin: 15px;">
 <p id="drop-area">
-	<span class="drop-instructions">or drag and drop files here</span>
+	<span class="drop-instructions">or drag and drop ZIP files here</span>
 	<span class="drop-over">Drop files here!</span>
 </p>
 
@@ -36,7 +42,7 @@ complex multi-folder projects, please send a single ZIP archive,
 
 <div style="clear:both; font-size:0px;">&nbsp;</div>
 
-<p><strong>Note:</strong> For uploads of several files the service
-  needs to maintain a session, via a session cookie, for which you
-  need cookies enabled.
+<!-- <p><strong>Note:</strong> For uploads of several files the service -->
+<!--   needs to maintain a session, via a session cookie, for which you -->
+<!--   need cookies enabled. -->
 </div>
