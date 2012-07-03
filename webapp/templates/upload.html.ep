@@ -19,7 +19,7 @@
 <p>We will soon support flat setups of TeX files directly (no
   subfolders) also directly in this web interface.</p>
 
-<h3>Choose file(s)</h3>
+<h3>Choose ZIP file:</h3>
 <p>
 	<input id="files-upload" type="file" multiple>
 <!--	<input id="convert-button" type="submit" value="Convert" />-->
