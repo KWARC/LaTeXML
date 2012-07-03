@@ -245,7 +245,7 @@ post '/upload' => sub {
       ($zip->readFromFileHandle( $content_handle ) == AZ_OK);
     $zip->extractTree('',$rdir);
     #Add $rdir to LaTeXML path, convert with standard profile.
-    my $opt = LaTeXML::Util::Config->new(profile=>'standard', paths=>[$rdir], local=>1);
+    my $opt = LaTeXML::Util::Config->new(profile=>'standard', format=>'xhtml', post=>1, paths=>[$rdir], local=>1);
     $opt = $self->prepare_options($opt);
     my $daemon = LaTeXML::Daemon->get_converter($opt);
     #Override/extend with session-specific options in $opt:

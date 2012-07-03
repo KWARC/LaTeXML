@@ -16,7 +16,7 @@ complex multi-folder projects, please send a single ZIP archive,
 <h3>Choose file(s)</h3>
 <p>
 	<input id="files-upload" type="file" multiple>
-	<input id="convert-button" type="submit" value="Convert" />
+<!--	<input id="convert-button" type="submit" value="Convert" />-->
 </p>
 <div style="display:inline; width: 40%;
      word-wrap:break-word; float:left; margin: 15px;">

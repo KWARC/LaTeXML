@@ -6,7 +6,7 @@ $(document).ready(function() {
         alert('The File APIs are not fully supported in this browser.');
     }
     var filesUpload = document.getElementById("files-upload");
-    var convertGo = document.getElementById("convert-button");
+    // var convertGo = document.getElementById("convert-button");
     dropArea = document.getElementById("drop-area");
     fileList = document.getElementById("file-list");
     function uploadFile (file) {
@@ -119,9 +119,9 @@ $(document).ready(function() {
     filesUpload.addEventListener("change", function (evt) {
 	traverseFiles(this.files);
     }, false);
-    convertGo.addEventListener("change", function (evt) {
-	traverseFiles(this.files);
-    }, false);
+    // convertGo.addEventListener("change", function (evt) {
+    //     traverseFiles(this.files);
+    // }, false);
     
     dropArea.addEventListener("dragleave", function (evt) {
 	var target = evt.target;
