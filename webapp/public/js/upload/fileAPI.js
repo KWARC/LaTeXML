@@ -48,11 +48,20 @@ $(document).ready(function() {
 	                }
 	            }, false);
 	            // File uploaded
-	            xhr.addEventListener("load", function () {
+	            xhr.upload.addEventListener("load", function () {
 	                progressBarContainer.className += " uploaded";
-	                progressBar.innerHTML = "Uploaded!";
+	                progressBar.innerHTML = "<p>Uploaded!</p>";
 	            }, false);
-
+	            xhr.addEventListener("load", function () {
+                         // Note: not xhr.responseText  
+                        //var bb = new BlobBuilder();
+                        //bb.append(arrayBuffer);
+                        //var blob = bb.getBlob(); // <-- Here's the Blob!
+                        // Use the URL object to create a temporary URL
+                        var URL = self.URL || self.webkitURL || self;
+                        var object_url = URL.createObjectURL(xhr.response);
+	                progressBar.innerHTML += "<p><a href='"+object_url+"'>Converted!</a></p>";
+	            }, false);
         	    /*
 	              If the file is an image and the web browser supports FileReader,
 	              present a preview in the file list
@@ -70,9 +79,10 @@ $(document).ready(function() {
                     }
 
 	            xhr.open("post", "/upload", true);
-	            
+                    xhr.responseType = "blob";
 	            // Set appropriate headers
 	            xhr.setRequestHeader("Content-Type", "multipart/form-data");
+                    xhr.setRequestHeader("Accept","application/zip;q=0.9,*/*;q=0.8");
 	            xhr.setRequestHeader("X-File-Name", file.name);
 	            xhr.setRequestHeader("X-File-Size", file.size);
 	            xhr.setRequestHeader("X-File-Type", file.type);

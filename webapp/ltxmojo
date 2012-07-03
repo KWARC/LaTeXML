@@ -236,7 +236,8 @@ post '/upload' => sub {
   my $headers = $self->req->headers;
   my $type = $headers->header('x-file-type');
   if ($type && $type =~ 'zip' && ($headers->header('content-type') eq 'multipart/form-data')) {
-    my $rdir = '/tmp/';
+    my $rdir = '/tmp/' . $self->rand_str(6) . '/';
+    mkdir $rdir;
     #.zip (can't support others for now)
     my $content_handle = IO::String->new($self->req->body);
     my $zip = Archive::Zip->new();
@@ -251,15 +252,44 @@ post '/upload' => sub {
     $daemon->prepare_session($opt);
     my $name = $headers->header('x-file-name');
     $name =~ s/\.zip//;
-    $name .= ".tex";
     #Send a request:
-    my $response = $daemon->convert($rdir.$name);
+    my $response = $daemon->convert($rdir.$name.'.tex');
     if (defined $response) {
       my ($result, $status, $log) = map { $response->{$_} } qw(result status log);
-      print Dumper($result);
+      if ($result) {
+        my $destination = $opt->get('destination');
+        if (!$destination) {
+          my $ext = '.'.$opt->get('format')||'xml';
+          $destination = $rdir.$name.$ext;
+        }
+        open(OUT,">",$destination) or $self->render(text=>"Couldn't open output file ".$destination.": $!");
+        print OUT encode('UTF-8',$result);
+        close OUT;
+      }
+      if ($log) {
+        my $logfile = $opt->get('log');
+        if (!$logfile) {
+          my $ext = '.log';
+          $logfile = $rdir.$name.$ext;
+        }
+        open(OUT,">",$logfile) or $self->render(text=>"Couldn't open log file ".$logfile.": $!");
+        print OUT encode('UTF-8',$log);
+        close OUT;
+      }
     }
-    #File::Path::remove_tree($rdir);
-    $self->render(text=>"Converted!");
+    # Zip and send back
+    my $returnzip = Archive::Zip->new();
+    my $payload='';
+    $returnzip->addTree($rdir,$name);
+    $content_handle = IO::String->new($payload);
+    $self->render(text=>'final Archive creation failed') unless ($returnzip->writeToFileHandle( $content_handle ) == AZ_OK);
+    # Clean up
+    File::Path::remove_tree($rdir);
+    my $headers = Mojo::Headers->new;
+    $headers->add('Content-Type',"application/zip;name=$name.zip");
+    $headers->add('Content-Disposition',"attachment;filename=$name.zip");
+    $self->res->content->headers($headers);
+    return $self->render(data=>$payload);
   } else {
     #.tex , .sty , .jpg and so on - write to filesystem (when are we done?)
     $self->render(text=>"Uploaded, but ignored!");
@@ -359,7 +389,7 @@ any '/ajax' => sub {
 
   }
   else {
-    $self->render(text => "Only AJAX request are accepted at this route!\n");
+    $self->render(text => "Only AJAX request are acceptexd at this route!\n");
   }
 };
 
