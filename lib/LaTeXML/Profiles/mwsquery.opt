@@ -18,3 +18,4 @@ preload = [dvipsnames]color.sty
 preload = url.sty
 preload = hyperref.sty
 preload = mws.sty 
+preload = ids.sty

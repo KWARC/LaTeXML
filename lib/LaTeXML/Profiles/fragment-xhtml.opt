@@ -18,4 +18,4 @@ preload = eucal.sty
 preload = [dvipsnames]color.sty
 preload = url.sty
 preload = hyperref.sty
-force_ids = 
+preload = ids.sty

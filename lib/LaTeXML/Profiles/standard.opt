@@ -2,4 +2,4 @@ comments =
 nopost =
 timeout = 60
 xml =
-force_ids = 
+preload = ids.sty

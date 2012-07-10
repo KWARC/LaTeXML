@@ -18,4 +18,4 @@ preload = url.sty
 preload = hyperref.sty
 preload = planetmath-specials.sty
 preload = pmath.sty
-force_ids = 
+preload = ids.sty
