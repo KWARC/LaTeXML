@@ -1,71 +1,21 @@
------------ START OF BRANCH CHANGES -------
-Branch 2011-30-03
- - Several update cycles not reported in Changes, added WWW capabilities
-   authentication, as well as merged upto rev 1557 with trunk.
-Branch 2010-30-07 
- - Note: Clone can be installed via the libclone-perl Debian package
-Branch 2010-11-05 (rev 1135)
- - Fragments must not have \begin{document}\end{document} wrappers,
-   included automatically. TODO: Make this smarter
- - --preamble is now proprely activated
- - some fixes on runtime customization for --switches.
-Branch 2010-11-05 (rev 1134)
- - Bootstrapping and stability fixes.
- - Allowed runtime customization of latexmls (test with latexmlc)
- - Still some glitches remain, the exact way the switch overwriting works
-   needs some thought.
-Branch 2010-10-05 (rev 1133)
- - Adding Server and Client pair to the LaTeXML Daemon
-   bin/latexlms and bin/latexmlc 
-Branch 2010-29-04 (rev 1132)
- - Adding --timeout as a Daemon switch (complete)
-Branch 2010-29-04 (rev 1129-1131)
- - Bootstrapped file handles in daemon
- - Upgraded the --keepTeX fixes to MathML.pm to a clean solution 
-   (ready for merge)
-Branch 2010-22-04 (rev 1123-1129)
- - Introduced --autoflush=C to restart the daemon after parsing C inputs
- - Introduced --keepTeX to preserve TeX formula source as MathML annotation
- - Bootstrapped $source when read on input, to facilitate redirecting to pipes.
-Branch 2010-19-04 (rev 1122)
- - Refactored latexmldaemon to have 3 "--mode"s: math,standard and fragment
- - Introduced latexmlmath functionality, tirggered by --math=mode
- - Added digestStringDaemonized to LaTeXML.pm (no state initialization)
- - renamed binary to "latexmld"
-Branch 2010-18-04 (rev 1119-1121)
- - Beta version of latexmldaemon, tested on first 100,000 ZBL abstracts
- - Introduced --standard option, for heterogeneous sources on input
- - Added missing eval {} wrappers to capture Fatals in serialization and
-   postprocessing
- - Improved bookkeeping in the daemonized digesting subroutines at LaTeXML.pm
- - Smaller fixes at bin/latexmldaemon binary 
-Branch 2010-13/14-04 (rev 1112-1118)
- - Alpha version of the latexmldaemon (not documented yet)
-   To this end, introduced a new binary and two new subroutines at
-   LaTeXML.pm (digestFileDaemonized, digestBibTeXFileDaemonized)
- - Upgrades to latexmldaemon:
-  * introduced --log option on input
-  * Allowed #name,#dir and #ext patterns in --log and --destination
-  * Wrapped digestion in eval {} to persist through fatal errors.
-  * pushFrame and popFrame used to properly sandbox state
-Branch 2010-06-04 (rev 1111)
- - adding the global $STATE variable "SOURCEBASE".
-   As opposed to SOURCEFILE, it is to be used as an id,
-   containing the base of the source filename(s). Particularly useful
-   for providing a global reference to multi-source inputs.
-Branch 2010-19-02 (rev 1090)
- - adding a bootstrap for empty Box at MathParser.pm failureReport (r1091)
- - adding sources attribute to ltx:graphics elements in graphic[sx].sty.ltxml (r1090)
- - switching locator message to XPointer style at Mouth.pm (r1086)
- - allowing multiple files on input for latexml at bin/latexml (pieces of the same document) (r1081)
- - adding setState method to State.pm to support error masking (modules.sty.ltxml hack) (r1080)
- - Switching default names of created OMV elements in OpenMath.pm to the XMTok bodies, if OM compliant (r1079)
- - adding CROSSREFOP support in MathML.pm for complex operators (r1017)
- - adding support for plus symbol in OpenMath.pm (r1013)
- - fixed cd of "eq" to "relation1" in OpenMath.pm (r1004)
- - adding support for OpenMath complex tokens/decorated symbols in OpenMath.pm (r999,r1005)
+0.8.0 !!!!!
 
------------ END OF BRANCH CHANGES -------
+0.7.9xx 2012-06-02
+     - MathFork updates
+     - use LaTeXML.catalog more consistently;
+       define URN's for RelaxNG modules and XSLT modules
+     -
+
+0.7.9xx 2011-06-01
+     - various changes and small completions to LaTeX that help to
+       process raw TeX style & definition files from the LaTeX distribution.
+     - Support LaTeX's input encoding mechanism by finding, reading and 
+       implementing the encoding definitions
+     - Support LaTeX's fontencoding mechanism and TeX's \char, etal,
+       by implementing FontMap's that map input codepoints to unicode.
+       Also read in font encoding definitions from the LaTeX distribution
+     - Support babel by implementing core support and reading individual
+       language definitions from the LaTeX distribution.
 
 0.7.x 2011-03-16
      - Bindings for floatfig, floatflt, JHEP,JHEP2,JHEP3
@@ -106,9 +56,10 @@ Branch 2010-19-02 (rev 1090)
      - avoid introducing doubled slashes in pathnames, so that (eventually) might
        use the TeX standard interpretation that treats them as recursive wildcard.
        (that is, expandable directories)
-     - Localization; remove assumed names & symbols from formatting titles, sections, etc.
+     - INCOMPATIBLE: Localization; remove assumed names & symbols from formatting titles, sections, etc.
        Let style files determine prefixes or formatting of reference numbers.
        Put these within the ltx:title (eg.) and wrapped in ltx:tag.
+       This is incompatible as different attributes are used, and ltx:tag is used to contain the reference number.
      - more flexible TOC creation, support for list-of-figures and similar.
      - Fuller support for seealso, heuristics to try to connect the terms to actual entries.
      - Safer encode/decode of objects being stored in the ObjectDB.

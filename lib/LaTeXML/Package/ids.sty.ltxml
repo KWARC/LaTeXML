@@ -1,0 +1,6 @@
+package LaTeXML::Package::Pool;
+use LaTeXML::Package;
+
+Tag('ltx:*',afterOpen=>\&GenerateID);
+
+1;

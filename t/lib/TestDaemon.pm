@@ -49,7 +49,6 @@ sub daemon_ok {
   push @$opts, ( ['destination', "$localname.test.xml"],
 		['log', "/dev/null"],
 		['local', ''],
-		['noforce_ids',''],
 		['timeout',5],
 		['autoflush',1],
 		['nocomments', ''] );
@@ -147,11 +146,11 @@ sub do_fail {
     return $ok; }}
 
 
+# TODO: Reconsider what else we need to test, ideas below:
+
 # Tier 1.3: Math setups with embedding variations
-# Tier 1.4: Math setups with force_id variations
 
 # Tier 1.5: 
-
 
 # Tier 2: Preloads and preambles
 

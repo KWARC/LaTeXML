@@ -1,23 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?latexml package="ids"?>
 <?latexml class="article"?>
 <?latexml RelaxNGSchema="LaTeXML"?>
-<document xmlns="http://dlmf.nist.gov/LaTeXML">
-  <para xml:id="p1">
-    <p>Some structure:</p>
+<document xmlns="http://dlmf.nist.gov/LaTeXML" xml:id="id1">
+  <para xml:id="id1.p1">
+    <p xml:id="id1.p1.1">Some structure:</p>
   </para>
   <section refnum="1" xml:id="S1">
     <title><tag>1 </tag>One</title>
     <para xml:id="S1.p1">
-      <p>Hm,</p>
+      <p xml:id="S1.p1.1">Hm,</p>
       <itemize xml:id="I1">
         <item xml:id="I1.i1">
           <para xml:id="I1.i1.p1">
-            <p><Math mode="inline" xml:id="I1.i1.p1.m1" tex="a&gt;b" text="a &gt; b"><XMath><XMApp><XMTok meaning="greater-than" role="RELOP">&gt;</XMTok><XMTok role="UNKNOWN" font="italic">a</XMTok><XMTok role="UNKNOWN" font="italic">b</XMTok></XMApp></XMath></Math></p>
+            <p xml:id="I1.i1.p1.1"><Math mode="inline" xml:id="I1.i1.p1.1.m1" tex="a&gt;b" text="a &gt; b"><XMath><XMApp><XMTok meaning="greater-than" role="RELOP" xml:id="I1.i1.p1.1.m1.2">&gt;</XMTok><XMTok role="UNKNOWN" xml:id="I1.i1.p1.1.m1.1" font="italic">a</XMTok><XMTok role="UNKNOWN" xml:id="I1.i1.p1.1.m1.3" font="italic">b</XMTok></XMApp></XMath></Math></p>
           </para>
         </item>
         <item xml:id="I1.i2">
           <para xml:id="I1.i2.p1">
-            <p>second item</p>
+            <p xml:id="I1.i2.p1.1">second item</p>
           </para>
         </item>
       </itemize>
