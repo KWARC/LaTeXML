@@ -80,6 +80,8 @@ while ( my $client = $server->accept() ) {
 
   # Thaw request into options:
   $opts = LaTeXML::Util::Config->new(%{thaw($request)});
+  $opts->set('source',$opts->get('tex')) if (!($opts->get('source')) && $opts->get('tex'));
+  $opts->delete('tex');
   # Prepare TeX source
   my $source = $opts->get('source');
   $opts->delete('source');

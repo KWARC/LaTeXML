@@ -20,7 +20,7 @@ use Carp;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 use Pod::Find qw(pod_where);
-use Data::Dumper;
+#use Data::Dumper;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Global;
 
@@ -72,7 +72,6 @@ sub read {
            "embed"   => sub { $opts->{whatsin} = 'fragment'; },
 	   "whatsin=s" => \$opts->{whatsin},
 	   "whatsout=s" => \$opts->{whatsout},
-	   "force_ids!" => \$opts->{force_ids},
 	   "autoflush=s" => \$opts->{input_limit},
            "timeout=s"   => \$opts->{timeout}, #TODO: JOB and SERVER timeouts!
            "port=s"      => \$opts->{port},
@@ -194,7 +193,7 @@ sub check {
 sub obey_profile {
   my ($self) = @_;
   $self->{dirty}=1;
-  my  $profile = lc($self->{opts}->{profile})||'custom';
+  my $profile = lc($self->{opts}->{profile}||'custom');
   # Look at the PROFILES_DB or find a profiles file (otherwise fallback to custom)
   my $profile_opts={};
   if ($profile ne 'custom') {

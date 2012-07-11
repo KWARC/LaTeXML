@@ -15,7 +15,7 @@ use Mojo::ByteStream qw(b);
 use Archive::Zip qw(:CONSTANTS :ERROR_CODES);
 use IO::String;
 use File::Path;
-use Data::Dumper;
+#use Data::Dumper;
 use Encode;
 
 use Startup;
@@ -51,37 +51,6 @@ helper rand_str => sub {
     $random_string.=$rchars[rand @rchars];
   }
   return $random_string;
-};
-
-helper prepare_options => sub {
-  my ($self, $opt) = @_;
-  # Mode and Profile are synonyms
-  if (defined $opt->{mode} && (! defined $opt->{profile})) {
-    $opt->{profile} = $opt->{mode};
-    delete $opt->{mode};
-  }
-  if (!defined $opt->{profile}) {
-    if (defined $opt->{user}
-      && $startup->verify_user($opt->{user}, $opt->{password}))
-    {
-      $opt->{profile} =
-        $startup->lookup_user_property($opt->{user}, 'default') || 'custom';
-    }
-    else {
-      $opt->{profile} = 'custom';
-    }
-  }
-  $opt->{identity} =
-    "Mojo for LaTeXML, v$version; Profile: " . $opt->{profile};
-  if ($opt->{pmml}) { push @{$opt->{math_formats}}, 'pmml'; delete $opt->{pmml}; }
-  if ($opt->{cmml}) { push @{$opt->{math_formats}}, 'cmml'; delete $opt->{cmml}; }
-  if ($opt->{xmath}) { push @{$opt->{math_formats}}, 'xmath'; delete $opt->{xmath}; }
-  if ($opt->{openmath}) { push @{$opt->{math_formats}}, 'om'; delete $opt->{openmath}; }
-  # Ugh, disallow 'null' as a value!!! (TODO: Smarter fix??)
-  foreach (keys %$opt) {
-    $opt->{$_} = '' if (($opt->{$_}||'') eq 'null');
-  }
-  return $opt;
 };
 
 helper convert_zip => sub {
@@ -144,27 +113,63 @@ helper convert_zip => sub {
   return $self->render(data=>$payload);
 };
 
+  # TODO: Maybe reintegrate IF we support username-based profiles
+  # if (!defined $opt->{profile}) {
+  #   if (defined $opt->{user}
+  #     && $startup->verify_user($opt->{user}, $opt->{password}))
+  #   {
+  #     $opt->{profile} =
+  #       $startup->lookup_user_property($opt->{user}, 'default') || 'custom';
+  #   }
+  #   else {
+  #     $opt->{profile} = 'custom';
+  #   }
+  # }
+
+helper create_config => sub {
+  my ($self,$opts) = @_;
+  my $cmdopts = [];
+  foreach my $key (keys %$opts) {
+    my $value=$opts->{$key};
+    $value = $value ? "=$value" : '';
+    next if ((!$value) && ($key =~ /^preamble|path|preload|profile|destination|postamble|base|bibliography|sitedirectory|sourcedirectory|format|mode|source|whatsin|whatsout|port|autoflush|timeout|log|inputencoding|stylesheet|css|debug|documentid/)); #TODO: How to bootstrap here to avoid preamble=&...?
+    push @$cmdopts, "--$key".$value;
+  }
+  # Read into a Config object:
+  my $config = LaTeXML::Util::Config->new;
+  $config->read($cmdopts);
+  $config->set('identity', "Mojo for LaTeXML, v$version; Profile: " . ($config->get('profile')||'custom'));
+  return $config;
+};
+
 helper convert_string => sub {
   my ($self) = @_;
   my $param = $self->req->body_params;
   #TODO: Make sure lists go to array refs, etc.
-  my $opt = {};
-  foreach ($param->param) { $opt->{lc($_)} = $param->param($_) || 1; }
-  my $is_jsonp = $opt->{'jsonp'}; delete $opt->{'jsonp'};
+  my ($source,$is_jsonp);
+  my $opts={};
+  foreach my $key($param->param) {
+    my $value = $param->param($key);
+    # Ugh, disallow 'null' as a value!!! (TODO: Smarter fix??)
+    $value = '' if ($value && ($value  eq 'null'));
+    # JSONP ?
+    if ($key eq 'jsonp') {
+      $is_jsonp = $value; next;
+    } elsif ($key =~ /^(tex)|(source)$/) {
+      # TeX is data, separate
+      $source = $value;  next;
+    }
+    $opts->{$key}=$value;
+  };
 
-  $opt = $self->prepare_options($opt);
-  # TeX is data, separate
-  my $tex = $opt->{tex};
-  delete $opt->{tex};
-  my $config = LaTeXML::Util::Config->new(%$opt);
-  # We now have a LaTeXML options object - $opt.
+  my $config = $self->create_config($opts);
+  # We now have a LaTeXML config object - $config.
   my $daemon = LaTeXML::Daemon->get_converter($config);
 
   #Override/extend with session-specific options in $opt:
   $daemon->prepare_session($config);
-
   #Send a request:
-  my $response = $daemon->convert($tex);
+  my $response = $daemon->convert($source);
   my ($result, $status, $log);
   if (defined $response) {
     ($result, $status, $log) = map { $response->{$_} } qw(result status log);
@@ -203,15 +208,15 @@ websocket '/convert' => sub {
 	      my ($tx, $bytes) = @_;
 	      my $opt = {};
 	      $opt = $json->decode($bytes);
-	      my $tex = $opt->{tex}; delete $opt->{tex};
-	      $opt = $self->prepare_options($opt);
-	      my $config = LaTeXML::Util::Config->new(%$opt);
+	      my $source = $opt->{source}; delete $opt->{source};
+	      $source = $opt->{tex} unless defined $opt->{source}; delete $opt->{tex};
+	      my $config = $self->create_config($opt);
 	      # We now have a LaTeXML options object - $opt.
 	      my $daemon = LaTeXML::Daemon->get_converter($config);
 	      #Override/extend with session-specific options in $opt:
 	      $daemon->prepare_session($config);
 	      #Send a request:
-	      my $response = $daemon->convert($tex);
+	      my $response = $daemon->convert($source);
 	      my ($result, $status, $log);
 	      if (defined $response) {
 		if (! defined $response->{result}) {
