@@ -86,6 +86,14 @@ DefConstructor('\webgraphic OptionalKeyVals:webgraphic {}',
        . "?&KeyVal(#1,'height')(imageheight='&KeyVal(#1,'height')' )()"
        . "?&KeyVal(#1,'alt')(description='&KeyVal(#1,'alt')' )()"
        . ")() />",
+  afterConstruct => sub{
+    my ($document,$whatsit) = @_;
+    my $graphic_id = $document->getElement->getAttribute('xml:id');
+
+    my $node = $document->openElementAt($document->getDocument->getDocumentElement, 'ltx:keywords',
+                                        rel => 'pm:containsGraphic',resource => '#'.$graphic_id);
+    $document->closeElementAt($node);
+  },
   properties=> sub {
     my $src = $graphicURL.ToString($_[2]);
     $src .= '.png' unless ($src =~ /\.(\w{3})$/);
