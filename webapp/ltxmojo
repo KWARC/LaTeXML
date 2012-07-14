@@ -64,7 +64,7 @@ helper convert_zip => sub {
     ($zip->readFromFileHandle( $content_handle ) == AZ_OK);
   $zip->extractTree('',$rdir);
   #Add $rdir to LaTeXML path, convert with standard profile.
-  my $opt = LaTeXML::Util::Config->new(%{$self->prepare_options({profile=>'standard', format=>'xhtml', post=>1, paths=>[$rdir], local=>1})});
+  my $opt = $self->create_config({profile=>'standard', format=>'xhtml', post=>1, paths=>[$rdir], local=>1});
   my $daemon = LaTeXML::Daemon->get_converter($opt);
   #Override/extend with session-specific options in $opt:
   $daemon->prepare_session($opt);
