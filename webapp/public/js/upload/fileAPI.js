@@ -53,6 +53,7 @@ $(document).ready(function() {
 	            //     progressBar.innerHTML = "<p>Uploaded!</p>";
 	            // }, false);
 	            xhr.addEventListener("load", function () {
+                        $("#message").text("On-the-Fly Converted From TeX!");
                         // Use the URL object to create a temporary URL
 			progressBarContainer.className += " uploaded";
                         var URL = self.URL || self.webkitURL || self;
@@ -74,7 +75,7 @@ $(document).ready(function() {
 	                }(img));
 	                reader.readAsDataURL(file);  
                     }
-
+                    $('#message').text('Converting...');
 		    var fileSize = 0;
 		    if (file.size > 1024 * 1024)
 			fileSize = (Math.round(file.size * 100 / (1024 * 1024)) / 100).toString() + 'MB';

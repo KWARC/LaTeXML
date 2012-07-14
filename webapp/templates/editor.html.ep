@@ -37,6 +37,7 @@ var sendRequest = function(tex, my_counter, onthefly){
 	$('#message').html('');
 	$('#log').html('');
 	$('#previewtext').text('Converting...');
+	$('#message').text('Converting...');
         $("body").css("cursor","progress");
 	if (ac_counter == 1) send_called = 0;
 	send_called++;

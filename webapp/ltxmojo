@@ -187,6 +187,13 @@ helper convert_string => sub {
   }
 };
 
+
+################################################
+##                                            ##
+##              ROUTES                        ##
+##                                            ##
+################################################
+
 post '/convert' => sub {
   my $self = shift;
   my $type = $self->req->headers->header('x-file-type');
