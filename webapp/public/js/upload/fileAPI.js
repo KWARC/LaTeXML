@@ -53,7 +53,7 @@ $(document).ready(function() {
 	            //     progressBar.innerHTML = "<p>Uploaded!</p>";
 	            // }, false);
 	            xhr.addEventListener("load", function () {
-                        $("#message").text("On-the-Fly Converted From TeX!");
+                        $("#message").text("Converted from TeX On-the-Fly!");
                         // Use the URL object to create a temporary URL
 			progressBarContainer.className += " uploaded";
                         var URL = self.URL || self.webkitURL || self;
