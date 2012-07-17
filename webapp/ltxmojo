@@ -142,25 +142,31 @@ helper create_config => sub {
 };
 
 helper convert_string => sub {
-  my ($self) = @_;
-  my $param = $self->req->body_params;
-  #TODO: Make sure lists go to array refs, etc.
+  my ($self) = @_;  
   my ($source,$is_jsonp);
-  my $opts={};
-  foreach my $key($param->param) {
-    my $value = $param->param($key);
-    # Ugh, disallow 'null' as a value!!! (TODO: Smarter fix??)
-    $value = '' if ($value && ($value  eq 'null'));
+  my $get_params = $self->req->url->query->params || [];
+  my $post_params = $self->req->body_params->params || [];
+  if (scalar(@$post_params) == 1) {
+    $source = $post_params->[0];
+    $post_params=[];
+  } elsif ((scalar(@$post_params) == 2) && ($post_params->[0] !~ /^tex|source$/)) {
+    $source = $post_params->[0].$post_params->[1];
+    $post_params=[];
+  }
+  my $opts = { @$get_params, @$post_params };
+  # Ugh, disallow 'null' as a value!!! (TODO: Smarter fix??)
+  foreach my $key(keys %$opts) {
+    $opts->{$key} = '' if ($opts->{$key} && ($opts->{$key}  eq 'null'));
     # JSONP ?
     if ($key eq 'jsonp') {
-      $is_jsonp = $value; next;
+      $is_jsonp = $opts->{$key};
+      next;
     } elsif ($key =~ /^(tex)|(source)$/) {
       # TeX is data, separate
-      $source = $value;  next;
+      $source = $opts->{$key} unless defined $source;
+      next;
     }
-    $opts->{$key}=$value;
-  };
-
+  }
   my $config = $self->create_config($opts);
   # We now have a LaTeXML config object - $config.
   my $daemon = LaTeXML::Daemon->get_converter($config);
