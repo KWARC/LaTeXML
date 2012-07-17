@@ -92,8 +92,12 @@ sub input {
   }
   elsif(($type ne 'tex') && ($path =~ /\.(tex|pool|sty|cls|clo|cnf|cfg|ldf|def|dfu)$/)){ # (attempt to) interpret a style file.
     return if $STATE->lookupValue($name.'.'.$type.'_loaded');
+    if (! $STATE->lookupValue('ALLOWED_IO')) {
+      Error(":unexpected:$path IO disallowed! Skipping loading file...");
+      return;
+    }
     if(! ($options{raw} || $STATE->lookupValue('INCLUDE_STYLES')
-	 || ($path =~ /(\.ldf|enc\.def)$/) )){
+	 || ($path =~ /(\.ldf|enc\.def)$/)) ){
       Warn(":unexpected:$path Ignoring style file $path");
       return; }
     $STATE->assignValue($name.'.'.$type.'_loaded'=>1,'global');
@@ -102,6 +106,10 @@ sub input {
     else {
       $self->openMouth(LaTeXML::StyleMouth->new($path), 0);  }}
   else {			# Else read as an included file.
+    if (! $STATE->lookupValue('ALLOWED_IO')) {
+      Error(":unexpected:$path IO disallowed! Skipping loading file...");
+      return;
+    }
     # If there is a file-specific declaration file (name.latexml), load it first!
     my $file = $path;
     $file =~ s/\.tex//;
