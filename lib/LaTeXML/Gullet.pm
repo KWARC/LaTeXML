@@ -92,7 +92,7 @@ sub input {
   }
   elsif(($type ne 'tex') && ($path =~ /\.(tex|pool|sty|cls|clo|cnf|cfg|ldf|def|dfu)$/)){ # (attempt to) interpret a style file.
     return if $STATE->lookupValue($name.'.'.$type.'_loaded');
-    if (! $STATE->lookupValue('ALLOWED_IO')) {
+    if ($STATE->lookupValue('FORBIDDEN_IO')) {
       Error(":unexpected:$path IO disallowed! Skipping loading file...");
       return;
     }
@@ -106,7 +106,7 @@ sub input {
     else {
       $self->openMouth(LaTeXML::StyleMouth->new($path), 0);  }}
   else {			# Else read as an included file.
-    if (! $STATE->lookupValue('ALLOWED_IO')) {
+    if ($STATE->lookupValue('FORBIDDEN_IO')) {
       Error(":unexpected:$path IO disallowed! Skipping loading file...");
       return;
     }

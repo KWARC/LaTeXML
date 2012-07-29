@@ -616,7 +616,7 @@ sub new_latexml {
   $latexml->withState(sub {
                         my($state)=@_;
                         $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
-			$state->assignValue(ALLOWED_IO=>$opts->{local});
+			$state->assignValue(FORBIDDEN_IO=>(!$opts->{local}));
                       });
 
   # TODO: Do again, need to do this in a GOOD way as well:

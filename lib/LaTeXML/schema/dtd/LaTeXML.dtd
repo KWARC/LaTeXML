@@ -674,7 +674,7 @@
   omcd CDATA #IMPLIED
   scriptpos CDATA #IMPLIED
   thickness CDATA #IMPLIED
-  fracstyle (display|text|script|scriptscript|inline) #IMPLIED>
+  mathstyle (display|text|script|scriptscript|inline) #IMPLIED>
 
 <!ELEMENT ns1:XMApp (ns1:XMApp|ns1:XMTok|ns1:XMRef|ns1:XMHint|ns1:XMArg
                      |ns1:XMWrap|ns1:XMDual|ns1:XMText|ns1:XMArray)*>
@@ -847,8 +847,8 @@
   xml:id ID #IMPLIED
   name CDATA #IMPLIED
   meaning CDATA #IMPLIED
-  style CDATA #IMPLIED
-  vattach (top|bottom) #IMPLIED
+  omcd CDATA #IMPLIED
+  vattach (top|middle|bottom) #IMPLIED
   width CDATA #IMPLIED>
 
 <!ELEMENT ns1:XMRow (ns1:XMCell)*>
@@ -864,7 +864,7 @@
   class NMTOKENS #IMPLIED
   prefix CDATA #IMPLIED
   colspan CDATA #IMPLIED
-  rowpan CDATA #IMPLIED
+  rowspan CDATA #IMPLIED
   align CDATA #IMPLIED
   width CDATA #IMPLIED
   border CDATA #IMPLIED

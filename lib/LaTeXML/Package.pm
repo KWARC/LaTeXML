@@ -715,7 +715,7 @@ sub DefConstructorI {
 # If the $presentation seems to be TeX (ie. it involves #1... but not ONLY!)
 our $math_options = {name=>1, meaning=>1, omcd=>1, reversion=>1, alias=>1,
 		     role=>1, operator_role=>1, reorder=>1, dual=>1,
-		     fracstyle=>1, font=>1,
+		     mathstyle=>1, font=>1,
 		     scriptpos=>1,operator_scriptpos=>1,
 		     beforeDigest=>1, afterDigest=>1, scope=>1, nogroup=>1,locked=>1};
 our $XMID=0;
@@ -763,7 +763,7 @@ sub DefMathI {
   $name = undef if (defined $name)
     && (($name eq $presentation) || ($name eq '')
 	|| ((defined $meaning) && ($meaning eq $name)));
-  my $attr="name='#name' meaning='#meaning' omcd='#omcd' fracstyle='#fracstyle'";
+  my $attr="name='#name' meaning='#meaning' omcd='#omcd' mathstyle='#mathstyle'";
   $options{role} = 'UNKNOWN'
     if ($nargs == 0) && !defined $options{role};
   $options{operator_role} = 'UNKNOWN'
@@ -798,7 +798,7 @@ sub DefMathI {
 			      omcd=>$options{omcd},
 			      role => $options{role},
 			      operator_role=>$options{operator_role},
-			      fracstyle=>$options{fracstyle},
+			      mathstyle=>$options{mathstyle},
 			      scriptpos=>$options{scriptpos},
 			      operator_scriptpos=>$options{operator_scriptpos}},
 	       scope=>$options{scope});
@@ -815,7 +815,14 @@ sub DefMathI {
   #   \cs@presentation macro that expands into code in the presentation branch.
 ###  if((ref $presentation eq 'CODE')
 ###     || ((ref $presentation) && grep($_->equals(T_PARAM),$presentation->unlist))
-  if((ref $presentation) || ($presentation =~ /\#\d|\\./)){
+###  if((ref $presentation) || ($presentation =~ /\#\d|\\./)){
+  # OK, this is getting a bit out-of-hand; I can't, myself, predict whether XMDual gets involved!
+  # The basic distinction seems to be whether the arguments are explicitly involved
+  # in the presentation form;
+  # This excludes (at least?) (OVER|UNDER)ACCENT's
+  if((ref $presentation eq 'CODE')
+     || ((ref $presentation) && grep($_->equals(T_PARAM),$presentation->unlist))
+     || (!(ref $presentation) && ($presentation =~ /\#\d|\\./))){
     my $cont_cs = T_CS($csname."\@content");
     my $pres_cs = T_CS($csname."\@presentation");
     # Make the original CS expand into a DUAL invoking a presentation macro and content constructor
@@ -845,7 +852,9 @@ sub DefMathI {
 	  ."</ltx:XMApp>"),
       %common), $options{scope}); }
   else {
-    my $end_tok = (defined $presentation ? ">$presentation</ltx:XMTok>" : "/>");
+    # do we need to do anything about digesting the presentation?
+    # do we need to 
+    my $end_tok = (defined $presentation ? '>'.ToString($presentation).'</ltx:XMTok>' : "/>");
     $common{properties}{font} = sub { LookupValue('font')->specialize($presentation); };
     $STATE->installDefinition(LaTeXML::Constructor->new($cs,$paramlist,
          ($nargs == 0 

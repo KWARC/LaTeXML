@@ -1484,7 +1484,7 @@ DefRegister('\mathindent' =>Dimension(0));
 # Underlying support in TeX.pool.ltxml
 DefConstructor('\frac{}{}',
 	       "<ltx:XMApp>"
-	       . "<ltx:XMTok meaning='divide' role='MULOP' fracstyle='#fracstyle'/>"
+	       . "<ltx:XMTok meaning='divide' role='MULOP' mathstyle='#mathstyle'/>"
 	       . "<ltx:XMArg>#1</ltx:XMArg><ltx:XMArg>#2</ltx:XMArg>"
 	       ."</ltx:XMApp>",
 	       beforeDigest=>\&beforeFrac, afterDigest =>\&afterFrac);
@@ -1511,8 +1511,8 @@ DefConstructor('\frac{}{}',
 DefConstructor('\stackrel{}{}',
 	       "<ltx:XMApp role='RELOP'>"
 	       .  "<ltx:XMTok role='SUPERSCRIPTOP' scriptpos='#scriptpos'/>"
-	       .  "<ltx:XMWrap>#2</ltx:XMWrap>"
-	       .  "<ltx:XMWrap>#1</ltx:XMWrap>"
+	       .  "<ltx:XMArg>#2</ltx:XMArg>"
+	       .  "<ltx:XMArg>#1</ltx:XMArg>"
 	       ."</ltx:XMApp>",
 	       properties=>{scriptpos=>sub{ "mid".$_[0]->getBoxingLevel; }}
 );
@@ -2869,7 +2869,7 @@ DefMacro('\fbox{}','\@@framebox{}{}{#1}');
 DefMacro('\framebox','\@ifnextchar(\pic@framebox\@framebox');
 DefMacro('\@framebox[Dimension][]{}','\@@framebox{#1}{#2}{#3}');
 DefConstructor('\@@framebox{}{}{}',
-	       "?#mathframe(<ltx:XMWrap enclose='box'>#inner</ltx:XMWrap>)"
+	       "?#mathframe(<ltx:XMArg enclose='box'>#inner</ltx:XMArg>)"
 	       .  "(<ltx:inline-block ?#1(width='#1') ?#align(align='#align') framed='rectangle' _noautoclose='1'>#3</ltx:inline-block>)",
 #	       mode=>'text',
 	       beforeDigest=>sub {
@@ -3461,9 +3461,10 @@ DefPrimitiveI('\braceru',undef,"\x{239E}");#   right brace up part
 
 DefMathI('\cdotp',      undef,"\x{22C5}", role=>'MULOP');
 DefMathI('\ldotp',      undef,".",        role=>'MULOP');
-DefMathI('\intop',      undef,"\x{222B}", role=>'INTOP', scriptpos=>\&doScriptpos, meaning=>'integral');
-DefMathI('\ointop',     undef,"\x{222E}", role=>'INTOP', scriptpos=>\&doScriptpos, meaning=>'contour-integral');
-
+DefMathI('\intop',      undef,"\x{222B}", role=>'INTOP', meaning=>'integral',
+	 scriptpos=>\&doScriptpos, mathstyle=>\&doVariablesizeOp);
+DefMathI('\ointop',     undef,"\x{222E}", role=>'INTOP', meaning=>'contour-integral',
+	 scriptpos=>\&doScriptpos, mathstyle=>\&doVariablesizeOp);
 # WHat are these? They look like superscripted parentheses, or combining accents!
 # \lhook
 # \rhook
