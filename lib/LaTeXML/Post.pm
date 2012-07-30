@@ -482,6 +482,10 @@ sub addNamespace{
 
 sub getQName {
   my($self,$node)=@_;
+  if (! defined $node) { # Bootstrap -> undef should fail!
+    warn "LaTeXML::Post::getQName invoked on undefined XML Node!!";
+    return;
+  }
   my $nsuri = $node->namespaceURI;
   if(!$nsuri){			# No namespace at all???
     if($node->nodeType == XML_ELEMENT_NODE){
