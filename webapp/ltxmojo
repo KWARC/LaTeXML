@@ -54,6 +54,7 @@ helper rand_str => sub {
 
 helper convert_zip => sub {
   my ($self) = @_;
+
   my $rdir = '/tmp/' . $self->rand_str(6) . '/';
   mkdir $rdir;
   #.zip (can't support others for now)
@@ -62,11 +63,25 @@ helper convert_zip => sub {
   self->render(text=>"Archive is corrupt!") unless
     ($zip->readFromFileHandle( $content_handle ) == AZ_OK);
   $zip->extractTree('',$rdir);
-  #Add $rdir to LaTeXML path, convert with standard profile.
-  my $opt = $self->create_config({profile=>'standard', format=>'xhtml', post=>1, paths=>[$rdir], local=>1});
-  my $daemon = LaTeXML::Daemon->get_converter($opt);
+  # HTTP GET parameters hold the conversion options
+  my @all_params = @{ $self->req->url->query->params || [] };
+  my $opts=[];
+  # Ugh, disallow 'null' as a value!!! (TODO: Smarter fix??)
+  while (my ($key,$value) = splice(@all_params,0,2)) {
+    $value = '' if ($value && ($value  eq 'null'));
+    if ($key=~/local|path/) {
+      # You don't get to specify harddrive info in the web service
+      next;
+    }
+    push @$opts, ($key,$value);
+  }
+  push @$opts, ('local','');
+  push @$opts, ('paths',[$rdir]);
+
+  $opts = $self->create_config($opts);
+  my $daemon = LaTeXML::Daemon->get_converter($opts);
   #Override/extend with session-specific options in $opt:
-  $daemon->prepare_session($opt);
+  $daemon->prepare_session($opts);
   my $name = $self->req->headers->header('x-file-name');
   $name =~ s/\.zip//;
   #Send a request:
@@ -74,9 +89,9 @@ helper convert_zip => sub {
   if (defined $response) {
       my ($result, $status, $log) = map { $response->{$_} } qw(result status log);
       if ($result) {
-        my $destination = $opt->get('destination');
+        my $destination = $opts->get('destination');
         if (!$destination) {
-          my $ext = '.'.$opt->get('format')||'xml';
+          my $ext = '.'.$opts->get('format')||'xml';
           $destination = $rdir.$name.$ext;
         }
         open(OUT,">",$destination) or $self->render(text=>"Couldn't open output file ".$destination.": $!");
@@ -87,7 +102,7 @@ helper convert_zip => sub {
 	undef $daemon;
       }
       if ($log) {
-        my $logfile = $opt->get('log');
+        my $logfile = $opts->get('log');
         if (!$logfile) {
           my $ext = '.log';
           $logfile = $rdir.$name.$ext;
@@ -128,11 +143,10 @@ helper convert_zip => sub {
 helper create_config => sub {
   my ($self,$opts) = @_;
   my $cmdopts = [];
-  foreach my $key (keys %$opts) {
-    my $value=$opts->{$key};
+  while (my ($key,$value) = splice(@$opts,0,2)) {
     $value = $value ? "=$value" : '';
     next if ((!$value) && ($key =~ /^preamble|path|preload|profile|destination|postamble|base|bibliography|sitedirectory|sourcedirectory|format|mode|source|whatsin|whatsout|port|autoflush|timeout|log|inputencoding|stylesheet|css|debug|documentid/)); #TODO: How to bootstrap here to avoid preamble=&...?
-    push @$cmdopts, "--$key".$value;
+    push @$cmdopts, "--$key$value";
   }
   # Read into a Config object:
   my $config = LaTeXML::Util::Config->new;
@@ -153,19 +167,25 @@ helper convert_string => sub {
     $source = $post_params->[0].$post_params->[1];
     $post_params=[];
   }
-  my $opts = { @$get_params, @$post_params };
+  # We need to be careful to preserve the parameter order, so use arrayrefs
+  my @all_params = (@$get_params, @$post_params);
+  my $opts = [];
   # Ugh, disallow 'null' as a value!!! (TODO: Smarter fix??)
-  foreach my $key(keys %$opts) {
-    $opts->{$key} = '' if ($opts->{$key} && ($opts->{$key}  eq 'null'));
+  while (my ($key,$value) = splice(@all_params,0,2)) {
+    $value = '' if ($value && ($value  eq 'null'));
     # JSONP ?
     if ($key eq 'jsonp') {
-      $is_jsonp = $opts->{$key};
+      $is_jsonp = $value;
       next;
     } elsif ($key =~ /^(tex)|(source)$/) {
       # TeX is data, separate
-      $source = $opts->{$key} unless defined $source;
+      $source = $value unless defined $source;
+      next;
+    } elsif ($key=~/local|path/) {
+      # You don't get to specify harddrive info in the web service
       next;
     }
+    push @$opts, ($key,$value);
   }
   my $config = $self->create_config($opts);
   # We now have a LaTeXML config object - $config.
@@ -219,10 +239,11 @@ websocket '/convert' => sub {
   $self->on('message' => sub {
 	      my ($tx, $bytes) = @_;
 	      my $opt = {};
+	      #TODO: We want the options in the right order, is this Decode safe in this respect?
 	      $opt = $json->decode($bytes);
 	      my $source = $opt->{source}; delete $opt->{source};
 	      $source = $opt->{tex} unless defined $opt->{source}; delete $opt->{tex};
-	      my $config = $self->create_config($opt);
+	      my $config = $self->create_config([%$opt]);
 	      # We now have a LaTeXML options object - $opt.
 	      my $daemon = LaTeXML::Daemon->get_converter($config);
 	      #Override/extend with session-specific options in $opt:
