@@ -15,6 +15,8 @@ package LaTeXML::Package::Pool;
 use strict;
 use LaTeXML::Package;
 
+RequirePackage('webgraphic');
+
 # Metadata namespaces:
 my $pmbaseURI = "http://alpha.planetmath.org"; # Careful: Get the URI right before we publish LOD
 RegisterMetaNamespace('dct'=>'http://purl.org/dc/terms/');
