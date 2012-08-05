@@ -195,13 +195,13 @@ sub parse_rec {
     $$self{passed}{$tag}++;
    if($tag eq 'ltx:XMath'){	# Replace the content of XMath with parsed result
      NoteProgress('['.++$$self{n_parsed}.']');
-     map($node->removeChild($_),element_nodes($node));
-     XML_addNodes($node,$result);
+     map($document->removeNode($_),element_nodes($node));
+     $document->appendTree($node,$result);
      $result = [element_nodes($node)]->[0]; }
     else {			# Replace the whole node for XMArg, XMWrap; preserve some attributes
       NoteProgress($TAG_FEEDBACK{$tag}||'.') if $LaTeXML::Global::STATE->lookupValue('VERBOSITY') >= 1;
       $result = Annotate($result,map( ($_=>$node->getAttribute($_)), @preserve_xmwrap_attributes));
-      $result = XML_replaceNode($result,$node); }
+      $result = $document->replaceTree($result,$node); }
     $result; }
   else {
     $self->parse_kludge($node,$document);
@@ -222,13 +222,16 @@ sub parse_children {
     elsif($tag eq 'ltx:XMWrap'){
       local $LaTeXML::MathParser::STRICT=0;
       $self->parse_rec($child,'Anything',$document); }
+### A nice evolution would be to use the Kludge parser for
+### the presentation form in XMDual
+### This would avoid silly "parses" of non-semantic stuff; eg assuming times between tokens!
+### However, it needs some experimentation to match DLMF's enhancements
+####      $self->parse_children($child,$document);
+####      $self->parse_kludge($child,$document); }
     elsif($tag =~ /^ltx:(XMApp|XMArray|XMRow|XMCell)$/){
       $self->parse_children($child,$document); }
     elsif($tag eq 'ltx:XMDual'){
-      my($semantic,$presentation) = element_nodes($child);
-      $self->parse_children($semantic,$document);
-      $self->parse_kludge($presentation,$document); }
-}}
+      $self->parse_children($child,$document); }}}
 
 our $HINT_PUNCT_THRESHOLD = 10.0; # \quad or bigger becomes punctuation ?
 ###our $HINT_PUNCT_THRESHOLD = 100000.0; # \quad or bigger becomes punctuation ?
@@ -243,104 +246,32 @@ sub translate_hints {
     if(getQName($c) eq 'ltx:XMHint'){ # Is this a Hint node?
       if(my $width = $c->getAttribute('width')){ # Is it a spacing hint?
 	# Get the pts (combining w/any following spacing hints)
-	my $pts = ($width=~/^([\d\.\+\-]+)pt$/ ? $1 : 0);
+	my $pts = ($width=~/^([\d\.\+\-]+)pt(\s+plus\s+[\d\.]+pt)?(\s+minus\s+[\d\.]+pt)?$/? $1 : 0);
 	while(@children && (getQName($children[0]) eq 'ltx:XMHint') # Combine w/ more?
 	      && ($width = $c->getAttribute('width'))){
-	  $pts += $1 if $width=~/^([\d\.\+\-]+)pt$/;
-	  $node->removeChild(shift(@children)); } # and remove the extra hints
+	  $pts += $1 if $width=~/^([\d\.\+\-]+)pt(\s+plus\s+[\d\.]+pt)?(\s+minus\s+[\d\.]+pt)?$/;
+###	  $node->removeChild(shift(@children)); } # and remove the extra hints
+	  $document->removeNode(shift(@children)); } # and remove the extra hints
 	# A wide space, between Stuff, is likely acting like punctuation, so convert it
-	if($prev && scalar(@children) && ($pts >= $HINT_PUNCT_THRESHOLD)){
+	if($prev && (($prev->getAttribute('role')||'') ne 'PUNCT')
+	   && scalar(@children) && ($pts >= $HINT_PUNCT_THRESHOLD)){
 	  $c = $document->renameNode($c,'ltx:XMTok');
+	  $c->removeAttribute('width');
+	  $c->removeAttribute('height');   # ?
 	  $c->setAttribute(role=>'PUNCT');  # convert to punctuation!
 	  $c->appendText( "\x{2001}" x int($pts/10)); } # fill with quads?
 	else {
-	  $prev->setAttribute(rspace=>$pts.'pt') if $prev; # else copy to previous, if any
-	  $node->removeChild($c); } # and remove it (what else?)
+	  $prev->setAttribute(rspace=>$pts.'pt') if $pts && $prev; # else copy to previous, if any
+###	  $node->removeChild($c); } # and remove it (what else?)
+	  $document->removeNode($c); } # and remove it (what else?)
 	$prev = undef; }
       else {			# Non-spacing hint?
 	$prev = undef; # probably means there's no previous node to add spacing to?
-	$node->removeChild($c); }} # we'll just ignore it (what else?)
+###	$node->removeChild($c); }} # we'll just ignore it (what else?)
+	$document->removeNode($c); }} # we'll just ignore it (what else?)
     else {			   # Normal node?
       $prev = $c; }		# just note it to possibly add spacing
   }}
-
-#======================================================================
-# Candidates for Common::XML ?
-sub XML_replaceNode {
-  my($new,$old)=@_;
-  my $parent = $old->parentNode;
-  my @following = ();		# Collect the matching and following nodes
-  while(my $sib = $parent->lastChild){
-    $parent->removeChild($sib);
-    last if $$sib == $$old;
-    unshift(@following,$sib); }
-  XML_addNodes($parent,$new);
-  my $inserted = $parent->lastChild;
-  map($parent->appendChild($_),@following); # No need for clone
-  $inserted; }
-
-##### DAMN!!!
-# append_nodes in Common::XML does _NOT_ interpret the array representation!
-# That code is currently only in Post!
-
-# This is a copy from Post::Document
-my %sortalias =(open=>'zbopen',close=>'zclose',
-		argopen=>'zzzzopen',argclose=>'zzzzclose', separators=>'zzzzseparators',
-		scriptpos=>'zzzscriptpos');
-sub XML_addNodes {
-  my($node,@data)=@_;
-  foreach my $child (@data){
-    if(ref $child eq 'ARRAY'){
-      my($tag,$attributes,@children)=@$child;
-      my($prefix,$localname)= $tag =~ /^(.*):(.*)$/;
-      my $nsuri = $prefix && $LaTeXML::MathParser::DOCUMENT->getModel->getNamespace($prefix);
-      warn "No namespace on $tag" unless $nsuri;
-      my $new = $node->addNewChild($nsuri,$localname);
-      if($attributes){
-###	foreach my $key (keys %$attributes){
-	foreach my $key (sort {($sortalias{$a}||$a) cmp ($sortalias{$b}||$b)} keys %$attributes){
-	  next unless defined $$attributes{$key};
-	  my($attrprefix,$attrname)= $key =~ /^(.*):(.*)$/;
-	  my $value = $$attributes{$key};
-	  if($key eq 'xml:id'){	# Ignore duplicated IDs!!!
-#	    if(!defined $$self{idcache}{$value}){
-#	      $$self{idcache}{$value} = $new;
-	      $new->setAttribute($key, $value); }#}
-	  elsif($attrprefix && ($attrprefix ne 'xml')){
-	    my $attrnsuri = $attrprefix && $LaTeXML::MathParser::DOCUMENT->getModel->getNamespace($attrprefix);
-	    $new->setAttributeNS($attrnsuri,$key, $$attributes{$key}); }
-	  else {
-	    $new->setAttribute($key, $$attributes{$key}); }
-	}}
-      XML_addNodes($new,@children); }
-    elsif((ref $child) =~ /^XML::LibXML::/){
-      my $type = $child->nodeType;
-      if($type == XML_ELEMENT_NODE){
-	my $new = $node->addNewChild($child->namespaceURI,$child->localname);
-	foreach my $attr ($child->attributes){
-	  my $atype = $attr->nodeType;
-	  if($atype == XML_ATTRIBUTE_NODE){
-	    my $key = $attr->nodeName;
-	    if($key eq 'xml:id'){
-	      my $value = $attr->getValue;
-#	      if(!defined $$self{idcache}{$value}){
-#		$$self{idcache}{$value} = $new;
-		$new->setAttribute($key, $value); }#}
-	    elsif(my $ns = $attr->namespaceURI){
-	      $new->setAttributeNS($ns,$attr->name,$attr->getValue); }
-	    else {
-	      $new->setAttribute( $attr->localname,$attr->getValue); }}
-	}
-	XML_addNodes($new, $child->childNodes); }
-      elsif($type == XML_DOCUMENT_FRAG_NODE){
-	XML_addNodes($node,$child->childNodes); }
-      elsif($type == XML_TEXT_NODE){
-	$node->appendTextNode($child->textContent); }
-    }
-    elsif(ref $child){
-      warn "Dont know how to add $child to $node; ignoring"; }
-    elsif(defined $child){
-      $node->appendTextNode($child); }}}
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Low-Level hack parsing when "real" parsing fails;
@@ -376,8 +307,11 @@ sub parse_kludge {
       push(@{$stack[0]}, $pair); }} # Otherwise, just put this item into current row.
 
   # If we got to here, remove the nodes and replace them by the kludged structure.
-  map($mathnode->removeChild($_),@nodes);
-  XML_addNodes($mathnode,$stack[0][0][0]); }
+  map($document->removeNode($_),@nodes);
+  my $kludge = $stack[0][0][0];
+  $document->appendTree($mathnode,
+	       (ref $kludge eq 'ARRAY') && ($$kludge[0] eq 'ltx:XMWrap')
+	       ? @$kludge[2..$#$kludge] : ($kludge)); }
 
 sub parse_kludgeScripts_rec {
   my($self,$a,$b,@more)=@_;
@@ -392,6 +326,62 @@ sub parse_kludgeScripts_rec {
     $self->parse_kludgeScripts_rec([NewScript($$a[0],$$b[0]),''],@more); }
   else {
     ($$a[0],$self->parse_kludgeScripts_rec($b,@more)); }}
+
+# sub parse_kludge {
+#   my($self,$mathnode,$document)=@_;
+#   $self->translate_hints($document,$mathnode);
+#   my @nodes = element_nodes($mathnode);
+#   map($mathnode->removeChild($_),@nodes);
+#   my @result=();
+#   while(@nodes){
+#     @nodes = $self->parse_kludge_rec(@nodes);
+#     push(@result,shift(@nodes)); }
+#   $document->appendTree($mathnode,@result); }
+
+# # Kludge Parse the next thing, and then add any following scripts to it.
+# sub parse_kludge_rec {
+#   my($self,@more)=@_;
+#   my($item,$open,$close,$seps,$arg);
+#   ($item,@more) = $self->parse_kludge_reca(@more);
+#   while(@more && (($self->getGrammaticalRole($more[0])||'') =~ /^POST(SUB|SUPER)SCRIPT$/)){
+#     $item = NewScript($item,shift(@more)); }
+#   if(@more && (($self->getGrammaticalRole($more[0])||'') eq 'APPLYOP')){
+#     shift(@more);
+#     if(@more && (($self->getGrammaticalRole($more[0])||'') eq 'OPEN')){
+#       ($open,$close,$seps,$arg,@more)=$self->parse_kludge_fence(@more);
+#       $item = Apply(Annotate($item,argopen=>$open, argclose=>$close, separators=>$seps),@$arg); }
+#     else {
+#       ($arg,@more)=$self->parse_kludge_rec(@more);
+#       $item = Apply($item,$arg); }}
+#   ($item,@more); }
+
+# sub parse_kludge_reca {
+#   my($self,$next,@more)=@_;
+#   my $role = $self->getGrammaticalRole($next);
+#   if($role =~ /^FLOAT(SUB|SUPER)SCRIPT$/){
+#     my($base,@rest) = $self->parse_kludge_rec(@more);
+#     (NewScript($base,$next),@rest); }
+#   elsif($role eq 'OPEN'){
+#     my($open,$close,$seps,$list,@more)=$self->parse_kludge_fence($next,@more);
+#     (Apply(Annotate(New(undef,undef,role=>'FENCED'),
+# 		    argopen=>$open, argclose=>$close, separators=>$seps),@$list), @more); }
+#   else {
+#     ($next,@more); }}
+
+# sub parse_kludge_fence {
+#   my($self,$next,@more)=@_;
+#   my($open,$close,$punct,$r,$item,@list)=($next,undef,'',undef);
+#   while(@more){
+#     my @i=();
+#     while(@more && (($r=($self->getGrammaticalRole($more[0])||'')) !~ /^(CLOSE|PUNCT)$/)){
+#       ($item,@more)=$self->parse_kludge_rec(@more);
+#       push(@i,$item); }
+#     push(@list,(scalar(@i > 1) ? ['ltx:XMWrap',{},@i] : $i[0]));
+#     if($r eq 'CLOSE'){
+#       $close=shift(@more); last; }
+#     else {
+#       $punct .= ($punct ? ' ':''). p_getValue(shift(@more)); }} # Delimited by SINGLE SPACE!
+#   ($open,$close,$punct,[@list],@more); }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Low-level Parser: parse a single expression
@@ -712,12 +702,14 @@ sub New {
   foreach my $key (sort keys %attributes){
     my $value = p_getValue($attributes{$key});
     $attr{$key}=$value if defined $value; }
+  if(!$attr{font}){
+    $attr{font}=($content && $content=~/\S/ ? $DEFAULT_FONT->specialize($content) : LaTeXML::MathFont->new());}
   ['ltx:XMTok',{%attr}, ($content ? ($content):())]; }
 
 # Some handy shorthands.
 sub Absent { New('absent'); }
-sub InvisibleTimes { New('times',"\x{2062}", role=>'MULOP'); }
-sub InvisibleComma { New(undef,"\x{2063}", role=>'PUNCT'); }
+sub InvisibleTimes { New('times',"\x{2062}", role=>'MULOP',font=>LaTeXML::MathFont->new()); }
+sub InvisibleComma { New(undef,"\x{2063}", role=>'PUNCT',font=>LaTeXML::MathFont->new()); }
 
 # Get n-th arg of an XMApp.
 # However, this is really only used to get the script out of a sub/super script
