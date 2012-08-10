@@ -1,0 +1,38 @@
+#  An RelaxNG schema Zentralblatt with LaTeXML
+# $Id: zbl+ltxml.rnc 1503 2010-04-14 19:38:14Z deyan $
+# $HeadURL: https://kwarc.eecs.iu-bremen.de/repos/arXMLiv/corpora/zbl/rnc/zbl+ltxml.rnc $
+#   (c) 2010 Michael Kohlhase, released under the GNU Public License (GPL)
+
+default namespace zbl="http://zentralblatt.org" 
+
+## we allow the objects we cannot directly generate in texts
+inline =  grammar {include "urn:x-LaTeXML:schemas:LaTeXML.rnc" {start = Inline.model}}
+flow =  grammar {include "urn:x-LaTeXML:schemas:LaTeXML.rnc" {start = Flow.model}}
+
+## TODO:
+# 1. Allow <ltx:item> in <zbl:body>
+# Entry: ../corpus/12/122/1151.30035.log
+# 2. Allow <ltx:p> in <ltx:XMArg> ???
+# Entry: ../corpus/12/119/1159.34338.log
+
+
+document = element document {title,mathics*,review,language,class,keywords,doctype}
+mathics = element mathics {number,title,matverw,(zwigeb|review)*}
+zwigeb = element zwigeb {number,title,review*}
+review = element review {number,author,title,published,body,reviewer}
+matverw = element matverw{number,numbers}
+
+number = element number {inline}
+title = element title {flow} 
+body = element body {flow} 
+
+reviewer = element reviewer {text} 
+author = element author {text} 
+published = element published {text}
+numbers= element numbers {text}
+language = element language {text}
+class = element class {text}
+keywords = element keywords {inline}
+doctype = element doctype {text}
+
+start = document

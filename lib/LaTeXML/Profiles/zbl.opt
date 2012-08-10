@@ -1,0 +1,11 @@
+comments =
+post =
+whatsin = fragment
+whatsout = document
+timeout = 120
+format = xhtml
+pmml =
+cmml =
+stylesheet = ../xsl/zbl2html.xsl
+preload = zbl.cls
+preload = ids.sty

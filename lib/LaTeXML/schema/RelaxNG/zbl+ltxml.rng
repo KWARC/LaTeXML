@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   An RelaxNG schema Zentralblatt with LaTeXML
+  $Id: zbl+ltxml.rnc 1503 2010-04-14 19:38:14Z deyan $
+  $HeadURL: https://kwarc.eecs.iu-bremen.de/repos/arXMLiv/corpora/zbl/rnc/zbl+ltxml.rnc $
+    (c) 2010 Michael Kohlhase, released under the GNU Public License (GPL)
+-->
+<grammar ns="http://zentralblatt.org" xmlns:zbl="http://zentralblatt.org" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+  <define name="inline">
+    <a:documentation>we allow the objects we cannot directly generate in texts</a:documentation>
+    <grammar>
+      <include href="LaTeXML.rng">
+        <start>
+          <ref name="Inline.model"/>
+        </start>
+      </include>
+    </grammar>
+  </define>
+  <define name="flow">
+    <grammar>
+      <include href="LaTeXML.rng">
+        <start>
+          <ref name="Flow.model"/>
+        </start>
+      </include>
+    </grammar>
+  </define>
+  <!--
+    1. Allow <ltx:item> in <zbl:body>
+    Entry: ../corpus/12/122/1151.30035.log
+    2. Allow <ltx:p> in <ltx:XMArg> ???
+    Entry: ../corpus/12/119/1159.34338.log
+  -->
+  <define name="document">
+    <a:documentation>TODO:</a:documentation>
+    <element name="document">
+      <ref name="title"/>
+      <zeroOrMore>
+        <ref name="mathics"/>
+      </zeroOrMore>
+      <ref name="review"/>
+      <ref name="language"/>
+      <ref name="class"/>
+      <ref name="keywords"/>
+      <ref name="doctype"/>
+    </element>
+  </define>
+  <define name="mathics">
+    <element name="mathics">
+      <ref name="number"/>
+      <ref name="title"/>
+      <ref name="matverw"/>
+      <zeroOrMore>
+        <choice>
+          <ref name="zwigeb"/>
+          <ref name="review"/>
+        </choice>
+      </zeroOrMore>
+    </element>
+  </define>
+  <define name="zwigeb">
+    <element name="zwigeb">
+      <ref name="number"/>
+      <ref name="title"/>
+      <zeroOrMore>
+        <ref name="review"/>
+      </zeroOrMore>
+    </element>
+  </define>
+  <define name="review">
+    <element name="review">
+      <ref name="number"/>
+      <ref name="author"/>
+      <ref name="title"/>
+      <ref name="published"/>
+      <ref name="body"/>
+      <ref name="reviewer"/>
+    </element>
+  </define>
+  <define name="matverw">
+    <element name="matverw">
+      <ref name="number"/>
+      <ref name="numbers"/>
+    </element>
+  </define>
+  <define name="number">
+    <element name="number">
+      <ref name="inline"/>
+    </element>
+  </define>
+  <define name="title">
+    <element name="title">
+      <ref name="flow"/>
+    </element>
+  </define>
+  <define name="body">
+    <element name="body">
+      <ref name="flow"/>
+    </element>
+  </define>
+  <define name="reviewer">
+    <element name="reviewer">
+      <text/>
+    </element>
+  </define>
+  <define name="author">
+    <element name="author">
+      <text/>
+    </element>
+  </define>
+  <define name="published">
+    <element name="published">
+      <text/>
+    </element>
+  </define>
+  <define name="numbers">
+    <element name="numbers">
+      <text/>
+    </element>
+  </define>
+  <define name="language">
+    <element name="language">
+      <text/>
+    </element>
+  </define>
+  <define name="class">
+    <element name="class">
+      <text/>
+    </element>
+  </define>
+  <define name="keywords">
+    <element name="keywords">
+      <ref name="inline"/>
+    </element>
+  </define>
+  <define name="doctype">
+    <element name="doctype">
+      <text/>
+    </element>
+  </define>
+  <start>
+    <ref name="document"/>
+  </start>
+</grammar>
