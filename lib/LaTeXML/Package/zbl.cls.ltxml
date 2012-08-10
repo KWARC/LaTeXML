@@ -1,0 +1,170 @@
+# -*- CPERL -*-
+# /=======================================================\ #
+# |  zbl.cls - Implementation for LaTeXML                 | #
+# |                                                       | #
+# |=======================================================| #
+# | Not Part of LaTeXML : http://dlmf.nist.gov/LaTeXML/   | #
+# | Copyright (c) 2006 arXMLiv group                      | #
+# | Released under the GNU Public License                 | #
+# \=======================================================/ #
+
+package LaTeXML::Package::Pool;
+use strict;
+use LaTeXML::Package;
+LoadClass('article');
+LoadPool('LaTeX');
+LoadPool('AmSTeX');
+RequirePackage('amsbsy');
+RequirePackage('amsopn');
+RequirePackage('amsrefs');
+RequirePackage('amssymb');
+RequirePackage('amstext');
+RequirePackage('amsthm');
+RequirePackage('url');
+
+
+RegisterNamespace('zbl'=>"http://zentralblatt.org");
+RegisterNamespace('m'=>"http://www.w3.org/1998/Math/MathML");
+RelaxNGSchema('zbl+ltxml',
+	      '#default'=>"http://zentralblatt.org",
+	      'ltx'=>"http://dlmf.nist.gov/LaTeXML",
+	      'm'=>"http://www.w3.org/1998/Math/MathML");
+
+DefConstructor('\volume {}',"<zbl:title>Zentralblatt Math Volume #1</zbl:title>\n");
+
+DefEnvironment('{document}','<zbl:document>#body</zbl:document>',
+       beforeDigest=> sub { AssignValue(inPreamble=>0); },
+       afterDigest=> sub { $_[0]->getGullet->flush; return; });
+
+DefConstructor('\aunotiso {} {} {} {}',
+	       "<zbl:review>\n"
+	       . "<zbl:number>#1</zbl:number>\n"
+	       . "<zbl:author>#2</zbl:author>\n"
+	       . "<zbl:title>#3</zbl:title>\n"
+	       . "<zbl:published>#4</zbl:published>\n");
+DefConstructor('\beginreview',"<zbl:body>");
+DefConstructor('\endreview {}',"</zbl:body>\n"
+	                       . "<zbl:reviewer>#1</zbl:reviewer>\n"
+	                     . "</zbl:review>\n\n");
+DefConstructor('\matdend','');
+
+Tag('zbl:mathics', autoClose=>1);
+Tag('zbl:zwigeb', autoClose=>1);
+
+DefConstructor('\zwigeb {} {}',
+	       "<zbl:zwigeb>\n"
+               . "<zbl:number>#1</zbl:number>\n"
+	       . "<zbl:title>#2</zbl:title>\n");
+DefConstructor('\mathics {} {}',
+	       "<zbl:mathics>\n"
+               . "<zbl:number>#1</zbl:number>\n"
+	       . "<zbl:title>#2</zbl:title>\n");
+DefConstructor('\matverw {} {}',
+	       "<zbl:matverw>\n"
+               . "<zbl:number>#1</zbl:number>\n"
+	       . "<zbl:numbers>#2</zbl:numbers>\n"
+	     . "</zbl:matverw>");
+
+################ some extra features to utilize all metadata ####
+# Is there other functionality for this?
+DefConstructor('\keywords{}', "<zbl:keywords>#1</zbl:keywords>");
+DefConstructor('\language{}', "<zbl:language>#1</zbl:language>");
+DefConstructor('\class{}', "<zbl:class>#1</zbl:class>");
+DefConstructor('\doctype{}', "<zbl:doctype>#1</zbl:doctype>");
+
+################ the stuff from mercedes.tex ################ 
+
+
+RawTeX('\def\bbfA{{\Bbb A}}');
+RawTeX('\def\bbfB{{\Bbb B}}');
+RawTeX('\def\bbfC{{\Bbb C}}');
+RawTeX('\def\bbfD{{\Bbb D}}');
+RawTeX('\def\bbfE{{\Bbb E}}');
+RawTeX('\def\bbfF{{\Bbb F}}');
+RawTeX('\def\bbfG{{\Bbb G}}');
+RawTeX('\def\bbfH{{\Bbb H}}');
+RawTeX('\def\bbfI{{\Bbb I}}');
+RawTeX('\def\bbfJ{{\Bbb J}}');
+RawTeX('\def\bbfK{{\Bbb K}}');
+RawTeX('\def\bbfL{{\Bbb L}}');
+RawTeX('\def\bbfM{{\Bbb M}}');
+RawTeX('\def\bbfN{{\Bbb N}}');
+RawTeX('\def\bbfO{{\Bbb O}}');
+RawTeX('\def\bbfP{{\Bbb P}}');
+RawTeX('\def\bbfQ{{\Bbb Q}}');
+RawTeX('\def\bbfR{{\Bbb R}}');
+RawTeX('\def\bbfS{{\Bbb S}}');
+RawTeX('\def\bbfT{{\Bbb T}}');
+RawTeX('\def\bbfU{{\Bbb U}}');
+RawTeX('\def\bbfV{{\Bbb V}}');
+RawTeX('\def\bbfW{{\Bbb W}}');
+RawTeX('\def\bbfX{{\Bbb X}}');
+RawTeX('\def\bbfY{{\Bbb Y}}');
+RawTeX('\def\bbfZ{{\Bbb Z}}');
+
+RawTeX('\def\Algebraics{\Bbb A}');
+RawTeX('\def\Booleans{\Bbb B}');
+RawTeX('\def\ComplexPlane{\Bbb C}');
+RawTeX('\def\UnitDisc{\Bbb D}');
+RawTeX('\def\FiniteField{\Bbb F}');
+RawTeX('\def\Quaternions{\Bbb H}');
+RawTeX('\def\Field{\Bbb K}');
+RawTeX('\def\Naturals{\Bbb N}');
+RawTeX('\def\Octonions{\Bbb O}');
+RawTeX('\def\Primes{\Bbb P}');
+RawTeX('\def\Rationals{\Bbb Q}');
+RawTeX('\def\Reals{\Bbb R}');
+RawTeX('\def\Spere{\Bbb S}');
+RawTeX('\def\Torus{\Bbb T}');
+RawTeX('\def\Integers{\bBB Z}');
+
+RawTeX('\def\Dbar{\leavevmode\lower.6ex\hbox to 0pt{\hskip-.23ex\accent"16\hss}D}');
+RawTeX('\def\dbar{\leavevmode\lower.15ex\hbox to 0pt{\hskip.25ex\accent"16\hss}d}');
+RawTeX('\def\deltabar{\leavevmode\lower.15ex\hbox to 0pt{\hskip.08ex\accent"16\hss}\delta}');
+# \D puts a dot on next letter.
+RawTeX('\def\D{\.}');
+
+
+RawTeX('\def\pound{{\it \$}}');
+RawTeX('\def\pbk{ paperback }');
+RawTeX('\def\hbk{ hardback }');
+
+DefConstructor('\newl','');
+
+################### CHEATING and LEFTOVERS --> Bruce
+RawTeX('\def\tag#1{\label{#1}}');
+
+RawTeX('\def\lnot{\neg}');
+RawTeX('\def\operatorname{}');
+
+# fonts and such
+RawTeX('\def\cyr{}');
+RawTeX('\let\Cal=\cal');
+RawTeX('\let\goth\frak');
+RawTeX('\let\germ\frak');
+
+DefConstructor('\Aut',"<ltx:XMTok meaning='Automorphisms' role='ID'/>");
+DefConstructor('\Hom',"<ltx:XMTok meaning='Automorphisms' role='ID'/>");
+
+#TODO:
+# Revise the full list of mercedes.tex definitions:
+#\actualauthor, \actualclasscode, \aunoti, \aunotiso, \autregis, 
+# \beginreview, \dasgebiet, \dertext, \dmataur, \dneuerbuchstab, \dsubjsl,
+# \duummy, \endreview, \firstp, \followp, \fullline, \gebaa, \gebab, 
+# \gebac, \gebad, \gebae, \gebaf, \gebag, \gebah, \gebba, \gebbb, \gebbc
+# \gebbd, \gebbe, \gebbf, \gebbg, \gebbh, \gebboxwd, \gebca, \gebcb, 
+# \gebcc, \gebcd, \gebce, \gebcf, \gebcg, \gebch, \gebda, \gebdb, \gebdc
+# \gebdd, \gebde, \gebdf, \gebdg, \gebdh, \gebea, \gebeb, \gebec, \gebed,
+# \gebee, \gebef, \gebeg, \gebeh, \gebentry, \gebfa, \gebfb, \gebfc, \gebfd,
+# \gebfe, \gebff, \gebfg, \gebfh, \gebga, \gebgb, \gebgc, \gebgd, \gebge, 
+#\gebgf, \gebgg, \gebgh, \gebha, \gebhb, \gebhc, \gebhd, \gebhe, \gebhf,
+# \gebhg, \gebhh, \gebtextboxwd, \headunderline, \hzbl, \lastp, \leerpa,
+# \leerps, \leersco, \leftcolumn, \leftpage, \makefootline, \makeheadline,
+# \matdend, \mathics, \matna, \matnd, \matnl, \matverw, \neuerreg, \newl,
+# \premathics, \product, \regformat, \regmark, \rightpage, \septtupleformat,
+# \setthezbllinedimensions, \startautorenregister, \subind, \submark,
+# \tripleformat, \vol, \zblbox, \zblboxwd, \zblline, \zwigeb
+
+
+#**********************************************************************
+1;
