@@ -1,9 +1,7 @@
-#  An RelaxNG schema Zentralblatt with LaTeXML
-# $Id: zbl+ltxml.rnc 1503 2010-04-14 19:38:14Z deyan $
-# $HeadURL: https://kwarc.eecs.iu-bremen.de/repos/arXMLiv/corpora/zbl/rnc/zbl+ltxml.rnc $
-#   (c) 2010 Michael Kohlhase, released under the GNU Public License (GPL)
+#  A RelaxNG schema Zentralblatt with LaTeXML
+#   (c) 2012 Michael Kohlhase, Deyan Ginev, released under the GNU Public License (GPL)
 
-default namespace zbl="http://zentralblatt.org" 
+default namespace ="http://zentralblatt.org" 
 
 ## we allow the objects we cannot directly generate in texts
 inline =  grammar {include "urn:x-LaTeXML:schemas:LaTeXML.rnc" {start = Inline.model}}

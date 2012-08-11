@@ -73,8 +73,6 @@ DefConstructor('\class{}', "<zbl:class>#1</zbl:class>");
 DefConstructor('\doctype{}', "<zbl:doctype>#1</zbl:doctype>");
 
 ################ the stuff from mercedes.tex ################ 
-
-
 RawTeX('\def\bbfA{{\Bbb A}}');
 RawTeX('\def\bbfB{{\Bbb B}}');
 RawTeX('\def\bbfC{{\Bbb C}}');
