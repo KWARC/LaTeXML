@@ -3,7 +3,7 @@
    A RelaxNG schema Zentralblatt with LaTeXML
     (c) 2012 Michael Kohlhase, Deyan Ginev, released under the GNU Public License (GPL)
 -->
-<grammar ns="http://zentralblatt.org" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+<grammar ns="http://zentralblatt.org" xmlns:zbl="http://zentralblatt.org" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
   <define name="inline">
     <a:documentation>we allow the objects we cannot directly generate in texts</a:documentation>
     <grammar>

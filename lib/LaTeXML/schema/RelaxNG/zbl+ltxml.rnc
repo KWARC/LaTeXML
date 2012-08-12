@@ -1,7 +1,7 @@
 #  A RelaxNG schema Zentralblatt with LaTeXML
 #   (c) 2012 Michael Kohlhase, Deyan Ginev, released under the GNU Public License (GPL)
 
-default namespace ="http://zentralblatt.org" 
+default namespace zbl ="http://zentralblatt.org" 
 
 ## we allow the objects we cannot directly generate in texts
 inline =  grammar {include "urn:x-LaTeXML:schemas:LaTeXML.rnc" {start = Inline.model}}
