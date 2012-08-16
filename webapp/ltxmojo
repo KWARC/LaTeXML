@@ -63,6 +63,10 @@ helper convert_zip => sub {
   $self->render(text=>"Archive is corrupt!") unless
     ($zip->readFromFileHandle( $content_handle ) == AZ_OK);
   $zip->extractTree('',$rdir);
+  # Make sure we point to the actual source directory
+  my $name = $self->req->headers->header('x-file-name');
+  $name =~ s/\.zip//;
+  my $srcdir = $rdir.$name."/";
   # HTTP GET parameters hold the conversion options
   my @all_params = @{ $self->req->url->query->params || [] };
   my $opts=[];
@@ -76,23 +80,21 @@ helper convert_zip => sub {
     push @$opts, ($key,$value);
   }
   push @$opts, ('local','');
-  push @$opts, ('paths',[$rdir]);
+  push @$opts, ('paths',[$srcdir]);
 
   $opts = $self->create_config($opts);
   my $daemon = LaTeXML::Daemon->get_converter($opts);
   #Override/extend with session-specific options in $opt:
   $daemon->prepare_session($opts);
-  my $name = $self->req->headers->header('x-file-name');
-  $name =~ s/\.zip//;
   #Send a request:
-  my $response = $daemon->convert($rdir.$name.'.tex');
+  my $response = $daemon->convert($srcdir.$name.'.tex');
   if (defined $response) {
       my ($result, $status, $log) = map { $response->{$_} } qw(result status log);
       if ($result) {
         my $destination = $opts->get('destination');
         if (!$destination) {
           my $ext = '.'.$opts->get('format')||'xml';
-          $destination = $rdir.$name.$ext;
+          $destination = $srcdir.$name.$ext;
         }
         open(OUT,">",$destination) or $self->render(text=>"Couldn't open output file ".$destination.": $!");
         print OUT encode('UTF-8',$result);
@@ -105,7 +107,7 @@ helper convert_zip => sub {
         my $logfile = $opts->get('log');
         if (!$logfile) {
           my $ext = '.log';
-          $logfile = $rdir.$name.$ext;
+          $logfile = $srcdir.$name.$ext;
         }
         open(OUT,">",$logfile) or $self->render(text=>"Couldn't open log file ".$logfile.": $!");
         print OUT encode('UTF-8',$log);
@@ -115,7 +117,7 @@ helper convert_zip => sub {
   # Zip and send back
   my $returnzip = Archive::Zip->new();
   my $payload='';
-  $returnzip->addTree($rdir,$name);
+  $returnzip->addTree($srcdir,$name);
   $content_handle = IO::String->new($payload);
   $self->render(text=>'final Archive creation failed') unless ($returnzip->writeToFileHandle( $content_handle ) == AZ_OK);
   # Clean up
