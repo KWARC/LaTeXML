@@ -60,7 +60,7 @@ helper convert_zip => sub {
   #.zip (can't support others for now)
   my $content_handle = IO::String->new($self->req->body);
   my $zip = Archive::Zip->new();
-  self->render(text=>"Archive is corrupt!") unless
+  $self->render(text=>"Archive is corrupt!") unless
     ($zip->readFromFileHandle( $content_handle ) == AZ_OK);
   $zip->extractTree('',$rdir);
   # HTTP GET parameters hold the conversion options
