@@ -357,13 +357,15 @@ sub convert {
       print STDERR "\nConversion incomplete (timeout): ".$latexml->getStatusMessage.".\n";
     } else {
       print STDERR "$@\n";
-      print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
+      print STDERR "\nStatus:conversion:".($latexml->getStatusCode||'0')." \n";
+      print STDERR "Conversion complete: ".$latexml->getStatusMessage.".\n";
     }
     # Close and restore STDERR to original condition.
     my $log=$self->flush_loging;
     return {result=>undef,log=>$log,status=>$latexml->getStatusMessage,status_code=>$latexml->getStatusCode};
   }
-  print STDERR "\nConversion complete: ".$latexml->getStatusMessage.".\n";
+  print STDERR "\nStatus:conversion:".($latexml->getStatusCode||'0')." \n";
+  print STDERR "Conversion complete: ".$latexml->getStatusMessage.".\n";
   $status = $latexml->getStatusMessage;
   $status_code = $latexml->getStatusCode;
   # End daemon run, by popping frame:
