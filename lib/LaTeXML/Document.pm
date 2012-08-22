@@ -795,6 +795,9 @@ sub getNodeFont {
   (($t == XML_ELEMENT_NODE) && $$self{node_fonts}{$node->getAttribute('_font')})
     || LaTeXML::Font->default(); }
 
+sub decodeFont {
+  my($self,$fontid)=@_;
+  $$self{node_fonts}{$fontid} || LaTeXML::Font->default(); }
 
 # Remove a node from the document (from it's parent)
 sub removeNode {
@@ -844,6 +847,7 @@ sub openElementAt {
   my $newnode;
   my $font = $attributes{_font}||$attributes{font};
   my $box  = $attributes{_box};
+  $box = $$self{node_boxes}{$box} if $box && !ref $box; # may already be the string key
   # If this will be the document root node, things are slightly more involved.
   if($point->nodeType == XML_DOCUMENT_NODE){ # First node! (?)
     $$self{model}->addSchemaDeclaration($self,$tag);
