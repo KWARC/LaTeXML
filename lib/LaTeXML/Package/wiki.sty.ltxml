@@ -15,10 +15,8 @@ use strict;
 use LaTeXML::Package;
 
 #**********************************************************************
-AssignValue('wiki.sty_loaded'=>undef,'global');
-# Now read in the REAL wiki.sty.
-InputDefinitions('wiki',type=>'sty',noltxml=>1)
-    || Warn(":missing:wiki.sty Couldn't find package wiki.sty");
+
+InputDefinitions('wiki',type=>'sty',noltxml=>1); 
 
 #**********************************************************************
 
