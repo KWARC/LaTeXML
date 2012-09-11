@@ -159,7 +159,8 @@ sub closeMouth {
     ($$self{mouth},$$self{pushback},$$self{autoclose}) = @{ shift(@{$$self{mouthstack}}) }; }
   else {
     $$self{pushback}=[];
-    $$self{mouth}=Tokens(); 
+##    $$self{mouth}=Tokens(); 
+    $$self{mouth}=LaTeXML::Mouth->new(); 
     $$self{autoclose}=1; }}
 
 sub getMouth { $_[0]->{mouth}; }
@@ -185,9 +186,39 @@ sub flush {
   foreach my $entry (@{$$self{mouthstack}}){
     $entry->[0]->finish; }
   $$self{pushback}=[];
-  $$self{mouth}=Tokens();
+##  $$self{mouth}=Tokens();
+    $$self{mouth}=LaTeXML::Mouth->new(); 
   $$self{autoclose}=1;
   $$self{mouthstack}=[]; }
+
+# Do something, while reading stuff from a specific Mouth.
+# This reads ONLY from that mouth (or any mouth openned by code in that source),
+# and the mouth should end up empty afterwards, and only be closed here.
+sub readingFromMouth {
+  my($self,$mouth,$closure)=@_;
+  $self->openMouth($mouth,1); # only allow mouth to be explicitly closed here.
+  my($result,@result);
+  if(wantarray){
+    @result = &$closure($self); }
+  else {
+    $result = &$closure($self); }
+  # $mouth must still be open, with (at worst) empty autoclosable mouths in front of it
+  while(1){
+    if($$self{mouth} eq $mouth){
+      $self->closeMouth(1); last; }
+    elsif(! @{$$self{mouthstack}}){
+      Error(":expected:$mouth Expected to be able to close ".Stringify($mouth)
+	    ." but it has already been closed."); }
+    elsif(!$$self{autoclose} || @{$$self{pushback}} || $$self{mouth}->hasMoreInput){
+      my $next = Stringify($self->readToken);
+      Error(":expected:$mouth Expected to be able to close ".Stringify($mouth)
+	    . "but ".Stringify($$self{mouth})." is still open"
+	    .($next ? "with input remaining $next":'')); 
+      $$self{mouth}->finish;
+      $self->closeMouth(1); }	# ?? if we continue?
+    else {
+      $self->closeMouth; }}
+  (wantarray ? @result : $result); }
 
 # User feedback for where something (error?) occurred.
 sub getLocator {
@@ -218,17 +249,6 @@ sub show_pushback {
   (@pb ? "\n  To be read again ".ToString(Tokens(@pb)) : ''); }
 
 #**********************************************************************
-# Return $tokens with all tokens expanded
-sub expandTokens {
-  my($self,$tokens)=@_;
-  return () unless $tokens;
-  $self->openMouth((ref $tokens eq 'LaTeXML::Token' ? Tokens($tokens) : $tokens->clone),1);
-  my @expanded=();
-  while(defined(my $t=$self->readXToken(0))){
-    push(@expanded,$t);}
-  $self->closeMouth;
-  Tokens(@expanded); }
-
 # Not really 100% sure how this is supposed to work
 # See TeX Ch 20, p216 regarding noexpand, \edef with token list registers, etc.
 # Solution: Duplicate param tokens, stick NOTEXPANDED infront of expandable tokens.
@@ -744,15 +764,6 @@ to TeX's rules.
 =head2 Managing Input
 
 =over 4
-
-=item C<< $gullet->input($file,$types,%options); >>
-
-Input the file named C<$file>; Searches for matching files in the
-current C<searchpath> with an extension being one of  C<$types> (an array
-of strings). If the found file has a perl extension (pm, ltxml, or latexml), 
-it will be executed (loaded).  If the found file has a TeX extension
-(tex, sty, cls) it will be opened and latexml will prepare to read
-from it.
 
 =item C<< $gullet->openMouth($mouth, $noautoclose); >>
 
