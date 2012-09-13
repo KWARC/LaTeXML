@@ -1,0 +1,707 @@
+# -*- CPERL -*-
+# /=======================================================\ #
+# |  xcolor.sty - Implementation for LaTeXML              | #
+# |=======================================================| #
+# | Part of LaTeXML : http://dlmf.nist.gov/LaTeXML/       | #
+# | Copyright (c) 2006 arXMLiv group                      | #
+# | Released under the GNU Public License                 | #
+# |=======================================================| #
+# | Author: Silviu Vlad Oprea                             | #
+# | E-mail: s.oprea@jacobs-university.de                  | #
+# \=======================================================/ #
+
+# TODO: DOCUMENTATION
+
+package LaTeXML::Package::Pool;
+use strict;
+use LaTeXML::Package;
+
+RequirePackage('color');
+
+# Options to determine target color model
+# Monochrome needs to be handled. Others
+# are to be ignored.
+DeclareOption('natural',  sub { });
+DeclareOption('rgb',  sub { });
+DeclareOption('cmy',  sub { });
+DeclareOption('cmyk',  sub { });
+DeclareOption('hsb',  sub { });
+DeclareOption('gray',  sub { });
+DeclareOption('RGB',  sub { });
+DeclareOption('HTML',  sub { });
+DeclareOption('HSB',  sub { });
+DeclareOption('Gray',  sub { });
+DeclareOption('monochrome',  sub { });
+
+# Irrelevant
+DeclareOption('showerrors',  sub { });
+DeclareOption('hideerrors',  sub { });
+
+# Declare different sets of colors
+DeclareOption('dvipsnames',  sub { });
+DeclareOption('dvipsnames*',  sub { });
+DeclareOption('svgnames',  sub { });
+DeclareOption('svgnames*',  sub { });
+DeclareOption('x11names',  sub { });
+DeclareOption('x11names*',  sub { });
+
+# Load colortbl package - TODO
+DeclareOption('table',  sub { });
+
+# Load pdfcolmk package - omitted
+DeclareOption('fixpdftex',  sub { });
+
+# Load hyperref - TODO
+DeclareOption('hyperref',  sub { });
+
+# Write prologue info to .xcp file for every color
+# definition - irrelevant
+DeclareOption('prologue',  sub { });
+
+# Others - Irrelevant
+DeclareOption('kernelfbox',  sub { });
+DeclareOption('xcdraw',  sub { });
+DeclareOption('noxcdraw',  sub { });
+DeclareOption('fixinclude',  sub { });
+
+ProcessOptions();
+
+# Declaring constants
+RawTeX('\def\rangeHsb{360}');
+RawTeX('\def\rangetHsb{60,30;120,60;180,120;210,180;240,240}');
+RawTeX('\def\rangeHSB{240}');
+RawTeX('\def\rangeRGB{255}');
+RawTeX('\def\rangeGray{15}');
+
+# Storing the 147 SVG colors. This is needed for color mixing.
+my %colors = (
+  'black'          => '#000000', 'navy'             => '#000080',
+  'mediumblue'     => '#0000CD', 'blue'             => '#0000FF',
+#  'green'          => '#008000', 'teal'             => '#008080',
+  'green'          => '#00FF00', 'teal'             => '#008080',
+  'deepskyblue'    => '#00BFFF', 'darkturquoise'    => '#00CED1',
+#  'lime'           => '#00FF00', 'springgreen'      => '#00FF7F',
+  'lime'           => '#BFFF00', 'springgreen'      => '#00FF7F',
+  'aqua'           => '#00FFFF', 'midnightblue'     => '#191970',
+  'lightseagreen'  => '#20B2AA', 'forestgreen'      => '#228B22',
+  'darkslategray'  => '#2F4F4F', 'darkslategrey'    => '#2F4F4F',
+  'mediumseagreen' => '#3CB371', 'turquoise'        => '#40E0D0',
+  'steelblue'      => '#4682B4', 'darkslateblue'    => '#483D8B',
+  'indigo'         => '#4B0082', 'darkolivegreen'   => '#556B2F',
+  'cornflowerblue' => '#6495ED', 'mediumaquamarine' => '#66CDAA',
+  'dimgray'        => '#696969', 'slateblue'        => '#6A5ACD',
+  'slategrey'      => '#708090', 'slategray'        => '#708090',
+  'lightslategrey' => '#778899', 'mediumslateblue'  => '#7B68EE',
+  'chartreuse'     => '#7FFF00', 'aquamarine'       => '#7FFFD4',
+#  'purple'         => '#800080', 'olive'            => '#808080',
+  'purple'         => '#BF0040', 'olive'            => '#808000',
+  'skyblue'        => '#87CEEB', 'lightskyblue'     => '#87CEFA',
+  'darkred'        => '#8B0000', 'darkmagenta'      => '#8B008B',
+  'darkseagreen'   => '#8FBC8F', 'lightgreen'       => '#90EE90',
+  'darkviolet'     => '#9400D3', 'palegreen'        => '#98FB98',
+  'yellowgreen'    => '#9ACD32', 'sienna'           => '#A0522D',
+#  'darkgray'       => '#A9A9A9', 'darkgrey'         => '#A9A9A9',
+  'darkgray'       => '#404040', 'darkgrey'         => '#404040',
+  'greenyellow'    => '#ADFF2F', 'paleturquoise'    => '#AFEEEE',
+  'powderblue'     => '#B0E0E6', 'firebrick'        => '#B22222',
+  'mediumorchid'   => '#BA55D3', 'rosybrown'        => '#BC8F8F',
+  'silver'         => '#C0C0C0', 'mediumvioletred'  => '#C71585',
+  'peru'           => '#CD853F', 'chocolate'        => '#D2691E',
+#  'lightgray'      => '#D3D3D3', 'lightgrey'        => '#D3D3D3',
+  'lightgray'      => '#BFBFBF', 'lightgrey'        => '#BFBFBF',
+  'orchid'         => '#DA70D6', 'goldenrod'        => '#DAA520',
+  'crimson'        => '#DC143C', 'gainsboro'        => '#DCDCDC',
+  'burlywood'      => '#DEB887', 'lightcyan'        => '#E0FFFF',
+#  'darksalmon'     => '#E9967A', 'violet'           => '#EE82EE',
+  'darksalmon'     => '#E9967A', 'violet'           => '#800080',
+  'lightcoral'     => '#F08080', 'khaki'            => '#F0E68C',
+  'honeydew'       => '#F0FFF0', 'azure'            => '#F0FFFF',
+  'wheat'          => '#F5DEB3', 'beige'            => '#F5F5DC',
+  'mintcream'      => '#F5FFFA', 'ghostwhite'       => '#F8F8FF',
+  'antiquewhite'   => '#FAEBD7', 'linen'            => '#FAF0E6',
+  'oldlace'        => '#FDF5E6', 'red'              => '#FF0000',
+  'magenta'        => '#FF00FF', 'deeppink'         => '#FF1493',
+  'tomato'         => '#FF6347', 'hotpink'          => '#FF69B4',
+  'darkorange'     => '#FF8C00', 'lightsalmon'      => '#FFA07A',
+#  'lightpink'      => '#FFB6C1', 'pink'             => '#FFC0CB',
+  'lightpink'      => '#FFB6C1', 'pink'             => '#FFBFBF',
+  'peachpuff'      => '#FFDAB9', 'navajowhite'      => '#FFDEAD',
+  'bisque'         => '#FFE4C4', 'mistyrose'        => '#FFE4E1',
+  'papayawhip'     => '#FFEFD5', 'lavenderblush'    => '#FFF0F5',
+  'cornsilk'       => '#FFF8DC', 'lemonchiffon'     => '#FFFACD',
+  'snow'           => '#FFFAFA', 'yellow'           => '#FFFF00',
+  'ivory'          => '#FFFFF0', 'white'            => '#FFFFFF',
+  'darkgreen'      => '#006400', 'darkblue'         => '#00008B',
+  'darkcyan'       => '#008B8B', 'mediumspringgreen' => '#00FA9A',
+  'cyan'           => '#00FFFF', 'dodgerblue'        => '#1E90FF',
+  'seagreen'       => '#2E8B57', 'limegreen'         => '#32CD32',
+  'royalblue'      => '#4169E1', 'mediumturquoise'   => '#48D1CC',
+  'cadetblue'      => '#5F9EA0', 'dimgrey'           => '#696969',
+  'olivedrab'      => '#6B8E23', 'lightslategray'    => '#778899',
+  'lawngreen'      => '#7CFC00', 'maroon'            => '#800000',
+#  'gray'           => '#808080', 'blueviolet'        => '#8A2BE2',
+  'gray'           => '#808080', 'grey'              => '#808080',
+  'saddlebrown'    => '#8B4513', 'mediumpurple'      => '#9370DB',
+#  'darkorchid'     => '#9932CC', 'brown'             => '#A52A2A',
+  'darkorchid'     => '#9932CC', 'brown'             => '#BF8040',
+  'lightblue'      => '#ADD8E6', 'lightsteelblue'    => '#B0C4DE',
+  'darkgoldenrod'  => '#B8860B', 'darkkhaki'         => '#BDB76B',
+  'indianred'      => '#CD5C5C', 'tan'               => '#D2B48C',
+  'thistle'        => '#D8BFD8', 'palevioletred'     => '#DB7093',
+  'plum'           => '#DDA0DD', 'lavender'          => '#E6E6FA',
+  'palegoldenrod'  => '#EEE8AA', 'aliceblue'         => '#F0F8FF',
+  'sandybrown'     => '#F4A460', 'whitesmoke'        => '#F5F5F5',
+  'fuchsia'        => '#FF00FF', 'orangered'         => '#FF4500',
+#  'coral'          => '#FF7F50', 'orange'            => '#FFA500',
+  'coral'          => '#FF7F50', 'orange'            => '#FF8000',
+  'gold'           => '#FFD700', 'moccasin'          => '#FFE4B5',
+  'blanchedalmond' => '#FFEBCD', 'seashell'          => '#FFF5EE',
+  'floralwhite'    => '#FFFAF0', 'lightyellow'       => '#FFFFE0',
+  'salmon'         => '#FA8072', 'lightgoldenrodyellow' => '#FAFAD2');
+
+#======================================================================
+# Color conversion
+
+DefMacro('\adjustUCRBG', '1,1,1,1');
+
+sub rangeRGB  { ToString Expand T_CS '\rangeRGB'; }
+sub rangeHSB  { ToString Expand T_CS '\rangeHSB'; }
+sub rangeHsb  { ToString Expand T_CS '\rangeHsb'; }
+sub rangeGray { ToString Expand T_CS '\rangeGray'; }
+sub delta {
+  my ($v, $n) = @_;
+  $v <= ($n + 1) / 2?
+    return $v / ($n + 1):
+    return ($v + 1) / ($n + 1); }
+
+sub convertModel {
+  my ($model, $tmodel, @spec) = @_;
+  return join(',', eval $model.'2'.$tmodel."(\@spec)");
+}
+
+# rgb
+sub rgb2rgb  { @_; }
+sub rgb2cmy  { map(1-$_, @_); }
+sub rgb2cmyk { cmy2cmyk(rgb2cmy(@_)); }
+sub rgb2Hsb  { hsb2Hsb(rgb2hsb(@_)); }
+sub rgb2tHsb { hsb2tHsb(rgb2hsb(@_)); }
+sub rgb2gray { 0.3 * $_[0] + 0.59 * $_[1] + 0.11 * $_[2]; }
+sub rgb2RGB  { map(int(0.5 + rangeRGB() * $_), @_); }
+sub rgb2HSB  { hsb2HSB(rgb2hsb(@_)); }
+sub rgb2Gray { gray2Gray(rgb2gray(@_)); }
+sub rgb2hsb  {
+  local *theta = sub {
+    my ($x, $y, $z, $u, $v) = @_;
+    return (($u * ($x - $z) + $v * ($x - $y)) / (6 * ($x - $z)), ($x - $z) / $x, $x); };
+  my ($r, $g, $b) = @_;
+  my $i = 4 * ($r >= $g) + 2 * ($g >= $b) + ($b >= $r);
+  my @hsb;
+  if ($i == 1) {
+    @hsb = theta($b, $g, $r, 3, 1);
+  } elsif ($i == 2) {
+    @hsb = theta($g, $r, $b, 1, 1);
+  } elsif ($i == 3) {
+    @hsb = theta($g, $b, $r, 3, -1);
+  } elsif ($i == 4) {
+    @hsb = theta($r, $b, $g, 5, 1);
+  } elsif ($i == 5) {
+    @hsb = theta($b, $r, $g, 5, -1);
+  } elsif ($i == 6) {
+    @hsb = theta($r, $g, $b, 1, -1);
+  } elsif ($i == 7) {
+    @hsb = (0, 0, $b);
+  }
+  return @hsb;
+}
+sub rgb2HTML {
+  my ($R, $G, $B) = rgb2RGB @_;
+  LaTeXML::Util::Color::toHex((($R << 16) + ($G << 8) + $B), 6); }
+
+# cmy
+sub cmy2rgb  { map(1-$_, @_); }
+sub cmy2cmy  { @_; }
+sub cmy2hsb  { rgb2hsb(cmy2rgb @_); }
+sub cmy2Hsb  { rgb2Hsb(cmy2rgb @_); }
+sub cmy2tHsb { rgb2tHsb(cmy2rgb @_); }
+sub cmy2RGB  { rgb2RGB(cmy2rgb @_); }
+sub cmy2HTML { rgb2HTML(cmy2rgb @_); }
+sub cmy2HSB  { rgb2HSB(cmy2rgb @_); }
+sub cmy2gray { 1 - (0.3 * $_[0] + 0.59 * $_[1] + 0.11 * $_[2]); }
+sub cmy2Gray { gray2Gray(cmy2gray(@_)); }
+sub cmy2cmyk {
+  my ($c, $m, $y) = @_;
+  my ($bc, $bm, $by, $bk) = split(',',ToString(Expand(T_CS('\adjustUCRBG'))));
+  my $k = List::Util::min($c, $m, $y);
+  $c = List::Util::min(1, List::Util::max(0, $c - $bc * $k));
+  $m = List::Util::min(1, List::Util::max(0, $m - $bm * $k));
+  $c = List::Util::min(1, List::Util::max(0, $y - $by * $k));
+  $k = $bk * $k;
+  ($c, $m, $y, $k);
+}
+
+# cmyk
+sub cmyk2cmy  { (min(1, $_[0] + $_[3]), min(1, $_[1] + $_[3]), min(1, $_[2] + $_[3])); }
+sub cmyk2rgb  { cmy2rgb(cmyk2cmy @_); }
+sub cmyk2cmyk { @_; }
+sub cmyk2hsb  { cmy2hsb(cmyk2cmy @_); }
+sub cmyk2Hsb  { cmy2Hsb(cmyk2cmy @_); }
+sub cmyk2tHsb { cmy2tHsb(cmyk2cmy @_); }
+sub cmyk2gray { 1 - List::Util::min(1, 0.3 * $_[0] + 0.59 * $_[1] + 0.11 * $_[2] + $_[3]); }
+sub cmyk2RGB  { cmy2RGB(cmyk2cmy @_); }
+sub cmyk2HTML { cmy2HTML(cmyk2cmy @_); }
+sub cmyk2HSB  { cmy2HSB(cmyk2cmy @_); }
+sub cmyk2Gray { gray2Gray(cmyk2gray @_); }
+
+# hsb
+sub hsb2rgb {
+  my ($h, $s, $b) = @_;
+  my $i = int(6 * $h);
+  my $f = 6 * $h - $i;
+  my @rgb;
+  if ($i == 0) {
+    @rgb = (0, 1-$f, 1);
+  } elsif ($i == 1) {
+    @rgb = ($f, 0, 1);
+  } elsif ($i == 2) {
+    @rgb = (1, 0, 1-$f);
+  } elsif ($i == 3) {
+    @rgb = (1, $f, 0);
+  } elsif ($i == 4) {
+    @rgb = (1 - $f, 1, 0);
+  } elsif ($i == 5) {
+    @rgb = (0, 1, $f);
+  } elsif ($i == 6) {
+    @rgb = (0, 1, 1);
+  }
+  return map($b * $_, @rgb); }
+sub hsb2cmy  { rgb2cmy(hsb2rgb @_); }
+sub hsb2cmyk { rgb2cmyk(hsb2rgb @_); }
+sub hsb2hsb  { @_; }
+sub hsb2Hsb  { (rangeHsb() * $_[0], $_[1], $_[2]); }
+sub hsb2tHsb { Hsb2tHsb(hsb2Hsb(@_)); }
+sub hsb2gray { rgb2gray(hsb2rgb @_); }
+sub hsb2RGB  { rgb2RGB(hsb2rgb @_); }
+sub hsb2HTML { rgb2HTML(hsb2rgb @_); }
+sub hsb2HSB  { map(int(0.5 + rangeHSB() * $_), @_); }
+sub hsb2Gray { gray2Gray(hsb2gray @_); }
+
+# Hsb
+sub Hsb2hsb  { ($_[0] / rangeHsb(), $_[1], $_[2]); }
+sub Hsb2rgb  { hsb2rgb(Hsb2hsb @_); }
+sub Hsb2cmy  { hsb2cmy(Hsb2hsb @_); }
+sub Hsb2cmyk { hsb2cmyk(Hsb2hsb @_); }
+sub Hsb2Hsb  { @_; }
+sub Hsb2gray { hsb2gray(Hsb2hsb @_); }
+sub Hsb2RGB  { hsb2RGB(Hsb2hsb @_); }
+sub Hsb2HTML { hsb2HTML(Hsb2hsb @_); }
+sub Hsb2HSB  { hsb2HSB(Hsb2hsb @_); }
+sub Hsb2Gray { hsb2Gray(Hsb2hsb @_); }
+sub Hsb2tHsb {
+  my ($H, $s, $b) = @_;
+  my $rangeHsb = rangeHsb();
+  my $rangetHsb = '0,0;'.ToString(Expand T_CS '\rangetHsb').';'.$rangeHsb.','.$rangeHsb;
+  my ($xn, $yn, $xn_1, $yn_1) = (0, 0, 0, 0);
+  foreach (split(';', $rangetHsb)) {
+    ($xn_1, $yn_1) = ($xn, $yn);
+    ($xn, $yn) = split(',', $_);
+    last if $H >= $yn_1 && $H <= $yn;
+  }
+  return ($xn_1 + (($xn - $xn_1)/($yn - $yn_1)) * ($H - $yn_1), $s, $b);
+}
+
+# tHsb
+sub tHsb2Hsb  {
+  my ($H, $s, $b) = @_;
+  my $rangeHsb = rangeHsb();
+  my $rangetHsb = '0,0;'.ToString(Expand T_CS '\rangetHsb').';'.$rangeHsb.','.$rangeHsb;
+  my ($xn, $yn, $xn_1, $yn_1) = (0, 0, 0, 0);
+  foreach (split(';', $rangetHsb)) {
+    ($xn_1, $yn_1) = ($xn, $yn);
+    ($xn, $yn) = split(',', $_);
+    last if $H >= $xn_1 && $H <= $xn;
+  }
+  return ($yn_1 + (($yn - $yn_1)/($xn - $xn_1)) * ($H - $xn_1), $s, $b);
+}
+sub tHsb2rgb  { Hsb2rgb(tHsb2Hsb @_); }
+sub tHsb2cmy  { Hsb2cmy(tHsb2Hsb @_); }
+sub tHsb2cmyk { Hsb2cmyk(tHsb2Hsb @_); }
+sub tHsb2hsb  { Hsb2hsb(tHsb2Hsb @_); }
+sub tHsb2tHsb { @_; }
+sub tHsb2gray { Hsb2gray(tHsb2Hsb @_); }
+sub tHsb2RGB  { Hsb2RGB(tHsb2Hsb @_); }
+sub tHsb2HTML { Hsb2HTML(tHsb2Hsb @_); }
+sub tHsb2HSB  { Hsb2HSB(tHsb2Hsb @_); }
+sub tHsb2Gray { Hsb2Gray(tHsb2Hsb @_); }
+
+# gray
+sub gray2rgb  { ($_[0], $_[0], $_[0]); }
+sub gray2cmy  { (1 - $_[0], 1 - $_[0], 1 - $_[0]);}
+sub gray2cmyk { (0, 0, 0, 1-$_[0]); }
+sub gray2hsb  { (0, 0, $_[0]); }
+sub gray2Hsb  { (0, 0, $_[0]); }
+sub gray2tHsb { (0, 0, $_[0]); }
+sub gray2gray { @_; }
+sub gray2RGB  { rgb2RGB(gray2rgb @_); }
+sub gray2HTML { rgb2HTML(gray2rgb @_); }
+sub gray2HSB  { rgb2HSB(gray2rgb @_); }
+sub gray2Gray { map(int(0.5 + rangeGray() * $_), @_); }
+
+# RGB
+sub RGB2rgb  {
+  my $r = rangeRGB();
+  (delta($_[0], $r), delta($_[1], $r), delta($_[2], $r));
+}
+sub RGB2cmy  { rgb2cmy(RGB2rgb @_); }
+sub RGB2cmyk { rgb2cmyk(RGB2rgb @_); }
+sub RGB2hsb  { rgb2hsb(RGB2rgb @_); }
+sub RGB2Hsb  { rgb2Hsb(RGB2rgb @_); }
+sub RGB2tHsb { rgb2tHsb(RGB2rgb @_); }
+sub RGB2gray { rgb2gray(RGB2rgb @_); }
+sub RGB2RGB  { @_; }
+sub RGB2HTML { rgb2HTML(RGB2rgb @_); }
+sub RGB2HSB  { rgb2HSB(RGB2rgb @_); }
+sub RGB2Gray { rgb2Gray(RGB2rgb @_); }
+
+# HTML
+sub HTML2rgb  {
+  m/(..)(..)(..)/;
+  (delta($1, 255), delta($2, 255), delta($3, 255));
+}
+sub HTML2cmy  { rgb2cmy(HTML2rgb @_); }
+sub HTML2cmyk { rgb2cmyk(HTML2rgb @_); }
+sub HTML2hsb  { rgb2hsb(HTML2rgb @_); }
+sub HTML2Hsb  { rgb2Hsb(HTML2rgb @_); }
+sub HTML2tHsb { rgb2tHsb(HTML2rgb @_); }
+sub HTML2gray { rgb2gray(HTML2rgb @_); }
+sub HTML2RGB  { rgb2RGB(HTML2rgb @_); }
+sub HTML2HTML { @_; }
+sub HTML2HSB  { rgb2HSB(HTML2rgb @_); }
+sub HTML2Gray { rgb2Gray(HTML2rgb @_); }
+
+# HSB
+sub HSB2hsb  {
+  my $r = rangeHSB();
+  (delta($1, $r), delta($2, $r), delta($3, $r)); }
+sub HSB2rgb  { hsb2rgb(HSB2hsb @_);}
+sub HSB2cmy  { hsb2cmy(HSB2hsb @_); }
+sub HSB2cmyk { hsb2cmyk(HSB2hsb @_); }
+sub HSB2Hsb  { hsb2Hsb(HSB2hsb @_); }
+sub HSB2tHsb { hsb2tHsb(HSB2hsb @_); }
+sub HSB2gray { hsb2gray(HSB2hsb @_); }
+sub HSB2RGB  { hsb2RGB(HSB2hsb @_); }
+sub HSB2HTML { hsb2HTML(HSB2hsb @_); }
+sub HSB2HSB  { @_; }
+sub HSB2Gray { hsb2Gray(HSB2hsb @_); }
+
+# Gray
+sub Gray2gray { delta($_[0], rangeGray()); }
+sub Gray2rgb  { gray2rgb(Gray2gray @_);}
+sub Gray2cmy  { gray2cmy(Gray2gray @_); }
+sub Gray2cmyk { gray2cmyk(Gray2gray @_); }
+sub Gray2hsb  { gray2hsb(Gray2gray @_);}
+sub Gray2Hsb  { gray2Hsb(Gray2gray @_); }
+sub Gray2tHsb { gray2tHsb(Gray2gray @_); }
+sub Gray2RGB  { gray2RGB(Gray2gray @_); }
+sub Gray2HTML { gray2HTML(Gray2gray @_); }
+sub Gray2HSB  { gray2HSB(Gray2gray @_); }
+sub Gray2Gray { @_; }
+
+# wave
+sub wave2hsb  {
+  my ($lambda) = @_;
+  my $g = 1; # fixed correction number; xcolor uses 1; pstricks uses others (e.g. 0.8).
+             # anyway, no significant difference can be notified.
+  local *eta = sub {
+    my ($x, $g) = @_;
+    List::Util::min(1, List::Util::max(0, $x)) ** $g; };
+  my ($h, $b);
+  if ($lambda < 440) {
+    $h = 4 + eta(($lambda - 440) / (-60));
+  } elsif ($lambda >= 440 && $lambda < 490) {
+    $h = 4 - eta(($lambda - 440) / 50);
+  } elsif ($lambda >= 490 && $lambda < 510) {
+    $h = 2 + eta(($lambda - 510) / (-20));
+  } elsif ($lambda >= 510 && $lambda < 580) {
+    $h = 2 - eta(($lambda - 510) / 70);
+  } elsif ($lambda >= 580 && $lambda < 645) {
+    $h = eta(($lambda - 645) / (-65));
+  } elsif ($lambda >= 645) {
+    $h = 0;
+  }
+  $h *= 1 / 6;
+  if ($lambda < 420) {
+    $b = eta(0.3 + 0.7 * ($lambda - 380) / 40);
+  } elsif ($lambda >= 420 && $lambda < 700) {
+    $b = 1;
+  } elsif ($lambda >= 700) {
+    $b = eta(0.3 + 0.7 * ($lambda - 780) / (-80));
+  }
+  ($h, 1, $b);
+}
+sub wave2rgb  { hsb2rgb(wave2hsb @_);}
+sub wave2cmy  { hsb2cmy(wave2hsb @_); }
+sub wave2cmyk { hsb2cmyk(wave2hsb @_); }
+sub wave2Hsb  { hsb2Hsb(wave2hsb @_); }
+sub wave2tHsb { hsb2tHsb(wave2hsb @_); }
+sub wave2gray { hsb2gray(wave2hsb @_); }
+sub wave2RGB  { hsb2RGB(wave2hsb @_); }
+sub wave2HTML { hsb2HTML(wave2hsb @_); }
+sub wave2HSB  { hsb2HSB(wave2hsb @_); }
+sub wave2Gray { hsb2Gray(wave2hsb @_); }
+
+# param:  string representing the name of the color
+# return: the equivalent in hex model
+sub GetColor {
+  my ($color, $model) = map(ToString($_), @_);
+  my $hex;
+  # this color?
+  if ($color eq '.') { return (LookupValue('color_.') || "#000000"); }
+  # maybe some saved named color
+  while (my $color_ = LookupValue('color_'.$color)) { $color = $color_; }
+  # OK perhaps xcolor specific?
+  if (!($color =~ /\#/)) {
+    ($hex = $colors{lc $color})? return $hex : Error("color $color is undefined..."); }
+  $color; }
+
+# param:  color in hex model
+# return: the complement
+sub GetComplement {
+  my $color = $_[0];
+  my $complement = '#';
+  my $group = qr/[0-9A-Z]{2}/;
+  while ($color =~ s/($group)//) {
+    $complement .= sprintf("%02X", 255-hex($1)); }
+  $complement; }
+
+# param:  two color in hex model and an int
+# return: p% of the first color mixed with (1-p)% of the second
+sub MixColors {
+  my ($color1, $color2, $p) = @_;
+  my $group = qr/[0-9A-Z]{2}/; # A group of 2 hex digits
+  my $result = '#';
+  $p /= 100;
+  while ($color1 =~ s/($group)//) {
+    my $temp = $1;
+    $color2 =~ s/($group)//;
+    $result .= sprintf("%02X", $p*hex($temp) + (1 - $p)*hex($1)); }
+  $result; }
+
+# Helping function for conversion from hex to hsb, as explained
+# in the documentation of the XColor package, by Dr. Uwe Kern,
+# http://mirror.informatik.uni-mannheim.de/pub/mirrors/tex-archive/macros/latex/contrib/xcolor/xcolor.pdf
+sub Theta {
+  my ($x,$y,$z,$u,$v) = @_;
+  return (($u*($x - $z) + $v*($x - $y))/(6*($x - $z)), ($x - $z)/$x, $x); }
+
+# Multiplies a color vector by a (subunitar) value
+sub ColorMult {
+  my ($color,$m) = @_;
+  my $group = qr/[0-9A-Z]{2}/; # A group of 2 hex digits
+  my $result = '#';
+  while ($color =~ s/($group)//) {
+    $result .= sprintf("%02X", $m*hex($1));
+  }
+  $result;
+}
+
+# param:  color in hex model
+# return: color in hsb model
+# XColor documentation, Dr. Uwe Kern
+sub HEXToHsb {
+  my $color = $_[0];
+  my $group = qr/[0-9A-Z]{2}/;
+  my $rangeRGB = rangeRGB();
+  $color =~ /#($group)($group)($group)/;
+  my $r = hex($1)/$rangeRGB; my $g = hex($2)/$rangeRGB; my $b = hex($3)/$rangeRGB;
+  my $i = 4 * ($r >= $g) + 2 * ($g >= $b) + ($b >= $r);
+  my $h; my $s; my $v;
+  if ($i == 1) { Theta($b, $g, $r, 3, 1); }
+  elsif ($i == 2){ Theta($g, $r, $b, 1, 1); }
+  elsif ($i == 3) { Theta($g, $b, $r, 3, -1); }
+  elsif ($i == 4) { Theta($r, $b, $g, 5, 1); }
+  elsif ($i == 5) { Theta($b, $r, $g, 5, -1); }
+  elsif ($i == 6) { Theta($r, $g, $b, 1, -1); }
+  elsif ($i == 7) { return (0, 0, $b); }
+  else { Error("RGB values out of range..."); } }
+
+# Checking the (CRAZY!) syntax for the <color> expression
+# and computing the equivalent in the HTML model
+# <color> -> <color_expr><func_expr1>...<func_exprn>
+sub convert {
+  my ($cs_name,$color) = map(ToString($_),@_);
+  my $this_color;
+  my $finalcolor;
+
+    # <expr>       -> <prefix><ne_name><mix_expr><postfix>
+    my $prefix     = qr/-/; #
+    # If <name>    = . it refers to the this color
+    #              = '' it refers to color white
+    my $name       = qr/|[-]*\.|[-]*[a-zA-Z0-9@]+/;
+    my $ne_name    = qr/[-]*\.|[-]*[a-zA-Z0-9@]+/;
+      # <mix_expr> -> !<pct1>!<name1>!...<pctn>!(<namen>)?
+      # If <pct>   = '' or > 100 it is considered 100
+      #            = '.' or < 0 it is considered 0
+      my $pct      =  qr/(\d*\.?\d*|[+-]*\d+\.?\d*|[+-]*\d*\.?\d+)/;
+    my $mix_expr   = qr/!$pct(!$name!$pct)*(!$name)?/;
+      # <postfix>  -> |!!<plus>|!![<num>]
+      my $plus     = qr/\++/;
+      my $num      = qr/\d+/;
+    my $postfix    = qr/!!($plus|\[$num\])/;
+  my $expr         = qr/(?<prefix_>$prefix*)(?<ne_name_>$ne_name)
+                     ((?<mix_expr_>$mix_expr)(?<postfix_>$postfix)?)?/x;
+
+  # <ext_expr>       -> <core_model>,<div>:<expr1><dec1>;...;<exprk><deck>
+  #                     | <core_model>:<expr1><dec1>;...;<exprk><deck>
+    my $core_model   = qr/rgb|cmy|cmyk|hsb|gray/;
+    my $div          = qr/[+-]*(\d*[1-9]+\d*(\.\d*)?|\d*\.\d*[1-9]+\d*)/;
+    # PGF flaw here; decided to not allow div to be empty
+    my $dec          = qr/[+-]*(\d*\.?\d*)/;
+  my $ext_expr       = qr/(?<core_model_>$core_model)(,(?<div_>$div))?:
+                       (?<exprs_>($expr|$name),$dec(;($expr|$name),$dec)*)/x;
+
+  # <color_expr>     -> <name> | <expr> | <ext_expt>
+  my $color_expr     = qr/$expr|$ext_expr/;
+
+  # <func_expr>      -> ><function>,<arg1>,...,<argj>
+    my $function     = qr/wheel|twheel/;
+    my $angle        = $div;
+    my $full_circle  = $div;
+  my $func_expr      = qr/(?<func_expr_>>$function,($angle|$angle,$full_circle))/;
+
+  # <color>          -> <color_expr><func_expr1>...<func_expri>
+  my $color_regexp   = qr/(?<color_expr_>$color_expr)(?<func_expr_>($func_expr)*)/;
+
+  if ($color =~ /^$color_regexp$/) {
+    my $result;
+    my $func_expr_ = $+{func_expr_};
+    if (!defined $+{core_model_}) {
+      my $prefix = $+{prefix_};
+      my $name_ = $+{ne_name_};
+      my $mix_expr_ = $+{mix_expr_};
+      my $postfix_ = $+{postfix_};
+      $name_ =~ s/--//g;
+      my $result = GetColor $name_;
+      if ($mix_expr_) {
+        while ($mix_expr_ =~ s/^!([^!]*)(!([^!]*))?//x) {
+          my $color = (!$3? 'white' : $3);
+          my $factor = $1; $factor =~ s/--//;
+          $factor = ($factor eq '' ? 100 : ($factor eq '.'? 0 : $factor));
+          $factor < 0? $factor = 0 : ($factor > 100? $factor = 100 : 1); $color =~ s/--//g;
+          $color = ($color =~ s/-//? GetComplement GetColor $color : GetColor $color);
+          $result = MixColors($result, $color, $factor);
+        }
+      }
+      if ($prefix) { $prefix =~ s/--//g;
+        if ($prefix =~ m/-/) { $result = GetComplement $result; }
+      }
+      $finalcolor = $result;
+    } else {
+      my $div_ = 0;
+      my $exprs_ = $+{exprs_};
+      if ($+{div_}) { $div_ = $+{div_}; $div_ =~ s/--//g;}
+      else {
+        my $exprs_2 = $exprs_;
+        while ($exprs_2 =~ s/(?<EXPR>$expr),(?<DEC>$dec)//) {
+          my $dec_ = $+{DEC}; $dec_ =~ s/--//g;
+          $div_ += ($dec_ eq '' || $dec_ eq '.'? 0: $dec_);
+        }
+      }
+      # DOCUMENTATION!
+      while ($exprs_ =~ s/(?<EXPR>$expr),(?<DEC>$dec)//) {
+        my $dec_ = $+{DEC};
+        my $expr_ = $+{EXPR};
+        $dec_ =~ s/--//g;
+	if (!$finalcolor) { $finalcolor = ColorMult(convert('temp', $expr_), $dec_/$div_); }
+        else {
+        $finalcolor = ColorMult(
+                        MixColors(
+                          $finalcolor,
+                          ColorMult(convert('temp', $expr_), $dec_/$div_),
+                        50),
+                      2);
+        }
+      }
+      # print $finalcolor;
+    }
+    if ($func_expr_) {
+      my $h; my $s; my $b;
+      while ($func_expr_ =~ s/>(wheel|twheel),($pct)(,($div))?//) {
+        ($h, $s, $b) = HEXToHsb $finalcolor;
+        my $rangeHsb = rangeHsb();
+        if ($1 eq 'wheel') {
+          ($h = $h + $2/($5? $5 : $rangeHsb)) != 1? $h = $h - int($h): 1;
+        } else {
+          # Not working. Problem: rangetHsb while hsb between 0 and 1 still
+          ($h, $s, $b) = hsb2tHsb($h, $s, $b);
+          ($h = ($h + $rangeHsb*$2/($5? $5 : $rangeHsb))/$rangeHsb) != 1? $h = $h - int($h): 1;
+	}
+      }
+      $finalcolor = ConvertColor('hsb',"$h,$s,$b"); #print $finalcolor;
+    }
+  } else {
+    Error("syntax error in <color> expression $color...\n");
+  }
+  return $finalcolor;
+}
+
+DefPrimitive('\extractcolorspec{}{}', sub {
+  my ($stomach, $color, $macro) = @_;
+  $color = ToString(Expand($color));
+  $macro = ToString($macro);
+  my $hexrexpr = convert("", $color);
+  $hexrexpr =~ /#(..)(..)(..)/;
+  DefMacroI($macro, undef, '{rgb}{'.(hex($1)/255).','.(hex($2)/255).','.(hex($3)/255).'}');
+  return;
+});
+
+DefPrimitive('\convertcolorspec{}{}{}{}', sub {
+  my ($model, $spec, $tmodel, $macro) = (map(ToString(Expand $_), @_[1..$#_-1]), $_[4]);
+  DefMacroI($macro, undef, convertModel($model, $tmodel, split(',', $spec)));
+});
+
+# \colorlet[<type>]{<name>}[<num model>]{<color>}
+# TODO convert color
+DefPrimitive('\colorlet[]{}[]{}',
+	        sub {
+		 my ($stomach, @args) = @_;
+		 my($type,$name,$num_model,$color) = map(ToString(Expand $_),@args);
+                 my $hexrepr = convert($name,$color);
+		 AssignValue('color_'.$name, $hexrepr);
+                 # For pgf -> svg
+                 $hexrepr =~ /#(..)(..)(..)/; # Should always be like this if it gets here
+                 DefMacroI('\\\\color@'.$name, undef,
+                           '\relax'.
+                           '\relax'.
+                           '{rgb '.(hex($1)/255).' '.(hex($2)/255).' '.(hex($3)/255).'}'.
+                           '{rgb}'.
+                           '{'.(hex($1)/255).','.(hex($2)/255).','.(hex($3)/255).'}');
+                 return; });
+
+# Defining macros for each color (this is what xcolor does and it is crucial for pgf->svg)
+while (my ($key, $value) = each(%colors)) {
+  $value =~ /#(..)(..)(..)/;
+  DefMacroI('\\\\color@'.$key, undef,
+            '\relax'.
+            '\relax'.
+            '{rgb '.(hex($1)/255).' '.(hex($2)/255).' '.(hex($3)/255).'}'.
+            '{rgb}'.
+            '{'.(hex($1)/255).','.(hex($2)/255).','.(hex($3)/255).'}');
+}
+
+# A stub. Should be redefined with respect to certain needs.
+# Let(T_CS('\XC@mcolor'), T_CS('\relax'));
+
+# \set@color sets 'this' color and XC@mcolor calls the
+# system layer commands, if any.
+DefMacro('\color[]{}',
+  '\colorlet{.}[#1]{#2}\set@color\@ifundefined{XC@mcolor}{}{\XC@mcolor}');
+
+DefConstructor('\set@color', "",
+	       afterDigest=>sub {
+                 my $color = LookupValue('color_.');
+		 AssignValue('preambleTextcolor', $color) if LookupValue('inPreamble');
+		 MergeFont(color=>$color);
+		 return; });
+
+#********************************************************************************
+1;
