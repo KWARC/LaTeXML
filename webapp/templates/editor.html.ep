@@ -46,7 +46,8 @@ var sendRequest = function(tex, my_counter, onthefly){
         var m = hasPreamble.exec(tex);
         var preamble = null;
         if (m != null) {
-            preamble = 'literal:'+m[1];
+            preamble = "literal:"+m[1];
+            //tex = "literal:"+m[2];
             tex = m[2];
         }
 	$.post("/convert", { "tex": tex, "preamble" :

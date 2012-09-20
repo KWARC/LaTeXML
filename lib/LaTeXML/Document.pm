@@ -58,6 +58,10 @@ sub getModel    { $_[0]->{model}; }
 sub getNode     { $_[0]->{node}; }
 sub setNode     { $_[0]->{node} = $_[1]; }
 
+sub getLocator {
+  my($self,@args)=@_;
+  $$self{node}->getLocator(@args); }
+
 # Get the element at (or containing) the current insertion point.
 sub getElement {
   my($self)=@_;
@@ -109,6 +113,68 @@ sub getNodeQName {
   my($self,$node)=@_;
   $$self{model}->getNodeQName($node); }
 
+#**********************************************************************
+# This is a diagnostic tool that MIGHT help locate XML::LibXML bugs;
+# It simply walks through the document tree. Use it before and after
+# places where some sort of data corruption might have taken place.
+sub doctest {
+  my($self,$when,$severe)=@_;
+  local $LaTeXML::NNODES=0;
+  print STDERR "\nSTART DOC TEST $when....." .($severe ? "\n":'');
+  if(my $root = $self->getDocument->documentElement){
+    $self->doctest_rec(undef,$root,$severe); }
+  print STDERR  "...(".$LaTeXML::NNODES." nodes)....DONE\n"; }
+
+sub doctest_rec {
+  my($self,$parent,$node,$severe)=@_;
+  print STDERR "  NODE $$node [" if $severe; # BEFORE checking nodeType!
+  print STDERR "d" if $severe;
+  if(!$node->ownerDocument->isSameNode($self->getDocument)){ print STDERR "!" if $severe; }
+  print STDERR "p" if $severe;
+  if($parent && !$node->parentNode->isSameNode($parent)){ print STDERR "!" if $severe; }
+  print STDERR "t" if $severe;
+  my $type = $node->nodeType;
+  print STDERR "] " if $severe;
+  if($type == XML_ELEMENT_NODE){
+    print STDERR "ELEMENT "
+      .join(' ',"<".$$self{model}->getNodeQName($node),
+	    map($_->nodeName.'="'.$_->getValue.'"', $node->attributes)).">\n"
+	      if $severe;
+    $self->doctest_children($node,$severe); }
+  elsif($type == XML_ATTRIBUTE_NODE){
+    print STDERR "ATTRIBUTE ".$node->nodeName."=>".$node->getValue."\n" if $severe; }
+  elsif($type == XML_TEXT_NODE){
+    print STDERR "TEXT ".$node->textContent."\n" if $severe; }
+  elsif($type == XML_CDATA_SECTION_NODE){
+    print STDERR "CDATA ".$node->textContent."\n" if $severe; }
+#  elsif($type == XML_ENTITY_REF_NODE){}
+#  elsif($type == XML_ENTITY_NODE){}
+  elsif($type == XML_PI_NODE){
+    print STDERR "PI ".$node->localname." ".$node->getData."\n" if $severe; }
+  elsif($type == XML_COMMENT_NODE){
+    print STDERR "COMMENT ".$node->textContent."\n" if $severe; }
+#  elsif($type == XML_DOCUMENT_NODE){}
+#  elsif($type == XML_DOCUMENT_TYPE_NODE){
+  elsif($type == XML_DOCUMENT_FRAG_NODE){
+    print STDERR "DOCUMENT_FRAG \n" if $severe;
+    $self->doctest_children($node,$severe); }
+#  elsif($type == XML_NOTATION_NODE){}
+#  elsif($type == XML_HTML_DOCUMENT_NODE){}
+#  elsif($type == XML_DTD_NODE){}
+  else {
+      print STDERR "OTHER $type\n" if $severe; }
+}
+
+sub doctest_children {
+  my($self,$node,$severe)=@_;
+  print STDERR "[fc" if $severe;
+  my $c = $node->firstChild;
+  while($c){
+    print STDERR "]\n" if $severe;
+    $self->doctest_rec($node,$c,$severe);
+    print STDERR "[nc" if $severe;
+    $c = $c->nextSibling; }
+  print STDERR "]done\n" if $severe; }
 
 #**********************************************************************
 # This should be called before returning the final XML::LibXML::Document to the
@@ -350,11 +416,15 @@ sub closeElement {
     push(@cant_close,$t) unless $$self{model}->canAutoClose($node) && !$node->getAttribute('_noautoclose');
     $node = $node->parentNode; }
   if($node->nodeType == XML_DOCUMENT_NODE){ # Didn't find $qname at all!!
-    Error(":malformed Attempt to close ".($qname eq '#PCDATA' ? $qname : '</'.$qname.'>').", which isn't open; in ".$self->getInsertionContext); }
+    Error('malformed',$qname,$self,
+	  "Attempt to close ".($qname eq '#PCDATA' ? $qname : '</'.$qname.'>').", which isn't open",
+	  "Currently in ".$self->getInsertionContext); }
   else {			# Found node.
     # Intervening non-auto-closeable nodes!!
-    Error(":malformed Closing ".($qname eq '#PCDATA' ? $qname : '</'.$qname.'>')." whose open descendents (".
-	  join(', ',map(Stringify($_),@cant_close)).") dont auto-close")
+    Error('malformed',$qname,$self,
+	  "Closing ".($qname eq '#PCDATA' ? $qname : '</'.$qname.'>')
+	  ." whose open descendents do not auto-close",
+	  "Descendents are ".join(', ',map(Stringify($_),@cant_close)))
       if @cant_close;
     # So, now close up to the desired node.
     $self->closeNode_internal($node);
@@ -407,7 +477,8 @@ sub addAttribute {
   while(($node->nodeType != XML_DOCUMENT_NODE) && ! $$self{model}->canHaveAttribute($node,$key)){
     $node = $node->parentNode; }
   if($node->nodeType == XML_DOCUMENT_NODE){
-    Error(":malformed Attribute $key (=>$value) not allowed in ".Stringify($$self{node})." or ancestors"); }
+    Error('malformed',$key,$self,
+	  "Attribute $key not allowed in this node or ancestors"); }
   else {
     $self->setAttribute($node,$key,$value); }}
 
@@ -455,7 +526,8 @@ sub find_insertion_point {
       $self->closeNode_internal($closeto); # Close the auto closeable nodes.
       $self->find_insertion_point($qname); }	    # Then retry, possibly w/auto open's
     else {					    # Didn't find a legit place.
-      Error(":malformed:$qname ".($qname eq '#PCDATA' ? $qname : '<'.$qname.'>')." isn't allowed in ".Stringify($$self{node}));
+      Error('malformed',$qname,$self,
+	    ($qname eq '#PCDATA' ? $qname : '<'.$qname.'>')." isn't allowed here");
       $$self{node}; }}}	# But we'll do it anyway, unless Error => Fatal.
 
 sub getInsertionCandidates {
@@ -502,7 +574,7 @@ sub floatToElement {
 	if ($$savenode ne $$n) && $LaTeXML::Document::DEBUG;
    $savenode; }
   else { 
-    Warn(":malformed No open node can accept <$qname> at ".Stringify($$self{node}))
+    Warn('malformed',$qname,$self,"No open node can contain element '$qname'")
       unless $$self{model}->canContainSomehow($$self{node},$qname);
     undef; }}
 
@@ -517,7 +589,7 @@ sub floatToAttribute {
     $$self{node}=$n;
     $savenode; }
   else {
-    Warn(":malformed No open node can get attribute \"$key\"");
+    Warn('malformed',$key,$self,"No open node can get attribute '$key'");
     undef; }}
 
 sub openText_internal {
@@ -626,7 +698,7 @@ sub closeNode_internal {
   my $n = $self->closeText_internal; # Close any open text node.
   while($n->nodeType == XML_ELEMENT_NODE){
     $self->closeElementAt($n);
-    last if $node->isSameNode($n);	# NOTE: This equality test is questionable
+    last if $node->isSameNode($n);
     $n = $n->parentNode; }
   print STDERR "Closing ".Stringify($node)." => ".Stringify($closeto)."\n" if $LaTeXML::Document::DEBUG;
 
@@ -708,10 +780,10 @@ sub setAttribute {
 	if(!$prefix){					# if namespace not already declared
 	  $prefix = $$self{model}->getDocumentNamespacePrefix($ns,1); # get the prefix to use
 	  $self->getDocument->documentElement->setNamespace($ns,$prefix,0); } # and declare it
-	if($prefix eq '#default'){
-	  Warn(":unexpected:#default shouldn't have namespaced attributes in default namespace $ns");
-	  $prefix=''; }
-	$node->setAttributeNS($ns,"$prefix:$name"=>$value); }
+	if($prefix eq '#default'){		 # Probably shouldn't happen...?
+	  $node->setAttribute($name=>$value); }
+	else {
+	  $node->setAttributeNS($ns,"$prefix:$name"=>$value); }}
       else {
 	$node->setAttribute($name=>$value); }}}} # redundant case...
 
@@ -724,19 +796,27 @@ sub recordID {
     # Can we recover?
     my $badid = $id;
     $id = $self->modifyID($id);
-    if($$self{idstore}{$id}){
-      Fatal(":malformed ID attribute xml:id=$badid duplicated on ".Stringify($node)
-	    ." was set on ".Stringify($prev)."\n using $id instead"
-	    ." AND we ran out of adjustments!!"); }
-    else {
-      Info(":malformed ID attribute xml:id=$badid duplicated on ".Stringify($node)
-	    ." was set on ".Stringify($prev)."\n using $id instead"); }}
+    Info('malformed','id',$node,"Duplicated attribute xml:id",
+	 "Using id='$id'; id='$badid' already set on ".Stringify($prev)); }
   $$self{idstore}{$id}=$node;
   $id; }
 
 sub unRecordID {
   my($self,$id)=@_;
   delete $$self{idstore}{$id}; }
+
+# These are used to record or unrecord, in bulk, all the ids within a node (tree).
+sub recordNodeIDs {
+  my($self,$node)=@_;
+  foreach my $idnode ($self->findnodes('descendent-or-self::*[@xml:id]',$node)){
+    if(my $id = $idnode->getAttribute('xml:id')){
+      $self->recordID($id,$idnode); }}}
+
+sub unRecordNodeIDs {
+  my($self,$node)=@_;
+  foreach my $idnode ($self->findnodes('descendant-or-self::*[@xml:id]',$node)){
+    if(my $id = $idnode->getAttribute('xml:id')){
+      $self->unRecordID($id); }}}
 
 # Get a new, related, but unique id
 # Sneaky option: try $LaTeXML::Document::ID_SUFFIX as a suffix for id, first.
@@ -756,7 +836,8 @@ sub modifyID {
 	foreach my $s2 (ord('a')..ord('z')){
 	  foreach my $s3 (ord('a')..ord('z')){
 	    return $id unless $$self{idstore}{$id = $badid.chr($s1).chr($s2).chr($s3)}; }}}
-      Warn(":unexpected:id_overflow Automatic incrementing of ID counters failed $badid => $id");}}
+      Fatal('malformed','id',$self,"Automatic incrementing of ID counters failed",
+	    "Last alternative for '$id' is '$badid'"); }}
   $id; }
 
 sub lookupID {
@@ -787,7 +868,7 @@ sub setNodeFont {
   if($node->nodeType == XML_ELEMENT_NODE){
     $node->setAttribute(_font=>$fontid); }
   else {
-    Warn(":malformed Can't set font on node ".Stringify($node)); }}
+    Warn('malformed','font',$node,"Can't set font on this node"); }}
 
 sub getNodeFont {
   my($self,$node)=@_;
@@ -1068,9 +1149,8 @@ sub replaceTree {
   my $parent = $old->parentNode;
   my @following = ();		# Collect the matching and following nodes
   while(my $sib = $parent->lastChild){
-    last if $$sib == $$old;
+    last if $sib->isSameNode($old);
     $parent->removeChild($sib);	# We're putting these back, in a moment!
-##    last if $$sib == $$old;
     unshift(@following,$sib); }
   $self->removeNode($old);
   $self->appendTree($parent,$new);
@@ -1099,7 +1179,7 @@ sub appendTree {
 	$node->appendTextNode($child->textContent); }
     }
     elsif(ref $child){
-      warn "Dont know how to add $child to $node; ignoring"; }
+      Warn('malformed',$child,$node,"Dont know how to add '$child' to document; ignoring"); }
     elsif(defined $child){
       $node->appendTextNode($child); }}}
 

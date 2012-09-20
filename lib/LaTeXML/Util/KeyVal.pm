@@ -29,7 +29,7 @@ sub ReadRequiredKeyVals {
   if($gullet->ifNext(T_BEGIN)){
     (readKeyVals($gullet,$keyset,T_END)); }
   else {
-    Error(":expected:{ Missing keyval arguments");
+    Error('expected','{',$gullet,"Missing keyval arguments");
     (LaTeXML::KeyVals->new($keyset,T_BEGIN,T_END,)); }}
 
 sub ReadOptionalKeyVals {
@@ -88,7 +88,9 @@ sub readKeyVals {
     $gullet->skipSpaces; 
     # Read the keyword.
     my($ktoks,$delim)=$gullet->readUntil($T_EQ,$T_COMMA,$close);
-    Error(":expected:".Stringify($close)." Fell off end expecting ".Stringify($close)." while reading KeyVal key starting at $startloc")
+    Error('expected',$close,$gullet,
+	  "Fell off end expecting ".Stringify($close)." while reading KeyVal key",
+	  "key started at $startloc")
       unless $delim;
     my $key= ToString($ktoks); $key=~s/\s//g;
     if($key){
@@ -126,7 +128,9 @@ sub readKeyVals {
       }
       push(@kv,$key);
       push(@kv,$value); }
-    Error(":expected:".Stringify($close)." Fell off end expecting ".Stringify($close)." while reading KeyVal value starting at $startloc")
+    Error('expected',$close,$gullet,
+	  "Fell off end expecting ".Stringify($close)." while reading KeyVal value",
+	  "key started at $startloc")
       unless $delim;
     last if $delim->equals($close); }
   LaTeXML::KeyVals->new($keyset,$open,$close,@kv); }

@@ -9,7 +9,8 @@ $(document).ready(function() {
                 $('#message').text('Converting...');
 		var tex = $(this).text();
 		var mythis = $(this);
-		$.post("/convert", { "profile":"fragment","tex": tex },
+		//$.post("/convert", { "profile":"fragment","tex": "literal:"+tex },
+      $.post("/convert", { "profile":"fragment","tex": tex },
 			function(data){
 				if (!hasError.test(data.status)) { 
 					mythis.html(data.result);
