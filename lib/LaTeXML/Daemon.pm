@@ -279,9 +279,8 @@ sub convert {
   my ($self,$source) = @_;
   # Initialize session if needed:
   $self->initialize_session unless $self->{ready};
-  unless ($self->{ready}) { # We can't initialize, return error:
-    my $log=$self->flush_loging;
-    $self->{ready}=0; return {result=>undef,log=>$log};
+  if (! $self->{ready}) { # We can't initialize, return error:
+    return {result=>undef,log=>$self->{log},status=>"Initialization failed.",status_code=>3};
   }
 
   $self->bind_loging;

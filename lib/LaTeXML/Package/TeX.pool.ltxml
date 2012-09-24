@@ -273,7 +273,7 @@ DefParameterType('DigestedBody', sub {
 # [Note that this should act like Semiverbatim if the supplied type does! Ugh]
 DefParameterType('CommaList', sub {
   my($gullet,$type)=@_;
-  my$typedef = $type && LaTeXML::Parameters::parseParameters(ToString($type),"CommaList");
+  my $typedef = $type && LaTeXML::Parameters::parseParameters(ToString($type),"CommaList");
   if($gullet->ifNext(T_BEGIN)){
     $gullet->readToken;
     my @items=();
