@@ -247,7 +247,8 @@ sub prepare_options {
   $opts->{verbosity} = 10 unless defined $opts->{verbosity};
   $opts->{preload} = [] unless defined $opts->{preload};
   $opts->{paths} = ['.'] unless defined $opts->{paths};
-  @{$opts->{paths}} = map {pathname_canonical($_)} @{$opts->{paths}};
+  # Check if we are requesting $ENV paths and make canonical:
+  @{$opts->{paths}} = map {pathname_canonical($_)} map {pathname_env_import($_)} @{$opts->{paths}};
   foreach my $pathname(('destination','sourcedirectory','sitedirectory')) {
     #TODO: Switch away from this rude absolute treatment when we support URLs
     # (or could we still leverage this by a smart pathname_cwd?)
