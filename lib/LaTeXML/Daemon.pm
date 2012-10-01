@@ -38,8 +38,8 @@ our $DAEMON_DB={}; # Class-wide, caches all daemons that got booted
 
 sub new {
   my ($class,$opts) = @_;
-  prepare_options(undef,$opts);
-  bless {defaults=>$opts,opts=>undef,ready=>0,log=>q{},
+  $opts->check if defined $opts;
+  bless {opts=>$opts->options,ready=>0,log=>q{},
          latexml=>undef}, $class;
 }
 
@@ -77,171 +77,6 @@ sub prepare_session {
 
   return;
 }
-
-# TODO: Best way to throw errors when options don't work out? 
-#       How about in the case of Extras::ReadOptions?
-#       Error() and Warn() would be neat, but we have to make sure STDERR is caught beforehand.
-#       Also, there is no eval() here, so we might need a softer handling of Error()s.
-# TODO: Move entirely into LaTeXML::Util::Config! and continue reworking
-sub prepare_options {
-  my ($self,$opts) = @_;
-  undef $self unless ref $self; # Only care about daemon objects, ignore when invoked as static sub
-  #======================================================================
-  # I. Sanity check and Completion of Core options.
-  #======================================================================
-  $opts->{timeout} = 600 unless defined $opts->{timeout}; # 10 minute timeout default
-  $opts->{dographics} = 1 unless defined $opts->{dographics}; #TODO: Careful, POST overlap!
-  $opts->{verbosity} = 10 unless defined $opts->{verbosity};
-  $opts->{preload} = [] unless defined $opts->{preload};
-  $opts->{paths} = ['.'] unless defined $opts->{paths};
-  @{$opts->{paths}} = map {pathname_canonical($_)} @{$opts->{paths}};
-  foreach my $pathname(('destination','sourcedirectory','sitedirectory')) {
-    #TODO: Switch away from this rude absolute treatment when we support URLs
-    # (or could we still leverage this by a smart pathname_cwd?)
-    $opts->{$pathname} = pathname_absolute($opts->{$pathname},pathname_cwd()) if defined $opts->{$pathname};
-  }
-
-  $opts->{whatsin} = 'document' unless defined $opts->{whatsin};
-  $opts->{whatsout} = 'document' unless defined $opts->{whatsout};
-  $opts->{type} = 'auto' unless defined $opts->{type};
-
-  # Destination extension might indicate the format:
-  if ((!defined $opts->{format}) && (defined $opts->{destination})){
-    if ($opts->{destination}=~/\.xhtml$/) {
-      $opts->{format}='xhtml';
-    } elsif ($opts->{destination}=~/\.html$/) {
-      $opts->{format}='html';
-    } elsif ($opts->{destination}=~/\.html5$/) {
-      $opts->{format}='html5';
-    } elsif ($opts->{destination}=~/\.xml$/) {
-      $opts->{format}='xml';
-    }}
-
-  # Unset destinations unless local conversion has been requested:
-  if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
-    {carp "I/O from filesystem not allowed without --local!\n".
-       " Will revert to sockets!\n";
-     undef $opts->{destination}; undef $opts->{log};
-     undef $opts->{postdest}; undef $opts->{postlog};}
-  #======================================================================
-  # II. Sanity check and Completion of Post options.
-  #======================================================================
-  # Any post switch implies post (TODO: whew, lots of those, add them all!):
-  $opts->{post}=1 if ( (! defined $opts->{post}) && ($opts->{math_formats} && scalar(@{$opts->{math_formats}}) ) ||
-    ($opts->{stylesheet}) || ($opts->{format} && ($opts->{format}=~/html/i)));
-                       # || ... || ... || ...
-  if ($opts->{post}) { # No need to bother if we're not post-processing
-
-    # Default: scan and crossref on, other advanced off
-    $opts->{prescan}=undef unless defined $opts->{prescan};
-    $opts->{dbfile}=undef unless defined $opts->{dbfile};
-    $opts->{scan}=1 unless defined $opts->{scan};
-    $opts->{index}=1 unless defined $opts->{index};
-    $opts->{crossref}=1 unless defined $opts->{crossref};
-    $opts->{sitedirectory}=undef unless defined $opts->{sitedirectory};
-    $opts->{sourcedirectory}=undef unless defined $opts->{sourcedirectory};
-    $opts->{numbersections}=1 unless defined $opts->{numbersections};
-    $opts->{navtoc}=undef unless defined $opts->{numbersections};
-    $opts->{navtocstyles}={context=>1,normal=>1,none=>1} unless defined $opts->{navtocstyles};
-    $opts->{navtoc} = lc($opts->{navtoc}) if defined $opts->{navtoc};
-    delete $opts->{navtoc} if ($opts->{navtoc} && ($opts->{navtoc} eq 'none'));
-    if($opts->{navtoc}){
-      if(!$opts->{navtocstyles}->{$opts->{navtoc}}){
-	croak($opts->{navtoc}." is not a recognized style of navigation TOC"); }
-      if(!$opts->{crossref}){
-	croak("Cannot use option \"navigationtoc\" (".$opts->{navtoc}.") without \"crossref\""); }}
-    $opts->{urlstyle}='server' unless defined $opts->{urlstyle};
-    $opts->{bibliographies} = [] unless defined $opts->{bibliographies};
-
-    # Validation:
-    $opts->{validate} = 1 unless defined $opts->{validate};
-    # Graphics:
-    $opts->{dographics} = 1 unless defined $opts->{dographics};
-    $opts->{mathimages} = undef unless defined $opts->{mathimages};
-    $opts->{mathimagemag} = 1.75 unless defined $opts->{mathimagemag};
-    $opts->{picimages} = 1 unless defined $opts->{picimages};
-    # Split:
-    $opts->{split}=undef unless defined $opts->{split};
-    $opts->{splitat}='section' unless defined $opts->{splitat};
-    $opts->{splitpath}=undef unless defined $opts->{splitpath};
-    $opts->{splitnaming}='id' unless defined $opts->{splitnaming};
-    $opts->{splitback} = "//ltx:bibliography | //ltx:appendix | //ltx:index" unless defined $opts->{splitback};
-    $opts->{splitpaths} =
-      {chapter=>"//ltx:chapter | ".$opts->{splitback},
-       section=>"//ltx:chapter | //ltx:section | ".$opts->{splitback},
-       subsection=>"//ltx:chapter | //ltx:section | //ltx:subsection | ".$opts->{splitback},
-       subsubsection=>"//ltx:chapter | //ltx:section | //ltx:subsection | //ltx:subsubsection | ".$opts->{splitback}}
-	unless defined $opts->{splitpaths};
-    # Format:
-    #Default is XHTML, XML otherwise (TODO: Expand)
-    $opts->{format}="xml" if ($opts->{stylesheet}) && (!defined $opts->{format});
-    $opts->{format}="xhtml" unless defined $opts->{format};
-    if (!$opts->{stylesheet}) {
-      if ($opts->{format} eq "xhtml") {$opts->{stylesheet} = "LaTeXML-xhtml.xsl";}
-      elsif ($opts->{format} eq "html") {$opts->{stylesheet} = "LaTeXML-html.xsl";}
-      elsif ($opts->{format} eq "html5") {$opts->{stylesheet} = "LaTeXML-html5.xsl";}
-      elsif ($opts->{format} eq "xml") {delete $opts->{stylesheet};}
-      else {croak("Unrecognized target format: ".$opts->{format});}
-    }
-    # Check format and complete math and image options
-    if ($opts->{format} eq 'html') {
-      $opts->{svg}=0 unless defined $opts->{svg}; # No SVG by default.
-      croak("Default html stylesheet only supports math images, not ".join(', ',@{$opts->{math_formats}}))
-	if scalar(@{$opts->{math_formats}});
-      croak("Default html stylesheet does not support svg") if $opts->{svg};
-      $opts->{mathimages} = 1;
-      $opts->{math_formats} = [];
-    }
-    $opts->{dographics} = 1 unless defined $opts->{dographics};
-    $opts->{picimages}  = 1 unless defined $opts->{picimages};
-    $opts->{svg} = 1 unless defined $opts->{svg};
-    # Math Format fallbacks:
-    $opts->{math_formats}=[@{$self->{defaults}->{math_formats}}] if (defined $self && (! 
-                                                                       ( (defined $opts->{math_formats}) &&
-                                                                         scalar(@{$opts->{math_formats}})
-                                                                       )));
-    # PMML default if all else fails and no mathimages:
-    if  (((! defined $opts->{math_formats}) || (!scalar(@{$opts->{math_formats}}))) &&
-      (!$opts->{mathimages}))
-    {
-      push @{$opts->{math_formats}}, 'pmml';
-    }
-    # use parallel markup if there are multiple formats requested.
-    $opts->{parallelmath} = 1 if @{$opts->{math_formats}}>1;
-  }
-  # If really nothing hints to define format, then default it to XML
-  $opts->{format} = 'xml' unless defined $opts->{format};
-}
-# TODO: $sourcedir   = $sourcedir   && pathname_canonical($sourcedir);
-# TODO: $sitedir     = $sitedir     && pathname_canonical($sitedir);
-# TODO: All of the below
-# Check for appropriate combination of split, scan, prescan, dbfile, crossref
-# if($split && !defined $destination){
-#   Error("Must supply --destination when using --split"); }
-# if($split){
-#   $splitnaming = checkOptionValue('--splitnaming',$splitnaming,
-# 				  qw(id idrelative label labelrelative)); 
-#   $splitat = checkOptionValue('--splitat',$splitat,keys %splitpaths);
-#   $splitpath = $splitpaths{$splitat} unless defined $splitpath;
-# }
-# if($prescan && !$scan){
-#   Error("Makes no sense to --prescan with scanning disabled (--noscan)"); }
-# if($prescan && (!defined $dbfile)){
-#   Error("Cannot prescan documents (--prescan) without specifying --dbfile"); }
-# if(!$prescan && $crossref && ! ($scan || (defined $dbfile))){
-#   Error("Cannot cross-reference (--crossref) without --scan or --dbfile "); }
-# if($crossref){
-#   $urlstyle = checkOptionValue('--urlstyle',$urlstyle,qw(server negotiated file)); }
-# if(($permutedindex || $splitindex) && (! defined $index)){
-#   $index=1; }
-# if(!$prescan && $index && ! ($scan || defined $crossref)){
-#   Error("Cannot generate index (--index) without --scan or --dbfile"); }
-# if(!$prescan && @bibliographies && ! ($scan || defined $crossref)){
-#   Error("Cannot generate bibliography (--bibliography) without --scan or --dbfile"); }
-#if((!defined $destination) && ($mathimages || $dographics || $picimages)){
-#  Error("Must supply --destination unless all auxilliary file writing is disabled"
-#	."(--nomathimages --nographicimages --nopictureimages --nodefaultcss)"); }
-#}
 
 sub initialize_session {
   my ($self) = @_;
@@ -706,7 +541,7 @@ sub get_converter {
   my $profile = $conf->get('profile')||'custom';
   my $d = $DAEMON_DB->{$profile};
   if (! defined $d) {
-    $d = LaTeXML::Daemon->new($conf->clone->options);
+    $d = LaTeXML::Daemon->new($conf->clone);
     $DAEMON_DB->{$profile}=$d;
   }
   return $d;
@@ -763,18 +598,12 @@ Given an options hash reference $opts, initializes a session by creating a new L
 
 Sets the "ready" flag to true, making a subsequent "convert" call immediately possible.
 
-=item C<< $daemon->prepare_options($opts); >>
-
-Given an options hash reference $opts, performs a set of assignments of meaningful defaults
-    (when needed) and normalizations (for relative paths, etc).
-
 =item C<< my ($result,$status,$log) = $daemon->convert($tex); >>
 
 Converts a TeX input string $tex into the LaTeXML::Document object $result.
 
 Supplies detailed information of the conversion log ($log),
          as well as a brief conversion status summary ($status).
-
 =back
 
 =head2 INTERNAL ROUTINES
@@ -799,54 +628,6 @@ Post-processes a LaTeXML::Document object $dom into a final format,
 Typically used only internally by C<convert>.
 
 =back
-
-=head2 CUSTOMIZATION OPTIONS
-
- TODO: OBSOLETE!!! All such documentation belongs in Util::Extras::ReadOptions!
-
- Options: key=>value pairs
- preload => [modules]   optional modules to be loaded
- includestyles          allows latexml to load raw *.sty file;
-                        off by default.
- preamble => file       loads a tex file with document frontmatter.
-                        MUST! include \begin{document} or equivalent
- postamble => file      loads a tex file with document backmatter.
-                        MUST! include \end{document} or equivalent
- paths => [dir]         paths searched for files,
-                        modules, etc;
- log => file            specifies log file, reuqires 'local'
-                        default log output: STDERR
- documentid => id       assign an id to the document root. (TODO)
- timeout => seconds     designate an expiration time limit
-                        for the conversion job
- verbosity => level     verbosity of reporting, 0 or negative
-                        for silent, positive for increasing detail
- strict                 makes latexml less forgiving of errors
- type => bibtex         processes the file as a BibTeX bibliography.
- format => box|xml|tex  output format
-                        (Boxes, XML document or expanded TeX document)
- noparse                suppresses parsing math (default: off)
- post                   requests a followup post-processing
- embed                  requests an embeddable XHTML snippet
-                        (requires: 'post')
- stylesheet => file     specifies a stylesheet,
-                        to be used by the post-processor.
- css => [cssfiles]      css stylesheets to html/xhtml
- nodefaultcss           disables the default css stylesheet
- post_procs->{pmml}     converts math to Presentation MathML
-                        (default for xhtml format)
- post_procs->{cmml}     converts math to Content MathML
- post_procs->{openmath} converts math to OpenMath 
- parallelmath           requests parallel math markup for MathML
-                        (off by default)
- post_procs->{keepTeX}  keeps the TeX source of a formula as a MathML
-                        annotation element (requires 'parallelmath')
- post_procs->{keepXMath} keeps the XMath of a formula as a MathML
-                         annotation-xml element (requires 'parallelmath')
- nocomments              omit comments from the output
- inputencoding => enc    specify the input encoding.
- debug => package        enables debugging output for the named
-                         package
 
 =head1 AUTHOR
 

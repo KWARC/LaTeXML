@@ -60,6 +60,10 @@ DefParameterType('XToken',     sub{$_[0]->readXToken; });
 # Read a number
 DefParameterType('Number',     sub{$_[0]->readNumber; });
 
+# Read a floating point number
+DefParameterType('Float',      sub{$_[0]->readFloat; });
+sub ReadFloat { $_[0]->skipSpaces; ($_[0]->readFloat || Float(0)); }
+
 # Read a dimension
 DefParameterType('Dimension',  sub{$_[0]->readDimension; });
 
@@ -168,6 +172,25 @@ DefParameterType('TeXFileName', sub {
     push(@tokens,$token); }
   $gullet->unread($token) unless ($cc == CC_SPACE) || ($cc ==CC_EOL) || ($cc == CC_COMMENT);
   Tokens(@tokens); });
+
+# A LaTeX style directory List
+DefParameterType('DirectoryList', sub {
+  my($gullet)=@_;
+  if($gullet->ifNext(T_BEGIN)){
+    $gullet->readToken;
+    my @dirs=();
+    while($gullet->ifNext(T_BEGIN)){
+      # Should these be Semiverbatim ??
+      push(@dirs,$gullet->readArg); }
+    if($gullet->ifNext(T_END)){
+      $gullet->readToken; }
+    else {
+      Error('expected','}',$gullet,"A closing } was supposed to be here"); }
+    LaTeXML::Array->new(open=>T_BEGIN,close=>T_END,itemopen=>T_BEGIN,itemclose=>T_END,
+			type=>'Semiverbatim',
+			values=>[@dirs]); }
+  else {
+    Error('expected','DirectoryList',$gullet,"A DirectoryList was supposed to be here"); }});
 
 # This reads a Box as needed by \raise, \lower, \moveleft, \moveright.
 # Hopefully there are no issues with the box being digested
@@ -298,7 +321,10 @@ sub isUndefined {
   my($name)=@_;
   my $cs = T_CS('\\'.ToString($name));
   my $meaning = LookupMeaning($cs);
-  !(defined $meaning) || ($meaning eq $cs) || ($meaning eq LookupMeaning(T_CS('\relax'))); }
+  my $undef = !(defined $meaning) || ($meaning eq $cs) 
+    || ($meaning eq LookupMeaning(T_CS('\relax')));
+  Let($cs, T_CS('\relax')) if $undef; # Yuck, but traditional!
+  $undef; }
 
 DefMacro('\@ifundefined{}{}{}',sub {
   my($gullet,$name,$if,$else)=@_;
@@ -3211,6 +3237,31 @@ DefMathLigature(sub { my($document,@nodes)=@_;
 		      if(($n > 1) && ($number =~ /\d/)){
 			($n, $string, meaning=>$number, role=>'NUMBER'); }});
 
+# This needs to be applied AFTER numbers have been resolved!
+# If we have a non-negative integer (no signs, decimals,...)
+# followed by a fraction dividing two non-negative integers,
+# Figure it's a mixed fraction --- ADDING the fraction to the number, not multiplying!
+ DefRewrite(select=>['descendant-or-self::ltx:XMTok[@role="NUMBER" and translate(@meaning,"0123456789","")=""]'
+ 		    . '[ following-sibling::*[1][self::ltx:XMApp]'
+ 		    .   ' [child::*[1][self::ltx:XMTok[@meaning="divide"]]]'
+ 		    .   ' [child::*[2]['
+		    .      'self::ltx:XMTok[@role="NUMBER" and translate(@meaning,"0123456789","")=""]'
+		    .   'or self::ltx:XMArg[count(child::*)=1]/ltx:XMTok[@role="NUMBER" and translate(@meaning,"0123456789","")=""]'
+		    .     ']]'
+ 		    .   ' [child::*[3]['
+		    .      'self::ltx:XMTok[@role="NUMBER" and translate(@meaning,"0123456789","")=""]'
+		    .   'or self::ltx:XMArg[count(child::*)=1]/ltx:XMTok[@role="NUMBER" and translate(@meaning,"0123456789","")=""]'
+		    .     ']]'
+ 		    .  ']',
+ 		    2],
+	  replace=>sub { my($document,$number,$frac)=@_;
+			 my $box = $document->getNodeBox($number);
+			 $document->openElement('ltx:XMApp', _box=>$box);
+			 $document->insertMathToken("\x{2064}", # Invisible Plus!
+						    meaning=>'plus',role=>"ADDOP", _box=>$box);
+			 $document->getNode->appendChild($number);
+			 $document->getNode->appendChild($frac);
+			 $document->closeElement('ltx:XMApp'); });
 
 #======================================================================
 # TeX Book, Appendix B, p. 345

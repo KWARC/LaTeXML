@@ -30,25 +30,6 @@ no warnings 'redefine';
 
 LoadPool('TeX');
 
-# A LaTeX style directory List
-DefParameterType('DirectoryList', sub {
-  my($gullet)=@_;
-  if($gullet->ifNext(T_BEGIN)){
-    $gullet->readToken;
-    my @dirs=();
-    while($gullet->ifNext(T_BEGIN)){
-      # Should these be Semiverbatim ??
-      push(@dirs,$gullet->readArg); }
-    if($gullet->ifNext(T_END)){
-      $gullet->readToken; }
-    else {
-      Error('expected','}',$gullet,"A closing } was supposed to be here"); }
-    LaTeXML::Array->new(open=>T_BEGIN,close=>T_END,itemopen=>T_BEGIN,itemclose=>T_END,
-			type=>'Semiverbatim',
-			values=>[@dirs]); }
-  else {
-    Error('expected','DirectoryList',$gullet,"A DirectoryList was supposed to be here"); }});
-
 # Apparently LaTeX does NOT define \magnification,
 # and babel uses that to determine whether we're runing LaTeX!!!
 Let(T_CS('\magnification'),T_CS('\@undefined'));
@@ -1617,7 +1598,8 @@ DefPrimitive('\DeclareTextCommand DefToken {}[][]{}', sub {
 	      '\expandafter\ifx\csname\cf@encoding\string'.$css.'\endcsname\relax\csname?\string'.$css.'\endcsname'
 	      .'\else\csname\cf@encoding\string'.$css.'\endcsname\fi'); }
   my $ecs = T_CS('\\'.$encoding.$css);
-  DefMacroI($ecs, convertLaTeXArgs($nargs,$opt), $expansion); });
+  DefMacroI($ecs, convertLaTeXArgs($nargs,$opt), $expansion); 
+  return; });
 
 DefMacro('\DeclareTextCommandDefault DefToken','\DeclareTextCommand{#1}{?}');
 
@@ -1631,7 +1613,8 @@ DefPrimitive('\ProvideTextCommand DefToken {}[][]{}', sub {
 	      .'\else\csname\cf@encoding\string'.$css.'\endcsname\fi'); }
   my $ecs = T_CS('\\'.$encoding.$css);
   if(! LookupDefinition($ecs)){	# If not already defined...
-    DefMacroI($ecs, convertLaTeXArgs($nargs,$opt), $expansion); }});
+    DefMacroI($ecs, convertLaTeXArgs($nargs,$opt), $expansion); }
+  return; });
 
 DefMacro('\ProvideTextCommandDefault DefToken','\ProvideTextCommand{#1}{?}');
 
@@ -1647,7 +1630,8 @@ DefPrimitive('\DeclareTextSymbol DefToken {}{Number}',sub {
 	      '\expandafter\ifx\csname\cf@encoding\string'.$css.'\endcsname\relax\csname?\string'.$css.'\endcsname'
 	      .'\else\csname\cf@encoding\string'.$css.'\endcsname\fi'); }
   my $ecs = T_CS('\\'.$encoding.$css);
-  DefPrimitiveI($ecs,undef, FontDecode($code,$encoding)); });
+  DefPrimitiveI($ecs,undef, FontDecode($code,$encoding)); 
+  return; });
 
 # hmmm... what needs doing here; basically it means use this encoding as the default for the symbol
 DefMacro('\DeclareTextSymbolDefault DefToken {}',''); # '\DeclareTextSymbol{#1}{?}');
@@ -3031,8 +3015,6 @@ sub ReadPair {
     my $y = &$itemreader($gullet,$yarg);
     $gullet->skipSpaces; $gullet->readUntil(T_OTHER(')')); $gullet->skipSpaces;
     Pair($x,$y); }}
-
-sub ReadFloat { $_[0]->skipSpaces; ($_[0]->readFloat || Float(0)); }
 
 sub ptValue { $_[0]?$_[0]->ptValue:undef; }
 
