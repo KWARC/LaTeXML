@@ -39,7 +39,8 @@ our @EXPORT = qw( &pathname_find &pathname_findall
 		  &pathname_concat
 		  &pathname_relative &pathname_absolute
 		  &pathname_is_absolute &pathname_is_url &pathname_is_contained
-		  &pathname_cwd &pathname_mkdir &pathname_copy);
+		  &pathname_cwd &pathname_mkdir &pathname_copy
+      &pathname_env_import);
 
 # NOTE: For absolute pathnames, the directory component starts with
 # whatever File::Spec considers to be the volume, or "/".
