@@ -261,10 +261,10 @@ sub convert_post {
   if ($@) {                     #Fatal occured!
     if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
       print STDERR "$@\n";
-      print STDERR "Fatal error: postprocessing couldn't create document: timeout after "
+      print STDERR "Fatal:post:timeout Postprocessing couldn't create document: timeout after "
         . $opts->{timeout} . " seconds!\n";
     } else {
-      print STDERR "Fatal: Post-processor crashed! $@\n";
+      print STDERR "Fatal:post:generic Post-processor crashed! $@\n";
     }
     #Since this is postprocessing, we don't need to do anything
     #   just avoid crashing... and exit
