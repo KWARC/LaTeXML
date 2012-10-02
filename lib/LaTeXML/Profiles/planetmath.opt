@@ -19,3 +19,6 @@ preload = hyperref.sty
 preload = planetmath-specials.sty
 preload = pmath.sty
 preload = ids.sty
+path = $LATEXMLINPUTS
+path = $PLANETMATHINPUTS
+path = $ARXMLIVINPUTS

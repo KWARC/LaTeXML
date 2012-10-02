@@ -117,12 +117,6 @@ sub pathname_type {
   my($dir,$name,$type)=pathname_split(@_);
   $type; }
 
-sub pathname_env_import {
-  my ($pathname) = @_;
-  return $pathname unless $pathname=~/^\$(.+)/;
-  reverse(split(':',$ENV{$1}));
-}
-
 #======================================================================
 sub pathname_concat {
   my($dir,$file)=@_;

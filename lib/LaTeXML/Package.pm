@@ -20,6 +20,7 @@ use LaTeXML::Util::Pathname;
 use Unicode::Normalize;
 use Text::Balanced;
 use base qw(Exporter);
+our @EXPORT_OK = qw(pathname_is_literaldata pathname_is_specialprotocol);
 our @EXPORT = (qw(&DefExpandable
 		  &DefMacro &DefMacroI
 		  &DefConditional &DefConditionalI

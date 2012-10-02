@@ -1,2 +1,2 @@
 profile = math
-source = 1+2=3
+source = literal:1+2=3

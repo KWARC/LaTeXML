@@ -59,7 +59,7 @@ sub read {
 	   "xml"       => sub { $opts->{format} = 'xml'; },
 	   "tex"       => sub { $opts->{format} = 'tex'; },
 	   "box"       => sub { $opts->{format} = 'box'; },
-	   "bibtex"    => sub { $opts->{type}='bibtex'; },
+	   "bibtex"    => sub { $opts->{type}='BibTeX'; },
 	   "bibliography=s" => \@{$opts->{bibliographies}}, # TODO: Document
 	   "sitedirectory=s"=>\$opts->{sitedirectory},
 	   "sourcedirectory=s"=>\$opts->{sourcedirectory},
@@ -129,6 +129,9 @@ sub read {
   if($opts->{showversion}){ print STDERR $opts->{identity}."\n"; exit(1); }
 
   $opts->{source} = $ARGV[0] unless $opts->{source};
+  if (!$opts->{type} || ($opts->{type} eq 'auto')) {
+    $opts->{type} = 'BibTeX' if ($opts->{source} && ($opts->{source} =~ /\.bib$/));
+  }
   return;
 }
 sub addMathFormat {
@@ -247,8 +250,7 @@ sub prepare_options {
   $opts->{verbosity} = 10 unless defined $opts->{verbosity};
   $opts->{preload} = [] unless defined $opts->{preload};
   $opts->{paths} = ['.'] unless defined $opts->{paths};
-  # Check if we are requesting $ENV paths and make canonical:
-  @{$opts->{paths}} = map {pathname_canonical($_)} map {pathname_env_import($_)} @{$opts->{paths}};
+  @{$opts->{paths}} = map {pathname_canonical($_)} @{$opts->{paths}};
   foreach my $pathname(('destination','sourcedirectory','sitedirectory')) {
     #TODO: Switch away from this rude absolute treatment when we support URLs
     # (or could we still leverage this by a smart pathname_cwd?)
@@ -258,6 +260,7 @@ sub prepare_options {
   $opts->{whatsin} = 'document' unless defined $opts->{whatsin};
   $opts->{whatsout} = 'document' unless defined $opts->{whatsout};
   $opts->{type} = 'auto' unless defined $opts->{type};
+  unshift(@{$opts->{preload}}, ('TeX.pool','LaTeX.pool','BibTeX.pool')) if ($opts->{type} eq 'BibTeX');
 
   # Destination extension might indicate the format:
   if ((!defined $opts->{format}) && (defined $opts->{destination})){
@@ -414,8 +417,16 @@ sub _read_options_file {
     /(\S+)\s*=\s*(.*)/;
     my ($key,$value) = ($1,$2||'');
     $value =~ s/\s+$//;
-    $value = $value ? "=$value" : '';
-    push @$opts, "--$key".$value;
+    # Special treatment for --path=$env:
+    if (($key eq 'path') && ($value=~/^\$(.+)/)) {
+      next unless $ENV{$1};
+      my @values = reverse(split(':',$ENV{$1}));
+      next unless @values;
+      push(@$opts, "--path=$_") foreach (@values);
+    } else {
+      $value = $value ? "=$value" : '';
+      push @$opts, "--$key".$value;
+    }
   }
   close OPT;
   $opts;

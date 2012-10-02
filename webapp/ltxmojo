@@ -22,6 +22,7 @@ use Encode;
 use Startup;
 use LaTeXML::Util::Extras;
 use LaTeXML::Util::Config;
+use LaTeXML::Package qw(pathname_is_literaldata pathname_is_specialprotocol);
 use LaTeXML::Daemon;
 
 our $version = '0.1';
@@ -201,22 +202,29 @@ helper convert_string => sub {
 
   #Override/extend with session-specific options in $opt:
   $daemon->prepare_session($config);
-  #Send a request:
-  my $response = $daemon->convert($source);
-  my ($result, $status, $log);
-  if (defined $response) {
-    ($result, $status, $log) = map { $response->{$_} } qw(result status log);
-  }
-  # Delete daemon if Fatal occurred
-  undef $daemon unless defined $result;
-  # TODO: This decode business is fishy... very fishy!
-  if ($is_jsonp) {
-      my $json_result = $self->render(
-	  json => {result => decode('UTF-8',$result), 
-		   status => $status, log => $log, partial=>1});
-      $self->render(data => "$is_jsonp($json_result)", format => 'js');
+  # If there are no protocols, use literal: as default:
+  if (!$source) {
+    $self->render(json => {result => '', status => "Fatal:input:empty No TeX provided on input", 
+                           log => "Status:conversion:3\nFatal:input:empty No TeX provided on input"});
   } else {
-      $self->render(json => {result => decode('UTF-8',$result), status => $status, log => $log});
+    $source = "literal:".$source unless (pathname_is_specialprotocol($source));
+    #Send a request:
+    my $response = $daemon->convert($source);
+    my ($result, $status, $log);
+    if (defined $response) {
+      ($result, $status, $log) = map { $response->{$_} } qw(result status log);
+    }
+    # Delete daemon if Fatal occurred
+    undef $daemon unless defined $result;
+    # TODO: This decode business is fishy... very fishy!
+    if ($is_jsonp) {
+        my $json_result = $self->render(
+  	  json => {result => decode('UTF-8',$result), 
+  		   status => $status, log => $log, partial=>1});
+        $self->render(data => "$is_jsonp($json_result)", format => 'js');
+    } else {
+        $self->render(json => {result => decode('UTF-8',$result), status => $status, log => $log});
+    }
   }
 };
 

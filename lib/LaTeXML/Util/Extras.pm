@@ -42,6 +42,7 @@ our $MATHENVS = 'math|displaymath|equation*?|eqnarray*?'
   .'|multline*?|align*?|falign*?|alignat*?|xalignat*?|xxalignat*?|gather*?';
 $tex =~ s/\A\s+//m; #as usual, strip leading ...
 $tex =~ s/\s+\z//m; # ... and trailing space
+$tex =~ s/literal://; # Strip leading literal as well.
 if(($tex =~ /\A\$/m) && ($tex =~ /\$\z/m)){} # Wrapped in $'s
 elsif(($tex =~ /\A\\\(/m) && ($tex =~ /\\\)\z/m)){} # Wrapped in \(...\)
 elsif(($tex =~ /\A\\\[/m) && ($tex =~ /\\\]\z/m)){} # Wrapped in \[...\]

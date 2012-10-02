@@ -9,3 +9,5 @@ cmml =
 stylesheet = ../xsl/zbl2html.xsl
 preload = zbl.cls
 preload = ids.sty
+path = $LATEXMLINPUTS
+path = $ZBLINPUTS

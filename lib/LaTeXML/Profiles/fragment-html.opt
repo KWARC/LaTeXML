@@ -18,3 +18,4 @@ preload = [dvipsnames]color.sty
 preload = url.sty
 preload = hyperref.sty
 preload = ids.sty
+path = $LATEXMLINPUTS

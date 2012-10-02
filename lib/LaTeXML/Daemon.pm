@@ -20,13 +20,13 @@ use Carp;
 use Encode;
 use LaTeXML;
 use LaTeXML::Global;
+use LaTeXML::Package qw(pathname_is_literaldata);
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::WWW;
-use LaTeXML::Post;
-use LaTeXML::Post::Scan;
 use LaTeXML::Util::ObjectDB;
 use LaTeXML::Util::Extras;
-
+use LaTeXML::Post;
+use LaTeXML::Post::Scan;
 
 #**********************************************************************
 our @IGNORABLE = qw(identity timeout profile port preamble postamble port destination log removed_math_formats whatsin whatsout math_formats input_limit input_counter dographics mathimages mathimagemag );
@@ -128,11 +128,8 @@ sub convert {
   # Handle What's IN?
   # 1. Math profile should get a mathdoc() wrapper
   if ($opts->{whatsin} eq "math") {
-    $source = MathDoc($source);
+    $source = "literal:".MathDoc($source);
   }
-
-  # Prepare content and determine source type
-  my $content = $self->prepare_content($source);
 
   # Prepare daemon frame
   my $latexml = $self->{latexml};
@@ -152,35 +149,25 @@ sub convert {
   eval {
     local $SIG{'ALRM'} = sub { die "alarm\n" };
     alarm($opts->{timeout});
-    if ($opts->{source_type} eq 'url') {
-      $digested = $latexml->digestString($content,preamble=>$opts->{'preamble_wrapper'},
-                                         postamble=>$opts->{'postamble_wrapper'},source=>$source,noinitialize=>1);
-    } elsif ($opts->{source_type} eq 'file') {
-      if ($opts->{type} eq 'bibtex') {
-        # TODO: Do we want URL support here?
-        $digested = $latexml->digestBibTeXFile($content);
-      } else {
-        $digested = $latexml->digestFile($content,preamble=>$opts->{'preamble_wrapper'},
-                                         postamble=>$opts->{'postamble_wrapper'},noinitialize=>1);
-      }}
-    elsif ($opts->{source_type} eq 'string') {
-      $digested = $latexml->digestString($content,preamble=>$opts->{'preamble_wrapper'},
-                                         postamble=>$opts->{'postamble_wrapper'},noinitialize=>1);
-    }
+    my $mode = ($opts->{type} eq 'auto') ? 'TeX' : $opts->{type};
+    $digested = $latexml->digestFile($source,preamble=>$opts->{'preamble_wrapper'},
+                                            postamble=>$opts->{'postamble_wrapper'},
+                                            mode=>$mode,
+                                            noinitialize=>1);
     # Clean up:
-    delete $opts->{source_type};
     delete $opts->{'preamble_wrapper'};
     delete $opts->{'postamble_wrapper'};
     # Now, convert to DOM and output, if desired.
     if ($digested) {
-	local $LaTeXML::Global::STATE = $$latexml{state};
-	if ($opts->{format} eq 'tex') {
-	    $serialized = LaTeXML::Global::UnTeX($digested);
-	} elsif ($opts->{format} eq 'box') {
-	    $serialized = $digested->toString;
-	} else { # Default is XML
-	    $dom = $latexml->convertDocument($digested);
-	}}
+      local $LaTeXML::Global::STATE = $$latexml{state};
+      if ($opts->{format} eq 'tex') {
+        $serialized = LaTeXML::Global::UnTeX($digested);
+      } elsif ($opts->{format} eq 'box') {
+        $serialized = $digested->toString;
+      } else { # Default is XML
+        $dom = $latexml->convertDocument($digested);
+      }
+    }
     alarm(0);
     1;
   };
@@ -431,7 +418,7 @@ sub new_latexml {
   my $preloads = $opts->{preload};
   my (@pre,@str_pre);
   foreach my $pre(@$preloads) {
-    if ($pre=~/\n/) {
+    if (pathname_is_literaldata($pre)) {
       push @str_pre, $pre;
     } else {
       push @pre, $pre;
@@ -450,67 +437,15 @@ sub new_latexml {
     warn $opts->{identity}.": these path directories do not exist: ".join(', ',@baddirs)."\n"; }
 
   $latexml->withState(sub {
-                        my($state)=@_;
-                        $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
-			$state->assignValue(FORBIDDEN_IO=>(!$opts->{local}));
-                      });
+      my($state)=@_;
+      $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
+      $state->assignValue(FORBIDDEN_IO=>(!$opts->{local}));
+  });
 
   # TODO: Do again, need to do this in a GOOD way as well:
-  $latexml->digestString($_,source=>"Anonymous string",noinitialize=>1) foreach (@str_pre);
+  $latexml->digestFile($_,noinitialize=>1) foreach (@str_pre);
 
   return $latexml;
-}
-
-sub prepare_content {
-  my ($self,$source)=@_;
-  $source=~s/\n$//g; # Eliminate trailing new lines
-  my $opts=$self->{opts};
-
-  # 0. If we're given junk, give junk back
-  if (! $source) {
-    $opts->{source_type} = 'string';
-    return undef;
-  }
-  # 1. Decide it's a string, if we are told so or it looks like one:
-  if (($opts->{source_type} && ($opts->{source_type} eq "string")) ||
-      ((! defined $opts->{source_type}) && (($source =~ tr/\n//) >1))) {
-    $opts->{source_type} = "string";
-    return $source;
-  }
-  # 2. Try to find a file, unless we are told it's not one:
-  if ((! defined $opts->{source_type}) || ($opts->{source_type} eq 'file')) {
-    if ($opts->{local}) {
-      my $file = pathname_find($source,types=>['tex',q{}]);
-      $file = pathname_canonical($file) if $file;
-      #Recognize bibtex case
-      $opts->{type} = 'bibtex' if ($opts->{type} eq 'auto') && $file && ($file =~ /\.bib$/);
-      if ($file) {
-	$opts->{source_type}='file';
-	return $file;
-      }}
-    elsif ($opts->{source_type} && ($opts->{source_type} eq 'file')) { # Fallback when local not allowed:
-      print STDERR "File input only allowed when 'local' is enabled,"
-	           ."falling back to string input..";
-      $opts->{source_type}="string";
-      return $source; }}
-  # 3. Try to find a URL, unless we are told it's not one:
-  if ((! defined $opts->{source_type}) || ($opts->{source_type} eq 'url')) {
-    my $response = auth_get($source,$opts->{authlist});
-    if ($response->is_success) {
-      $opts->{source_type} = 'url';
-      return $response->content; }
-    elsif ($opts->{source_type} && ($opts->{source_type} eq 'url')) {
-      # When we know it's a URL, retrieval error:
-      print STDERR "TODO: Flag a retrieval error and do something smart?"; return undef; }
-  }
-  # 4.1. Last guess, if it really looks like a file but it's not found:
-  if ($source=~/\.(\w{1-3})$/) {
-    $opts->{source_type}="file";
-  } else {
-  # 4.2. When we don't have any good guess, just switch to string mode:
-    $opts->{source_type}="string";
-  }
-  return $source;
 }
 
 sub bind_loging {
@@ -613,12 +548,6 @@ Supplies detailed information of the conversion log ($log),
 =item C<< my $latexml = new_latexml($opts); >>
 
 Creates a new LaTeXML object and initializes its state.
-
-=item C<< my $content = $self->prepare_content($source); >>
-
-Determines the source type (URL, file or string) and returns the retrieved content.
-
-The determined input type is saved as a "source_type" field in the daemon object.
 
 =item C<< my $postdoc = $daemon->convert_post($dom); >>
 
