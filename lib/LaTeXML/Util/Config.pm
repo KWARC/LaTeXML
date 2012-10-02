@@ -420,7 +420,7 @@ sub _read_options_file {
     # Special treatment for --path=$env:
     if (($key eq 'path') && ($value=~/^\$(.+)/)) {
       next unless $ENV{$1};
-      my @values = reverse(split(':',$ENV{$1}));
+      my @values = grep(-d $_,reverse(split(':',$ENV{$1})));
       next unless @values;
       push(@$opts, "--path=$_") foreach (@values);
     } else {

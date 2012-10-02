@@ -1,5 +1,4 @@
 comments =
-nopost =
 timeout = 60
 xml =
 preload = ids.sty
