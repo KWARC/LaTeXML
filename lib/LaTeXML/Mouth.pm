@@ -520,6 +520,21 @@ sub new {
   $self; }
 
 #**********************************************************************
+package LaTeXML::Mouth::http;
+use base qw(LaTeXML::Mouth);
+use LaTeXML::Util::WWW;
+
+sub new {
+  my($class,$url,%options)=@_;
+  my $self =  bless {source=>$url, shortsource=>"URL"}, $class;
+  $$self{fordefinitions}=1 if $options{fordefinitions};
+  $$self{notes}=1          if $options{notes};
+  my $content = auth_get($url);
+  $self->openString($content);
+  $self->initialize;
+  $self; }
+
+#**********************************************************************
 # A fake mouth provides a hook for getting the Locator of anything
 # defined in a perl module (*.pm, *.ltxml, *.latexml...)
 package LaTeXML::PerlMouth;

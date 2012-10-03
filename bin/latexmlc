@@ -102,7 +102,7 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
       PeerPort => $opts->get('port'),
       Proto => 'tcp',
     );
-  croak "Could not create socket: $!\n" unless $sock; 
+  croak "Fatal:perl:socket-create Could not create socket: $!\n" unless $sock; 
   my ($response,$batch);
   $sock->send(freeze($opts->options)."\nEND REQUEST\n");
   do {
@@ -122,7 +122,7 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
 if ($log) {
   if ($opts->get('log') && $opts->get('local')) {
     my $clog = $opts->get('log');
-    open(LOG,">",$clog) or croak "Couldn't open log file $clog : $!\n";
+    open(LOG,">",$clog) or croak "Fatal:IO:forbidden Couldn't open log file $clog : $!\n";
     print LOG $log;
     close LOG;
   } else {print STDERR $log,"\n";}#STDERR log otherwise
@@ -131,7 +131,7 @@ if ($log) {
 if ($result) {
 
   if ($opts->get('destination') && $opts->get('local')) {
-    open(OUT,">",$opts->get('destination')) or croak "Couldn't open output file ".$opts->get('destination').": $!";
+    open(OUT,">",$opts->get('destination')) or croak "Fatal:IO:forbidden Couldn't open output file ".$opts->get('destination').": $!";
     print OUT $result;
     close OUT;
   } else { print STDOUT $result,"\n"; } #Output to STDOUT

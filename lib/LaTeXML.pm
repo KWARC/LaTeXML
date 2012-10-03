@@ -96,6 +96,9 @@ sub digestFile {
   if(pathname_is_literaldata($request)){
     $dir = undef; $ext = $MODE_EXTENSION{$mode};
     $name = "Anonymous String"; }
+  elsif (pathname_is_url($request)) {
+    $dir = undef; $ext = $MODE_EXTENSION{$mode};
+    $name = $request; }
   else {
     $request =~ s/\.\Q$MODE_EXTENSION{$mode}\E$//;
     if(my $pathname = pathname_find($request,types=>[$MODE_EXTENSION{$mode},''])){
