@@ -12,6 +12,7 @@
 
 package LaTeXML::Util::WWW;
 use strict;
+use LaTeXML::Global;
 use LWP;
 use LWP::Simple;
 use Exporter;
@@ -24,16 +25,18 @@ sub auth_get {
   my $response=$browser->get($url);
   my $realm = $response->www_authenticate;
   if ($realm) {
+    if ($realm =~ /^Basic realm="([^"]+)"$/) {
+      $realm = $1;
+    }
     # Prompt for username pass for this location:
     my $req; my $tries=3;
     my ($uname,$pass) = @{$$authlist{$realm}} if $$authlist{$realm};
     while (!($response && $response->is_success) && $tries>0) { # 3 tries
+      $tries--;
       if (!$uname) {
-        print STDERR "Enter authentication info for realm: $realm\n URL: $url\n";
         $req = HTTP::Request->new(GET => $url);
         $req->authorization_basic($uname, $pass);
         $response = $browser->request($req);
-        $tries--;
         $$authlist{$realm}=[$uname,$pass] if $response->is_success;
       } else {
         $req = HTTP::Request->new(GET => $url);
@@ -42,7 +45,7 @@ sub auth_get {
       }
     }
   }
-  print STDERR "\n\nGot: ".$response->content."\n\n";
+  Fatal('www','get',$url,'HTTP GET failed with: "'.$response->message.'"') unless ($response->is_success);
   $response->content;
 }
 
