@@ -365,7 +365,7 @@ sub prepare_options {
       push @{$opts->{math_formats}}, 'pmml';
     }
     # use parallel markup if there are multiple formats requested.
-    $opts->{parallelmath} = 1 if @{$opts->{math_formats}}>1;
+    $opts->{parallelmath} = 1 if ($opts->{math_formats} && (@{$opts->{math_formats}}>1));
   }
   # If really nothing hints to define format, then default it to XML
   $opts->{format} = 'xml' unless defined $opts->{format};
