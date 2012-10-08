@@ -186,14 +186,14 @@ sub convert {
       print STDERR "\nConversion incomplete (timeout): ".$status.".\n";
     } else {
       print STDERR $eval_report."\n";
-      print STDERR "\nStatus:conversion:".($status_code||'3')." \n";
+      print STDERR "\nStatus:conversion:".($status_code||'0')." \n";
       print STDERR "Conversion complete: ".$status.".\n";
     }
     # Close and restore STDERR to original condition.
     my $log=$self->flush_loging;
     return {result=>undef,log=>$log,status=>$status,status_code=>$status_code};
   }
-  print STDERR "\nStatus:conversion:".($status_code||'3')." \n";
+  print STDERR "\nStatus:conversion:".($status_code||'0')." \n";
   print STDERR "Conversion complete: ".$status.".\n";
 
   if ($serialized) {
