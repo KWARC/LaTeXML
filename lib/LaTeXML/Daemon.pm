@@ -119,8 +119,7 @@ sub convert {
   }
 
   $self->bind_loging;
-  my $status=q{};
-  my $status_code;
+  my ($status,$status_code)=(undef,undef);
   # Inform of identity, increase conversion counter
   my $opts = $self->{opts};
   print STDERR "\n",$opts->{identity},"\n" if $opts->{verbosity} >= 0;
@@ -171,30 +170,32 @@ sub convert {
     alarm(0);
     1;
   };
-   if ($@) {#Fatal occured!
-    if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
-      print STDERR "$@\n";
-      print STDERR "Fatal error: main conversion timeout after ".$opts->{timeout}." seconds!\n";
-      print STDERR "\nConversion incomplete (timeout): ".$latexml->getStatusMessage.".\n";
-    } else {
-      print STDERR "$@\n";
-      print STDERR "\nStatus:conversion:".($latexml->getStatusCode||'0')." \n";
-      print STDERR "Conversion complete: ".$latexml->getStatusMessage.".\n";
-    }
-    # Close and restore STDERR to original condition.
-    my $log=$self->flush_loging;
-    return {result=>undef,log=>$log,status=>$latexml->getStatusMessage,status_code=>$latexml->getStatusCode};
-  }
-  print STDERR "\nStatus:conversion:".($latexml->getStatusCode||'0')." \n";
-  print STDERR "Conversion complete: ".$latexml->getStatusMessage.".\n";
+  my $eval_report = $@;
   $status = $latexml->getStatusMessage;
   $status_code = $latexml->getStatusCode;
   # End daemon run, by popping frame:
   $latexml->withState(sub {
-                        my($state)=@_; # Remove current state frame
-                        $state->popDaemonFrame;
-                        $$state{status} = {};
-                      });
+    my($state)=@_; # Remove current state frame
+    $state->popDaemonFrame;
+    $$state{status} = {};
+  });
+  if ($eval_report) {#Fatal occured!
+    if ($eval_report =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
+      print STDERR $eval_report."\n";
+      print STDERR "Fatal:conversion:timeout Conversion timed out after ".$opts->{timeout}." seconds!\n";
+      print STDERR "\nConversion incomplete (timeout): ".$status.".\n";
+    } else {
+      print STDERR $eval_report."\n";
+      print STDERR "\nStatus:conversion:".($status_code||'3')." \n";
+      print STDERR "Conversion complete: ".$status.".\n";
+    }
+    # Close and restore STDERR to original condition.
+    my $log=$self->flush_loging;
+    return {result=>undef,log=>$log,status=>$status,status_code=>$status_code};
+  }
+  print STDERR "\nStatus:conversion:".($status_code||'3')." \n";
+  print STDERR "Conversion complete: ".$status.".\n";
+
   if ($serialized) {
       # If serialized has been set, we are done with the job
       my $log = $self->flush_loging;
@@ -400,9 +401,9 @@ sub convert_post {
   if ($@) {                     #Fatal occured!
     if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
       print STDERR "$@\n";
-      print STDERR "Fatal error: postprocessing timeout after ".$opts->{timeout}." seconds!\n";
+      print STDERR "Fatal:post:timeout Postprocessing timed out after ".$opts->{timeout}." seconds!\n";
     } else {
-      print STDERR "Fatal: Post-processor crashed! $@\n";
+      print STDERR "Fatal:post:generic Post-processor crashed! $@\n";
     }
     return;
   }
