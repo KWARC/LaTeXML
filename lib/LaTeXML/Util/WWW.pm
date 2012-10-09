@@ -21,7 +21,12 @@ our @EXPORT = qw(&auth_get);
 
 sub auth_get {
   my ($url,$authlist) = @_;
-  my $browser = LWP::UserAgent->new;
+  my $browser;
+  if ($url =~ /^https/) {
+   $browser = LWP::UserAgent->new(ssl_opts => { verify_hostname => 0 });
+  } else {
+   $browser = LWP::UserAgent->new;
+  }
   my $response=$browser->get($url);
   my $realm = $response->www_authenticate;
   if ($realm) {
