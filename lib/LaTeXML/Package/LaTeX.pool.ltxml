@@ -530,7 +530,9 @@ DefMacro('\ProvidesFile{}[]',   sub {
 
 DefPrimitive('\DeclareOption{}{}', sub {
   my($stomach,$option,$code)=@_;
-  DeclareOption(ToString($option),$code); });
+  ((ToString($option) eq '*') ?
+    DeclareOption(undef,$code) :
+    DeclareOption(ToString($option),$code)); });
 
 DefPrimitive('\PassOptionsToPackage{}{}', sub {
   my($stomach,$name,$options)=@_;
