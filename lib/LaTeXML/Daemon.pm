@@ -27,6 +27,7 @@ use LaTeXML::Util::ObjectDB;
 use LaTeXML::Util::Extras;
 use LaTeXML::Post;
 use LaTeXML::Post::Scan;
+binmode(STDERR,":utf8");
 
 #**********************************************************************
 our @IGNORABLE = qw(identity timeout profile port preamble postamble port destination log removed_math_formats whatsin whatsout math_formats input_limit input_counter dographics mathimages mathimagemag );
@@ -453,15 +454,15 @@ sub bind_loging {
   # TODO: Move away from global file handles, they will inevitably end up causing problems..
   my ($self) = @_;
   # Tie STDERR to log:
-  open(LOG,">",\$self->{log}) or croak "Can't redirect STDERR to log! Dying...";
-  *ERRORIG=*STDERR;
-  *STDERR = *LOG;
+  #open(LOG,">",\$self->{log}) or croak "Can't redirect STDERR to log! Dying...";
+  #*ERRORIG=*STDERR;
+  #*STDERR = *LOG;
 }
 sub flush_loging {
   my ($self) = @_;
   # Close and restore STDERR to original condition.
-  close LOG;
-  *STDERR=*ERRORIG;
+  #close LOG;
+  #*STDERR=*ERRORIG;
   my $log = $self->{log};
   $self->{log}=q{};
   return $log;

@@ -25,7 +25,6 @@ use LaTeXML::Util::Config;
 use LaTeXML::Package qw(pathname_is_literaldata pathname_is_specialprotocol);
 use LaTeXML::Daemon;
 
-our $version = '0.1';
 our $dbfile  = '.LaTeXML_Mojo.cache';
 
 $ENV{MOJO_HOME} = $FILE_BASE unless defined $ENV{MOJO_HOME};
@@ -160,7 +159,7 @@ helper create_config => sub {
   # Read into a Config object:
   my $config = LaTeXML::Util::Config->new;
   $config->read($cmdopts);
-  $config->set('identity', "Mojo for LaTeXML, v$version; Profile: " . ($config->get('profile')||'custom'));
+  $config->set('identity', "Mojo for LaTeXML (version $LaTeXML::VERSION, rev $LaTeXML::REVISION); Profile: " . ($config->get('profile')||'custom'));
   return $config;
 };
 

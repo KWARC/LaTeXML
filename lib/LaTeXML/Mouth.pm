@@ -523,10 +523,13 @@ sub new {
 package LaTeXML::Mouth::http;
 use base qw(LaTeXML::Mouth);
 use LaTeXML::Util::WWW;
+use LaTeXML::Global;
 
 sub new {
   my($class,$url,%options)=@_;
-  my $self =  bless {source=>$url, shortsource=>"URL"}, $class;
+  my($urlbase,$name,$ext)=url_split($url);
+  $STATE->assignValue(URLBASE=>$urlbase) if defined $urlbase;
+  my $self =  bless {source=>$url, shortsource=>$name}, $class;
   $$self{fordefinitions}=1 if $options{fordefinitions};
   $$self{notes}=1          if $options{notes};
   my $content = auth_get($url);
@@ -536,18 +539,7 @@ sub new {
 
 #**********************************************************************
 package LaTeXML::Mouth::https;
-use base qw(LaTeXML::Mouth);
-use LaTeXML::Util::WWW;
-
-sub new {
-  my($class,$url,%options)=@_;
-  my $self =  bless {source=>$url, shortsource=>"URL"}, $class;
-  $$self{fordefinitions}=1 if $options{fordefinitions};
-  $$self{notes}=1          if $options{notes};
-  my $content = auth_get($url);
-  $self->openString($content);
-  $self->initialize;
-  $self; }
+use base qw(LaTeXML::Mouth::http);
 
 #**********************************************************************
 # A fake mouth provides a hook for getting the Locator of anything

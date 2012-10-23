@@ -31,7 +31,7 @@ my $ARGV_SAVED = [@ARGV], #Save, so that we reinvoke when flushed
 
 # Global Options, with defaults
 my $g_opts = LaTeXML::Util::Config->new(
- identity => "latexmls (LaTeXML version $LaTeXML::VERSION)",
+ identity => "latexmls (LaTeXML version $LaTeXML::VERSION, rev $LaTeXML::REVISION)",
  profile => 'standard',
  input_limit => 100,
  input_counter => 0,
@@ -138,8 +138,8 @@ sub doterm {
 sub daemonize {
   #chdir '/'                 or croak "Can't chdir to /: $!";
   #This causes more problems than it solves (e.g. sTeX setup)
-  open STDIN, '<', '/dev/null'   or croak "Can't read /dev/null: $!";
-  open STDOUT, '>', '/dev/null' or croak "Can't write to /dev/null: $!";
+  #open STDIN, '<', '/dev/null'   or croak "Can't read /dev/null: $!";
+  #open STDOUT, '>', '/dev/null' or croak "Can't write to /dev/null: $!";
   defined(my $pid = fork)   or croak "Can't fork: $!";
   exit if $pid;
   setsid                    or croak "Can't start a new session: $!";

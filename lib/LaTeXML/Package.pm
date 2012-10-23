@@ -17,6 +17,7 @@ use LaTeXML::Global;
 use LaTeXML::Definition;
 use LaTeXML::Parameters;
 use LaTeXML::Util::Pathname;
+use LaTeXML::Util::WWW;
 use Unicode::Normalize;
 use Text::Balanced;
 use base qw(Exporter);
@@ -1125,16 +1126,17 @@ sub FindFile {
   # If we REALLY want to rely on k-path-search, we could just push $PATHS onto TEXINPUTS
   # and ONLY use kpsewhich...? would that be faster or better in any way?
   my $paths    = LookupValue('SEARCHPATHS');
+  my $urlbase = LookupValue('URLBASE');
   (        !$options{noltxml} && !$options{type}
 	   && ( pathname_find_x("$file.tex.ltxml",paths=>$paths,installation_subdir=>'Package')
 		|| pathname_kpathsearch("$file.tex.ltxml") ))
     || (   !$options{notex}   && !$options{type}
-	   && ( pathname_find_x("$file.tex",paths=>$paths) || pathname_kpathsearch("$file.tex") ))
+	   && ( pathname_find_x("$file.tex",paths=>$paths,urlbase=>$urlbase) || pathname_kpathsearch("$file.tex") ))
       || ( !$options{noltxml}
 	   && ( pathname_find_x("$file.ltxml",paths=>$paths,installation_subdir=>'Package')
 		|| pathname_kpathsearch("$file.ltxml") ))
 	||(!$options{notex}
-	   && ( pathname_find_x("$file",paths=>$paths) || pathname_kpathsearch($file) ));
+	   && ( pathname_find_x("$file",paths=>$paths,urlbase=>$urlbase) || pathname_kpathsearch($file) ));
  }
 
 sub pathname_is_nasty {
@@ -1158,7 +1160,7 @@ sub pathname_find_x {
   my($path,%options)=@_;
   if(LookupValue($path.'_contents')){
     return $path; }
-  pathname_find($path,%options); }
+  pathname_find($path,%options) || url_find($path,%options); }
 
 sub maybeReportSearchPaths {
   if(LookupValue('SEARCHPATHS_REPORTED')){ 
@@ -1438,7 +1440,6 @@ sub InputDefinitions {
       DefMacroI(T_CS('\opt@'.$name.'.'.$astype),undef,
 		Tokens(Explode(join(',',@{LookupValue('opt@'.$name.".".$astype)}))));
     }
-
     my($fdir,$fname,$ftype)=pathname_split($file);
     if($ftype eq 'ltxml'){
       loadLTXML($file); }		# Perl module.

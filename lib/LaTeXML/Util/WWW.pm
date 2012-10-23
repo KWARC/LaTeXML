@@ -17,7 +17,7 @@ use LWP;
 use LWP::Simple;
 use Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(&auth_get);
+our @EXPORT = qw(&auth_get &url_find &url_split);
 
 sub auth_get {
   my ($url,$authlist) = @_;
@@ -52,6 +52,21 @@ sub auth_get {
   }
   Fatal('www','get',$url,'HTTP GET failed with: "'.$response->message.'"') unless ($response->is_success);
   $response->content;
+}
+
+sub url_find {
+  my ($relative_url,%options) = @_;
+  return undef unless ($options{urlbase} && $relative_url);
+  my $absolute_url = $options{urlbase}.'/'.$relative_url;
+  my $browser = LWP::UserAgent->new;
+  my $response = $browser->head($absolute_url);
+  $response->is_success ? $absolute_url : undef;
+}
+
+sub url_split {
+  my ($url) = @_;
+  $url =~ /^(.+)\/([^\/]+)$/;
+  $1,$2;
 }
 
 

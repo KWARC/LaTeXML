@@ -28,8 +28,9 @@ our @ISA = (qw(LaTeXML::Object));
 
 #use LaTeXML::Document;
 
-use vars qw($VERSION);
+use vars qw($VERSION $REVISION);
 $VERSION = "0.7.9alpha";
+$REVISION = `svn info | perl -pe "chomp; if (s/Revision\\:\\s*//) {} else { s/.*//; }"` || "Unknown";
 
 #**********************************************************************
 
@@ -97,8 +98,9 @@ sub digestFile {
     $dir = undef; $ext = $MODE_EXTENSION{$mode};
     $name = "Anonymous String"; }
   elsif (pathname_is_url($request)) {
-    $dir = undef; $ext = $MODE_EXTENSION{$mode};
-    $name = $request; }
+    $dir = undef;  $ext = $MODE_EXTENSION{$mode};
+    $name = $request;
+  }
   else {
     $request =~ s/\.\Q$MODE_EXTENSION{$mode}\E$//;
     if(my $pathname = pathname_find($request,types=>[$MODE_EXTENSION{$mode},''])){
@@ -110,7 +112,7 @@ sub digestFile {
      my($state)=@_;
      NoteBegin("Digesting $mode $name");
      $self->initializeState($mode.".pool", @{$$self{preload} || []}) unless $options{noinitialize};
-     $state->assignValue(SOURCEFILE=>$request)  if defined $dir;
+     $state->assignValue(SOURCEFILE=>$request)  if (!pathname_is_literaldata($request));
      $state->assignValue(SOURCEDIRECTORY=>$dir) if defined $dir;
      $state->unshiftValue(SEARCHPATHS=>$dir)
        if defined $dir && !grep($_ eq $dir, @{$state->lookupValue('SEARCHPATHS')});
@@ -219,8 +221,12 @@ sub initializeState {
 	Warn('unexpected','options',
 	     "Attempting to pass options to $preload.$type (not style or class)",
 	     "The options were  [$options]"); }}
-    LaTeXML::Package::InputDefinitions($preload,type=>$type,
-				       handleoptions=>$handleoptions, options=>$options); 
+  # Attach extension back if HTTP protocol:
+  if (pathname_is_url($preload)) {
+    $preload.='.'.$type;
+  }
+  LaTeXML::Package::InputDefinitions($preload,type=>$type,
+	        handleoptions=>$handleoptions, options=>$options); 
   }}
 
 sub writeDOM {

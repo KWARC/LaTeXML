@@ -1,0 +1,15 @@
+comments =
+timeout = 120
+format = xml
+whatsin = fragment 
+whatsout = document
+post =
+xmath =
+openmath =
+pmml =
+path = $LATEXMLINPUTS
+path = $STEXINPUTS
+includestyles =
+#preload = ../../../slides/lib/pre.tex
+stylesheet = omdocpost.xsl
+nodefaultcss =

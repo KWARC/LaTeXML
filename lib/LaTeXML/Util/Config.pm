@@ -20,7 +20,7 @@ use Carp;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 use Pod::Find qw(pod_where);
-#use Data::Dumper;
+use Data::Dumper;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Global;
 
@@ -418,11 +418,21 @@ sub _read_options_file {
     my ($key,$value) = ($1,$2||'');
     $value =~ s/\s+$//;
     # Special treatment for --path=$env:
-    if (($key eq 'path') && ($value=~/^\$(.+)/)) {
-      next unless $ENV{$1};
-      my @values = grep(-d $_,reverse(split(':',$ENV{$1})));
-      next unless @values;
-      push(@$opts, "--path=$_") foreach (@values);
+    if ($value=~/^\$(.+)$/) {
+      my @values = ();
+      my $env_name = $1;
+      my $env_value;
+      # Allow $env/foo paths, starting with $env prefixes
+      if ($env_name =~ /^([^\/]+)(\/+)(.+)$/ ) {
+        push @values, $ENV{$1}.'/'.$3 if $ENV{$1};
+      } else {
+      # But also the standard behaviour, where the $env is an array of paths
+        $env_value = $ENV{$env_name};
+        next unless $env_value;
+        @values = grep(-d $_,reverse(split(':',$env_value)));
+        next unless @values;
+      }
+      push(@$opts, "--$key=$_") foreach (@values);
     } else {
       $value = $value ? "=$value" : '';
       push @$opts, "--$key".$value;
