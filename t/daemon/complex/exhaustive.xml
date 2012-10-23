@@ -16,7 +16,4 @@
   <para xml:id="p4" fragid="p4">
     <p>Postamble file loaded.</p>
   </para>
-  <navigation>
-    <ref rel="start" show="fulltitle" idref="Document">?</ref>
-  </navigation>
 </document>

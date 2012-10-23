@@ -463,6 +463,9 @@ t/ams/cd.xml
 t/ams/genfracs.pdf
 t/ams/genfracs.tex
 t/ams/genfracs.xml
+t/ams/sideset.pdf
+t/ams/sideset.tex
+t/ams/sideset.xml
 t/babel/french.pdf
 t/babel/french.tex
 t/babel/french.xml
@@ -483,6 +486,9 @@ t/complex/xii.pdf
 t/complex/xii.latexml
 t/complex/xii.tex
 t/complex/xii.xml
+t/complex/hypertest.pdf
+t/complex/hypertest.tex
+t/complex/hypertest.xml
 t/digestion/box.pdf
 t/digestion/box.tex
 t/digestion/box.xml
