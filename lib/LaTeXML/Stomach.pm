@@ -62,6 +62,7 @@ sub getBoxingLevel { scalar(@{$_[0]->{boxing}}); }
 
 sub digestNextBody {
   my($self,$terminal)=@_;
+  my $startloc = $self->getLocator;
   my $initdepth  = scalar(@{$$self{boxing}});
   my $token;
   local @LaTeXML::LIST=();
@@ -69,7 +70,8 @@ sub digestNextBody {
     push(@LaTeXML::LIST, $self->invokeToken($token));
     last if $terminal and Equals($token,$terminal);
     last if $initdepth > scalar(@{$$self{boxing}}); } # if we've closed the initial mode.
-  Warn('expected',$terminal,$self,"body should have ended with '".ToString($terminal)."'")
+  Warn('expected',$terminal,$self,"body should have ended with '".ToString($terminal)."'",
+       "current body started at ".ToString($startloc))
     if $terminal and ! Equals($token,$terminal);
   push(@LaTeXML::LIST,LaTeXML::List->new()) unless $token; # Dummy `trailer' if none explicit.
   @LaTeXML::LIST; }
@@ -146,7 +148,8 @@ sub invokeToken_internal {
     $STATE->noteStatus(undefined=>$cs);
     Error('undefined',$token,$self,"The token ".Stringify($token)." is not defined.");
     $STATE->installDefinition(LaTeXML::Constructor->new($token,undef,
-							sub { makeError($_[0],'undefined',$cs);}));
+					sub { makeError($_[0],'undefined',$cs);}),
+			      'global');
     $self->invokeToken($token); }
   elsif($meaning->isaDefinition){
     # A math-active character will (typically) be a macro,
@@ -214,6 +217,7 @@ sub pushStackFrame {
   $STATE->assignValue(afterAssignment=>undef,'local'); # ALWAYS bind this!
   $STATE->assignValue(groupNonBoxing=>$nobox,'local'); # ALWAYS bind this!
   $STATE->assignValue(groupInitiator=>$LaTeXML::CURRENT_TOKEN, 'local');
+  $STATE->assignValue(groupInitiatorLocator=>$self->getLocator, 'local');
   push(@{$$self{boxing}},$LaTeXML::CURRENT_TOKEN) unless $nobox; # For begingroup/endgroup
 }
 
@@ -234,7 +238,8 @@ sub currentFrameMessage {
       ? "mode-switch to ".$STATE->lookupValue('MODE')
       : ($STATE->lookupValue('groupNonBoxing') # Current frame is a boxing group?
 	 ? "boxing" : "non-boxing")." group")
-      . " due to ".Stringify($STATE->lookupValue('groupInitiator')); }
+      . " due to ".Stringify($STATE->lookupValue('groupInitiator'))
+	." ".ToString($STATE->lookupValue('groupInitiatorLocator')); }
 
 #======================================================================
 # Grouping pushes a new stack frame for binding definitions, etc.

@@ -15,17 +15,18 @@ package LaTeXML::Package::Pool;
 use strict;
 use LaTeXML::Package;
 
+RequirePackage('lxRDFa');
 RequirePackage('webgraphic');
 
 # Metadata namespaces:
 my $pmbaseURI = "http://alpha.planetmath.org"; # Careful: Get the URI right before we publish LOD
-RegisterMetaNamespace('dct'=>'http://purl.org/dc/terms/');
-RegisterMetaNamespace('msc'=>"http://msc2010.org/resources/MSC/2010/");
-RegisterMetaNamespace('xsd'=>'http://www.w3.org/2001/XMLSchema#');
-RegisterMetaNamespace('pm'=>"$pmbaseURI/ns/");
-RegisterMetaNamespace('pmarticle'=>"$pmbaseURI/article/");
-RegisterMetaNamespace('pmuser'=>"$pmbaseURI/user/");
-RegisterMetaNamespace('pmconcept'=>"$pmbaseURI/concept/");
+AssignMapping('RDFa_prefixes','dct'=>'http://purl.org/dc/terms/');
+AssignMapping('RDFa_prefixes','msc'=>"http://msc2010.org/resources/MSC/2010/");
+AssignMapping('RDFa_prefixes','xsd'=>'http://www.w3.org/2001/XMLSchema#');
+AssignMapping('RDFa_prefixes','pm'=>"$pmbaseURI/ns/");
+AssignMapping('RDFa_prefixes','pmarticle'=>"$pmbaseURI/article/");
+AssignMapping('RDFa_prefixes','pmuser'=>"$pmbaseURI/user/");
+AssignMapping('RDFa_prefixes','pmconcept'=>"$pmbaseURI/concept/");
 
 # URIs for Metadata Resources:
 DefMacro('\articleURI{}','pmarticle:#1');
@@ -34,36 +35,34 @@ DefMacro('\conceptURI{}','pmconcept:#1');
 
 # Metadata commands
 # Generic metadata constructors (use to define your own metadata):
+DefMacro('\lxRDFProperty[]{}{}','\lxRDF{about={#1},predicate={#2:#3},content={#4}}');
+DefMacro('\lxRDFResource[]{}{}','\lxRDF{about={#1},predicate={#2:#3},resource={#4}}');
 
-DefMacro('\pmmeta@literal[]{}{}{}','\@add@frontmatter{ltx:keywords}[datatype=#1,property=#2:#3,content=#4]{}');
-DefMacro('\pmmeta@uri[]{}{}{}','\@add@frontmatter{ltx:keywords}[about=#1,rel=#2:#3,resource=#4]{}');
+DefMacro('\pmmeta@literal@adhoc[]{}{}','\lxRDFProperty[#1]{pm}{#2}{#3}');
+DefMacro('\pmmeta@uri@adhoc[]{}{}','\lxRDFResource[#1]{pm}{#2}{#3}');
+DefMacro('\pmmeta@literal@dct[]{}{}','\lxRDFProperty[#1]{dct}{#2}{#3}');
+DefMacro('\pmmeta@uri@dct[]{}{}','\lxRDFResource[#1]{dct}{#2}{#3}');
+# PlanetMath Metadata:
 
- DefMacro('\pmmeta@literal@adhoc[]{}{}','\pmmeta@literal[#1]{pm}{#2}{#3}');
- DefMacro('\pmmeta@uri@adhoc[]{}{}','\pmmeta@uri[#1]{pm}{#2}{#3}');
- DefMacro('\pmmeta@literal@dct[]{}{}','\pmmeta@literal[#1]{dct}{#2}{#3}');
- DefMacro('\pmmeta@uri@dct[]{}{}','\pmmeta@uri[#1]{dct}{#2}{#3}');
- # PlanetMath Metadata:
+DefMacro('\pmselfproof{}','\pmmeta@literal@adhoc{selfproof}{#1}');
+DefMacro('\pmcomment Semiverbatim','\pmmeta@literal@adhoc{comment}{#1}');
+DefMacro('\pmdefines{}','\pmmeta@literal@adhoc{defines}{\conceptURI{#1}}'); #We need to figure out both defines and its argument (a concept)
+DefMacro('\pmkeyword{}','\pmmeta@literal@adhoc{keyword}{#1}');
 
- DefMacro('\pmselfproof{}','\pmmeta@literal@adhoc{selfproof}{#1}');
- DefMacro('\pmcomment Semiverbatim','\pmmeta@literal@adhoc{comment}{#1}');
- DefMacro('\pmdefines{}','\pmmeta@literal@adhoc{defines}{\conceptURI{#1}}'); #We need to figure out both defines and its argument (a concept)
- DefMacro('\pmkeyword{}','\pmmeta@literal@adhoc{keyword}{#1}');
-
- DefMacro('\pmparent[]{}','\pmmeta@uri@adhoc{parent}{\articleURI{#2}}'); # Ignore optional argument, the mandatory is a cannonical name
- DefMacro('\pmrelated{}','\pmmeta@uri@adhoc{related}{\articleURI{#1}}');
- DefMacro('\pmsynonym{}{}','\pmmeta@uri@adhoc[\conceptURI{#1}]{synonym}{\conceptURI{#2}}'); # Consider DCT alternative for the alias
+DefMacro('\pmparent[]{}','\pmmeta@uri@adhoc{parent}{\articleURI{#2}}'); # Ignore optional argument, the mandatory is a cannonical name
+DefMacro('\pmrelated{}','\pmmeta@uri@adhoc{related}{\articleURI{#1}}');
+DefMacro('\pmsynonym{}{}','\pmmeta@uri@adhoc[\conceptURI{#1}]{synonym}{\conceptURI{#2}}'); # Consider DCT alternative for the alias
 DefMacro('\pmowner{}{}','\pmmeta@uri@adhoc{owner}{\userURI{#2}}');
 DefMacro('\pmmodifier{}{}','\pmmeta@uri@adhoc{modifier}{\userURI{#2}}'); # Note : we should use usernames (maybe), but keep in mind they have SPACES in them.
 
-
- DefMacro('\pmrecord{}{}','\pmmeta@literal@dct{hasVersion}{#1}'); # The second argument of the \pmrecord is the Noosphere ID, which we can ignore
- DefMacro('\pmcanonicalname{}','\pmmeta@literal@dct{identifier}{#1}');
- DefMacro('\pmcreated Semiverbatim','\pmmeta@literal@dct[xsd:date]{created}{#1}');
- DefMacro('\pmmodified Semiverbatim','\pmmeta@literal@dct[xsd:date]{modified}{#1}');
- DefMacro('\pmtitle{}','\pmmeta@literal@dct{title}{#1}');
- DefMacro('\pmtype{}','\pmmeta@literal@dct{type}{#1}'); # Maybe types are resources?
- DefMacro('\pmauthor{}{}','\pmmeta@uri@dct{creator}{\userURI{#2}}'); # First argument is a username, second DB id (ignore second).
- DefMacro('\pmclassification{}{}','\pmmeta@uri@dct{subject}{#1:#2}'); #Arbitrary metadata, simply register the #1 argument as a namespace (e.g. msc)
+DefMacro('\pmrecord{}{}','\pmmeta@literal@dct{hasVersion}{#1}'); # The second argument of the \pmrecord is the Noosphere ID, which we can ignore
+DefMacro('\pmcanonicalname{}','\pmmeta@literal@dct{identifier}{#1}');
+DefMacro('\pmcreated Semiverbatim','\pmmeta@literal@dct[xsd:date]{created}{#1}');
+DefMacro('\pmmodified Semiverbatim','\pmmeta@literal@dct[xsd:date]{modified}{#1}');
+DefMacro('\pmtitle{}','\pmmeta@literal@dct{title}{#1}');
+DefMacro('\pmtype{}','\pmmeta@literal@dct{type}{#1}'); # Maybe types are resources?
+DefMacro('\pmauthor{}{}','\pmmeta@uri@dct{creator}{\userURI{#2}}'); # First argument is a username, second DB id (ignore second).
+DefMacro('\pmclassification{}{}','\pmmeta@uri@dct{subject}{#1:#2}'); #Arbitrary metadata, simply register the #1 argument as a namespace (e.g. msc)
 
 #FUTURE: add, as much as you have information, additional triples:
 #<some-URI-you-made-up-from-the-authors-ID> rdf:type foaf:Person ;

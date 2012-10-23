@@ -211,24 +211,6 @@ sub getDocumentNamespace {
 	  "Using '$ns' instead"); }
   $ns; }
 
-#DG: Allow to request all metadata namespaces
-sub getMetaNamespaces {
-  my($self)=@_;
-  $$self{meta_namespace_prefixes};
-}
-
-#DG: Support for metadata namespaces
-sub registerMetaNamespace {
-  my($self,$codeprefix,$namespace)=@_;
-  if($namespace){
-    $$self{meta_namespace_prefixes}{$namespace}=$codeprefix;
-    $$self{meta_namespaces}{$codeprefix}=$namespace;
-  }
-  else {
-    my $prev = $$self{meta_namespaces}{$codeprefix};
-    delete $$self{meta_namespace_prefixes}{$prev} if $prev;
-    delete $$self{meta_namespaces}{$codeprefix}; }}
-
 # Given a Qualified name, possibly prefixed with a namespace prefix,
 # as defined by the code namespace mapping,
 # return the NamespaceURI and localname.

@@ -33,9 +33,10 @@
 
   <xsl:template match="/">
     <html>
-      <xsl:copy-of select="/ltx:document/@prefix"/><!-- DG: RDFa prefix -->
+      <xsl:call-template name="add_RDFa_prefix"/>
       <xsl:call-template name="head"/>
       <xsl:call-template name="body"/>
+      <xsl:text>&#x0A;</xsl:text>
     </html>
   </xsl:template>
 

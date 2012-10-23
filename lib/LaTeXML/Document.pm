@@ -186,14 +186,9 @@ sub doctest_children {
 sub finalize {
   my($self)=@_;
   if(my $root = $self->getDocument->documentElement){
-    # DG: Support for RDFa namespaces
-    my $RDFa_Prefix;
-    if (my $ns = $STATE->getModel->getMetaNamespaces) {
-      $RDFa_Prefix.=$ns->{$_}.": $_ " foreach (keys %$ns);
-      $root->setAttribute('prefix',$RDFa_Prefix) if $RDFa_Prefix;
-    }
     local $LaTeXML::FONT = $self->getNodeFont($root);
-    $self->finalize_rec($root); }
+    $self->finalize_rec($root); 
+    set_RDFa_prefixes($self->getDocument,$STATE->lookupValue('RDFa_prefixes'));  }
   $$self{document}; }
 
 sub finalize_rec {
@@ -296,7 +291,13 @@ sub insertElement {
     map($self->absorb($_), @$content); }
   elsif(defined $content){
     $self->absorb($content); }
-  $self->closeElement($qname); 
+  # In obscure situations, $node may have already gotten closed?
+  # close it if it is still open.
+  my $c = $$self{node};
+  while($c && ($c->nodeType != XML_DOCUMENT_NODE) && !$c->isSameNode($node)){
+    $c = $c->parentNode; }
+  if($c->isSameNode($node)){
+    $self->closeElement($qname); }
   $node; }
 
 sub insertMathToken {
