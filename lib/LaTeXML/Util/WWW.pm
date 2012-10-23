@@ -13,6 +13,7 @@
 package LaTeXML::Util::WWW;
 use strict;
 use LaTeXML::Global;
+use URI;
 use LWP;
 use LWP::Simple;
 use Exporter;
@@ -57,8 +58,14 @@ sub auth_get {
 sub url_find {
   my ($relative_url,%options) = @_;
   return undef unless ($options{urlbase} && $relative_url);
-  my $absolute_url = $options{urlbase}.'/'.$relative_url;
-  my $browser = LWP::UserAgent->new;
+  $options{urlbase}.='/' unless ($options{urlbase} =~ /\/$/);
+  my $absolute_url = URI->new_abs($relative_url,$options{urlbase});
+  my $browser;
+  if ($absolute_url =~ /^https/) {
+   $browser = LWP::UserAgent->new(ssl_opts => { verify_hostname => 0 });
+  } else {
+   $browser = LWP::UserAgent->new;
+  }
   my $response = $browser->head($absolute_url);
   $response->is_success ? $absolute_url : undef;
 }
