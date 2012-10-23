@@ -35,8 +35,8 @@ DefMacro('\conceptURI{}','pmconcept:#1');
 
 # Metadata commands
 # Generic metadata constructors (use to define your own metadata):
-DefMacro('\lxRDFProperty[]{}{}','\lxRDF{about={#1},predicate={#2:#3},content={#4}}');
-DefMacro('\lxRDFResource[]{}{}','\lxRDF{about={#1},predicate={#2:#3},resource={#4}}');
+DefMacro('\lxRDFProperty[]{}{}{}','\lxRDF{datatype={#1},property={#2:#3},content={#4}}');
+DefMacro('\lxRDFResource[]{}{}{}','\lxRDF{about={#1},property={#2:#3},resource={#4}}');
 
 DefMacro('\pmmeta@literal@adhoc[]{}{}','\lxRDFProperty[#1]{pm}{#2}{#3}');
 DefMacro('\pmmeta@uri@adhoc[]{}{}','\lxRDFResource[#1]{pm}{#2}{#3}');
