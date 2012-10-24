@@ -56,7 +56,9 @@ WriteMakefile(NAME => 'LaTeXML',
           'LWP::Simple' => 0,
           'IO::Socket' => 0,
           'IO::Socket::SSL' => 0,
-          'Mojolicious::Lite' => 0
+          'IO::String' => 0,
+          'Mojolicious::Lite' => 0,
+          'Archive::Zip' => 0
 			   },
 	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmls','bin/latexmlc'],
 	      macro => $MORE_MACROS,

@@ -84,5 +84,19 @@ II. Apache + Mod_Perl and Plack
     CustomLog /var/log/apache2/latexml.access.log combined
 </VirtualHost>
 
+For providing the requisite paths to profiles of bindings that do not come preinstalled with LaTeXML (namely for the sTeX, PlanetMath, arXMLiv and ZBL setups), set the respective environmental variable in the <Perl> block of the virtual host definition. All profiles add paths pointing to the $LATEXMLINPUTS environment, if defined. Note that all environment names ending in INPUTS may
+contain multiple directories, separated in the usual way via colons(:).
+
+Example setting all environments used in profiles thus far:
+   <Perl>
+      $ENV{PLACK_ENV} = 'production';
+      $ENV{MOJO_HOME} = '/path/to/LaTeXML/webapp';
+      $ENV{LATEXMLINPUTS} = '/first/path/to/custom/inputs:/second/path:/third/path:etc/etc/etc'
+      $ENV{STEXSTYDIR} = '/path/to/stex/sty/directory'
+      $ENV{ZBLINPUTS} = '/path/to/zbl/sty/'
+      $ENV{PLANETMATHINPUTS} = '/path/to/planetmath/sty'
+      $ENV{ARXMLIVINPUTS} = '/path/to/arxmliv/sty'
+    </Perl>
+
    
 Note: Due to the current setup in Mojolicious, the server would work properly only if it is deployed as a top-level domain or subdomain. In other words, while "latexml.example.com" would work fine, "example.com/latexml" would run into quite some problems.
