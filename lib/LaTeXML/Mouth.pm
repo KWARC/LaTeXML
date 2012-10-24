@@ -37,7 +37,9 @@ sub create {
 
 sub new {
   my($class,$string)=@_;
-  my $self =  bless {source=>"Anonymous String",shortsource=>"String"}, $class;
+  $string = q{} unless defined $string;
+  my $self =  bless {source=>"Generic Mouth Fallback",shortsource=>"String"}, $class;
+  #print STDERR "\n\n String Mouth: $string\n\n";
   $self->openString($string);
   $self->initialize;
   $self; }
@@ -137,7 +139,7 @@ sub getLocator {
   #my $msg =  "at $$self{source}; line $l col $c";
   #Deyan: Upgrade message to XPointer style
   my $nc = $$self{nchars}-1; #There is always a weird (end of line?) char that gets counted
-  if ($c>=$nc) {
+  if ((defined $c) && ($c>=$nc)) {
     $lstart = $l;
     $cstart = $c - $nc;
   } else {
@@ -147,19 +149,19 @@ sub getLocator {
     $lstart = $l-1;
     $cstart = $nc - $c;
   }
-  my $msg = "$$self{source}#textrange(from=$lstart;$cstart,to=$l;$c)";
-  
-  if($length && (defined $l || defined $c)){
-    my $chars=$$self{chars};
-    my $n = $$self{nchars}; 
-    $c=$n-1 if $c >=$n;
-    my $c0 = ($c > 50 ? $c-40 : 0);
-    my $cn = ($n-$c > 50 ? $c+40 : $n-1);
-    my $p1 = (@$chars && join('',@$chars[$c0..$c-1]))||''; chomp($p1);
-    my $p2 = (@$chars && join('',@$chars[$c..$cn]))||''; chomp($p2);
-    $msg .="\n  ".$p1."\n  ".(' ' x ($c-$c0)).'^'.' '.$p2; }
-  else {
-    "at $$self{source}; line $l col $c"; }}
+  "at $$self{source}#textrange(from=$lstart;$cstart,to=$l;$c)";
+  # if($length && (defined $l || defined $c)){
+  #   my $chars=$$self{chars};
+  #   my $n = $$self{nchars}; 
+  #   $c=$n-1 if $c >=$n;
+  #   my $c0 = ($c > 50 ? $c-40 : 0);
+  #   my $cn = ($n-$c > 50 ? $c+40 : $n-1);
+  #   my $p1 = (@$chars && join('',@$chars[$c0..$c-1]))||''; chomp($p1);
+  #   my $p2 = (@$chars && join('',@$chars[$c..$cn]))||''; chomp($p2);
+  #   $msg .="\n  ".$p1."\n  ".(' ' x ($c-$c0)).'^'.' '.$p2; }
+  # else {
+  #   "at $$self{source}; line $l col $c"; }
+}
 
 sub getSource {
   my($self)=@_;

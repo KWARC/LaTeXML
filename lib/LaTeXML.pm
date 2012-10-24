@@ -26,11 +26,15 @@ use LaTeXML::Package qw(pathname_is_literaldata);
 use Encode;
 our @ISA = (qw(LaTeXML::Object));
 
-#use LaTeXML::Document;
+use File::Basename 'dirname';
+my $FILE_BASE;
+BEGIN {
+    $FILE_BASE = dirname(__FILE__);
+}
 
 use vars qw($VERSION $REVISION);
 $VERSION = "0.7.9alpha";
-$REVISION = `svn info | perl -pe "chomp; if (s/Revision\\:\\s*//) {} else { s/.*//; }"` || "Unknown";
+$REVISION = `svn info $FILE_BASE 2>&1 | perl -pe "chomp; if (s/Revision\\:\\s*//) {} else { s/.*//; }"` || "Unknown";
 
 #**********************************************************************
 
