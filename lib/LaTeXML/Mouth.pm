@@ -38,7 +38,7 @@ sub create {
 sub new {
   my($class,$string)=@_;
   $string = q{} unless defined $string;
-  my $self =  bless {source=>"Generic Mouth Fallback",shortsource=>"String"}, $class;
+  my $self =  bless {source=>"Anonymous String",shortsource=>"String"}, $class;
   #print STDERR "\n\n String Mouth: $string\n\n";
   $self->openString($string);
   $self->initialize;
