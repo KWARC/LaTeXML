@@ -214,10 +214,12 @@ sub finalize_rec {
   foreach my $child ($node->childNodes){
     my $type = $child->nodeType;
     if($type == XML_ELEMENT_NODE){
+      my $was_forcefont = $child->getAttribute('_force_font');
       $self->finalize_rec($child);
       # Also check if child is  $FONT_ELEMENT_NAME  AND has no attributes
       # AND providing $node can contain that child's content, we'll collapse it.
-      if(($model->getNodeQName($child) eq $FONT_ELEMENT_NAME) && !$child->hasAttributes){
+      if(($model->getNodeQName($child) eq $FONT_ELEMENT_NAME)
+	 && !$was_forcefont && !$child->hasAttributes){
 	my @grandchildren = $child->childNodes;
 	if( ! grep( ! $model->canContain($qname,$model->getNodeQName($_)), @grandchildren)){
 	  $self->replaceNode($child,@grandchildren); }}
@@ -286,7 +288,7 @@ sub absorbText {
 # Shorthand for open,absorb,close, but returns the new node.
 sub insertElement {
   my($self,$qname,$content,%attrib)=@_;
-  my $node = $self->openElement($qname,%attrib);
+ my $node = $self->openElement($qname,%attrib);
   if(ref $content eq 'ARRAY'){
     map($self->absorb($_), @$content); }
   elsif(defined $content){
@@ -308,7 +310,7 @@ sub insertMathToken {
   my $font = $attributes{font} || $box->getFont;
   $self->setNodeFont($node,$font);
   $self->setNodeBox($node,$box);
-  $self->openMathText_internal($string);
+  $self->openMathText_internal($string) if defined $string;
   $self->closeNode_internal($node);  # Should be safe.
   $node; }
 
@@ -720,7 +722,9 @@ sub closeNode_internal {
      && ($model->getNodeQName($c[0]) eq $FONT_ELEMENT_NAME)
      # AND, $node can have all the attributes that the child has (but at least 'font')
      && !grep( !$model->canHaveAttribute($node,$_),
-	       'font',grep(/^[^_]/,map($_->nodeName,$c[0]->attributes)))){
+	       'font',grep(/^[^_]/,map($_->nodeName,$c[0]->attributes)))
+     # BUT, it isn't being forced somehow
+     && !$c[0]->hasAttribute('_force_font')){
     my $c = $c[0];
     $self->setNodeFont($node,$self->getNodeFont($c));
     $self->removeNode($c);

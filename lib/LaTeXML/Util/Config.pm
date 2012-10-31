@@ -519,7 +519,7 @@ latexmls/latexmlc [options]
                     and digestion.
  --noparse          suppresses parsing math (default: off)
  --parse          enables parsing math (default: on)
- --profile=name     specify profile as defined in LaTeXML::Util::Startup
+ --profile=name     specify profile as defined in LaTeXML::Util::Config
                     Supported: standard|math|fragment|...
                     (default: standard)
  --mode=name        Alias for profile
@@ -704,8 +704,8 @@ Requests Box output for debugging purposes;
 
 =item C<--profile>
 
-Variety of shorthand profiles, described in detail at LaTeXML::Util::Startup.
-Example: C<latexmlc --profile=math 1+2=3>
+Variety of shorthand profiles, described in detail at LaTeXML::Util::Config.
+Example: C<latexmlc --profile=math '1+2=3'>
 
 =item C<--post>
 
