@@ -95,7 +95,7 @@ helper convert_zip => sub {
   #Send a request:
   my $response = $daemon->convert($srcdir.$name.'.tex');
   if (defined $response) {
-      my ($result, $status, $log) = map { $response->{$_} } qw(result status log);
+      my ($result, $status, $status_code, $log) = map { $response->{$_} } qw(result status status_code log);
       if ($result) {
         my $destination = $opts->get('destination');
         if (!$destination) {
@@ -203,15 +203,15 @@ helper convert_string => sub {
   $daemon->prepare_session($config);
   # If there are no protocols, use literal: as default:
   if (!$source) {
-    $self->render(json => {result => '', status => "Fatal:input:empty No TeX provided on input", 
+    $self->render(json => {result => '', status => "Fatal:input:empty No TeX provided on input", status_code=>3,
                            log => "Status:conversion:3\nFatal:input:empty No TeX provided on input"});
   } else {
     $source = "literal:".$source unless (pathname_is_specialprotocol($source));
     #Send a request:
     my $response = $daemon->convert($source);
-    my ($result, $status, $log);
+    my ($result, $status, $status_code, $log);
     if (defined $response) {
-      ($result, $status, $log) = map { $response->{$_} } qw(result status log);
+      ($result, $status, $status_code, $log) = map { $response->{$_} } qw(result status status_code log);
     }
     # Delete daemon if Fatal occurred
     undef $daemon unless defined $result;
@@ -219,10 +219,10 @@ helper convert_string => sub {
     if ($is_jsonp) {
         my $json_result = $self->render(
   	  json => {result => decode('UTF-8',$result), 
-  		   status => $status, log => $log, partial=>1});
+  		   status => $status, status_code=>$status_code, log => $log, partial=>1});
         $self->render(data => "$is_jsonp($json_result)", format => 'js');
     } else {
-        $self->render(json => {result => decode('UTF-8',$result), status => $status, log => $log});
+        $self->render(json => {result => decode('UTF-8',$result), status => $status, status_code=>$status_code, log => $log});
     }
   }
 };
