@@ -109,7 +109,7 @@ sub compile_SVN_info {
   push(@EXCLUSIONS,'blib/lib/LaTeXML/Util/SVNinfo');
   my $svn_revision = `svn info $FILE_BASE 2>&1 | perl -pe "chomp; if (s/Revision\\:\\s*//) {} else { s/.*//; }"` || "Unknown";
     $$MORE_MACROS{ADDSVNINFO}
-    = '$(PERLRUN) -p -e \'s@\\#__SVNinfo__@'.$svn_revision.'@\' ';
+    = '$(PERLRUN) -p -e \'s@\\#__SVNinfo__@\"'.$svn_revision.'\"@\' ';
 
   $MORE_MAKERULES .= <<"MakeSVNinfo";
 
