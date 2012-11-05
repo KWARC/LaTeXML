@@ -4,7 +4,11 @@
 #======================================================================
 use ExtUtils::MakeMaker;
 use strict;
-
+use File::Basename 'dirname';
+my $FILE_BASE;
+BEGIN {
+    $FILE_BASE = dirname(__FILE__);
+}
 #======================================================================
 # Use "perl Makefile.PL <options>"
 # Build options are:
@@ -30,6 +34,7 @@ our $MORE_MACROS = {};
 our $MORE_MAKERULES='';
 
 compile_MathGrammar();
+compile_SVN_info();
 compile_XSLTs();
 install_TeXStyles();
 
@@ -96,6 +101,24 @@ $(INST_LIBDIR)/LaTeXML/MathGrammar.pm: lib/LaTeXML/MathGrammar
 	$(MV) MathGrammar.pm blib/lib/LaTeXML/MathGrammar.pm
 
 MakeGrammar
+}
+
+#======================================================================
+# Add rules to generate a module containing the SVN information.
+sub compile_SVN_info {
+  push(@EXCLUSIONS,'blib/lib/LaTeXML/Util/SVNinfo');
+  my $svn_revision = `svn info $FILE_BASE 2>&1 | perl -pe "chomp; if (s/Revision\\:\\s*//) {} else { s/.*//; }"` || "Unknown";
+    $$MORE_MACROS{ADDSVNINFO}
+    = '$(PERLRUN) -p -e \'s@\\#__SVNinfo__@'.$svn_revision.'@\' ';
+
+  $MORE_MAKERULES .= <<"MakeSVNinfo";
+
+pure_all :: \$(INST_LIBDIR)/LaTeXML/Util/SVNinfo.pm
+
+\$(INST_LIBDIR)/LaTeXML/Util/SVNinfo.pm: lib/LaTeXML/Util/SVNinfo
+	\$(ADDSVNINFO) lib/LaTeXML/Util/SVNinfo > \$(INST_LIBDIR)/LaTeXML/Util/SVNinfo.pm
+
+MakeSVNinfo
 }
 
 #======================================================================

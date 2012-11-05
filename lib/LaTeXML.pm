@@ -23,6 +23,7 @@ use LaTeXML::MathParser;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Bib;
 use LaTeXML::Package qw(pathname_is_literaldata);
+use LaTeXML::Util::SVNinfo;
 use Encode;
 our @ISA = (qw(LaTeXML::Object));
 
@@ -34,7 +35,7 @@ BEGIN {
 
 use vars qw($VERSION $REVISION);
 $VERSION = "0.7.9alpha";
-$REVISION = `svn info $FILE_BASE 2>&1 | perl -pe "chomp; if (s/Revision\\:\\s*//) {} else { s/.*//; }"` || "Unknown";
+$REVISION = LaTeXML::Util::SVNinfo::revision();
 
 #**********************************************************************
 
