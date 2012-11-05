@@ -4,11 +4,8 @@
 #======================================================================
 use ExtUtils::MakeMaker;
 use strict;
-use File::Basename 'dirname';
-my $FILE_BASE;
-BEGIN {
-    $FILE_BASE = dirname(__FILE__);
-}
+use FindBin;
+
 #======================================================================
 # Use "perl Makefile.PL <options>"
 # Build options are:
@@ -33,13 +30,13 @@ our @EXCLUSIONS=();
 our $MORE_MACROS = {};
 our $MORE_MAKERULES='';
 
+record_revision();
 compile_MathGrammar();
-compile_SVN_info();
 compile_XSLTs();
 install_TeXStyles();
 
 WriteMakefile(NAME => 'LaTeXML',
-	      VERSION_FROM => 'lib/LaTeXML.pm',
+	      VERSION_FROM => 'lib/LaTeXML/Version.in',
 	      AUTHOR => 'Bruce Miller <bruce.miller@nist.gov>',
 	      ABSTRACT => "transforms TeX and LaTeX into XML",
 	      PREREQ_PM => { 
@@ -51,7 +48,7 @@ WriteMakefile(NAME => 'LaTeXML',
 			    # after we've already started resolving dependences!
 			    ($OLD_LIBXML
 			     ? ( 'XML::LibXML'  => 1.58,
-				 'XML::LibXML::XPathContext' => 0)
+				  'XML::LibXML::XPathContext' => 0)
 			     : ( 'XML::LibXML'  => 1.61)), # But > 1.62 is better
 			    'XML::LibXSLT' => 1.58,
 			    'Parse::RecDescent' => 0,
@@ -65,7 +62,7 @@ WriteMakefile(NAME => 'LaTeXML',
           'Mojolicious::Lite' => 0,
           'Archive::Zip' => 0
 			   },
-	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmls','bin/latexmlc'],
+	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmlc','bin/latexmls'],
 	      macro => $MORE_MACROS,
 	      );
 
@@ -88,11 +85,50 @@ sub MY::postamble {
 #**********************************************************************
 
 #======================================================================
+# Record the current (svn) repository revision number
+sub record_revision {
+  # Don't copy the Version template to the installation; it's not needed
+  push(@EXCLUSIONS,'blib/lib/LaTeXML/Version.in');
+  # This should be the top-level directory, so it's revision should represent the whole project
+  $$MORE_MACROS{REVISION_BASE} = $FindBin::RealBin;
+  # This is where the REVISION gets stored (along with VERSION, etc)
+  $$MORE_MACROS{REVISION_FILE} = '$(INST_LIBDIR)/LaTeXML/Version.pm';
+  # Get the current revision
+  # This should be done SAFELY; and work even if svnversion isn't available (esp, windows, mac...)
+  # (When it isn't there's an error, but REVISION ends up "" ... exactly right, I think?)
+  $$MORE_MACROS{REVISION} = '`svnversion $(REVISION_BASE)`';
+  # Extract the previously recorded revision from the revision file (awkward)
+  $$MORE_MACROS{OLD_REVISION}
+    = '`$(PERLRUN) -ne \'chomp;if(s/.*?REVISION\\s*=\\s*\\"// && s/\\".*//){print;}\' < $(REVISION_FILE)`';
+  # Substitute the revision into the revision template
+  $$MORE_MACROS{RECORD_REVISION} = '$(PERLRUN) -pe "s@__REVISION__@$(REVISION)@" ';
+
+  # Have concerns about the $(noecho), but otherwise, it's annoying!
+  # it prints _every_ time you make, even if it doesn't update!
+
+  $MORE_MAKERULES .= <<'RecordRevision';
+
+# Record the svn revision in the Version module, for more informative diagnostics
+pure_all :: $(REVISION_FILE) update_revision
+
+# Always set version if version module template is newer
+$(REVISION_FILE): lib/LaTeXML/Version.in
+	$(RECORD_REVISION) lib/LaTeXML/Version.in > $(REVISION_FILE)
+
+# update version if stored revision if not current
+update_revision:
+	- $(NOECHO) test $(REVISION) = $(OLD_REVISION) \
+	|| $(RECORD_REVISION) lib/LaTeXML/Version.in > $(REVISION_FILE)
+
+RecordRevision
+}
+#======================================================================
 # We'll compile the RecDescent grammar during make; don't need to install grammar.
 sub compile_MathGrammar {
   push(@EXCLUSIONS,'blib/lib/LaTeXML/MathGrammar');
   $MORE_MAKERULES .= <<'MakeGrammar';
 
+# Precompile the (Recursive Descent) MathGrammar
 pure_all :: $(INST_LIBDIR)/LaTeXML/MathGrammar.pm
 
 $(INST_LIBDIR)/LaTeXML/MathGrammar.pm: lib/LaTeXML/MathGrammar
@@ -101,24 +137,6 @@ $(INST_LIBDIR)/LaTeXML/MathGrammar.pm: lib/LaTeXML/MathGrammar
 	$(MV) MathGrammar.pm blib/lib/LaTeXML/MathGrammar.pm
 
 MakeGrammar
-}
-
-#======================================================================
-# Add rules to generate a module containing the SVN information.
-sub compile_SVN_info {
-  push(@EXCLUSIONS,'blib/lib/LaTeXML/Util/SVNinfo');
-  my $svn_revision = `svn info $FILE_BASE 2>&1 | perl -pe "chomp; if (s/Revision\\:\\s*//) {} else { s/.*//; }"` || "Unknown";
-    $$MORE_MACROS{ADDSVNINFO}
-    = '$(PERLRUN) -p -e \'s@\\#__SVNinfo__@\"'.$svn_revision.'\"@\' ';
-
-  $MORE_MAKERULES .= <<"MakeSVNinfo";
-
-pure_all :: \$(INST_LIBDIR)/LaTeXML/Util/SVNinfo.pm
-
-\$(INST_LIBDIR)/LaTeXML/Util/SVNinfo.pm: lib/LaTeXML/Util/SVNinfo
-	\$(ADDSVNINFO) lib/LaTeXML/Util/SVNinfo > \$(INST_LIBDIR)/LaTeXML/Util/SVNinfo.pm
-
-MakeSVNinfo
 }
 
 #======================================================================
@@ -142,6 +160,7 @@ sub compile_XSLTs {
     my $html = $xhtml; $html =~ s/-xhtml.xsl$/-html.xsl/;
     $MORE_MAKERULES .= <<"MakeXSLT";
 
+# Convert the generic $xhtml stylesheet for use with plain html.
 pure_all :: \$(INST_LIBDIR)/LaTeXML/style/$html
 
 \$(INST_LIBDIR)/$styledir/$html: lib/$styledir/$xhtml
@@ -185,17 +204,18 @@ sub install_TeXStyles {
   # Note the dance below with -w shift; this is to keep from nesting quotes!
   $MORE_MAKERULES .= <<'InstallTeXStyles';
 
+# Install LaTeXML's LaTeX style files into the standard texmf location
 pure_install ::
 	$(NOECHO) $(MKPATH) "$(DESTINSTALLTEXMFDIR)"
 	$(NOECHO) $(MOD_INSTALL) \
 		read "$(INSTALLTEXMFDIR)/.packlist" \
 		write "$(DESTINSTALLTEXMFDIR)/.packlist" \
 		"$(INST_TEXMFDIR)" "$(DESTINSTALLTEXMFDIR)"
-	- perl -e "exit(1) unless -w shift;" "$(INSTALLTEXMFDIR)" && mktexlsr
+	- $(PERLRUN) -e "exit(1) unless -w shift;" "$(INSTALLTEXMFDIR)" && mktexlsr
 
 uninstall ::
 	$(NOECHO) $(UNINSTALL) "$(INSTALLTEXMFDIR)/.packlist"
-	- perl -e "exit(1) unless -w shift;" "$(INSTALLTEXMFDIR)" && mktexlsr
+	- $(PERLRUN) -e "exit(1) unless -w shift;" "$(INSTALLTEXMFDIR)" && mktexlsr
 
 InstallTeXStyles
 }

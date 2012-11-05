@@ -12,13 +12,14 @@ use IO::Socket;
 use FindBin;
 use lib "$FindBin::RealBin/../lib";
 use LaTeXML::Daemon;
+use LaTeXML::Version;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::Config;
 use Storable qw(freeze thaw);
 
 # Some defaults:
 my $opts=LaTeXML::Util::Config->new(
-	  identity => "latexmlc (LaTeXML version $LaTeXML::VERSION, rev $LaTeXML::REVISION)",
+	  identity => "latexmlc (LaTeXML version $LaTeXML::Version::VERSION, rev $LaTeXML::Version::REVISION)",
 	  profile => 'custom',
 	  'input_limit' => 100,
 	  timeout => -1, # Don't start a server as default

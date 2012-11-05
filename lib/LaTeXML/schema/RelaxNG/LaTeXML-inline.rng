@@ -176,6 +176,7 @@ DG: Quick fix disallowing Misc elements in text:</a:documentation>
     <a:documentation>Attributes for \elementref{rule}.</a:documentation>
     <ref name="Common.attributes"/>
     <ref name="Positionable.attributes"/>
+    <ref name="Colorable.attributes"/>
   </define>
   <define name="rule_model">
     <a:documentation>Content model for \elementref{rule}.</a:documentation>

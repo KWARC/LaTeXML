@@ -23,7 +23,7 @@ use LaTeXML::MathParser;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Bib;
 use LaTeXML::Package qw(pathname_is_literaldata);
-use LaTeXML::Util::SVNinfo;
+use LaTeXML::Version;
 use Encode;
 our @ISA = (qw(LaTeXML::Object));
 
@@ -33,9 +33,8 @@ BEGIN {
     $FILE_BASE = dirname(__FILE__);
 }
 
-use vars qw($VERSION $REVISION);
-$VERSION = "0.7.9alpha";
-$REVISION = LaTeXML::Util::SVNinfo::revision();
+use vars qw($VERSION);
+$VERSION = $LaTeXML::Version::VERSION; # for backward compatibility
 
 #**********************************************************************
 
