@@ -35,9 +35,8 @@ our @IGNORABLE = qw(identity timeout profile port preamble postamble port destin
 # paths, preload, preamble, ... all the LaTeXML->new() params?
 # If we're not daemonizing postprocessing we can safely ignore all its options and reuse the conversion objects.
 
-#use threads;
-use threads::shared;
-our %DAEMON_DB :shared;
+use vars qw(%DAEMON_DB);
+%DAEMON_DB = () unless keys %DAEMON_DB;
 
 sub new {
   my ($class,$opts) = @_;
@@ -478,7 +477,6 @@ sub get_converter {
   $conf->check; # Options are fully expanded
   # TODO: Make this more flexible via an admin interface later
   my $profile = $conf->get('profile')||'custom';
-  %DAEMON_DB = () unless keys %DAEMON_DB;
   my $d = $DAEMON_DB{$profile};
   if (! defined $d) {
     $d = LaTeXML::Daemon->new($conf->clone);
