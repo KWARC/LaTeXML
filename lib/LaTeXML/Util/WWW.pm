@@ -58,7 +58,8 @@ sub auth_get {
 sub url_find {
   my ($relative_url,%options) = @_;
   return undef unless (length($options{urlbase})>0 && length($relative_url)>0);
-  $options{urlbase}.='/' unless ($options{urlbase} =~ /\/$/);
+  $options{urlbase} =~ s/(\/+)$//g;
+  $options{urlbase} .= '/';
   my $absolute_url = URI->new_abs($relative_url,$options{urlbase});
   my $browser;
   if ($absolute_url =~ /^https/) {
@@ -67,7 +68,11 @@ sub url_find {
    $browser = LWP::UserAgent->new;
   }
   my $response = $browser->head($absolute_url);
-  $response->is_success ? $absolute_url : undef;
+  if ($response->is_success) { $absolute_url->as_string }
+  else {
+    # Only 404 is expected, anythign else is an error:
+    Error("http_fail",$response->code,undef," HTTP GET on $absolute_url failed. Reason: ".$response->message) if ($response->code != 404);
+    undef; }
 }
 
 sub url_split {

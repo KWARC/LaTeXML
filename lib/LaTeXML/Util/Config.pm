@@ -424,7 +424,11 @@ sub _read_options_file {
       my $env_value;
       # Allow $env/foo paths, starting with $env prefixes
       if ($env_name =~ /^([^\/]+)(\/+)(.+)$/ ) {
-        push @values, $ENV{$1}.'/'.$3 if $ENV{$1};
+        my $trailer = $3;
+        if (my $env_path = $ENV{$1}) {
+          $env_path.= '/' unless $env_path =~ /\/$/;
+          push @values, $env_path.$trailer;
+        }
       } else {
       # But also the standard behaviour, where the $env is an array of paths
         $env_value = $ENV{$env_name};
