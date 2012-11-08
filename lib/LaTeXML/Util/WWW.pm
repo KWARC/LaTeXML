@@ -57,7 +57,7 @@ sub auth_get {
 
 sub url_find {
   my ($relative_url,%options) = @_;
-  return undef unless ($options{urlbase} && $relative_url);
+  return undef unless (length($options{urlbase})>0 && length($relative_url)>0);
   $options{urlbase}.='/' unless ($options{urlbase} =~ /\/$/);
   my $absolute_url = URI->new_abs($relative_url,$options{urlbase});
   my $browser;
