@@ -34,7 +34,8 @@ text_attributes =
   Common.attributes,
   Positionable.attributes,
   Fontable.attributes,
-  Colorable.attributes
+  Colorable.attributes,
+  Backgroundable.attributes
 
 ## Content model for \elementref{text}.
 ## DG: Quick fix disallowing Misc elements in text:
@@ -51,8 +52,8 @@ element emph { emph_attributes, emph_model }
 emph_attributes =
   Common.attributes,
   Fontable.attributes,
-  Colorable.attributes
-
+  Colorable.attributes,
+  Backgroundable.attributes
 
 ## Content model for \elementref{emph}.
 emph_model = Inline.model
@@ -67,7 +68,8 @@ element del { del_attributes, del_model }
 del_attributes =
   Common.attributes,
   Fontable.attributes,
-  Colorable.attributes
+  Colorable.attributes,
+  Backgroundable.attributes
 
 ## Content model for \elementref{del}.
 del_model = Inline.model

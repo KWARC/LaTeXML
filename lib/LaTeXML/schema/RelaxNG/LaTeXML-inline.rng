@@ -54,6 +54,7 @@ Attributes cover a variety of styling and position shifting properties.</a:docum
     <ref name="Positionable.attributes"/>
     <ref name="Fontable.attributes"/>
     <ref name="Colorable.attributes"/>
+    <ref name="Backgroundable.attributes"/>
   </define>
   <define name="text_model">
     <a:documentation>Content model for \elementref{text}.
@@ -74,6 +75,7 @@ DG: Quick fix disallowing Misc elements in text:</a:documentation>
     <ref name="Common.attributes"/>
     <ref name="Fontable.attributes"/>
     <ref name="Colorable.attributes"/>
+    <ref name="Backgroundable.attributes"/>
   </define>
   <define name="emph_model">
     <a:documentation>Content model for \elementref{emph}.</a:documentation>
@@ -92,6 +94,7 @@ DG: Quick fix disallowing Misc elements in text:</a:documentation>
     <ref name="Common.attributes"/>
     <ref name="Fontable.attributes"/>
     <ref name="Colorable.attributes"/>
+    <ref name="Backgroundable.attributes"/>
   </define>
   <define name="del_model">
     <a:documentation>Content model for \elementref{del}.</a:documentation>

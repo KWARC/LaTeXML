@@ -218,11 +218,11 @@ helper convert_string => sub {
     # TODO: This decode business is fishy... very fishy!
     if ($is_jsonp) {
         my $json_result = $self->render(
-  	  json => {result => decode('UTF-8',$result), 
+  	  json => {result => $result, 
   		   status => $status, status_code=>$status_code, log => $log, partial=>1});
         $self->render(data => "$is_jsonp($json_result)", format => 'js');
     } else {
-        $self->render(json => {result => decode('UTF-8',$result), status => $status, status_code=>$status_code, log => $log});
+        $self->render(json => {result => $result, status => $status, status_code=>$status_code, log => $log});
     }
   }
 };
@@ -271,7 +271,7 @@ websocket '/convert' => sub {
 		  # Delete daemon if Fatal occurred
 		  undef $daemon;
 		} else {
-		    $response->{result} = decode('UTF-8',$response->{result});
+		    #$response->{result} = decode('UTF-8',$response->{result});
 		}
 	      }
 	      $tx->send({text=>$json->encode($response)});
