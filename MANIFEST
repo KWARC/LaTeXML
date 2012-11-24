@@ -266,6 +266,7 @@ lib/LaTeXML/Package/charter.sty.ltxml
 lib/LaTeXML/Package/cite.sty.ltxml
 lib/LaTeXML/Package/cmbright.sty.ltxml
 lib/LaTeXML/Package/color.sty.ltxml
+lib/LaTeXML/Package/colortbl.sty.ltxml
 lib/LaTeXML/Package/comment.sty.ltxml
 lib/LaTeXML/Package/concmath.sty.ltxml
 lib/LaTeXML/Package/courier.sty.ltxml
@@ -376,6 +377,7 @@ lib/LaTeXML/Package/upref.sty.ltxml
 lib/LaTeXML/Package/url.sty.ltxml
 lib/LaTeXML/Package/utopia.sty.ltxml
 lib/LaTeXML/Package/wrapfig.sty.ltxml
+lib/LaTeXML/Package/xcolor.sty.ltxml
 lib/LaTeXML/Package/xspace.sty.ltxml
 lib/LaTeXML/Package/yfonts.sty.ltxml
 lib/LaTeXML/Package/t1.fontmap.ltxml
@@ -417,6 +419,9 @@ t/90_latexmlpost.t
 t/alignment/badeqnarray.pdf
 t/alignment/badeqnarray.tex
 t/alignment/badeqnarray.xml
+t/alignment/colortbls.pdf
+t/alignment/colortbls.tex
+t/alignment/colortbls.xml
 t/alignment/eqnarray.pdf
 t/alignment/eqnarray.tex
 t/alignment/eqnarray.xml
@@ -666,6 +671,9 @@ t/graphics/mykeyval.sty
 t/graphics/picture.pdf
 t/graphics/picture.tex
 t/graphics/picture.xml
+t/graphics/xcolors.pdf
+t/graphics/xcolors.tex
+t/graphics/xcolors.xml
 t/grouping/mathgroup.pdf
 t/grouping/mathgroup.tex
 t/grouping/mathgroup.xml
