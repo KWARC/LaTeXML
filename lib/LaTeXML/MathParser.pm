@@ -46,12 +46,21 @@ our $DEFAULT_FONT = LaTeXML::MathFont->new(family=>'serif', series=>'medium',
 # ================================================================================
 sub new {
   my($class,%options)=@_;
-  require LaTeXML::MathGrammar;
-
-  my $internalparser = LaTeXML::MathGrammar->new();
+  my $internalparser;
+  my $parse;
+  if ($options{parser} =~ /^marpa/i) {
+    require LaTeXML::MarpaGrammar;
+    $internalparser = LaTeXML::MarpaGrammar->new();
+    $parse = sub { $internalparser->parse(@_); }
+  } else {
+    require LaTeXML::MathGrammar;
+    $internalparser = LaTeXML::MathGrammar->new();
+    $parse = sub { my ($rule,$unparsed) = @_;
+                   $internalparser->$rule($unparsed); }
+  }
   die("Math Parser grammar failed") unless $internalparser;
 
-  my $self = bless {internalparser => $internalparser},$class;
+  my $self = bless {invoke=>$parse},$class;
   $self; }
 
 sub parseMath {
@@ -498,6 +507,7 @@ sub parse_internal {
     my $lexeme      = $role.":".$text.":".++$i;
     $lexeme =~ s/\s//g;
     $$LaTeXML::MathParser::LEXEMES{$lexeme} = $node;
+    $$LaTeXML::MathParser::LEXEMES{$i} = $node;
     $lexemes .= ' '.$lexeme; }
 
   #------------
@@ -507,19 +517,19 @@ sub parse_internal {
   local %LaTeXML::MathParser::DISALLOWED_NOTATIONS = ();
   local $LaTeXML::MathParser::MAX_ABS_DEPTH = 1;
   my $unparsed = $lexemes;
-  my $result = $$self{internalparser}->$rule(\$unparsed);
+  my $result = &{$self->{invoke}}($rule,\$unparsed);
   if(((! defined $result) || $unparsed) # If parsing Failed
      && $LaTeXML::MathParser::SEEN_NOTATIONS{QM}){ # & Saw some QM stuff.
     $LaTeXML::MathParser::DISALLOWED_NOTATIONS{QM} = 1; # Retry w/o QM notations
     $unparsed = $lexemes;
-    $result = $$self{internalparser}->$rule(\$unparsed); }
+    $result = &{$self->{invoke}}($rule,\$unparsed); }
   while(((! defined $result) || $unparsed) # If parsing Failed
 	&& ($LaTeXML::MathParser::SEEN_NOTATIONS{AbsFail}) # & Attempted deeper abs nesting?
 	&& ($LaTeXML::MathParser::MAX_ABS_DEPTH < 3)){	   # & Not ridiculously deep
       delete $LaTeXML::MathParser::SEEN_NOTATIONS{AbsFail};
       ++$LaTeXML::MathParser::MAX_ABS_DEPTH; # Try deeper.
       $unparsed = $lexemes;
-      $result = $$self{internalparser}->$rule(\$unparsed); }
+      $result = &{$self->{invoke}}($rule,\$unparsed); }
 
   # If still failed, try other strategies?
 

@@ -63,8 +63,8 @@ sub read {
 	   "bibliography=s" => \@{$opts->{bibliographies}}, # TODO: Document
 	   "sitedirectory=s"=>\$opts->{sitedirectory},
 	   "sourcedirectory=s"=>\$opts->{sourcedirectory},
-	   "noparse"   => sub { $opts->{noparse} = 1; },
-	   "parse"   => sub { $opts->{noparse} = 0; },
+	   "noparse"   => sub { $opts->{mathparse} = 0; },
+	   "parse=s"   => \$opts->{mathparse},
 	   "format=s"   => \$opts->{format},
 	   "profile=s"  => \$opts->{profile},
 	   "mode=s"  => \$opts->{profile},
@@ -247,6 +247,8 @@ sub prepare_options {
   #======================================================================
   $opts->{timeout} = 600 unless defined $opts->{timeout}; # 10 minute timeout default
   $opts->{dographics} = 1 unless defined $opts->{dographics}; #TODO: Careful, POST overlap!
+  $opts->{mathparse} = 'RecDescent' unless defined $opts->{mathparse};
+  $opts->{mathparse} = 0 if ($opts->{mathparse} eq 'no');
   $opts->{verbosity} = 10 unless defined $opts->{verbosity};
   $opts->{preload} = [] unless defined $opts->{preload};
   $opts->{paths} = ['.'] unless defined $opts->{paths};
@@ -287,6 +289,7 @@ sub prepare_options {
   $opts->{post}=1 if ( (! defined $opts->{post}) && ($opts->{math_formats} && scalar(@{$opts->{math_formats}}) ) ||
     ($opts->{stylesheet}) || ($opts->{format} && ($opts->{format}=~/html/i)));
                        # || ... || ... || ...
+  $opts->{post}=0 if (defined $opts->{mathparse} && (! $opts->{mathparse})); # No-parse overrides post-processing
   if ($opts->{post}) { # No need to bother if we're not post-processing
 
     # Default: scan and crossref on, other advanced off

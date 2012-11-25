@@ -204,10 +204,7 @@ sub convert {
       return {result=>$serialized,log=>$log,status=>$status,'status_code'=>$status_code};
   } # Else, continue with the regular XML workflow...
   my $result = $dom;
-  $result = $self->convert_post($dom) if ($opts->{post} && $dom && (!$opts->{noparse}));
-  #Experimental: add id's everywhere if wnated in XHTML
-  $result = InsertIDs($result)
-      if ($opts->{force_ids} && $opts->{format} eq 'xhtml');
+  $result = $self->convert_post($dom) if ($opts->{post} && $dom);
 
   # Handle What's OUT?
   # 1. If we want an embedable snippet, unwrap to body's "main" div
@@ -435,7 +432,7 @@ sub new_latexml {
 			  inputencoding=>$opts->{inputencoding},
 			  includeStyles=>$opts->{includestyles},
 			  documentid=>$opts->{documentid},
-			  nomathparse=>$opts->{noparse});
+			  mathparse=>$opts->{mathparse});
   if(my @baddirs = grep {! -d $_} @{$opts->{paths}}){
     warn $opts->{identity}.": these path directories do not exist: ".join(', ',@baddirs)."\n"; }
 

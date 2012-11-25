@@ -58,7 +58,7 @@ sub new {
   $state->assignValue(INCLUDE_STYLES=>$options{includeStyles}|| 0,'global');
   $state->assignValue(PERL_INPUT_ENCODING=>$options{inputencoding}) if $options{inputencoding};
   bless {state   => $state, 
-	 nomathparse=>$options{nomathparse}||0,
+	 mathparse=>((defined $options{mathparse}) ? $options{mathparse} : 'RecDescent'),
 	 preload=>$options{preload},
 	}, $class; }
 
@@ -189,9 +189,9 @@ sub convertDocument {
      $model->applyRewrites($document,$document->getDocument->documentElement);
      NoteEnd("Rewriting");
 
-     LaTeXML::MathParser->new()->parseMath($document) unless $$self{nomathparse};
+     LaTeXML::MathParser->new(parser=>$self->{mathparse})->parseMath($document) if $self->{mathparse};
      NoteBegin("Finalizing");
-     my $xmldoc = $document->finalize(); 
+     my $xmldoc = $document->finalize();
      NoteEnd("Finalizing");
      $xmldoc; }); }
 

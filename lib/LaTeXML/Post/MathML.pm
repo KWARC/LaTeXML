@@ -1156,6 +1156,14 @@ DefMathML("Token:METARELOP:?",     \&pmml_mo);
 DefMathML('Apply:RELOP:?',         \&pmml_infix);
 DefMathML('Apply:METARELOP:?',     \&pmml_infix);
 
+#DG: Experimental CDLF enhancements:
+DefMathML("Token:?:empty", sub{['m:mi',{mathcolor=>"gray"},"\x{2062}"]}, sub{['m:csymbol',{cd=>'underspecified',name=>"concatenation"}];});
+DefMathML("Token:?:concatenation", sub{['m:mo',{mathcolor=>"gray"},"\x{2062}"]}, sub{['m:csymbol',{cd=>'underspecified',name=>"concatenation"}];});
+DefMathML('Apply:?:cdlf-set',
+    sub { pmml($_[1]); },
+    sub { my($op,@args)=@_;
+          ['m:apply',{},cmml($op), map(cmml($_),@args)]; });
+
 # Top level relations
 DefMathML('Apply:?:formulae',sub { 
   my($op,@elements)=@_;
