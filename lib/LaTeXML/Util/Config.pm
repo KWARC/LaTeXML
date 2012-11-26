@@ -253,10 +253,8 @@ sub prepare_options {
   $opts->{preload} = [] unless defined $opts->{preload};
   $opts->{paths} = ['.'] unless defined $opts->{paths};
   @{$opts->{paths}} = map {pathname_canonical($_)} @{$opts->{paths}};
-  foreach my $pathname(('destination','sourcedirectory','sitedirectory')) {
-    #TODO: Switch away from this rude absolute treatment when we support URLs
-    # (or could we still leverage this by a smart pathname_cwd?)
-    $opts->{$pathname} = pathname_absolute($opts->{$pathname},pathname_cwd()) if defined $opts->{$pathname};
+  foreach (('destination','dbfile','sourcedirectory','sitedirectory')) {
+    $opts->{$_} = pathname_canonical($opts->{$_}) if defined $opts->{$_};
   }
 
   $opts->{whatsin} = 'document' unless defined $opts->{whatsin};
@@ -298,7 +296,10 @@ sub prepare_options {
     $opts->{scan}=1 unless defined $opts->{scan};
     $opts->{index}=1 unless defined $opts->{index};
     $opts->{crossref}=1 unless defined $opts->{crossref};
-    $opts->{sitedirectory}=undef unless defined $opts->{sitedirectory};
+    $opts->{sitedirectory} = defined $opts->{sitedirectory} ? $opts->{sitedirectory}
+                             : (defined $opts->{destination} ? pathname_directory($opts->{destination})
+                                : (defined $opts->{dbfile} ? pathname_directory($opts->{dbfile})
+                                   : "."));
     $opts->{sourcedirectory}=undef unless defined $opts->{sourcedirectory};
     $opts->{numbersections}=1 unless defined $opts->{numbersections};
     $opts->{navtoc}=undef unless defined $opts->{numbersections};
@@ -375,8 +376,7 @@ sub prepare_options {
 
   $self->{dirty}=0;
 }
-# TODO: $sourcedir   = $sourcedir   && pathname_canonical($sourcedir);
-# TODO: $sitedir     = $sitedir     && pathname_canonical($sitedir);
+
 # TODO: All of the below
 # Check for appropriate combination of split, scan, prescan, dbfile, crossref
 # if($split && !defined $destination){
