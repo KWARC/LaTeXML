@@ -95,9 +95,9 @@ sub read {
 	   "css=s"       =>  \@{$opts->{css}},
 	   "defaultcss!" =>  \$opts->{defaultcss},
 	   "comments!" =>  \$opts->{comments},
-	   "VERSION"   => sub { $opts->{showversion}=1;},
-	   "debug=s"   => sub { eval "\$LaTeXML::$_[1]::DEBUG=1; "; },
-           "documentid=s" => \$opts->{documentid},
+	   "VERSION!"   => \$opts->{showversion},
+	   "debug=s"   => \@{$opts->{debug}},
+     "documentid=s" => \$opts->{documentid},
 	   "mathimages!"                 => \$opts->{mathimages},
 	   "mathimagemagnification=f"    => \$opts->{mathimagemag},
 	   "plane1!"                     => \$opts->{plane1},
@@ -245,6 +245,7 @@ sub prepare_options {
   #======================================================================
   # I. Sanity check and Completion of Core options.
   #======================================================================
+  eval "\$LaTeXML::".$_."::DEBUG=1; " foreach @{$opts->{debug}};
   $opts->{timeout} = 600 unless defined $opts->{timeout}; # 10 minute timeout default
   $opts->{dographics} = 1 unless defined $opts->{dographics}; #TODO: Careful, POST overlap!
   $opts->{mathparse} = 'RecDescent' unless defined $opts->{mathparse};

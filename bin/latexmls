@@ -100,7 +100,7 @@ while ( my $client = $server->accept() ) {
 
   #Override/extend with session-specific options in $opt:
   $daemon->prepare_session($opts);
-
+  *STDERR = *STDERR_SAVED if ($LaTeXML::Daemon::DEBUG);
   #Send a request:
   $g_opts->set('input_counter',$g_opts->get('input_counter')+1);
   my $response = $daemon->convert($source);
@@ -144,6 +144,7 @@ sub daemonize {
   defined(my $pid = fork)   or croak "Can't fork: $!";
   exit if $pid;
   setsid                    or croak "Can't start a new session: $!";
+  *STDERR_SAVED = *STDERR;
   *STDERR = *STDOUT         or croak "Can't dup stdout: $!";
   return;
 }
