@@ -451,16 +451,21 @@ sub new_latexml {
 sub bind_loging {
   # TODO: Move away from global file handles, they will inevitably end up causing problems..
   my ($self) = @_;
-  # Tie STDERR to log:
-  open(LOG,">",\$self->{log}) or croak "Can't redirect STDERR to log! Dying...";
-  *ERRORIG=*STDERR;
-  *STDERR = *LOG;
+  if (! $LaTeXML::Daemon::DEBUG) { # Debug will use STDERR for logs
+    # Tie STDERR to log:
+    open(LOG,">",\$self->{log}) or croak "Can't redirect STDERR to log! Dying...";
+    *ERRORIG=*STDERR;
+    *STDERR = *LOG;
+  }
 }
+
 sub flush_loging {
   my ($self) = @_;
   # Close and restore STDERR to original condition.
-  close LOG;
-  *STDERR=*ERRORIG;
+  if (! $LaTeXML::Daemon::DEBUG) {
+    close LOG;
+    *STDERR=*ERRORIG;
+  }
   my $log = $self->{log};
   $self->{log}=q{};
   return $log;
