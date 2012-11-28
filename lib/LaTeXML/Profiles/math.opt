@@ -1,6 +1,6 @@
 comments =
 post =
-timeout = 60
+timeout = 120
 format = xhtml
 whatsin = math
 whatsout = math

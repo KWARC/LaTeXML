@@ -510,7 +510,7 @@ latexmls/latexmlc [options]
                     "count" inputs. Good practice for vast batch 
                     jobs. (default: 100)
  --timeout=secs     Set a timeout value for inactivity.
-                    Default is 60 seconds, set 0 to disable.
+                    Default is 600 seconds, set 0 to disable.
                     Also used to terminate processing jobs
  --port=number      Specify server port (default: 3354)
  --local            Request a local server (default: off)
@@ -645,7 +645,7 @@ Automatically restart the daemon after converting "count" inputs.
 
 Set an inactivity timeout value in seconds. If the daemon is not given any input
     for the timeout period it will automatically self-destruct.
-    The default value is 60 seconds, set to 0 to disable.
+    The default value is 600 seconds, set to 0 to disable.
 
 =item C<--port>=I<number>
 

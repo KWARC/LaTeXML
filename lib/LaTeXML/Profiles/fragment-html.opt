@@ -1,7 +1,7 @@
 comments =
 parse =
 post =
-timeout = 60
+timeout = 120
 format = html5
 whatsin = fragment
 whatsout = fragment
