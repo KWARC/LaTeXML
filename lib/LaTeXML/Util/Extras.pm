@@ -48,7 +48,7 @@ elsif(($tex =~ /\A\\\(/m) && ($tex =~ /\\\)\z/m)){} # Wrapped in \(...\)
 elsif(($tex =~ /\A\\\[/m) && ($tex =~ /\\\]\z/m)){} # Wrapped in \[...\]
 elsif(($tex =~ /\A\\begin\{($MATHENVS)\}/m) && ($tex =~ /\\end\{$1\}\z/m)){}
 else {
-  $tex = '$ '.$tex.' $'; }
+  $tex = '\\( '.$tex.' \\)'; }
 
 my $texdoc = <<"EODOC";
 \\begin{document}
