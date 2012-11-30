@@ -227,11 +227,11 @@ sub convert {
       }
     }
 
-    if ($opts->{post} && ($result =~ /LibXML/)) { # LibXML nodes need an extra encoding pass?
-	                       # But only for post-processing ?!
-	                       # TODO: Why?!?! Find what is fishy here
-	$serialized = encode('UTF-8',$serialized);
-    }
+ #    if ($opts->{post} && ($result =~ /LibXML/)) { # LibXML nodes need an extra encoding pass?
+	#                        # But only for post-processing ?!
+	#                        # TODO: Why?!?! Find what is fishy here
+	# $serialized = encode('UTF-8',$serialized);
+ #    }
   }
   my $log = $self->flush_loging;
   return {result=>$serialized,log=>$log,status=>$status,'status_code'=>$status_code};
