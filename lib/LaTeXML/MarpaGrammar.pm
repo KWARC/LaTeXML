@@ -175,6 +175,8 @@ our $RULES = [
                     qw/FactorArgument TermArgument FormulaArgument RelativeFormulaArgument
                       PREFIX POSTFIX ADDOP LOGICOP MULOP RELOP METARELOP ARROW BIGOP/;
                 } qw/SUPOP POSTSUPERSCRIPT POSTSUBSCRIPT/),
+              # VII.1.2. Merge adjacent SUPOPs
+              ['SUPOP',[qw/SUPOP _ SUPOPTerminal/],'extend_operator'],
               # VII.2. Pre/Float scripts
               (map { my $script=$_;
                 map { my $op=$_; [$op, [$script,'_',$op],'prescript_apply'] }
@@ -203,6 +205,7 @@ our $RULES = [
               ['MULOP',['VERTBAR']],
               ['LOGICOP',['LOGICOPTerminal']],
               ['ARROW',['ARROWTerminal']],
+              ['SUPOP',['SUPOPTerminal']],
               ['PREFIX',['TRIGFUNCTION']],
               ['PREFIX',['OPFUNCTION']],
               ['PREFIX',['LIMITOP']],
@@ -217,6 +220,18 @@ our $RULES = [
               ['Start',['Sequence']]
 ];
 
+#Extensions admissible in scripts:
+our $SCRIPT_RULES = [
+              ['Operator',['MULOP']],
+              ['Operator',['ADDOP']],
+              ['Operator',['PREFIX']],
+              ['Operator',['POSTFIX']],
+              ['Operator',['RELOP']],
+              ['Operator',['METARELOP']],
+              ['Operator',['ARROW']],
+              ['Operator',['SUPOP']],
+              ['Start',['Operator']]
+];
 
 sub new {
   my($class,%options)=@_;
@@ -227,18 +242,30 @@ sub new {
       rules=>$RULES,
       default_action=>'first_arg'});
      # default_null_value=>'no nullables in this grammar'});
+  my $script_grammar = Marpa::R2::Grammar->new(
+  {   start   => 'Start',
+      actions => 'LaTeXML::MathSemantics',
+      action_object => 'LaTeXML::MathSemantics',
+      rules=>[@$RULES,@$SCRIPT_RULES],
+      default_action=>'first_arg'});
+     # default_null_value=>'no nullables in this grammar'});
 
   $grammar->precompute();
-
-  my $self = bless {grammar=>$grammar,%options},$class;
+  $script_grammar->precompute();
+  my $self = bless {grammar=>$grammar,script_grammar=>$script_grammar,%options},$class;
   $self; }
 
 sub parse {
   my ($self,$rule,$lexref) = @_;
-  my $rec = Marpa::R2::Recognizer->new( { grammar => $self->{grammar},
-                                          ranking_method => 'high_rule_only'} );
+  my $rec;
+  if ($rule =~ /script/) {
+    $rec = Marpa::R2::Recognizer->new( { grammar => $self->{script_grammar},
+                                         ranking_method => 'high_rule_only'} );
+  } else {
+    $rec = Marpa::R2::Recognizer->new( { grammar => $self->{grammar},
+                                         ranking_method => 'high_rule_only'} );
+  }
   my @unparsed = split(' ',$$lexref);
-  $$lexref = undef; # Reset this , so that we are consistent with the RecDescent behaviour
   # Insert concatenation
   @unparsed = map (($_, '_::'), @unparsed);
   pop @unparsed;
@@ -256,7 +283,7 @@ sub parse {
       $category = 'EQUALS' if ($lexeme eq 'equals');
     }
 
-    $category.='Terminal' if $category =~ /^(((META)?REL|ADD|LOGIC|MUL)OP)|ARROW$/;
+    $category.='Terminal' if $category =~ /^(((META)?REL|ADD|LOGIC|MUL|SUP)OP)|ARROW$/;
     #print STDERR "$category:$lexeme:$id\n";
     $rec_events = $rec->read($category,$lexeme.':'.$id);
     if (! defined $rec_events) {
@@ -265,20 +292,26 @@ sub parse {
   }
 
   my @values = ();
+  $$lexref = q{}; # Reset this , so that we are consistent with the RecDescent behaviour
   if (!$failed) {
     my $value_ref;
     do {
       $value_ref = undef;
-      eval { local $SIG{__DIE__} = undef; $value_ref = $rec->value(); 1; };
+      if ($LaTeXML::MarpaGrammar::DEBUG) {
+        $value_ref = $rec->value();
+      } else {
+        eval { local $SIG{__DIE__} = undef; $value_ref = $rec->value(); 1; };
+      }
       push @values, ${$value_ref} if (defined $value_ref);
     } while ((!$@) && (defined $value_ref));
     if ($@) {
       # Was left Incomplete??
+      $$lexref = join(' ',grep($_ ne '_::', @unparsed));
     }
   } else {
     # Can't recognize it...print out the issue:
+    $$lexref = join(' ',grep($_ ne '_::', @unparsed));
   }
-  # TODO: Support multiple parses!
   (@values>1) ? (['ltx:XMApp',{meaning=>"cdlf-set"},New('cdlf-set',undef,omcd=>"cdlf"),@values]) : (shift @values);
 }
 

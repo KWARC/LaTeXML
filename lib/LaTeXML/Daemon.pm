@@ -27,7 +27,6 @@ use LaTeXML::Util::ObjectDB;
 use LaTeXML::Util::Extras;
 use LaTeXML::Post;
 use LaTeXML::Post::Scan;
-binmode(STDERR,":utf8");
 
 #**********************************************************************
 our @IGNORABLE = qw(identity timeout profile port preamble postamble port destination log removed_math_formats whatsin whatsout math_formats input_limit input_counter dographics mathimages mathimagemag );

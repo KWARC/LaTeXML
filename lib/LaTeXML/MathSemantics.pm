@@ -80,6 +80,13 @@ sub infix_apply_entry {
   $app->[1]->{'cat'}='entry';
   $app; }
 
+sub extend_operator {
+  my ( $state, $base, $c, $ext_lex) = @_;
+  my $extension = MaybeLookup($ext_lex);
+  my $merged = $base->cloneNode(1);
+  $merged->appendText($extension->textContent);
+  $merged; }
+
 # III. Prefix
 
 sub prefix_apply {
