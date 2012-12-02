@@ -1,5 +1,6 @@
 package LaTeXML::MathSemantics;
-
+use Scalar::Util qw(blessed);
+use Data::Dumper;
 # Startup actions: import the constructors
 { BEGIN{ use LaTeXML::MathParser qw(:constructors); }}
 
@@ -8,7 +9,7 @@ sub new {
   bless {steps=>[]}, $class; }
 
 # I. Basic
-
+sub finalize { print STDERR "\n\nFinal state:\n",Dumper($_[0]->{atoms}),"\n\n"; $_[1];}
 sub first_arg {
   my ($state,$arg) = @_;
   MaybeLookup($arg); }
@@ -34,51 +35,56 @@ sub first_arg_formula {
   first_arg_role('formula',$parse); }
 
 # II. Infix
-
-sub chain_apply {
-  my ( $state, $t1, $c, $op, $c2, $t2) = @_;
-  ApplyNary(MaybeLookup($op),$t1,$t2); }
-sub infix_apply {
-  my ( $state, $t1, $c, $op, $c2, $t2) = @_;
-  ApplyNary(MaybeLookup($op),$t1,$t2); }
 sub concat_apply {
- my ( $state, $t1, $c, $t2) = @_;
+ my ( $state, $t1, $c, $t2, $type) = @_;
  #print STDERR "ConcApply: ",Dumper($lhs)," <--- ",Dumper($rhs),"\n\n";
- Apply(New('concatenation',undef,role=>"MULOP",omcd=>"underspecified"),$t1,$t2); }
+ my $app = Apply(New('concatenation',undef,role=>"MULOP",omcd=>"underspecified"),$t1,$t2); 
+ $app->[1]->{'cat'}=$type;
+ $app; }
 ## 2. Intermediate layer, records categories on resulting XML:
 sub concat_apply_factor {
-  my $app = concat_apply(@_);
-  $app->[1]->{'cat'}='factor';
-  $app; }
-sub infix_apply_factor {
-  my $app = infix_apply(@_);
-  $app->[1]->{'cat'}='factor';
-  $app; }
-use Data::Dumper;
-sub infix_apply_term {
-  my $app = infix_apply(@_);
-  $app->[1]->{'cat'}='term';
-  $app; }
-sub infix_apply_type {
-  my $app = infix_apply(@_);
-  $app->[1]->{'cat'}='type';
-  $app; }
-sub infix_apply_relation {
-  my $app = infix_apply(@_);
-  $app->[1]->{'cat'}='relation';
-  $app; }
-sub chain_apply_relation {
-  my $app = infix_apply(@_);
-  $app->[1]->{'cat'}='relation';
-  $app; }
-sub infix_apply_formula {
-  my $app = infix_apply(@_);
-  $app->[1]->{'cat'}='formula';
-  $app; }
-sub infix_apply_entry {
-  my $app = infix_apply(@_);
-  $app->[1]->{'cat'}='entry';
-  $app; }
+  my ( $state, $t1, $c, $t2) = @_;
+  # Only for NON-atomic structures!
+  Marpa::R2::Context::bail('PRUNE') unless (((ref $t1) eq 'ARRAY') && ((ref $t2) eq 'ARRAY'));
+  concat_apply($state, $t1, $c, $t2,'factor');
+}
+sub concat_apply_left {
+  my ( $state, $t1, $c, $t2) = @_;
+  # if t2 is an atom - mark as scalar or fail if inconsistent
+  if ($state->mark_or_fail($t2,'scalar') && $state->mark_or_fail($t1,'scalar')) {
+    # Just in case, do the same for $t1:
+    concat_apply($state, $t1, $c, $t2,'factor');
+  } else {
+    Marpa::R2::Context::bail('PRUNE');
+  }
+}
+sub concat_apply_right {
+  my ( $state, $t1, $c, $t2) = @_;  
+  # if t1 is an atom - mark as function or fail if inconsistent
+  if ($state->mark_or_fail($t1,'function') && $state->mark_or_fail($t2,'scalar')) {
+    # Just in case, do the same for $t2, which is a scalar if atom:
+    my $app =  Apply($t1,$t2);
+    $app->[1]->{'cat'}='factor';
+    $app;
+  } else {
+    Marpa::R2::Context::bail('PRUNE');
+  }
+}
+
+sub infix_apply {
+  my ( $state, $t1, $c, $op, $c2, $t2, $type) = @_;
+  my $app = ApplyNary(MaybeLookup($op),$t1,$t2); 
+  $app->[1]->{'cat'}=$type;
+  $app;}
+sub infix_apply_factor { $app = infix_apply(@_,'factor'); }
+sub infix_apply_term { infix_apply(@_,'term'); }
+sub infix_apply_type {  infix_apply(@_,'type'); }
+# TODO: Should we do something smarter for chains?
+sub infix_apply_relation { infix_apply(@_,'relation'); }
+sub chain_apply_relation { infix_apply(@_,'relation'); }
+sub infix_apply_formula { infix_apply(@_,'formula'); }
+sub chain_apply_formula { infix_apply(@_,'formula'); }
+sub infix_apply_entry { infix_apply(@_,'entry'); }
 
 sub extend_operator {
   my ( $state, $base, $c, $ext_lex) = @_;
@@ -90,47 +96,29 @@ sub extend_operator {
 # III. Prefix
 
 sub prefix_apply {
-  my ( $state, $op, $c, $t) = @_;
-  ApplyNary(MaybeLookup($op),$t); }
-sub prefix_apply_factor {
-  my $app = prefix_apply(@_);
-  $app->[1]->{'cat'}='factor'; 
-  $app; }
-sub prefix_apply_term {
-  my $app = prefix_apply(@_);
-  $app->[1]->{'cat'}='term';
-  $app; }
-  sub prefix_apply_relation {
-  my $app = prefix_apply(@_);
-  $app->[1]->{'cat'}='relation';
-  $app; }
-sub prefix_apply_formula {
-  my $app = prefix_apply(@_);
-  $app->[1]->{'cat'}='formula';
-  $app; }
+  my ( $state, $op, $c, $t,$type) = @_;
+  my $app = ApplyNary(MaybeLookup($op),$t); 
+  $app->[1]->{'cat'}=$type; 
+  $app;}
+sub prefix_apply_factor { prefix_apply(@_,'factor'); }
+sub prefix_apply_term { prefix_apply(@_,'term'); }
+sub prefix_apply_relation { prefix_apply(@_,'relation'); }
+sub prefix_apply_formula { prefix_apply(@_,'formula'); }
 
 # IV. Postfix
 
 sub postfix_apply_factor {
   my ($state, $t, $c, $postop) = @_;
-  my $app = prefix_apply($state,$postop,$c,$t);
-  $app->[1]->{'cat'}='factor';
-  $app; }
+  prefix_apply($state,$postop,$c,$t,'factor'); }
 sub postfix_apply_term {
   my ($state, $t, $c, $postop) = @_;
-  my $app = prefix_apply($state,$postop,$c,$t);
-  $app->[1]->{'cat'}='term';
-  $app; }
+  prefix_apply($state,$postop,$c,$t,'term'); }
 sub postfix_apply_relation {
   my ($state, $t, $c, $postop) = @_;
-  my $app = prefix_apply($state,$postop,$c,$t);
-  $app->[1]->{'cat'}='formula';
-  $app; }
+  prefix_apply($state,$postop,$c,$t,'relation'); }
 sub postfix_apply_formula {
   my ($state, $t, $c, $postop) = @_;
-  my $app = prefix_apply($state,$postop,$c,$t);
-  $app->[1]->{'cat'}='formula';
-  $app; }
+  prefix_apply($state,$postop,$c,$t,'formula'); }
 # V. Scripts
 sub postscript_apply {
   my ( $state, $base, $c, $script) = @_;
@@ -162,11 +150,26 @@ sub fenced_empty {
 
 sub MaybeLookup {
   my ($arg) = @_;
+  Marpa::R2::Context::bail('PRUNE') unless defined $arg;
   return $arg if ref $arg;
   my ($lex,$id) = split(/:/,$arg);
   my $xml = Lookup($id);
   $xml = $xml ? ($xml->cloneNode(1)) : undef;
   return $xml;
+}
+
+sub mark_or_fail {
+  my ($state,$t2,$value) = @_;
+  if (blessed($t2)) {
+    my $lex = $t2->textContent;
+    my $current = $state->{atoms}->{$lex};
+    if (defined $current) {
+      return undef if ($current ne $value);
+    } else {
+        $state->{atoms}->{$lex} = $value;
+    }
+  }
+  1;
 }
 
 1;

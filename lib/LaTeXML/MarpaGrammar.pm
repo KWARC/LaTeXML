@@ -31,7 +31,13 @@ our $RULES = [
               # I. Operators
               # I.1. Infix operators
               # I.1.0. Concatenation - Left and Right
-              ['Factor', [qw/Factor _ Factor/],'concat_apply_factor'],
+              ['Factor', [qw/FactorArgument _ Factor/],'concat_apply_right'], # Semantics: FA always function
+              ['Factor', [qw/Factor _ FactorArgument/],'concat_apply_left'], # Semantics: FA always scalar
+              # The asymetry in the above two rules makes '2a f(x)' ungrammatical
+              # So we add:
+              ['Factor', [qw/Factor _ Factor/],'concat_apply_factor'], # Semantics: Make sure NO atoms!
+              # But if we are not careful, we will allow too many parses for ' f(x)f(y)'
+              # But then again we also need to consider (f \circ g) x 
 
               # I.1.1. Infix Operator - Factors
               ['Factor',['FactorArgument']],
@@ -110,7 +116,7 @@ our $RULES = [
               # III.1. Infix Metarelations
               ['RelativeFormula',[qw/RelativeFormulaArgument/]],
               ['RelativeFormula',[qw/Formula _ METARELOP _ Formula/],'infix_apply_formula'],
-              ['RelativeFormula',[qw/RelativeFormula _ METARELOP _ Formula/],'chain_apply'],
+              ['RelativeFormula',[qw/RelativeFormula _ METARELOP _ Formula/],'chain_apply_formula'],
 
               # IV. Modifiers
               # IV.1. Infix Modifier
@@ -187,6 +193,12 @@ our $RULES = [
               # VIII. Transfix operators
               ['FactorArgument',[qw/VERTBAR _ Term _ VERTBAR/],'fenced'],
 
+              # IX. Special cases:
+              # IX.1. Trailing equals (should it really be grammatical?)
+              # TODO: Produces bad markup, figure out how to make <none> elements
+              ['TrailingEquals',[qw/Formula _ EQUALS/],'infix_apply_formula'],
+              ['TrailingEquals',[qw/Term _ EQUALS/],'infix_apply_relation'],
+
               # X. Lexicon adjustments
               ['FactorArgument',['ATOM'],'first_arg_term'],
               ['FormulaArgument',['ATOM'],'first_arg_formula'],
@@ -213,11 +225,12 @@ our $RULES = [
               ['BIGOP',['SUMOP']],
               ['BIGOP',['INTOP']],
               # XI. Start:
-              ['Start',['Termlike']],
-              ['Start',['Formula']],
-              ['Start',['RelativeFormula']],
-              ['Start',['Vector']],
-              ['Start',['Sequence']]
+              ['Start',['Termlike'],'finalize'],
+              ['Start',['Formula'],'finalize'],
+              ['Start',['RelativeFormula'],'finalize'],
+              ['Start',['Vector'],'finalize'],
+              ['Start',['TrailingEquals'],'finalize'],
+              ['Start',['Sequence'],'finalize']
 ];
 
 #Extensions admissible in scripts:
@@ -230,7 +243,7 @@ our $SCRIPT_RULES = [
               ['Operator',['METARELOP']],
               ['Operator',['ARROW']],
               ['Operator',['SUPOP']],
-              ['Start',['Operator']]
+              ['Start',['Operator'],'finalize']
 ];
 
 sub new {
@@ -297,12 +310,12 @@ sub parse {
     my $value_ref;
     do {
       $value_ref = undef;
-      if ($LaTeXML::MarpaGrammar::DEBUG) {
-        $value_ref = $rec->value();
-      } else {
-        eval { local $SIG{__DIE__} = undef; $value_ref = $rec->value(); 1; };
-      }
+      eval { local $SIG{__DIE__} = undef; $value_ref = $rec->value(); 1; };
+      print STDERR "$@\n" if ($LaTeXML::MarpaGrammar::DEBUG);
       push @values, ${$value_ref} if (defined $value_ref);
+      if ($@ =~ /PRUNE$/) {
+        undef $@; $value_ref=[];
+      }
     } while ((!$@) && (defined $value_ref));
     if ($@) {
       # Was left Incomplete??
