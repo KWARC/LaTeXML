@@ -866,7 +866,7 @@ sub cmml_unparsed {
 ###  print STDERR "Warning: Got extra nodes for content!\n  ".$node->toString."\n";
 ## pmml_row(map(pmml($_),@nodes)); } # ????
   ['m:cerror',{},
-   ['m:csymbol',{cd=>'ambiguous',name=>'fragments'}],
+   ['m:csymbol',{cd=>'ambiguous'},'fragments'],
 ###   map(cmml($_),@nodes)]; }
    map( ((getQName($_) eq 'ltx:XMTok')&&(($_->getAttribute('role')||'UNKNOWN') eq 'UNKNOWN')
 	 ? ['m:csymbol',{cd=>'unknown'},$_->textContent]
@@ -1157,8 +1157,8 @@ DefMathML('Apply:RELOP:?',         \&pmml_infix);
 DefMathML('Apply:METARELOP:?',     \&pmml_infix);
 
 #DG: Experimental CDLF enhancements:
-DefMathML("Token:?:empty", sub{['m:mi',{mathcolor=>"gray"},"\x{2062}"]}, sub{['m:csymbol',{cd=>'underspecified',name=>"concatenation"}];});
-DefMathML("Token:?:concatenation", sub{['m:mo',{mathcolor=>"gray"},"\x{2062}"]}, sub{['m:csymbol',{cd=>'underspecified',name=>"concatenation"}];});
+DefMathML("Token:?:empty", sub{['m:mi',{mathcolor=>"gray"},"\x{2062}"]}, sub{['m:csymbol',{cd=>'underspecified'},"concatenation"];});
+DefMathML("Token:?:concatenation", sub{['m:mo',{mathcolor=>"gray"},"\x{2062}"]}, sub{['m:csymbol',{cd=>'underspecified'},"concatenation"];});
 DefMathML('Apply:?:cdlf-set',
     sub { pmml($_[1]); },
     sub { my($op,@args)=@_;
@@ -1170,7 +1170,7 @@ DefMathML('Apply:?:formulae',sub {
   pmml_punctuate($op->getAttribute('separators'),map(pmml($_),@elements)); },
   sub { 
 	my($op,@elements)=@_;
-	['m:apply',{},['m:csymbol', {cd=>'ambiguous', name=>'formulae-sequence'}],map(cmml($_),@elements)];
+	['m:apply',{},['m:csymbol', {cd=>'ambiguous'}, 'formulae-sequence'],map(cmml($_),@elements)];
   });
 
 # TRICKY: How should this get converted to cmml ???
