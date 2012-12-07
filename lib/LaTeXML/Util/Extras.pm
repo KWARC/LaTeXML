@@ -72,8 +72,13 @@ sub GetMath {
       $math_found++ if ($math->localname =~ /^math$/i);
       $math = $math->parentNode if ($math_found != $math_count);
     }
+    $math = $math->parentNode while ($math->nodeName =~ '^t[rd]$');
+    $math;
+  } elsif ($math_count == 0) {
+    GetEmbeddable($source);
+  } else {
+    $math;
   }
-  return $math;
 }
 
 sub GetEmbeddable {
@@ -83,7 +88,7 @@ sub GetEmbeddable {
   if ($embeddable) {
     # Only one child? Then get it, must be a inline-compatible one!
     while (($embeddable->nodeName eq 'div') && (scalar(@{$embeddable->childNodes}) == 1) &&
-	   ($embeddable->getAttribute('class') =~ /^main|content|document|para$/) && 
+	   ($embeddable->getAttribute('class') =~ /^main|content|document|para|header$/) && 
 	   (! defined $embeddable->getAttribute('style'))) {
       if (defined $embeddable->firstChild) {
 	$embeddable=$embeddable->firstChild;

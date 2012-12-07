@@ -246,7 +246,7 @@ sub prepare_options {
   # I. Sanity check and Completion of Core options.
   #======================================================================
   eval "\$LaTeXML::".$_."::DEBUG=1; " foreach @{$opts->{debug}};
-  $opts->{timeout} = 600 unless defined $opts->{timeout}; # 10 minute timeout default
+  $opts->{timeout} = 600 if ((! defined $opts->{timeout}) || ($opts->{timeout} !~ /\d+/)); # 10 minute timeout default
   $opts->{dographics} = 1 unless defined $opts->{dographics}; #TODO: Careful, POST overlap!
   $opts->{mathparse} = 'RecDescent' unless defined $opts->{mathparse};
   $opts->{mathparse} = 0 if ($opts->{mathparse} eq 'no');
