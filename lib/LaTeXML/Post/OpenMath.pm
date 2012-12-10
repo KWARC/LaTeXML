@@ -86,6 +86,7 @@ sub Expr {
   my($node)=@_;
   my $result = Expr_aux($node);
   # map any ID here, as well, BUT, since we follow split/scan, use the fragid, not xml:id!
+  print STDERR "\nOMExpr: \n", $node->toString(1),"\n\n" if ($node->isa('XML::LibXML::Text'));
   return $result if (!$node || $node->isa('XML::LibXML::Text'));
   if(my $id = $node->getAttribute('fragid')){
     $$result[1]{'xml:id'}=$id.$LaTeXML::Post::MATHPROCESSOR->IDSuffix; }
@@ -164,6 +165,7 @@ sub om_decoratedSymbol {
   my $pmml;
   {
     local $LaTeXML::Post::MATHPROCESSOR = $pres_processor;
+    local $LaTeXML::MathML::STYLE = 'text';
       $pmml = LaTeXML::Post::MathML::pmml($item);
   }
   ['om:OMATTR',{id=>"$id"},
