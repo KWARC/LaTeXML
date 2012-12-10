@@ -124,7 +124,6 @@ sub convert {
   # Inform of identity, increase conversion counter
   my $opts = $self->{opts};
   print STDERR "\n",$opts->{identity},"\n" if $opts->{verbosity} >= 0;
-
   # Handle What's IN?
   # 1. Math profile should get a mathdoc() wrapper
   if ($opts->{whatsin} eq "math") {

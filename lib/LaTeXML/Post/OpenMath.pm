@@ -86,7 +86,7 @@ sub Expr {
   my($node)=@_;
   my $result = Expr_aux($node);
   # map any ID here, as well, BUT, since we follow split/scan, use the fragid, not xml:id!
-  return $result if (!$node || $node =~ 'XML::LibXML::Text');
+  return $result if (!$node || $node->isa('XML::LibXML::Text'));
   if(my $id = $node->getAttribute('fragid')){
     $$result[1]{'xml:id'}=$id.$LaTeXML::Post::MATHPROCESSOR->IDSuffix; }
   $result; }
