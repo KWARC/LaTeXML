@@ -17,6 +17,9 @@ use LaTeXML::Util::Pathname;
 use LaTeXML::Util::Config;
 use Storable qw(freeze thaw);
 
+binmode(STDERR,":utf8");
+binmode(STDOUT,":utf8");
+
 # Some defaults:
 my $opts=LaTeXML::Util::Config->new(
 	  identity => "latexmlc (LaTeXML version $LaTeXML::Version::VERSION, rev $LaTeXML::Version::REVISION)",

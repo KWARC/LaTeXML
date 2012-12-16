@@ -25,7 +25,7 @@ use LaTeXML::Util::Pathname;
 use LaTeXML::Util::WWW;
 use LaTeXML::Util::ObjectDB;
 use LaTeXML::Util::Extras;
-use LaTeXML::Post;
+#use LaTeXML::Post;
 use LaTeXML::Post::Scan;
 
 #**********************************************************************
@@ -40,7 +40,7 @@ use vars qw(%DAEMON_DB);
 sub new {
   my ($class,$opts) = @_;
   $opts->check if defined $opts;
-  bless {opts=>$opts->options,ready=>0,log=>q{},
+  bless {opts=>$opts->options,ready=>0,log=>q{},runtime=>{},
          latexml=>undef}, $class;
 }
 
@@ -81,6 +81,7 @@ sub prepare_session {
 
 sub initialize_session {
   my ($self) = @_;
+  $self->{runtime} = {};
   $self->bind_loging;
   my $latexml;
   eval {
@@ -114,15 +115,17 @@ sub initialize_session {
 sub convert {
   my ($self,$source) = @_;
   # Initialize session if needed:
+  $self->{runtime} = {};
   $self->initialize_session unless $self->{ready};
   if (! $self->{ready}) { # We can't initialize, return error:
     return {result=>undef,log=>$self->{log},status=>"Initialization failed.",status_code=>3};
   }
 
   $self->bind_loging;
-  my ($status,$status_code)=(undef,undef);
   # Inform of identity, increase conversion counter
   my $opts = $self->{opts};
+  my $runtime = $self->{runtime};
+  ($runtime->{status},$runtime->{status_code})=(undef,undef);
   print STDERR "\n",$opts->{identity},"\n" if $opts->{verbosity} >= 0;
   # Handle What's IN?
   # 1. Math profile should get a mathdoc() wrapper
@@ -171,8 +174,8 @@ sub convert {
     1;
   };
   my $eval_report = $@;
-  $status = $latexml->getStatusMessage;
-  $status_code = $latexml->getStatusCode;
+  $runtime->{status} = $latexml->getStatusMessage;
+  $runtime->{status_code} = $latexml->getStatusCode;
   # End daemon run, by popping frame:
   $latexml->withState(sub {
     my($state)=@_; # Remove current state frame
@@ -183,23 +186,22 @@ sub convert {
     if ($eval_report =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
       print STDERR $eval_report."\n";
       print STDERR "Fatal:conversion:timeout Conversion timed out after ".$opts->{timeout}." seconds!\n";
-      print STDERR "\nConversion incomplete (timeout): ".$status.".\n";
+      print STDERR "\nConversion incomplete (timeout): ".$runtime->{status}.".\n";
     } else {
       print STDERR $eval_report."\n";
-      print STDERR "\nStatus:conversion:".($status_code||'0')." \n";
-      print STDERR "Conversion complete: ".$status.".\n";
+      print STDERR "\nStatus:conversion:".($runtime->{status_code}||'0')." \n";
+      print STDERR "Conversion complete: ".$runtime->{status}.".\n";
     }
     # Close and restore STDERR to original condition.
     my $log=$self->flush_loging;
-    return {result=>undef,log=>$log,status=>$status,status_code=>$status_code};
+    return {result=>undef,log=>$log,status=>$runtime->{status},status_code=>$runtime->{status_code}};
   }
-  print STDERR "\nStatus:conversion:".($status_code||'0')." \n";
-  print STDERR "Conversion complete: ".$status.".\n";
+  print STDERR "Conversion complete: ".$runtime->{status}.".\n";
 
   if ($serialized) {
       # If serialized has been set, we are done with the job
       my $log = $self->flush_loging;
-      return {result=>$serialized,log=>$log,status=>$status,'status_code'=>$status_code};
+      return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
   } # Else, continue with the regular XML workflow...
   my $result = $dom;
   $result = $self->convert_post($dom) if ($opts->{post} && $dom);
@@ -232,14 +234,16 @@ sub convert {
 	# $serialized = encode('UTF-8',$serialized);
  #    }
   }
+  print STDERR "\nStatus:conversion:".($runtime->{status_code}||'0')." \n";
   my $log = $self->flush_loging;
-  return {result=>$serialized,log=>$log,status=>$status,'status_code'=>$status_code};
+  return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
 }
 
 ########## Helper routines: ############
 sub convert_post {
   my ($self,$dom) = @_;
   my $opts = $self->{opts};
+  my $runtime = $self->{runtime};
   my ($style,$parallel,$math_formats,$format,$verbosity,$defaultcss,$embed) = 
     map {$opts->{$_}} qw(stylesheet parallelmath math_formats format verbosity defaultcss embed);
   $verbosity = $verbosity||0;
@@ -284,7 +288,7 @@ sub convert_post {
     require 'LaTeXML/Post/Split.pm';
     push(@procs,LaTeXML::Post::Split->new(split_xpath=>$opts->{splitpath},splitnaming=>$opts->{splitnaming},
                                           %PostOPS)); }
-  my $scanner = ($opts->{scan} || $DB) && LaTeXML::Post::Scan->new(db=>$DB,%PostOPS);
+  my $scanner = ($opts->{scan} || $DB) && (LaTeXML::Post::Scan->new(db=>$DB,%PostOPS));
   push(@procs,$scanner) if $opts->{scan};
   if (!($opts->{prescan})) {
     if ($opts->{index}) {
@@ -316,10 +320,10 @@ sub convert_post {
       require 'LaTeXML/Post/Graphics.pm';
       my @g_options=();
       if($opts->{graphicsmaps} && scalar(@{$opts->{graphicsmaps}})){
-	my @maps = map([split(/\./,$_)], @{$opts->{graphicsmaps}});
-	push(@g_options, (graphicsSourceTypes=>[map($$_[0],@maps)],
-			  typeProperties=>{map( ($$_[0]=>{destination_type=>($$_[1] || $$_[0])}), @maps)})); }
-      push(@procs,LaTeXML::Post::Graphics->new(@g_options,%PostOPS));
+        my @maps = map([split(/\./,$_)], @{$opts->{graphicsmaps}});
+        push(@g_options, (graphics_types=>[map($$_[0],@maps)],
+			     type_properties=>{map( ($$_[0]=>{destination_type=>($$_[1] || $$_[0])}), @maps)})); }
+        push(@procs,LaTeXML::Post::Graphics->new(@g_options,%PostOPS));
     }
     if($opts->{svg}){
       require 'LaTeXML/Post/SVG.pm';
@@ -328,27 +332,27 @@ sub convert_post {
     ###    # If XMath is not first, it must be at END!  Or... ???
     foreach my $fmt (@$math_formats) {
       if($fmt eq 'xmath'){
-	require 'LaTeXML/Post/XMath.pm';
-	push(@mprocs,LaTeXML::Post::XMath->new(%PostOPS)); }
+        require 'LaTeXML/Post/XMath.pm';
+        push(@mprocs,LaTeXML::Post::XMath->new(%PostOPS)); }
       elsif($fmt eq 'pmml'){
-	require 'LaTeXML/Post/MathML.pm';
-	if(defined $opts->{linelength}){
-	  push(@mprocs,LaTeXML::Post::MathML::PresentationLineBreak->new(
+        require 'LaTeXML/Post/MathML.pm';
+        if(defined $opts->{linelength}){
+          push(@mprocs,LaTeXML::Post::MathML::PresentationLineBreak->new(
                     linelength=>$opts->{linelength},
                     ($opts->{plane1} ? (plane1=>1):()),
                     ($opts->{hackplane1} ? (hackplane1=>1):()),
                     %PostOPS)); }
-	else {
-	  push(@mprocs,LaTeXML::Post::MathML::Presentation->new(
+        else {
+          push(@mprocs,LaTeXML::Post::MathML::Presentation->new(
                     ($opts->{plane1} ? (plane1=>1):()),
                     ($opts->{hackplane1} ? (hackplane1=>1):()),
                     %PostOPS)); }}
       elsif($fmt eq 'cmml'){
-	require 'LaTeXML/Post/MathML.pm';
-	push(@mprocs,LaTeXML::Post::MathML::Content->new(%PostOPS)); }
+        require 'LaTeXML/Post/MathML.pm';
+        push(@mprocs,LaTeXML::Post::MathML::Content->new(%PostOPS)); }
       elsif($fmt eq 'om'){
-	require 'LaTeXML/Post/OpenMath.pm';
-	push(@mprocs,LaTeXML::Post::OpenMath->new(%PostOPS)); }
+        require 'LaTeXML/Post/OpenMath.pm';
+        push(@mprocs,LaTeXML::Post::OpenMath->new(%PostOPS)); }
     }
 ###    $keepXMath  = 0 unless defined $keepXMath;
 ### OR is $parallelmath ALWAYS on whenever there's more than one math processor?
@@ -359,42 +363,45 @@ sub convert_post {
     else {
       push(@procs,@mprocs); }
 
-
     require LaTeXML::Post::XSLT;
     my @csspaths=();
     if (@css) {
       foreach my $css (@css) {
-	$css .= '.css' unless $css =~ /\.css$/;
-	# Dance, if dest is current dir, we'll find the old css before the new one!
-	my @csssources = map {pathname_canonical($_)}
-	  pathname_findall($css,types=>['css'],
-			   (),
-			   installation_subdir=>'style');
-	my $csspath = pathname_absolute($css,pathname_directory('.'));
-	while (@csssources && ($csssources[0] eq $csspath)) {
-	  shift(@csssources);
-	}
-	my $csssource = shift(@csssources);
-	pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
-	push(@csspaths,$csspath);
+        $css .= '.css' unless $css =~ /\.css$/;
+        # Dance, if dest is current dir, we'll find the old css before the new one!
+        my @csssources = map {pathname_canonical($_)}
+          pathname_findall($css,types=>['css'],
+			    (),
+			    installation_subdir=>'style');
+        my $csspath = pathname_absolute($css,pathname_directory('.'));
+        while (@csssources && ($csssources[0] eq $csspath)) {
+          shift(@csssources);
+        }
+        my $csssource = shift(@csssources);
+        pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
+        push(@csspaths,$csspath);
       }
     }
     push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
 					 parameters=>{
-                                                      (@csspaths ? (CSS=>[@csspaths]):()),
-                                                      ($opts->{stylesheetparam} ? (%{$opts->{stylesheetparam}}):())},
+            (@csspaths ? (CSS=>[@csspaths]):()),
+            ($opts->{stylesheetparam} ? (%{$opts->{stylesheetparam}}):())},
 					 %PostOPS)) if $style;
   }
 
   # Do the actual post-processing:
   my $postdoc;
+  my $latexmlpost = LaTeXML::Post->new(verbosity=>$verbosity||0);
   eval {
     local $SIG{'ALRM'} = sub { die "alarm\n" };
     alarm($opts->{timeout});
-    ($postdoc) = LaTeXML::Post::ProcessChain($doc,@procs);
+    ($postdoc) = $latexmlpost->ProcessChain($doc,@procs);
+    $DB->finish;
     alarm(0);
     1;
   };
+  $runtime->{status}.= "\nPost: ".$latexmlpost->getStatusMessage;
+  $runtime->{status_code} = ($runtime->{status_code} > $latexmlpost->getStatusCode) ? $runtime->{status_code} : $latexmlpost->getStatusCode;
   if ($@) {                     #Fatal occured!
     if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
       print STDERR "$@\n";
@@ -403,8 +410,10 @@ sub convert_post {
       print STDERR "Fatal:post:generic Post-processor crashed! $@\n";
     }
     return;
+  } else {
+    print STDERR "\nPostprocessing complete: ".$latexmlpost->getStatusMessage."\n";
+    print STDERR "processing finished ".localtime()."\n" unless $verbosity < 0;
   }
-  $DB->finish;
   return $postdoc;
 }
 

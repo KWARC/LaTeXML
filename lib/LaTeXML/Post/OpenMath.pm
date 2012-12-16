@@ -27,7 +27,7 @@ use strict;
 use LaTeXML::Common::XML;
 use LaTeXML::Post;
 use LaTeXML::Post::MathML;
-use Encode;
+use LaTeXML::Post;
 use base qw(LaTeXML::Post::MathProcessor);
 
 our $omURI = "http://www.openmath.org/OpenMath";
@@ -51,7 +51,8 @@ sub convertNode {
   my($self,$doc,$xmath,$style)=@_;
   my($item,@rest)=  element_nodes($xmath);
   if(@rest){			# Unparsed ???
-    print STDERR "Warning: got extra nodes for content!\n  ".$xmath->toString."\n" if @rest; }
+    Warn('unexpected','content',undef,
+	 "Got extra nodes for math content:".$xmath->toString) if @rest; }
   Expr($item); }
 
 sub combineParallel {
@@ -105,7 +106,8 @@ sub Expr_aux {
   }
   elsif(($tag eq 'ltx:XMath') || ($tag eq 'ltx:XMWrap')){
     my($item,@rest)=  element_nodes($node);
-    print STDERR "Warning: got extra nodes for content!\n  ".encode('UTF-8',$node->toString)."\n" if grep (defined, @rest);
+    Warn('unexpected','content',undef,
+	 "Got extra nodes for content: ".$node->toString) if @rest;
     Expr($item); }
   elsif($tag eq 'ltx:XMDual'){
     my($content,$presentation) = element_nodes($node);

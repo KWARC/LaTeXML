@@ -31,11 +31,12 @@ our $RULES = [
               # I. Operators
               # I.1. Infix operators
               # I.1.0. Concatenation - Left and Right
-              ['Factor', [qw/FactorArgument _ Factor/],'concat_apply_right'], # Semantics: FA always function
-              ['Factor', [qw/Factor _ FactorArgument/],'concat_apply_left'], # Semantics: FA always scalar
+              #['Factor', [qw/FactorArgument _ Factor/],'concat_apply_right'], # Semantics: FA always function
+              #['Factor', [qw/Factor _ FactorArgument/],'concat_apply_left'], # Semantics: FA always scalar
+              ['Factor', [qw/Factor _ FactorArgument/],'concat_apply_factor'], # Semantics: FA always scalar
               # The asymetry in the above two rules makes '2a f(x)' ungrammatical
               # So we add:
-              ['Factor', [qw/Factor _ Factor/],'concat_apply_factor'], # Semantics: Make sure NO atoms!
+              #['Factor', [qw/Factor _ Factor/],'concat_apply_factor'], # Semantics: Make sure NO atoms!
               # But if we are not careful, we will allow too many parses for ' f(x)f(y)'
               # But then again we also need to consider (f \circ g) x 
 

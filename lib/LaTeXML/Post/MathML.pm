@@ -24,6 +24,7 @@
 package LaTeXML::Post::MathML;
 use strict;
 use LaTeXML::Common::XML;
+use LaTeXML::Post;
 use base qw(LaTeXML::Post::MathProcessor);
 
 our $mmlURI = "http://www.w3.org/1998/Math/MathML";
@@ -575,7 +576,7 @@ sub stylizeContent {
     $color = 'red'; }
 
   if($font && !$variant){
-    warn "Unrecognized font variant \"$font\""; $variant=''; }
+    Warn('unexpected',$font,undef,"Unrecognized font variant '$font'"); $variant=''; }
   # Special case for single char identifiers?
   if($mihack && ($text =~ /^.$/)){	# Single char in mi?
     if($variant eq 'italic'){ $variant = undef; } # Defaults to italic
@@ -863,11 +864,8 @@ sub cmml_internal {
 
 sub cmml_unparsed {
   my(@nodes)=@_;
-###  print STDERR "Warning: Got extra nodes for content!\n  ".$node->toString."\n";
-## pmml_row(map(pmml($_),@nodes)); } # ????
   ['m:cerror',{},
    ['m:csymbol',{cd=>'ambiguous'},'fragments'],
-###   map(cmml($_),@nodes)]; }
    map( ((getQName($_) eq 'ltx:XMTok')&&(($_->getAttribute('role')||'UNKNOWN') eq 'UNKNOWN')
 	 ? ['m:csymbol',{cd=>'unknown'},$_->textContent]
 	 : cmml($_)),

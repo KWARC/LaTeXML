@@ -9,7 +9,12 @@ sub new {
   bless {steps=>[]}, $class; }
 
 # I. Basic
-sub finalize { print STDERR "\n\nFinal state:\n",Dumper($_[0]->{atoms}),"\n\n"; $_[1];}
+sub finalize { 
+  #print STDERR "\nPruning: " if (exists $_[0]->{__PRUNE});
+  #print STDERR "\nFinal state:\n",Dumper($_[0]->{atoms}),"\n\n";
+  #Marpa::R2::Context::bail('PRUNE') if (exists $_[0]->{__PRUNE});
+  $_[1];
+}
 sub first_arg {
   my ($state,$arg) = @_;
   MaybeLookup($arg); }
@@ -45,30 +50,25 @@ sub concat_apply {
 sub concat_apply_factor {
   my ( $state, $t1, $c, $t2) = @_;
   # Only for NON-atomic structures!
-  Marpa::R2::Context::bail('PRUNE') unless (((ref $t1) eq 'ARRAY') && ((ref $t2) eq 'ARRAY'));
+  #Marpa::R2::Context::bail('PRUNE') unless (((ref $t1) eq 'ARRAY') && ((ref $t2) eq 'ARRAY'));
   concat_apply($state, $t1, $c, $t2,'factor');
 }
 sub concat_apply_left {
   my ( $state, $t1, $c, $t2) = @_;
   # if t2 is an atom - mark as scalar or fail if inconsistent
-  if ($state->mark_or_fail($t2,'scalar') && $state->mark_or_fail($t1,'scalar')) {
-    # Just in case, do the same for $t1:
-    concat_apply($state, $t1, $c, $t2,'factor');
-  } else {
-    Marpa::R2::Context::bail('PRUNE');
-  }
+  $state->mark_use($t1,'scalar');
+  $state->mark_use($t2,'scalar');
+  concat_apply($state, $t1, $c, $t2,'factor');
 }
 sub concat_apply_right {
   my ( $state, $t1, $c, $t2) = @_;  
   # if t1 is an atom - mark as function or fail if inconsistent
-  if ($state->mark_or_fail($t1,'function') && $state->mark_or_fail($t2,'scalar')) {
-    # Just in case, do the same for $t2, which is a scalar if atom:
-    my $app =  Apply($t1,$t2);
-    $app->[1]->{'cat'}='factor';
-    $app;
-  } else {
-    Marpa::R2::Context::bail('PRUNE');
-  }
+  $state->mark_use($t1,'function');
+  # Just in case, do the same for $t2, which is a scalar if atom:
+  $state->mark_use($t2,'scalar');
+  my $app =  Apply($t1,$t2);
+  $app->[1]->{'cat'}='factor';
+  $app;
 }
 
 sub infix_apply {
@@ -158,15 +158,16 @@ sub MaybeLookup {
   return $xml;
 }
 
-sub mark_or_fail {
+sub mark_use {
   my ($state,$t2,$value) = @_;
   if (blessed($t2)) {
     my $lex = $t2->textContent;
     my $current = $state->{atoms}->{$lex};
     if (defined $current) {
-      return undef if ($current ne $value);
+      $state->{__PRUNE}=1 if ($current ne $value);
+      $state->{atoms}->{$lex.'1'}=$value if ($current ne $value);
     } else {
-        $state->{atoms}->{$lex} = $value;
+      $state->{atoms}->{$lex} = $value;
     }
   }
   1;
