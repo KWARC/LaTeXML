@@ -14,7 +14,7 @@ function show_result() {
     $('#onthefly').show();
 }
 function setup_message(data) {
- $('#message').html(data.status+"<a href='#'>(Details)</a>");
+ $('#message').html($('#message').text(data.status).html().replace(/\n/g,"<br />")+"<a href='#'>(Details)</a>");
  $('#message').hover( function () {show_log();}, function () {show_result();} );
  $('#message').click(  function () {
     $('#message').unbind('mouseenter').unbind('mouseleave');
