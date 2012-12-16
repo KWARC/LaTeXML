@@ -187,16 +187,17 @@ sub convert {
       print STDERR $eval_report."\n";
       print STDERR "Fatal:conversion:timeout Conversion timed out after ".$opts->{timeout}." seconds!\n";
       print STDERR "\nConversion incomplete (timeout): ".$runtime->{status}.".\n";
+      $runtime->{status_code} = 3;
     } else {
       print STDERR $eval_report."\n";
-      print STDERR "\nStatus:conversion:".($runtime->{status_code}||'0')." \n";
+      print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
       print STDERR "Conversion complete: ".$runtime->{status}.".\n";
     }
     # Close and restore STDERR to original condition.
     my $log=$self->flush_loging;
     return {result=>undef,log=>$log,status=>$runtime->{status},status_code=>$runtime->{status_code}};
   }
-  print STDERR "Conversion complete: ".$runtime->{status}.".\n";
+  print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
 
   if ($serialized) {
       # If serialized has been set, we are done with the job
@@ -204,7 +205,29 @@ sub convert {
       return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
   } # Else, continue with the regular XML workflow...
   my $result = $dom;
-  $result = $self->convert_post($dom) if ($opts->{post} && $dom);
+
+  if ($opts->{post} && $dom) {
+    eval {
+      local $SIG{'ALRM'} = sub { die "alarm\n" };
+      alarm($opts->{timeout});
+      $result = $self->convert_post($dom);
+      alarm(0);
+      1;
+    };
+    if ($@) {                     #Fatal occured!
+      $runtime->{status_code} = 3;
+      if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
+        print STDERR "$@\n";
+        print STDERR "Fatal:post:timeout Postprocessing couldn't create document: timeout after "
+        . $opts->{timeout} . " seconds!\n";
+      } else {
+        print STDERR "Fatal:post:generic Post-processor crashed! $@\n";
+      }
+      #Since this is postprocessing, we don't need to do anything
+      #   just avoid crashing...
+    $result = undef;
+    }
+  }
 
   # Handle What's OUT?
   # 1. If we want an embedable snippet, unwrap to body's "main" div
@@ -234,7 +257,7 @@ sub convert {
 	# $serialized = encode('UTF-8',$serialized);
  #    }
   }
-  print STDERR "\nStatus:conversion:".($runtime->{status_code}||'0')." \n";
+  print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
   my $log = $self->flush_loging;
   return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
 }
@@ -252,28 +275,8 @@ sub convert_post {
   my @css=@{$opts->{css}};
   unshift (@css,"core.css") if ($defaultcss);
   $parallel = $parallel||0;
-  my $doc;
-  eval {
-    local $SIG{'ALRM'} = sub { die "alarm\n" };
-    alarm($opts->{timeout});
-    $doc = LaTeXML::Post::Document->new($dom,%PostOPS);
-    alarm(0);
-    1;
-  };
-  if ($@) {                     #Fatal occured!
-    if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
-      print STDERR "$@\n";
-      print STDERR "Fatal:post:timeout Postprocessing couldn't create document: timeout after "
-        . $opts->{timeout} . " seconds!\n";
-    } else {
-      print STDERR "Fatal:post:generic Post-processor crashed! $@\n";
-    }
-    #Since this is postprocessing, we don't need to do anything
-    #   just avoid crashing... and exit
-    undef $doc;
-    return undef;
-  }
   
+  my $doc = LaTeXML::Post::Document->new($dom,%PostOPS);
   my @procs=();
   #TODO: Add support for the following:
   my $dbfile = $opts->{dbfile};
@@ -392,28 +395,15 @@ sub convert_post {
   # Do the actual post-processing:
   my $postdoc;
   my $latexmlpost = LaTeXML::Post->new(verbosity=>$verbosity||0);
-  eval {
-    local $SIG{'ALRM'} = sub { die "alarm\n" };
-    alarm($opts->{timeout});
-    ($postdoc) = $latexmlpost->ProcessChain($doc,@procs);
-    $DB->finish;
-    alarm(0);
-    1;
-  };
+  ($postdoc) = $latexmlpost->ProcessChain($doc,@procs);
+  $DB->finish;
+
   $runtime->{status}.= "\nPost: ".$latexmlpost->getStatusMessage;
-  $runtime->{status_code} = ($runtime->{status_code} > $latexmlpost->getStatusCode) ? $runtime->{status_code} : $latexmlpost->getStatusCode;
-  if ($@) {                     #Fatal occured!
-    if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
-      print STDERR "$@\n";
-      print STDERR "Fatal:post:timeout Postprocessing timed out after ".$opts->{timeout}." seconds!\n";
-    } else {
-      print STDERR "Fatal:post:generic Post-processor crashed! $@\n";
-    }
-    return;
-  } else {
-    print STDERR "\nPostprocessing complete: ".$latexmlpost->getStatusMessage."\n";
-    print STDERR "processing finished ".localtime()."\n" unless $verbosity < 0;
-  }
+  $runtime->{status_code} =($runtime->{status_code} > $latexmlpost->getStatusCode) ? $runtime->{status_code} : $latexmlpost->getStatusCode;
+
+  print STDERR "\nPostprocessing complete: ".$latexmlpost->getStatusMessage."\n";
+  print STDERR "processing finished ".localtime()."\n" unless $verbosity < 0;
+
   return $postdoc;
 }
 
