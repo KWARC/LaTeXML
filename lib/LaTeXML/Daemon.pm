@@ -342,20 +342,26 @@ sub convert_post {
         if(defined $opts->{linelength}){
           push(@mprocs,LaTeXML::Post::MathML::PresentationLineBreak->new(
                     linelength=>$opts->{linelength},
-                    ($opts->{plane1} ? (plane1=>1):()),
+                    (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
                     ($opts->{hackplane1} ? (hackplane1=>1):()),
                     %PostOPS)); }
         else {
           push(@mprocs,LaTeXML::Post::MathML::Presentation->new(
-                    ($opts->{plane1} ? (plane1=>1):()),
+                    (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
                     ($opts->{hackplane1} ? (hackplane1=>1):()),
                     %PostOPS)); }}
       elsif($fmt eq 'cmml'){
         require 'LaTeXML/Post/MathML.pm';
-        push(@mprocs,LaTeXML::Post::MathML::Content->new(%PostOPS)); }
+        push(@mprocs,LaTeXML::Post::MathML::Content->new(
+          (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
+          ($opts->{hackplane1} ? (hackplane1=>1):()),
+          %PostOPS)); }
       elsif($fmt eq 'om'){
         require 'LaTeXML/Post/OpenMath.pm';
-        push(@mprocs,LaTeXML::Post::OpenMath->new(%PostOPS)); }
+        push(@mprocs,LaTeXML::Post::OpenMath->new(
+          (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
+          ($opts->{hackplane1} ? (hackplane1=>1):()),
+          %PostOPS)); }
     }
 ###    $keepXMath  = 0 unless defined $keepXMath;
 ### OR is $parallelmath ALWAYS on whenever there's more than one math processor?

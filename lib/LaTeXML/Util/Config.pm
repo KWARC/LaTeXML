@@ -553,6 +553,8 @@ latexmls/latexmlc [options]
                          (default for html format)
  --nomathimages          disables the above
  --mathimagemagnification=mag specifies magnification factor
+ --plane1           use plane-1 unicode for styled symbols (default)
+ --noplane1         do not use plane-1 unicode
  --pmml             converts math to Presentation MathML
                     (default for xhtml format)
  --cmml             converts math to Content MathML
