@@ -1672,7 +1672,7 @@ DefPrimitive('\closein Number',undef);
 DefPrimitive('\closeout Number',undef);
 DefPrimitive('\immediate',undef);
 # \immediate\write<number><general text>
-DefPrimitive('\write Number {}', undef);
+DefPrimitive('\write Number {}', sub {print STDERR ToString(Expand($_[2])),"\n"; return;});
 
 #======================================================================
 # Remaining semi- Vertical Mode primitives in Ch.24, pp.280--281
