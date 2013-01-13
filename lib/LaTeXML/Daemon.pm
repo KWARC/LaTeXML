@@ -13,11 +13,11 @@
 package LaTeXML::Daemon;
 use strict;
 use warnings;
-use FindBin;
-use lib "$FindBin::RealBin/../lib";
+
 use Pod::Usage;
 use Carp;
 use Encode;
+
 use LaTeXML;
 use LaTeXML::Global;
 use LaTeXML::Package qw(pathname_is_literaldata);

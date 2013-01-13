@@ -4023,7 +4023,7 @@ DefMathI('\mho',      undef,"\x{2127}");
 DefMathI('\prime',    undef,"\x{2032}", role=>'SUPOP');
 DefMathI('\emptyset', undef,"\x{2205}", role=>'ID', meaning=>'empty-set');
 DefMathI('\nabla',    undef,"\x{2207}", role=>'OPERATOR');
-DefMathI('\surd',     undef,"\x{221A}", role=>'OPERATOR', meaning=>'root');
+DefMathI('\surd',     undef,"\x{221A}", role=>'OPERATOR', meaning=>'square-root');
 DefMathI('\top',      undef,"\x{22A4}", role=>'ADDOP', meaning=>'top');
 DefMathI('\bot',      undef,"\x{22A5}", role=>'ADDOP', meaning=>'bottom');
 DefMathI('\|',        undef,"\x{2225}", role=>'VERTBAR', name=>'||', meaning=>'parallel-to');
@@ -4624,14 +4624,14 @@ DefConstructor('\smash{}',"#1"); # well, what?
 
 # This is actually LaTeX's definition, but let's just do it this way.
 DefConstructor('\sqrt[] Digested',
-	       "?#1(<ltx:XMApp><ltx:XMTok meaning='root'/>"
+	       "?#1(<ltx:XMApp><ltx:XMTok meaning='nth-root'/>"
 	       .     "<ltx:XMArg>#1</ltx:XMArg><ltx:XMArg>#2</ltx:XMArg>"
 	       .   "</ltx:XMApp>)"
 	       .  "(<ltx:XMApp><ltx:XMTok meaning='square-root'/>"
 	       .    "<ltx:XMArg>#2</ltx:XMArg></ltx:XMApp>)");
 
 DefConstructor('\root Until:\of {}',
-	       "<ltx:XMApp><ltx:XMTok meaning='root'/>"
+	       "<ltx:XMApp><ltx:XMTok meaning='nth-root'/>"
 	       .     "<ltx:XMArg>#1</ltx:XMArg><ltx:XMArg>#2</ltx:XMArg>"
 	       ."</ltx:XMApp>");
 
