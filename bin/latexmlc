@@ -3,7 +3,7 @@
 #######################
 # A Client for LaTeXML
 #######################
-
+use warnings;
 use strict;
 use Pod::Usage;
 use Carp;
@@ -18,8 +18,8 @@ use LaTeXML::Util::Pathname;
 use LaTeXML::Util::Config;
 use Storable qw(freeze thaw);
 
-binmode(STDERR,":utf8");
-binmode(STDOUT,":utf8");
+binmode(STDERR,":encoding(UTF-8)");
+binmode(STDOUT,":encoding(UTF-8)");
 
 # Some defaults:
 my $opts=LaTeXML::Util::Config->new(
@@ -41,7 +41,7 @@ $opts->set('port', $portlist{$opts->get('profile')}) unless $opts->get('port');
 $opts->set('port', 3334) unless $opts->get('port'); #Fall back to 3334 if all fails...
 
 # Local if no timeout wanted (classic latexml invocation):
-$opts->set('local', 1) unless (($opts->get('timeout') != -1) || (defined $opts->get('local')));
+$opts->set('local', 1) if (($opts->get('timeout') == -1) && (!defined $opts->get('local')));
 # TODO: Rethink this carefully, where does the "local" security get inspected?
 # Unset destinations unless local conversion has been requested:
 if (!$opts->get('local') && ($opts->get('destination') || $opts->get('log') || $opts->get('postdest') || $opts->get('postlog'))) 
@@ -59,8 +59,9 @@ $opts->set('base',$cdir) unless $opts->get('base');
 
 # Record if destination exists, for summary
 $opts->set('destination', pathname_canonical($opts->get('destination'))) if $opts->get('destination');
-my $deststat = (stat($opts->get('destination')))[9] if ($opts->get('destination'));
-$deststat = 0 unless $deststat;
+my $deststat;
+$deststat = (stat($opts->get('destination')))[9] if $opts->get('destination');
+$deststat = 0 unless defined $deststat;
 
 # Revert to sockets if no --local
 if (!$opts->get('local') && ($opts->get('destination') || $opts->get('log')))
@@ -76,7 +77,7 @@ push @{$opts->get('paths')}, $cdir; #add current path, to ensure never empty
 my  ($result, $status, $log);
 
 #Setup client and communicate
-my $sock = new IO::Socket::INET
+my $sock = IO::Socket::INET->new
   ( PeerAddr => '127.0.0.1',
     PeerPort => $opts->get('port'),
     Proto => 'tcp',
@@ -102,7 +103,7 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
   system("$FindBin::Bin/latexmls",'--port='.$opts->get('port'),'--timeout='.$opts->get('timeout'),'--autoflush='.$opts->get('input_limit'), $destopt, $formatopt) unless $sock;
 
   #Daemon is running, reconnect and feed in request
-  $sock = new IO::Socket::INET 
+  $sock = IO::Socket::INET->new 
     ( PeerAddr => '127.0.0.1',
       PeerPort => $opts->get('port'),
       Proto => 'tcp',
@@ -127,18 +128,20 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
 if ($log) {
   if ($opts->get('log') && $opts->get('local')) {
     my $clog = $opts->get('log');
-    open(LOG,">",$clog) or croak "Fatal:IO:forbidden Couldn't open log file $clog : $!\n";
-    print LOG $log;
-    close LOG;
+    my $log_handle;
+    open($log_handle,">",$clog) or croak "Fatal:IO:forbidden Couldn't open log file $clog : $!\n";
+    print $log_handle $log;
+    close $log_handle;
   } else {print STDERR $log,"\n";}#STDERR log otherwise
 }
 
 if ($result) {
 
   if ($opts->get('destination') && $opts->get('local')) {
-    open(OUT,">",$opts->get('destination')) or croak "Fatal:IO:forbidden Couldn't open output file ".$opts->get('destination').": $!";
-    print OUT $result;
-    close OUT;
+    my $output_handle;
+    open($output_handle,">",$opts->get('destination')) or croak "Fatal:IO:forbidden Couldn't open output file ".$opts->get('destination').": $!";
+    print $output_handle $result;
+    close $output_handle;
   } else { print STDOUT $result,"\n"; } #Output to STDOUT
 }
 
@@ -150,11 +153,10 @@ if ($opts->get('destination')) {
 
 # == Helpers ==
 sub summary {
-  my ($dest,$deststat) = @_;
-  my $newstat = (stat($dest))[9];
-  $newstat = 0 unless $newstat;
-  if ($newstat && ($deststat != $newstat)) { "\nWrote $dest\n"; }
-  else { "\nError! Did not write file $dest\n"; }
+  my ($destination,$prior_stat) = @_;
+  my $new_stat = (stat($destination))[9] || 0;
+  return ($new_stat && ($prior_stat != $new_stat)) ? "\nWrote $destination\n" :
+  "\nError! Did not write file $destination\n";
 }
 
 #**********************************************************************

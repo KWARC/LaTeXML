@@ -68,7 +68,8 @@ sub prepare_session {
     }
   }
   #2.2. Compare old and new $opts hash
-  my $something_to_do=1 unless LaTeXML::Util::ObjectDB::compare($opts, $self->{opts});
+  my $something_to_do;
+  $something_to_do= LaTeXML::Util::ObjectDB::compare($opts, $self->{opts}) ? 0 : 1;
   #2.3. Reinstate ignorables, set new options to daemon:
   $opts->{$_} = $opts_tmp->{$_} foreach (@IGNORABLE);
   $self->{opts} = $opts;
@@ -84,17 +85,19 @@ sub initialize_session {
   $self->{runtime} = {};
   $self->bind_loging;
   my $latexml;
-  eval {
+  my $init_eval_return = eval {
     # Prepare LaTeXML object
     $latexml = new_latexml($self->{opts});
     1;
   };
+  local $@ = 'Fatal:conversion:unknown Session initialization failed! (Unknown reason)' if ((!$init_eval_return) && (!$@));
   if ($@) {#Fatal occured!
     print STDERR "$@\n";
     print STDERR "\nInitialization complete: ".$latexml->getStatusMessage.". Aborting.\n" if defined $latexml;
     # Close and restore STDERR to original condition.
     $self->{log} = $self->flush_loging;
-    $self->{ready}=0; return;
+    $self->{ready}=0;
+    return;
   } else {
     # Demand errorless initialization
     my $init_status = $latexml->getStatusMessage;
@@ -110,6 +113,7 @@ sub initialize_session {
   $self->{log} = $self->flush_loging;
   $self->{latexml} = $latexml;
   $self->{ready}=1;
+  return;
 }
 
 sub convert {
@@ -148,7 +152,7 @@ sub convert {
   # First read and digest whatever we're given.
   my ($digested,$dom,$serialized);
   # Digest source:
-  eval {
+  my $convert_eval_return = eval {
     local $SIG{'ALRM'} = sub { die "alarm\n" };
     alarm($opts->{timeout});
     my $mode = ($opts->{type} eq 'auto') ? 'TeX' : $opts->{type};
@@ -173,6 +177,7 @@ sub convert {
     alarm(0);
     1;
   };
+  local $@ = 'Fatal:conversion:unknown TeX to XML conversion failed! (Unknown Reason)' if ((!$convert_eval_return) && (!$@));
   my $eval_report = $@;
   $runtime->{status} = $latexml->getStatusMessage;
   $runtime->{status_code} = $latexml->getStatusCode;
@@ -207,13 +212,14 @@ sub convert {
   my $result = $dom;
 
   if ($opts->{post} && $dom) {
-    eval {
+    my $post_eval_return = eval {
       local $SIG{'ALRM'} = sub { die "alarm\n" };
       alarm($opts->{timeout});
       $result = $self->convert_post($dom);
       alarm(0);
       1;
     };
+    local $@ = 'Fatal:conversion:unknown Post-processing failed! (Unknown Reason)' if ((!$post_eval_return) && (!$@));
     if ($@) {                     #Fatal occured!
       $runtime->{status_code} = 3;
       if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
@@ -288,39 +294,39 @@ sub convert_post {
   my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile,%PostOPS);
   ### Advanced Processors:
   if ($opts->{split}) {
-    require 'LaTeXML/Post/Split.pm';
+    require LaTeXML::Post::Split;
     push(@procs,LaTeXML::Post::Split->new(split_xpath=>$opts->{splitpath},splitnaming=>$opts->{splitnaming},
                                           %PostOPS)); }
   my $scanner = ($opts->{scan} || $DB) && (LaTeXML::Post::Scan->new(db=>$DB,%PostOPS));
   push(@procs,$scanner) if $opts->{scan};
   if (!($opts->{prescan})) {
     if ($opts->{index}) {
-      require 'LaTeXML/Post/MakeIndex.pm';
+      require LaTeXML::Post::MakeIndex;
       push(@procs,LaTeXML::Post::MakeIndex->new(db=>$DB, permuted=>$opts->{permutedindex},
                                                 split=>$opts->{splitindex}, scanner=>$scanner,
                                                 %PostOPS)); }
     if (@{$opts->{bibliographies}}) {
-      require 'LaTeXML/Post/MakeBibliography.pm';
+      require LaTeXML::Post::MakeBibliography;
       push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>$opts->{bibliographies},
 						       split=>$opts->{splitbibliography}, scanner=>$scanner,
 						       %PostOPS)); }
     if ($opts->{crossref}) {
-      require 'LaTeXML/Post/CrossRef.pm';
+      require LaTeXML::Post::CrossRef;
       push(@procs,LaTeXML::Post::CrossRef->new(db=>$DB,urlstyle=>$opts->{urlstyle},format=>$format,
 					       ($opts->{numbersections} ? (number_sections=>1):()),
 					       ($opts->{navtoc} ? (navigation_toc=>$opts->{navtoc}):()),
 					       %PostOPS)); }
     if ($opts->{mathimages}) {
-      require 'LaTeXML/Post/MathImages.pm';
+      require LaTeXML::Post::MathImages;
       push(@procs,LaTeXML::Post::MathImages->new(magnification=>$opts->{mathimagemag},%PostOPS));
     }
     if ($opts->{picimages}) {
-      require 'LaTeXML/Post/PictureImages.pm';
+      require LaTeXML::Post::PictureImages;
       push(@procs,LaTeXML::Post::PictureImages->new(%PostOPS));
     }
     if ($opts->{dographics}) {
       # TODO: Rethink full-fledged graphics support
-      require 'LaTeXML/Post/Graphics.pm';
+      require LaTeXML::Post::Graphics;
       my @g_options=();
       if($opts->{graphicsmaps} && scalar(@{$opts->{graphicsmaps}})){
         my @maps = map([split(/\./,$_)], @{$opts->{graphicsmaps}});
@@ -329,16 +335,16 @@ sub convert_post {
         push(@procs,LaTeXML::Post::Graphics->new(@g_options,%PostOPS));
     }
     if($opts->{svg}){
-      require 'LaTeXML/Post/SVG.pm';
+      require LaTeXML::Post::SVG;
       push(@procs,LaTeXML::Post::SVG->new(%PostOPS)); }
     my @mprocs=();
     ###    # If XMath is not first, it must be at END!  Or... ???
     foreach my $fmt (@$math_formats) {
       if($fmt eq 'xmath'){
-        require 'LaTeXML/Post/XMath.pm';
+        require LaTeXML::Post::XMath;
         push(@mprocs,LaTeXML::Post::XMath->new(%PostOPS)); }
       elsif($fmt eq 'pmml'){
-        require 'LaTeXML/Post/MathML.pm';
+        require LaTeXML::Post::MathML;
         if(defined $opts->{linelength}){
           push(@mprocs,LaTeXML::Post::MathML::PresentationLineBreak->new(
                     linelength=>$opts->{linelength},
@@ -351,13 +357,13 @@ sub convert_post {
                     ($opts->{hackplane1} ? (hackplane1=>1):()),
                     %PostOPS)); }}
       elsif($fmt eq 'cmml'){
-        require 'LaTeXML/Post/MathML.pm';
+        require LaTeXML::Post::MathML;
         push(@mprocs,LaTeXML::Post::MathML::Content->new(
           (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
           ($opts->{hackplane1} ? (hackplane1=>1):()),
           %PostOPS)); }
       elsif($fmt eq 'om'){
-        require 'LaTeXML/Post/OpenMath.pm';
+        require LaTeXML::Post::OpenMath;
         push(@mprocs,LaTeXML::Post::OpenMath->new(
           (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
           ($opts->{hackplane1} ? (hackplane1=>1):()),
@@ -408,7 +414,7 @@ sub convert_post {
   $runtime->{status_code} =($runtime->{status_code} > $latexmlpost->getStatusCode) ? $runtime->{status_code} : $latexmlpost->getStatusCode;
 
   print STDERR "\nPostprocessing complete: ".$latexmlpost->getStatusMessage."\n";
-  print STDERR "processing finished ".localtime()."\n" unless $verbosity < 0;
+  print STDERR "processing finished ".localtime()."\n" if $verbosity >= 0;
 
   return $postdoc;
 }
@@ -456,18 +462,21 @@ sub bind_loging {
   my ($self) = @_;
   if (! $LaTeXML::Daemon::DEBUG) { # Debug will use STDERR for logs
     # Tie STDERR to log:
-    open(LOG,">",\$self->{log}) or croak "Can't redirect STDERR to log! Dying...";
-    *ERRORIG=*STDERR;
-    *STDERR = *LOG;
+    my $log_handle;
+    open($log_handle,">",\$self->{log}) or croak "Can't redirect STDERR to log! Dying...";
+    *STDERR_SAVED=*STDERR;
+    *STDERR = *$log_handle;
+    $self->{log_handle} = $log_handle;
   }
+  return;
 }
 
 sub flush_loging {
   my ($self) = @_;
   # Close and restore STDERR to original condition.
   if (! $LaTeXML::Daemon::DEBUG) {
-    close LOG;
-    *STDERR=*ERRORIG;
+    close $self->{log_handle};
+    *STDERR=*STDERR_SAVED;
   }
   my $log = $self->{log};
   $self->{log}=q{};
