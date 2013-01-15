@@ -62,7 +62,7 @@ if($showversion){ print STDERR "$LaTeXML::Version::IDENTITY\n"; exit(1); }
 pod2usage(-message=>"$LaTeXML::Version::IDENTITY\nMissing input TeX file", 
 	  -exitval=>1, -verbose=>0,-output=>\*STDERR) unless @ARGV;
 
-binmode(STDERR,":utf8");
+binmode(STDERR,":encoding(UTF-8)");
 print STDERR "$LaTeXML::Version::IDENTITY\n" unless $verbosity < 0;
 
 #======================================================================

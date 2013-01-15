@@ -8,8 +8,8 @@ eval 'exec /usr/bin/perl -w -S $0 ${1+"$@"}'
     if 0; # not running under some shell
 
 # General packages
-use strict;
 use warnings;
+use strict;
 use Carp;
 use Pod::Usage;
 use Data::Dumper;
@@ -60,7 +60,7 @@ local $SIG{'ALRM'} = 'dotimeout';
 local $SIG{'TERM'} = 'doterm';
 local $SIG{'INT'} = 'doterm';
 
-binmode(STDERR,":utf8");
+binmode(STDERR,":encoding(UTF-8)");
 
 alarm($g_opts->get('timeout'));              #Timeout if inactive for too long...
 

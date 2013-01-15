@@ -69,7 +69,7 @@ if($destination){
   if(my $dir =pathname_directory($destination)){
     pathname_mkdir($dir) or die "Couldn't create destination directory $dir: $!"; }}
 
-binmode(STDERR,":utf8");
+binmode(STDERR,":encoding(UTF-8)");
 
 $mode = 'BibTeX' if !defined $mode && ($source =~ /\.bib$/);
 $mode = 'TeX' unless defined $mode;
