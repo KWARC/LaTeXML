@@ -59,7 +59,7 @@ DefMacro('\pmrecord{}{}','\pmmeta@literal@dct{hasVersion}{#1}'); # The second ar
 DefMacro('\pmcanonicalname{}','\pmmeta@literal@dct{identifier}{#1}');
 DefMacro('\pmcreated Semiverbatim','\pmmeta@literal@dct[xsd:date]{created}{#1}');
 DefMacro('\pmmodified Semiverbatim','\pmmeta@literal@dct[xsd:date]{modified}{#1}');
-DefMacro('\pmtitle{}','\pmmeta@literal@dct{title}{#1}');
+DefMacro('\pmtitle{}','\title{#1}\pmmeta@literal@dct{title}{#1}');
 DefMacro('\pmtype{}','\pmmeta@literal@dct{type}{#1}'); # Maybe types are resources?
 DefMacro('\pmauthor{}{}','\pmmeta@uri@dct{creator}{\userURI{#2}}'); # First argument is a username, second DB id (ignore second).
 DefMacro('\pmclassification{}{}','\pmmeta@uri@dct{subject}{#1:#2}'); #Arbitrary metadata, simply register the #1 argument as a namespace (e.g. msc)
@@ -87,12 +87,12 @@ DefConstructor('\webgraphic OptionalKeyVals:webgraphic {}',
        . "?&KeyVal(#1,'height')(imageheight='&KeyVal(#1,'height')' )()"
        . "?&KeyVal(#1,'alt')(description='&KeyVal(#1,'alt')' )()"
        . ")() />",
-  afterConstruct => sub{
+  afterConstruct => sub {
     my ($document,$whatsit) = @_;
-    my $graphic_id = $document->getElement->getAttribute('xml:id');
+    my $graphic_src = $document->getElement->getAttribute('imagesrc');
 
     my $node = $document->openElementAt($document->getDocument->getDocumentElement, 'ltx:keywords',
-                                        rel => 'pm:containsGraphic',resource => '#'.$graphic_id);
+                                        rel => 'pm:containsGraphic',resource => $graphic_src);
     $document->closeElementAt($node);
   },
   properties=> sub {
