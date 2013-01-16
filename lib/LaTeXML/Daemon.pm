@@ -131,6 +131,7 @@ sub convert {
   my $runtime = $self->{runtime};
   ($runtime->{status},$runtime->{status_code})=(undef,undef);
   print STDERR "\n",$opts->{identity},"\n" if $opts->{verbosity} >= 0;
+  print STDERR "processing started ".localtime()."\n" if $opts->{verbosity} >= 0;
   # Handle What's IN?
   # 1. Math profile should get a mathdoc() wrapper
   if ($opts->{whatsin} eq "math") {

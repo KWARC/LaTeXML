@@ -11,11 +11,12 @@ use Cwd qw(cwd abs_path);
 use IO::Socket;
 my $RealBin_safe;
 use FindBin;
-
-$FindBin::RealBin =~ /^(.*)$/;
-$RealBin_safe = $1;
-exit unless $RealBin_safe;
-print STDERR "\n\nVal: $RealBin_safe \n\n";
+BEGIN {
+  $FindBin::RealBin =~ /^([^\0]+)\z/; # Valid Unix path TODO: Windows, revisit regexp
+  $RealBin_safe = $1;
+  die 'Fatal:IO:tainted RealBin was tainted! Failing...' unless ($RealBin_safe && (-e $RealBin_safe.'/latexmlc'));
+}
+# TODO: We probably want file cat for things like /../lib instead of spelling out a Unix path
 use lib $RealBin_safe."/../lib";
 
 use LaTeXML::Daemon;
