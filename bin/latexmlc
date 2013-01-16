@@ -9,8 +9,14 @@ use Pod::Usage;
 use Carp;
 use Cwd qw(cwd abs_path);
 use IO::Socket;
+my $RealBin_safe;
 use FindBin;
-use lib "$FindBin::RealBin/../lib";
+
+$FindBin::RealBin =~ /^(.*)$/;
+$RealBin_safe = $1;
+exit unless $RealBin_safe;
+print STDERR "\n\nVal: $RealBin_safe \n\n";
+use lib $RealBin_safe."/../lib";
 
 use LaTeXML::Daemon;
 use LaTeXML::Version;
