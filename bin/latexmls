@@ -15,7 +15,14 @@ use Pod::Usage;
 use Data::Dumper;
 # LaTeXML
 use FindBin;
-use lib "$FindBin::RealBin/../lib";
+my $RealBin_safe;
+BEGIN {
+  $FindBin::RealBin =~ /^([^\0]+)\z/; # Valid Unix path TODO: Windows, revisit regexp
+  $RealBin_safe = $1;
+  die 'Fatal:IO:tainted RealBin was tainted! Failing...' unless ($RealBin_safe && (-e $RealBin_safe.'/latexmlc'));
+}
+# TODO: We probably want file cat for things like /../lib instead of spelling out a Unix path
+use lib $RealBin_safe."/../lib";
 use Storable qw(freeze thaw);
 use LaTeXML;
 use LaTeXML::Version;
