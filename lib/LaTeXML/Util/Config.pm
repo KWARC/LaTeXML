@@ -10,7 +10,6 @@
 # | Deyan Ginev <deyan.ginev@nist.gov>                          #_#     | #
 # | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
 # \=========================================================ooo==U==ooo=/ #
-
 package LaTeXML::Util::Config;
 
 use strict;
@@ -20,7 +19,6 @@ use Carp;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 use Pod::Find qw(pod_where);
-use Data::Dumper;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Global;
 
@@ -37,10 +35,6 @@ sub new {
 ###########################################
 #### Command-line reader              #####
 ###########################################
-
-# TODO: Think of the webapp, port it to this interface
-#       Should we have a standardization to the command-line switches?
-#       But JSON has no notion of order, so it might be tricky with the math processors
 sub read {
   my ($self,$argref) = @_;
   my $opts = $self->{opts};
@@ -525,8 +519,12 @@ latexmls/latexmlc [options]
  --tex              requests TeX output after expansion.
  --box              requests box output after expansion
                     and digestion.
+ --format=name      requests "name" as the output format.
+                    Supported: tex,box,xml,html,html5,xhtml
  --noparse          suppresses parsing math (default: off)
- --parse          enables parsing math (default: on)
+ --parse=name       enables parsing math (default: on)
+                    and selects parser framework "name"
+                      supported: Marpa, RecDescent
  --profile=name     specify profile as defined in LaTeXML::Util::Config
                     Supported: standard|math|fragment|...
                     (default: standard)
@@ -711,6 +709,24 @@ Requests TeX output for debugging purposes;
 Requests Box output for debugging purposes;
     processing is carried out through expansion and digestions,
     and the result is printed.
+
+=item C<--format=name>
+
+Requests an explicitly provided "name" as the output format of the conversion.
+    Currently supported: tex, box, xml, html, html5, xhtml
+    Tip: If you wish to apply your own custom XSLT stylesheet, select "xml"
+    as the desired format.
+
+=item C<--noparse>
+
+Suppresses parsing math (default: parsing is on)
+
+=item <C--parse=name>
+
+Enables parsing math (default: parsing is on)
+    and selects parser framework "name".
+    Supported: Marpa, RecDescent, no
+    Tip: --parse=no is equivalent to --noparse
 
 =item C<--profile>
 

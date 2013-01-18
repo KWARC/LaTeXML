@@ -3,12 +3,14 @@
 #######################
 # A Client for LaTeXML
 #######################
-use warnings;
 use strict;
+use warnings;
+
 use Pod::Usage;
 use Carp;
 use Cwd qw(cwd abs_path);
 use IO::Socket;
+
 my $RealBin_safe;
 use FindBin;
 BEGIN {
@@ -37,14 +39,12 @@ my $opts=LaTeXML::Util::Config->new(
 	  'input_limit' => 100,
 	  timeout => -1, # Don't start a server as default
 	  port => 3354,
-          verbosity=>0
+    verbosity=>0
 	 );
 
+# Parse and load command-line options
 $opts->read(\@ARGV);
 
-# Standard profile, unless specified
-$opts->set('profile','custom') unless defined $opts->get('profile');
-#Need to make all paths absolute
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
 $opts->set('port', $portlist{$opts->get('profile')}) unless $opts->get('port');
 $opts->set('port', 3334) unless $opts->get('port'); #Fall back to 3334 if all fails...
@@ -85,6 +85,9 @@ push @{$opts->get('paths')}, $cdir; #add current path, to ensure never empty
 # Prepare output variables:
 my  ($result, $status, $log);
 
+# TODO: Maybe allow remote hosts?
+#       Coming to think of it, maybe allow latexmlc to talk to ltxmojo via http?
+#       e.g. latexmlc --remote=latexml.mathweb.org/convert --mode=math '1+2=3'
 #Setup client and communicate
 my $sock = IO::Socket::INET->new
   ( PeerAddr => '127.0.0.1',
@@ -107,9 +110,12 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
 
 } else {
   #Startup daemon and feed in args, if needed
-  my $destopt = (($opts->get('local')) && ($opts->get('destination')) && ('--destination='.$opts->get('destination'))) || '';
+  my $destopt = (($opts->get('local')) && ($opts->get('destination'))
+     && ('--destination='.$opts->get('destination'))) || '';
   my $formatopt = (($opts->get('format')) && ('--format='.$opts->get('format'))) || '';
-  system("$RealBin_safe/latexmls",'--port='.$opts->get('port'),'--timeout='.$opts->get('timeout'),'--autoflush='.$opts->get('input_limit'), $destopt, $formatopt) unless $sock;
+  system("$RealBin_safe/latexmls",'--port='.$opts->get('port'),
+    '--timeout='.$opts->get('timeout'),'--autoflush='.$opts->get('input_limit'),
+     $destopt, $formatopt) unless $sock;
 
   #Daemon is running, reconnect and feed in request
   $sock = IO::Socket::INET->new 
@@ -138,14 +144,14 @@ if ($log) {
   if ($opts->get('log') && $opts->get('local')) {
     my $clog = $opts->get('log');
     my $log_handle;
-    open($log_handle,">",$clog) or croak "Fatal:IO:forbidden Couldn't open log file $clog : $!\n";
+    open($log_handle,">",$clog) or
+       croak "Fatal:IO:forbidden Couldn't open log file $clog : $!\n";
     print $log_handle $log;
     close $log_handle;
   } else {print STDERR $log,"\n";}#STDERR log otherwise
 }
 
 if ($result) {
-
   if ($opts->get('destination') && $opts->get('local')) {
     my $output_handle;
     open($output_handle,">",$opts->get('destination')) or croak "Fatal:IO:forbidden Couldn't open output file ".$opts->get('destination').": $!";
@@ -175,9 +181,10 @@ __END__
 
 C<latexmlc> - A client for L<latexml>, L<latexmlpost> and L<latexmlmath>.
 
-=head1 SYNOPSIS
+=head1 SYNOPSYS
 
-See L<latexmls> for allowed options.
+See the OPTIONS section in L<LaTeXML::Util::Config> for usage information.
+Also consult latexmlc --help
 
 =head1 DESCRIPTION
 
@@ -188,7 +195,7 @@ If such server already exists, the client proceeds to communicate normally.
 
 =head1 SEE ALSO
 
-L<latexmls>, L<ltxmojo>
+L<latexmls>, L<ltxmojo>, L<LaTeXML::Util::Config>
 
 =cut
 #**********************************************************************

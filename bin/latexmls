@@ -8,11 +8,10 @@ eval 'exec /usr/bin/perl -w -S $0 ${1+"$@"}'
     if 0; # not running under some shell
 
 # General packages
-use warnings;
 use strict;
+use warnings;
 use Carp;
 use Pod::Usage;
-use Data::Dumper;
 # LaTeXML
 use FindBin;
 my $RealBin_safe;
@@ -63,9 +62,9 @@ my $server = setup_server($g_opts->get('port'));
 # Set up the processing.
 
 # Install signal-handlers
-local $SIG{'ALRM'} = 'dotimeout';
-local $SIG{'TERM'} = 'doterm';
-local $SIG{'INT'} = 'doterm';
+local $SIG{'ALRM'} = 'timeout_handler';
+local $SIG{'TERM'} = 'term_handler';
+local $SIG{'INT'} = 'term_handler';
 
 binmode(STDERR,":encoding(UTF-8)");
 
@@ -95,19 +94,22 @@ while ( my $client = $server->accept() ) {
   $opts->delete('source');
 
   if ($opts->get('base') && $opts->get('base')!~/(\w+):\/\//)
-  { chdir $opts->get('base') or croak "Can't chdir to ".$opts->get('base').": $!";}
-
+  { chdir $opts->get('base')
+     or croak "Fatal:server:chdir Can't chdir to ".$opts->get('base').": $!"; }
 
   # We now have a LaTeXML options object - $opts.
   # Make sure the g_opts are included as defaults
-  foreach ($g_opts->keys) { $opts->set($_, $g_opts->get($_)) unless $opts->exists($_); }
+  foreach ($g_opts->keys) {
+    $opts->set($_, $g_opts->get($_)) unless $opts->exists($_); 
+  }
 
   # Boot/find a daemon:
   my $daemon = LaTeXML::Daemon->get_converter($opts);
-
   #Override/extend with session-specific options in $opt:
   $daemon->prepare_session($opts);
+  # Print to regular STDERR if debugging is requested
   *STDERR = *STDERR_SAVED if ($LaTeXML::Daemon::DEBUG);
+  
   #Send a request:
   $g_opts->set('input_counter',$g_opts->get('input_counter')+1);
   my $response = $daemon->convert($source);
@@ -123,36 +125,44 @@ while ( my $client = $server->accept() ) {
   print $client freeze($response);
 
   #Flush daemon, every $input_limit files:
-  if ($g_opts->get('input_limit') && (($g_opts->get('input_counter')||0) >= $g_opts->get('input_limit'))) {
-      exec("$FindBin::RealBin/latexmls",@$ARGV_SAVED)
-	  or croak ("Daemon autoflush Failed!\n");
+  if ($g_opts->get('input_limit') && 
+      (($g_opts->get('input_counter')||0) >= $g_opts->get('input_limit'))) {
+    exec("$RealBin_safe/latexmls",@$ARGV_SAVED)
+      or croak ("Fatal:server:restart Daemon autoflush Failed!\n");
   }
-  dotimeout() if ($opts->get('timeout') == -1); # Terminate immediately if desired
+  timeout_handler() if ($opts->get('timeout') == -1); # Terminate immediately if desired
   alarm($opts->get('timeout'));              #Timeout if inactive for too long...
 }
 
-sub dotimeout {
-  print "Daemon timed out after inactivity.\n";
-  print "Self destructing...\n";
+sub timeout_handler {
+  print STDERR "Daemon timed out after inactivity.\n";
+  print STDERR "Self destructing...\n";
   kill 'TERM', $$;
   return;
 }
 
-sub doterm {
+sub term_handler {
   print STDERR "Exiting...\n";
   exit;
 }
 
+# TODO: Think about if the croaks can't be done better, so that the client
+#       receives the error/log message? or is that overkill?
 sub daemonize {
   #This causes more problems than it solves (e.g. sTeX setup)
   #chdir '/'                 or croak "Can't chdir to /: $!";
-  open STDIN, '<', '/dev/null'   or croak "Can't read /dev/null: $!";
-  open STDOUT, '>', '/dev/null' or croak "Can't write to /dev/null: $!";
-  defined(my $pid = fork)   or croak "Can't fork: $!";
+  open STDIN, '<', '/dev/null' 
+    or croak "Fatal:server:daemonize  Can't read /dev/null: $!";
+  open STDOUT, '>', '/dev/null'
+    or croak "Fatal:server:daemonize  Can't write to /dev/null: $!";
+  defined(my $pid = fork)
+    or croak "Fatal:server:daemonize  Can't fork: $!";
   exit if $pid;
-  setsid                    or croak "Can't start a new session: $!";
+  setsid
+    or croak "Fatal:server:daemonize  Can't start a new session: $!";
   *STDERR_SAVED = *STDERR;
-  *STDERR = *STDOUT         or croak "Can't dup stdout: $!";
+  *STDERR = *STDOUT
+    or croak "Fatal:server:daemonize Can't dup stdout: $!";
   return;
 }
 
@@ -164,7 +174,7 @@ sub setup_server {
         'Listen'    => SOMAXCONN,
         'Reuse'     => 1,
     );
-  croak "can't setup server" unless $sock_server;
+  croak "Fatal:server:init can't setup server" unless $sock_server;
   return $sock_server;
 }
 
@@ -179,9 +189,14 @@ __END__
 C<latexmls> - A server for latexml, latexmlpost and latexmlmath.
 Remains initialized in memory until an inactivity timeout occurs.
 
+=head1 SYNOPSYS
+
+See the OPTIONS section in L<LaTeXML::Util::Config> for usage information.
+Also consult latexmls --help
+
 =head1 SEE ALSO
 
-L<latexmlc>, L<ltxmojo>, L<latexml>, L<latexmlpost>, L<latexmlmath>, L<LaTeXML>
+L<latexmlc>, L<ltxmojo>, L<LaTeXML::Util::Config>
 
 =cut
 #**********************************************************************
