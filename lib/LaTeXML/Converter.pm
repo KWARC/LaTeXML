@@ -1,6 +1,6 @@
 # /=====================================================================\ #
-# |  LaTeXML::Daemon                                                    | #
-# | Wrapper for LaTeXML processing with daemon-ish methods              | #
+# |  LaTeXML::Converter                                                 | #
+# | LaTeXML Object-oriented Processing API                              | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
 # |  Public domain software, produced as part of work done by the       | #
@@ -10,7 +10,7 @@
 # | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
 # \=========================================================ooo==U==ooo=/ #
 
-package LaTeXML::Daemon;
+package LaTeXML::Converter;
 use strict;
 use warnings;
 
@@ -70,7 +70,7 @@ sub prepare_session {
   #2.2. Compare old and new $opts hash
   my $something_to_do;
   $something_to_do= LaTeXML::Util::ObjectDB::compare($opts, $self->{opts}) ? 0 : 1;
-  #2.3. Reinstate ignorables, set new options to daemon:
+  #2.3. Reinstate ignorables, set new options to converter:
   $opts->{$_} = $opts_tmp->{$_} foreach (@IGNORABLE);
   $self->{opts} = $opts;
 
@@ -461,7 +461,7 @@ sub new_latexml {
 sub bind_loging {
   # TODO: Move away from global file handles, they will inevitably end up causing problems..
   my ($self) = @_;
-  if (! $LaTeXML::Daemon::DEBUG) { # Debug will use STDERR for logs
+  if (! $LaTeXML::Converter::DEBUG) { # Debug will use STDERR for logs
     # Tie STDERR to log:
     my $log_handle;
     open($log_handle,">",\$self->{log}) or croak "Can't redirect STDERR to log! Dying...";
@@ -475,7 +475,7 @@ sub bind_loging {
 sub flush_loging {
   my ($self) = @_;
   # Close and restore STDERR to original condition.
-  if (! $LaTeXML::Daemon::DEBUG) {
+  if (! $LaTeXML::Converter::DEBUG) {
     close $self->{log_handle};
     *STDERR=*STDERR_SAVED;
   }
@@ -485,7 +485,7 @@ sub flush_loging {
 }
 
 ###########################################
-#### Daemon Management                #####
+#### Converter Management                #####
 ###########################################
 sub get_converter {
   my ($self,$conf) = @_;
@@ -494,7 +494,7 @@ sub get_converter {
   my $profile = $conf->get('profile')||'custom';
   my $d = $DAEMON_DB{$profile};
   if (! defined $d) {
-    $d = LaTeXML::Daemon->new($conf->clone);
+    $d = LaTeXML::Converter->new($conf->clone);
     $DAEMON_DB{$profile}=$d;
   }
   return $d;
@@ -508,30 +508,30 @@ __END__
 
 =head1 NAME
 
-C<LaTeXML::Daemon> - Daemon object and API for LaTeXML and LaTeXMLPost conversion.
+C<LaTeXML::Converter> - Converter object and API for LaTeXML and LaTeXMLPost conversion.
 
 =head1 SYNOPSIS
 
-    use LaTeXML::Daemon;
-    my $daemon = LaTeXML::Daemon->new($opts);
-    $daemon->prepare_session($opts);
-    $hashref = $daemon->convert($tex);
+    use LaTeXML::Converter;
+    my $converter = LaTeXML::Converter->new($opts);
+    $converter->prepare_session($opts);
+    $hashref = $converter->convert($tex);
     my ($result,$log,$status) = map {$hashref->{$_}} qw(result log status);
 
 =head1 DESCRIPTION
 
-A Daemon object represents a converter instance and can convert files on demand, until dismissed.
+A Converter object represents a converter instance and can convert files on demand, until dismissed.
 
 =head2 METHODS
 
 =over 4
 
-=item C<< my $daemon = LaTeXML::Daemon->new($opts); >>
+=item C<< my $converter = LaTeXML::Converter->new($opts); >>
 
-Creates a new daemon object with a given options hash reference $opts.
-        $opts specifies the default fallback options for any conversion job with this daemon.
+Creates a new converter object with a given options hash reference $opts.
+        $opts specifies the default fallback options for any conversion job with this converter.
 
-=item C<< $daemon->prepare_session($opts); >>
+=item C<< $converter->prepare_session($opts); >>
 
 RECOMMENDED preparation routine for EXTERNAL use (also see Synopsis).
 
@@ -542,16 +542,16 @@ Top-level preparation routine that prepares both a correct options object
 Contains optimization checks that skip initializations unless necessary.
 
 Also adds support for partial option specifications during daemon runtime,
-     falling back on the option defaults given when daemon object was created.
+     falling back on the option defaults given when converter object was created.
 
-=item C<< $daemon->initialize_session($opts); >>
+=item C<< $converter->initialize_session($opts); >>
 
 Given an options hash reference $opts, initializes a session by creating a new LaTeXML object 
       with initialized state and loading a daemonized preamble (if any).
 
 Sets the "ready" flag to true, making a subsequent "convert" call immediately possible.
 
-=item C<< my ($result,$status,$log) = $daemon->convert($tex); >>
+=item C<< my ($result,$status,$log) = $converter->convert($tex); >>
 
 Converts a TeX input string $tex into the LaTeXML::Document object $result.
 
@@ -567,7 +567,7 @@ Supplies detailed information of the conversion log ($log),
 
 Creates a new LaTeXML object and initializes its state.
 
-=item C<< my $postdoc = $daemon->convert_post($dom); >>
+=item C<< my $postdoc = $converter->convert_post($dom); >>
 
 Post-processes a LaTeXML::Document object $dom into a final format,
                based on the preferences specified in $self->{opts}.

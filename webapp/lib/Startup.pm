@@ -1,8 +1,8 @@
 ################ LaTeXML Startup Utilities #####################
-package LaTeXML::Util::Startup;
+package Startup;
 use LaTeXML::Util::ObjectDB;
 use LaTeXML::Util::Pathname;
-use LaTeXML::Daemon;
+use LaTeXML::Converter;
 use Data::Dumper;
 $Data::Dumper::Terse = 1;          # don't output names where feasible
 $Data::Dumper::Indent = 3;         # turn off all pretty print
@@ -21,7 +21,7 @@ sub new {
         pathname_mkdir($dbdir); }}
   }
   my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile);
-  bless {daemons=>{},db=>$DB}, $class;}
+  bless {converters=>{},db=>$DB}, $class;}
 
 ###########################################
 #### User Management #####
@@ -221,11 +221,11 @@ sub template_profile {
 
 sub status {
   my ($self) = @_;
-  #TODO: Provide info on the status of the DB, table of booted daemons with their profiles, etc.
+  #TODO: Provide info on the status of the DB, table of booted converters with their profiles, etc.
   $self->{db}->status;
 }
 
- #TODO: Also provide an interface for examining and changing the options of existing daemons
+ #TODO: Also provide an interface for examining and changing the options of existing converters
 
 ###########################################
 #### ObjectDB helpers #####
@@ -248,12 +248,11 @@ __END__
 
 =head1 NAME
 
-C<LaTeXML::Util::Startup> - Provide an API for starting and maintaining a stash of LaTeXML converters
-Additionally, uses LaTeXML::ObjectDB to provide basic support for user and conversion profile management.
+C<Startup> Basic support for user and conversion profile management.
 
 =head1 SYNOPSIS
 
-my $startup = LaTeXML::Util::Startup->new();
+my $startup = Startup->new();
 
 =head1 DESCRIPTION
 
@@ -266,30 +265,30 @@ my $startup = LaTeXML::Util::Startup->new();
 =item C<< $DB_FILE >>
 
 Contains the generic default for a Database File to hold the state information of
- daemons, users and conversion profiles.
+ converters, users and conversion profiles.
 
 =item C<< $PROFILES >>
 
 Contains the default profiles recognized by the conversion interface.
 
-=item C<< my $startup = LaTeXML::Util::Startup->new(%opts); >>
+=item C<< my $startup = Startup->new(%opts); >>
 
 Initializes a new Startup driver and connects to (or creates) its database file.
  The only admissible option is "dbfile=>filepath" used to specify the location and name of the DB object.
 
 =back
 
-=head3 Daemon Management
+=head3 Converter Management
 
 =over 4
 
 =item C<< $startup->boot_profile($profile); >>
 
-Creates a new daemon object of the given profile.
+Creates a new converter object of the given profile.
 
 =item C<< $startup->boot_custom($opts); >>
 
-Creates a new daemon with the given default options
+Creates a new converter with the given default options
 
 =back
 

@@ -25,7 +25,7 @@ use lib $RealBin_safe."/../lib";
 use Storable qw(freeze thaw);
 use LaTeXML;
 use LaTeXML::Version;
-use LaTeXML::Daemon;
+use LaTeXML::Converter;
 use LaTeXML::Util::Config;
 # Server-specific
 use POSIX qw( setsid );
@@ -104,22 +104,22 @@ while ( my $client = $server->accept() ) {
   }
 
   # Boot/find a daemon:
-  my $daemon = LaTeXML::Daemon->get_converter($opts);
+  my $converter = LaTeXML::Converter->get_converter($opts);
   #Override/extend with session-specific options in $opt:
-  $daemon->prepare_session($opts);
+  $converter->prepare_session($opts);
   # Print to regular STDERR if debugging is requested
-  *STDERR = *STDERR_SAVED if ($LaTeXML::Daemon::DEBUG);
+  *STDERR = *STDERR_SAVED if ($LaTeXML::Converter::DEBUG);
   
   #Send a request:
   $g_opts->set('input_counter',$g_opts->get('input_counter')+1);
-  my $response = $daemon->convert($source);
+  my $response = $converter->convert($source);
   my ($result, $status, $log);
   if (defined $response) {
     ($result, $status, $log) = map { $response->{$_} } qw(result status log);
   }
 
   # Delete daemon if Fatal occurred
-  undef $daemon unless defined $result;
+  undef $converter unless defined $result;
 
   # Send back the serialized XML, log and status:
   print $client freeze($response);

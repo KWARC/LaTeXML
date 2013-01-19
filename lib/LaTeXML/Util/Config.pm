@@ -267,7 +267,7 @@ sub prepare_options {
       $opts->{format}='html5';
     } elsif ($opts->{destination}=~/\.xml$/) {
       $opts->{format}='xml';
-    }}
+  }}
 
   # Unset destinations unless local conversion has been requested:
   if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
@@ -469,7 +469,7 @@ TODO
 
 =over 4
 
-=item C<< $daemon->prepare_options($opts); >>
+=item C<< $converter->prepare_options($opts); >>
 
 Given an options hash reference $opts, performs a set of assignments of meaningful defaults
     (when needed) and normalizations (for relative paths, etc).
