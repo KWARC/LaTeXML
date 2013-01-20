@@ -22,7 +22,7 @@ BEGIN {
 }
 # TODO: We probably want file cat for things like /../lib instead of spelling out a Unix path
 use lib $RealBin_safe."/../lib";
-use JSON;
+use JSON qw(encode_json decode_json);
 use LaTeXML;
 use LaTeXML::Version;
 use LaTeXML::Converter;
