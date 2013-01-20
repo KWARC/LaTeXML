@@ -22,7 +22,7 @@ BEGIN {
 }
 # TODO: We probably want file cat for things like /../lib instead of spelling out a Unix path
 use lib $RealBin_safe."/../lib";
-use Storable qw(freeze thaw);
+use JSON;
 use LaTeXML;
 use LaTeXML::Version;
 use LaTeXML::Converter;
@@ -86,7 +86,7 @@ while ( my $client = $server->accept() ) {
   alarm(0);                    # We are processing, ignore timeout here
 
   # Thaw request into options:
-  $opts = LaTeXML::Util::Config->new(%{thaw($request)});
+  $opts = LaTeXML::Util::Config->new(%{decode_json($request)});
   $opts->set('source',$opts->get('tex')) if (!($opts->get('source')) && $opts->get('tex'));
   $opts->delete('tex');
   # Prepare TeX source
@@ -122,7 +122,7 @@ while ( my $client = $server->accept() ) {
   undef $converter unless defined $result;
 
   # Send back the serialized XML, log and status:
-  print $client freeze($response);
+  print $client encode_json($response);
 
   #Flush daemon, every $input_limit files:
   if ($g_opts->get('input_limit') && 

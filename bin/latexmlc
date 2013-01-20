@@ -27,7 +27,7 @@ use LaTeXML::Converter;
 use LaTeXML::Version;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::Config;
-use Storable qw(freeze thaw);
+use JSON qw(encode_json decode_json);
 
 binmode(STDERR,":encoding(UTF-8)");
 binmode(STDOUT,":encoding(UTF-8)");
@@ -125,14 +125,14 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
     );
   croak "Fatal:perl:socket-create Could not create socket: $!\n" unless $sock; 
   my ($response,$batch);
-  $sock->send(freeze($opts->options)."\nEND REQUEST\n");
+  $sock->send(encode_json($opts->options)."\nEND REQUEST\n");
   do {
     $sock->recv($batch,1024);
     $response.=$batch;
   } while ($batch);
   close($sock);
 
-  $response = thaw($response);
+  $response = decode_json($response);
   ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
 }
 
