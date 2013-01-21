@@ -22,7 +22,7 @@ BEGIN {
 }
 # TODO: We probably want file cat for things like /../lib instead of spelling out a Unix path
 use lib $RealBin_safe."/../lib";
-use JSON qw(encode_json decode_json);
+use JSON::XS qw(encode_json decode_json);
 use LaTeXML;
 use LaTeXML::Version;
 use LaTeXML::Converter;
@@ -75,10 +75,12 @@ alarm($g_opts->get('timeout'));              #Timeout if inactive for too long..
 while ( my $client = $server->accept() ) {
   my $request = q{};
   my $sockstart=1;
+  # TODO: Enforce some maximum size to prevent DDoS via huge messages.
+  #       Alternatively, leave open only to localhost.
   while (my $line = <$client>) {
       last if ($line =~ /^(\s*)END REQUEST(\s*)$/);
-      $line .= "\n" unless ((! defined $line) || ($line =~ /\n$/));
-      $request .= $line if (defined $line);
+      chomp $line;
+      $request .= $line."\n";
   }
   next unless ((defined $request) && (length( $request ) > 0));
   

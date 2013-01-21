@@ -17,6 +17,9 @@ use LaTeXML::Package;
 
 RequirePackage('lxRDFa');
 RequirePackage('webgraphic');
+RequirePackage('html');
+RequirePackage('url');
+RequirePackage('hyperref');
 
 # Metadata namespaces:
 my $pmbaseURI = "http://alpha.planetmath.org"; # Careful: Get the URI right before we publish LOD
@@ -100,5 +103,28 @@ DefConstructor('\webgraphic OptionalKeyVals:webgraphic {}',
     $src .= '.png' unless ($src =~ /\.(\w{3})$/);
     (url=>$src);
 });
+
+### Originally in pmath.sty.ltxml ###
+# This is a package for rendering PlanetMath entries at home
+#
+# In order for this package to render hyperlinks to PlanetMath
+# one of the following packages has to be loaded _before_
+# this package: html, hyperref, url.
+DefMacro('\PMURI','http://alpha.planetmath.org/');
+DefMacro('\PMEXT',''); # Do we need an extension at all here?
+DefMacro('\pmathhref{}{}','\htmladdnormallink{#2}{#1}');
+DefMacro('\PMlinkexternal{}{}','\pmathhref{#2}{#1}');
+
+# Links and RDFa:
+DefMacro('\PMlinkname{}{}',
+  '\pmathhref{\PMURI#2\PMEXT}{#1}\pmmeta@uri@adhoc{linksTo}{\articleURI{#2}}');
+DefMacro('\PMlinkid{}{}',
+  '\pmathhref{\PMURI#2\PMEXT}{#1}\pmmeta@uri@adhoc{linksToID}{\articleURI{#2}}');
+
+# No-ops for now:
+DefMacro('\PMlinkescapetext','');
+DefMacro('\PMlinkescapeword{}','');
+DefMacro('\PMlinkescapephrase{}','');
+DefMacro('\PMlinktofile{}{}','#1'); # not implemented
 
 1;

@@ -61,7 +61,7 @@ WriteMakefile(NAME => 'LaTeXML',
           'IO::Socket::SSL' => 0,
           'IO::String' => 0,
           'Mojolicious::Lite' => 0,
-          'JSON' => 0,
+          'JSON::XS' => 0,
           'Archive::Zip' => 0
 			   },
 	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmlc','bin/latexmls'],
