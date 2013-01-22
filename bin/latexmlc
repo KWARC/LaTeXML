@@ -34,13 +34,11 @@ binmode(STDOUT,":encoding(UTF-8)");
 
 # Some defaults:
 my $opts=LaTeXML::Util::Config->new(
-	  identity => "latexmlc (LaTeXML version $LaTeXML::Version::VERSION, rev $LaTeXML::Version::REVISION)",
-	  profile => 'custom',
-	  'input_limit' => 100,
-	  timeout => -1, # Don't start a server as default
-	  port => 3354,
-    verbosity=>0
-	 );
+  profile => 'custom',
+  'input_limit' => 100,
+  timeout => -1, # Don't start a server as default
+  port => 3354,
+  verbosity=>0);
 
 # Parse and load command-line options
 $opts->read(\@ARGV);
@@ -101,6 +99,9 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
   #   (except when errors occur)
   my $source = $opts->get('source');
   $opts->delete('source');
+  if($source eq '-'){
+    { local $/ = undef;
+      $source="literal:".<>; }}
 
   my $converter = LaTeXML::Converter->get_converter($opts);
   $converter->prepare_session($opts);

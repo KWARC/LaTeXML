@@ -38,7 +38,6 @@ my $ARGV_SAVED = [@ARGV], #Save, so that we reinvoke when flushed
 
 # Global Options, with defaults
 my $g_opts = LaTeXML::Util::Config->new(
- identity => "latexmls (LaTeXML version $LaTeXML::Version::VERSION, rev $LaTeXML::Version::REVISION)",
  profile => 'standard',
  input_limit => 100,
  input_counter => 0,

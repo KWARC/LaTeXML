@@ -25,11 +25,10 @@ use LaTeXML::Util::Pathname;
 use LaTeXML::Util::WWW;
 use LaTeXML::Util::ObjectDB;
 use LaTeXML::Util::Extras;
-#use LaTeXML::Post;
 use LaTeXML::Post::Scan;
 
 #**********************************************************************
-our @IGNORABLE = qw(identity timeout profile port preamble postamble port destination log removed_math_formats whatsin whatsout math_formats input_limit input_counter dographics mathimages mathimagemag );
+our @IGNORABLE = qw(timeout profile port preamble postamble port destination log removed_math_formats whatsin whatsout math_formats input_limit input_counter dographics mathimages mathimagemag );
 # TODO: Should I change from exclusive to inclusive? What is really important to compare?
 # paths, preload, preamble, ... all the LaTeXML->new() params?
 # If we're not daemonizing postprocessing we can safely ignore all its options and reuse the conversion objects.
@@ -39,7 +38,9 @@ use vars qw(%DAEMON_DB);
 
 sub new {
   my ($class,$opts) = @_;
-  $opts->check if defined $opts;
+  $opts = $LaTeXML::Util::Config->new() unless (defined $opts);
+  # The daemon should be setting the identity:
+  $opts->check;
   bless {opts=>$opts->options,ready=>0,log=>q{},runtime=>{},
          latexml=>undef}, $class;
 }
@@ -130,7 +131,7 @@ sub convert {
   my $opts = $self->{opts};
   my $runtime = $self->{runtime};
   ($runtime->{status},$runtime->{status_code})=(undef,undef);
-  print STDERR "\n",$opts->{identity},"\n" if $opts->{verbosity} >= 0;
+  print STDERR "\n$LaTeXML::Version::IDENTITY\n" if $opts->{verbosity} >= 0;
   print STDERR "processing started ".localtime()."\n" if $opts->{verbosity} >= 0;
   # Handle What's IN?
   # 1. Math profile should get a mathdoc() wrapper
@@ -166,7 +167,7 @@ sub convert {
     delete $opts->{'postamble_wrapper'};
     # Now, convert to DOM and output, if desired.
     if ($digested) {
-      local $LaTeXML::Global::STATE = $$latexml{state};
+      local $LaTeXML::Global::STATE = $latexml->{state};
       if ($opts->{format} eq 'tex') {
         $serialized = LaTeXML::Global::UnTeX($digested);
       } elsif ($opts->{format} eq 'box') {
@@ -186,28 +187,35 @@ sub convert {
   $latexml->withState(sub {
     my($state)=@_; # Remove current state frame
     $state->popDaemonFrame;
-    $$state{status} = {};
+    $state->{status} = {};
   });
   if ($eval_report) {#Fatal occured!
+    $runtime->{status_code} = 3;
     if ($eval_report =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
-      print STDERR $eval_report."\n";
       print STDERR "Fatal:conversion:timeout Conversion timed out after ".$opts->{timeout}." seconds!\n";
       print STDERR "\nConversion incomplete (timeout): ".$runtime->{status}.".\n";
-      $runtime->{status_code} = 3;
     } else {
       print STDERR $eval_report."\n";
-      print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
-      print STDERR "Conversion complete: ".$runtime->{status}.".\n";
+      print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
     }
+    print STDERR "Status:conversion:".($runtime->{status_code}||'0')."\n";
     # Close and restore STDERR to original condition.
     my $log=$self->flush_loging;
+    # Hope to clear some memory:
+    $digested=undef;
+    $serialized=undef;
+    $dom=undef;
     return {result=>undef,log=>$log,status=>$runtime->{status},status_code=>$runtime->{status_code}};
   }
   print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
+  print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
 
   if ($serialized) {
       # If serialized has been set, we are done with the job
       my $log = $self->flush_loging;
+      # Hope to clear some memory:
+      $digested=undef;
+      $dom=undef;
       return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
   } # Else, continue with the regular XML workflow...
   my $result = $dom;
@@ -224,8 +232,7 @@ sub convert {
     if ($@) {                     #Fatal occured!
       $runtime->{status_code} = 3;
       if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
-        print STDERR "$@\n";
-        print STDERR "Fatal:post:timeout Postprocessing couldn't create document: timeout after "
+        print STDERR "Fatal:post:timeout Postprocessing timeout after "
         . $opts->{timeout} . " seconds!\n";
       } else {
         print STDERR "Fatal:post:generic Post-processor crashed! $@\n";
@@ -257,15 +264,13 @@ sub convert {
 	  $serialized = $result->toString(1);
       }
     }
-
- #    if ($opts->{post} && ($result =~ /LibXML/)) { # LibXML nodes need an extra encoding pass?
-	#                        # But only for post-processing ?!
-	#                        # TODO: Why?!?! Find what is fishy here
-	# $serialized = encode('UTF-8',$serialized);
- #    }
   }
   print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
   my $log = $self->flush_loging;
+  # Hope to clear some memory:
+  $digested=undef;
+  $dom=undef;
+  $result=undef;
   return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
 }
 
@@ -412,16 +417,16 @@ sub convert_post {
   $DB->finish;
 
   $runtime->{status}.= "\nPost: ".$latexmlpost->getStatusMessage;
-  $runtime->{status_code} =($runtime->{status_code} > $latexmlpost->getStatusCode) ? $runtime->{status_code} : $latexmlpost->getStatusCode;
+  $runtime->{status_code} =($runtime->{status_code} > $latexmlpost->getStatusCode) ?
+    $runtime->{status_code} : $latexmlpost->getStatusCode;
 
   print STDERR "\nPostprocessing complete: ".$latexmlpost->getStatusMessage."\n";
   print STDERR "processing finished ".localtime()."\n" if $verbosity >= 0;
-
   return $postdoc;
 }
 
 sub new_latexml {
-  my $opts = shift;
+  my ($opts) = @_;
 
   # TODO: Do this in a GOOD way to support filepath/URL/string snippets
   # If we are given string preloads, load them and remove them from the preload list:
@@ -448,7 +453,7 @@ sub new_latexml {
 
   $latexml->withState(sub {
       my($state)=@_;
-      $latexml->initializeState('TeX.pool', @{$$latexml{preload} || []});
+      $latexml->initializeState('TeX.pool', @{$latexml->{preload} || []});
       $state->assignValue(FORBIDDEN_IO=>(!$opts->{local}));
   });
 
@@ -485,7 +490,7 @@ sub flush_loging {
 }
 
 ###########################################
-#### Converter Management                #####
+#### Converter Management             #####
 ###########################################
 sub get_converter {
   my ($self,$conf) = @_;
