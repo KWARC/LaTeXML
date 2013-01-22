@@ -93,14 +93,14 @@ sub read {
 	   "linelength=i"                => \$opts->{linelength},
 	   "plane1!"                     => \$opts->{plane1},
 	   "hackplane1!"                 => \$opts->{hackplane1},
-	   "presentationmathml|pmml"     => sub { addMathFormat($opts,'pmml'); },
-	   "contentmathml|cmml"          => sub { addMathFormat($opts,'cmml'); },
-	   "openmath|om"                 => sub { addMathFormat($opts,'om'); },
-	   "keepXMath|xmath"             => sub { addMathFormat($opts,'xmath'); },
-	   "nopresentationmathml|nopmml" => sub { removeMathFormat($opts,'pmml'); },
-	   "nocontentmathml|nocmml"      => sub { removeMathFormat($opts,'cmml'); },
-	   "noopenmath|noom"             => sub { removeMathFormat($opts,'om'); },
-	   "nokeepXMath|noxmath"         => sub { removeMathFormat($opts,'xmath'); },
+	   "presentationmathml|pmml"     => sub { _addMathFormat($opts,'pmml'); },
+	   "contentmathml|cmml"          => sub { _addMathFormat($opts,'cmml'); },
+	   "openmath|om"                 => sub { _addMathFormat($opts,'om'); },
+	   "keepXMath|xmath"             => sub { _addMathFormat($opts,'xmath'); },
+	   "nopresentationmathml|nopmml" => sub { _removeMathFormat($opts,'pmml'); },
+	   "nocontentmathml|nocmml"      => sub { _removeMathFormat($opts,'cmml'); },
+	   "noopenmath|noom"             => sub { _removeMathFormat($opts,'om'); },
+	   "nokeepXMath|noxmath"         => sub { _removeMathFormat($opts,'xmath'); },
 	   "parallelmath"               => sub { $opts->{parallelmath} = 1;},
 	   # Some general XSLT/CSS/JavaScript options.
 	   "stylesheet=s"=>  \$opts->{stylesheet},
@@ -148,11 +148,11 @@ sub read {
 	   "debug=s"   => \@{$opts->{debug}},
 	   "documentid=s" => \$opts->{documentid},
 	   "help"      => sub { $opts->{help} = 1; } ,
-	  ) or pod2usage(-message => $opts->{identity}, -exitval=>1, -verbose=>99,
+	  ) or pod2usage(-message => $LaTeXML::Version::IDENTITY, -exitval=>1, -verbose=>99,
 			 -input => pod_where({-inc => 1}, __PACKAGE__),
 			 -sections => 'OPTIONS/SYNOPSIS', -output=>\*STDERR);
 
-  pod2usage(-message=>$opts->{identity}, -exitval=>1, -verbose=>99,
+  pod2usage(-message=>$LaTeXML::Version::IDENTITY, -exitval=>1, -verbose=>99,
 	    -input => pod_where({-inc => 1}, __PACKAGE__),
 	    -sections => 'OPTIONS/SYNOPSIS', output=>\*STDOUT) if $opts->{help};
 
@@ -164,7 +164,7 @@ sub read {
   # Removed math formats are irrelevant for conversion:
   delete $opts->{removed_math_formats};
 
-  if($opts->{showversion}){ print STDERR $opts->{identity}."\n"; exit(1); }
+  if($opts->{showversion}){ print STDERR "$LaTeXML::Version::IDENTITY\n"; exit(1); }
 
   $opts->{source} = $ARGV[0] unless $opts->{source};
   if (!$opts->{type} || ($opts->{type} eq 'auto')) {
@@ -172,17 +172,6 @@ sub read {
   }
   return;
 }
-sub addMathFormat {
-  my($opts,$fmt)=@_;
-  $opts->{math_formats} = [] unless defined $opts->{math_formats};
-  push(@{$opts->{math_formats}},$fmt) 
-    unless grep($_ eq $fmt,@{$opts->{math_formats}}) || $opts->{removed_math_formats}->{$fmt}; }
-sub removeMathFormat {
-  my($opts,$fmt)=@_;
-  @{$opts->{math_formats}} = grep($_ ne $fmt, @{$opts->{math_formats}});
-  $opts->{removed_math_formats}->{$fmt}=1; }
-
-
 ###########################################
 #### Options Object Hashlike API      #####
 ###########################################
@@ -214,7 +203,9 @@ sub options {
 }
 sub clone {
   my ($self)=@_;
-  LaTeXML::Util::Config->new(%{$self->options});
+  my $clone = LaTeXML::Util::Config->new(%{$self->options});
+  $clone->{dirty} = $self->{dirty};
+  $clone;
 }
 
 ###########################################
@@ -226,12 +217,12 @@ sub check {
   my ($self) = @_;
   return unless $self->{dirty};
   # 1. Resolve profile
-  $self->obey_profile;
+  $self->_obey_profile;
   # 2. Place sane defaults where needed
-  $self->prepare_options;
+  $self->_prepare_options;
 }
 
-sub obey_profile {
+sub _obey_profile {
   my ($self) = @_;
   $self->{dirty}=1;
   my $profile = lc($self->{opts}->{profile}||'custom');
@@ -277,7 +268,7 @@ sub obey_profile {
 #       How about in the case of Extras::ReadOptions?
 #       Error() and Warn() would be neat, but we have to make sure STDERR is caught beforehand.
 #       Also, there is no eval() here, so we might need a softer handling of Error()s.
-sub prepare_options {
+sub _prepare_options {
   my ($self) = @_;
   my $opts = $self->{opts};
   #======================================================================
@@ -446,6 +437,18 @@ sub prepare_options {
 #}
 
 
+## Utilities:
+
+sub _addMathFormat {
+  my($opts,$fmt)=@_;
+  $opts->{math_formats} = [] unless defined $opts->{math_formats};
+  push(@{$opts->{math_formats}},$fmt) 
+    unless grep($_ eq $fmt,@{$opts->{math_formats}}) || $opts->{removed_math_formats}->{$fmt}; }
+sub _removeMathFormat {
+  my($opts,$fmt)=@_;
+  @{$opts->{math_formats}} = grep($_ ne $fmt, @{$opts->{math_formats}});
+  $opts->{removed_math_formats}->{$fmt}=1; }
+
 ### This is from t/lib/TestDaemon.pm and ideally belongs in Util::Pathname
 sub _read_options_file {
   my $opts = [];
@@ -501,22 +504,85 @@ C<LaTeXML::Util::Config> - Configuration logic for LaTeXML
 
 =head1 SYNPOSIS
 
-TODO
+    use LaTeXML::Util::Config;
+    my $config = LaTeXML::Util::Config->new(
+              profile=>'name',
+              timeout=>number
+              ... );
+    $config->read(\@ARGV);
+    $config->check;
+
+    my $value = $config->get($name);
+    $config->set($name,$value);
+    $config->delete($name);
+    my $bool = $config->exists($name);
+    my @keys = $config->keys;
+    my $options_hashref = $config->options;
+    my $config_clone = $config->clone;
 
 =head1 DESCRIPTION
 
-TODO
+Configuration management class for LaTeXML options.
+    * Responsible for defining the options interface
+      and parsing the usual Perl command-line options syntax
+    * Provides the intuitive getters, setters, as well as
+      hash methods for manipulating the option values.
+    * Also supports cloning into new configuration objects.
 
 =head2 METHODS
 
-TODO
-
 =over 4
 
-=item C<< $converter->prepare_options($opts); >>
+=item C<< my $config = LaTeXML::Util::Config->new(%options); >>
 
-Given an options hash reference $opts, performs a set of assignments of meaningful defaults
+Creates a new configuration object. Note that you should try
+    not to provide your own %options hash but rather create an empty
+    configuration and use $config->read to read in the options.
+
+=item C<< $config->read(\@ARGV); >>
+
+This is the main method for parsing in LaTeXML options.
+    The input array should either be @ARGV, e.g. when the
+    options were provided from the command line using the
+    classic Getopt::Long syntax,
+    
+    or any other array reference that conforms to that setup.
+
+=item C<< $config->check; >>
+
+Ensures that the configuration obeys the given profile and
+    performs a set of assignments of meaningful defaults
     (when needed) and normalizations (for relative paths, etc).
+
+=item C<< my $value = $config->get($name); >>
+
+Classic getter for the $value of an option $name.
+
+=item C<< $config->set($name,$value); >>
+
+Classic setter for the $value of an option $name.
+
+=item C<< $config->delete($name); >>
+
+Deletes option $name from the configuration.
+
+=item C<< my $bool = $config->exists($name); >>
+
+Checks whether the key $name exists in the options hash of the configuration.
+    Similarly to Perl's "exist" for hashes, it returns true even when
+    the option's value is undefined.
+
+=item C<< my @keys = $config->keys; >>
+
+Similar to "keys %hash" in Perl. Returns an array of all option names.
+
+=item C<< my $options_hashref = $config->options; >>
+
+Returns the actual hash reference that holds all options within the configuration object.
+
+=item C<< my $config_clone = $config->clone; >>
+
+Clones $config into a new LaTeXML::Util::Config object, $config_clone.
 
 =back
 
@@ -893,7 +959,7 @@ Shows this help message.
 =head1 AUTHOR
 
 Bruce Miller <bruce.miller@nist.gov>
-Deyan Ginev <d.ginev@nist.gov>
+Deyan Ginev <deyan.ginev@nist.gov>
 
 =head1 COPYRIGHT
 

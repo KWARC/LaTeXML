@@ -37,11 +37,11 @@ use vars qw(%DAEMON_DB);
 %DAEMON_DB = () unless keys %DAEMON_DB;
 
 sub new {
-  my ($class,$opts) = @_;
-  $opts = $LaTeXML::Util::Config->new() unless (defined $opts);
+  my ($class,$config) = @_;
+  $config = $LaTeXML::Util::Config->new() unless (defined $config);
   # The daemon should be setting the identity:
-  $opts->check;
-  bless {opts=>$opts->options,ready=>0,log=>q{},runtime=>{},
+  $config->check;
+  bless {opts=>$config->options,ready=>0,log=>q{},runtime=>{},
          latexml=>undef}, $class;
 }
 
@@ -84,7 +84,7 @@ sub prepare_session {
 sub initialize_session {
   my ($self) = @_;
   $self->{runtime} = {};
-  $self->bind_loging;
+  $self->bind_log;
   my $latexml;
   my $init_eval_return = eval {
     # Prepare LaTeXML object
@@ -96,7 +96,7 @@ sub initialize_session {
     print STDERR "$@\n";
     print STDERR "\nInitialization complete: ".$latexml->getStatusMessage.". Aborting.\n" if defined $latexml;
     # Close and restore STDERR to original condition.
-    $self->{log} = $self->flush_loging;
+    $self->{log} = $self->flush_log;
     $self->{ready}=0;
     return;
   } else {
@@ -104,14 +104,14 @@ sub initialize_session {
     my $init_status = $latexml->getStatusMessage;
     if ($init_status =~ /error/i) {
       print STDERR "\nInitialization complete: ".$init_status.". Aborting.\n";
-      $self->{log} = $self->flush_loging; 
+      $self->{log} = $self->flush_log; 
       $self->{ready}=0;
       return;
     }
   }
 
   # Save latexml in object:
-  $self->{log} = $self->flush_loging;
+  $self->{log} = $self->flush_log;
   $self->{latexml} = $latexml;
   $self->{ready}=1;
   return;
@@ -126,7 +126,7 @@ sub convert {
     return {result=>undef,log=>$self->{log},status=>"Initialization failed.",status_code=>3};
   }
 
-  $self->bind_loging;
+  $self->bind_log;
   # Inform of identity, increase conversion counter
   my $opts = $self->{opts};
   my $runtime = $self->{runtime};
@@ -200,7 +200,7 @@ sub convert {
     }
     print STDERR "Status:conversion:".($runtime->{status_code}||'0')."\n";
     # Close and restore STDERR to original condition.
-    my $log=$self->flush_loging;
+    my $log=$self->flush_log;
     # Hope to clear some memory:
     $digested=undef;
     $serialized=undef;
@@ -212,7 +212,7 @@ sub convert {
 
   if ($serialized) {
       # If serialized has been set, we are done with the job
-      my $log = $self->flush_loging;
+      my $log = $self->flush_log;
       # Hope to clear some memory:
       $digested=undef;
       $dom=undef;
@@ -266,7 +266,7 @@ sub convert {
     }
   }
   print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
-  my $log = $self->flush_loging;
+  my $log = $self->flush_log;
   # Hope to clear some memory:
   $digested=undef;
   $dom=undef;
@@ -274,7 +274,25 @@ sub convert {
   return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
 }
 
-########## Helper routines: ############
+###########################################
+####       Converter Management       #####
+###########################################
+sub get_converter {
+  my ($self,$conf) = @_;
+  $conf->check; # Options are fully expanded
+  # TODO: Make this more flexible via an admin interface later
+  my $profile = $conf->get('profile')||'custom';
+  my $d = $DAEMON_DB{$profile};
+  if (! defined $d) {
+    $d = LaTeXML::Converter->new($conf->clone);
+    $DAEMON_DB{$profile}=$d;
+  }
+  return $d;
+}
+
+###########################################
+####       Helper routines            #####
+###########################################
 sub convert_post {
   my ($self,$dom) = @_;
   my $opts = $self->{opts};
@@ -463,7 +481,7 @@ sub new_latexml {
   return $latexml;
 }
 
-sub bind_loging {
+sub bind_log {
   # TODO: Move away from global file handles, they will inevitably end up causing problems..
   my ($self) = @_;
   if (! $LaTeXML::Converter::DEBUG) { # Debug will use STDERR for logs
@@ -477,7 +495,7 @@ sub bind_loging {
   return;
 }
 
-sub flush_loging {
+sub flush_log {
   my ($self) = @_;
   # Close and restore STDERR to original condition.
   if (! $LaTeXML::Converter::DEBUG) {
@@ -487,22 +505,6 @@ sub flush_loging {
   my $log = $self->{log};
   $self->{log}=q{};
   return $log;
-}
-
-###########################################
-#### Converter Management             #####
-###########################################
-sub get_converter {
-  my ($self,$conf) = @_;
-  $conf->check; # Options are fully expanded
-  # TODO: Make this more flexible via an admin interface later
-  my $profile = $conf->get('profile')||'custom';
-  my $d = $DAEMON_DB{$profile};
-  if (! defined $d) {
-    $d = LaTeXML::Converter->new($conf->clone);
-    $DAEMON_DB{$profile}=$d;
-  }
-  return $d;
 }
 
 1;
@@ -518,8 +520,10 @@ C<LaTeXML::Converter> - Converter object and API for LaTeXML and LaTeXMLPost con
 =head1 SYNOPSIS
 
     use LaTeXML::Converter;
-    my $converter = LaTeXML::Converter->new($opts);
+    my $converter = LaTeXML::Converter->get_converter($config);
+    my $converter = LaTeXML::Converter->new($config);
     $converter->prepare_session($opts);
+    $converter->initialize_session; # TODO: should be internal only
     $hashref = $converter->convert($tex);
     my ($result,$log,$status) = map {$hashref->{$_}} qw(result log status);
 
@@ -531,14 +535,15 @@ A Converter object represents a converter instance and can convert files on dema
 
 =over 4
 
-=item C<< my $converter = LaTeXML::Converter->new($opts); >>
+=item C<< my $converter = LaTeXML::Converter->new($config); >>
 
-Creates a new converter object with a given options hash reference $opts.
-        $opts specifies the default fallback options for any conversion job with this converter.
+Creates a new converter object for a given LaTeXML::Util::Config object, $config.
+
+=item C<< my $converter = LaTeXML::Converter->get_converter($config); >>
+
+Either creates, or looks up a cached converter for the $config configuration object.
 
 =item C<< $converter->prepare_session($opts); >>
-
-RECOMMENDED preparation routine for EXTERNAL use (also see Synopsis).
 
 Top-level preparation routine that prepares both a correct options object
     and an initialized LaTeXML object,
@@ -548,13 +553,6 @@ Contains optimization checks that skip initializations unless necessary.
 
 Also adds support for partial option specifications during daemon runtime,
      falling back on the option defaults given when converter object was created.
-
-=item C<< $converter->initialize_session($opts); >>
-
-Given an options hash reference $opts, initializes a session by creating a new LaTeXML object 
-      with initialized state and loading a daemonized preamble (if any).
-
-Sets the "ready" flag to true, making a subsequent "convert" call immediately possible.
 
 =item C<< my ($result,$status,$log) = $converter->convert($tex); >>
 
@@ -568,6 +566,13 @@ Supplies detailed information of the conversion log ($log),
 
 =over 4
 
+=item C<< $converter->initialize_session($opts); >>
+
+Given an options hash reference $opts, initializes a session by creating a new LaTeXML object 
+      with initialized state and loading a daemonized preamble (if any).
+
+Sets the "ready" flag to true, making a subsequent "convert" call immediately possible.
+
 =item C<< my $latexml = new_latexml($opts); >>
 
 Creates a new LaTeXML object and initializes its state.
@@ -579,11 +584,21 @@ Post-processes a LaTeXML::Document object $dom into a final format,
 
 Typically used only internally by C<convert>.
 
+=item C<< $converter->bind_log; >>
+
+Binds STDERR to a "log" field in the $converter object
+
+=item C<< my $log = $converter->flush_log; >>
+
+Flushes out the accumulated conversion log into $log,
+         reseting STDERR to its usual stream.
+
 =back
 
 =head1 AUTHOR
 
-Deyan Ginev <d.ginev@jacobs-university.de>
+Bruce Miller <bruce.miller@nist.gov>
+Deyan Ginev <deyan.ginev@nist.gov>
 
 =head1 COPYRIGHT
 
