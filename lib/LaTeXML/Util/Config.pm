@@ -40,8 +40,10 @@ sub read {
   my $opts = $self->{opts};
   local @ARGV = @$argref;
   GetOptions(
+	   # Basics and Paths
 	   "output=s"  => \$opts->{destination},
            "destination=s" => \$opts->{destination},
+	   "log=s"       => \$opts->{log},
 	   "preload=s" => \@{$opts->{preload}},
 	   "preamble=s" => \$opts->{preamble},
 	   "postamble=s" => \$opts->{postamble},
@@ -50,30 +52,47 @@ sub read {
 	   "quiet"     => sub { $opts->{verbosity}--; },
 	   "verbose"   => sub { $opts->{verbosity}++; },
 	   "strict"    => sub { $opts->{strict} = 1; },
+	   "includestyles"=> sub { $opts->{includestyles} = 1; },
+	   "inputencoding=s"=> \$opts->{inputencoding},
+	   # Formats
 	   "xml"       => sub { $opts->{format} = 'xml'; },
 	   "tex"       => sub { $opts->{format} = 'tex'; },
 	   "box"       => sub { $opts->{format} = 'box'; },
 	   "bibtex"    => sub { $opts->{type}='BibTeX'; },
-	   "bibliography=s" => \@{$opts->{bibliographies}}, # TODO: Document
-	   "sitedirectory=s"=>\$opts->{sitedirectory},
-	   "sourcedirectory=s"=>\$opts->{sourcedirectory},
 	   "noparse"   => sub { $opts->{mathparse} = 0; },
-	   "parse=s"   => \$opts->{mathparse},
 	   "format=s"   => \$opts->{format},
+	   "parse=s"   => \$opts->{mathparse},
+	   # Profiles
 	   "profile=s"  => \$opts->{profile},
 	   "mode=s"  => \$opts->{profile},
            "source=s"  => \$opts->{source},
+	   # Output framing
            "embed"   => sub { $opts->{whatsin} = 'fragment'; },
 	   "whatsin=s" => \$opts->{whatsin},
 	   "whatsout=s" => \$opts->{whatsout},
+	   # Daemon options
 	   "autoflush=s" => \$opts->{input_limit},
            "timeout=s"   => \$opts->{timeout}, #TODO: JOB and SERVER timeouts!
            "port=s"      => \$opts->{port},
            "local!"       => \$opts->{local},
-	   "log=s"       => \$opts->{log},
-	   "includestyles"=> sub { $opts->{includestyles} = 1; },
-	   "inputencoding=s"=> \$opts->{inputencoding},
+	   # Post-processing
 	   "post!"      => \$opts->{post},
+	   "validate!" => \$opts->{validate},
+	   "omitdoctype!" => \$opts->{omitdoctype},
+	   "numbersections!" => \$opts->{numbersections},
+	   "timestamp=s" => \$opts->{timestamp},
+	   # Various choices for math processing.
+	   # Note: Could want OM embedded in mml annotation, too.
+	   # In general, could(?) want multiple math reps within <Math>
+	   # OR, multiple math reps combined with <mml:sematics>
+	   #   or, in fact, _other_ parallel means? (om?, omdoc? ...)
+	   # So, need to separate multiple transformations from the combination.
+	   # However, IF combining, then will need to support a id/ref mechanism.
+	   "mathimages!"                 => \$opts->{mathimages},
+	   "mathimagemagnification=f"    => \$opts->{mathimagemag},
+	   "linelength=i"                => \$opts->{linelength},
+	   "plane1!"                     => \$opts->{plane1},
+	   "hackplane1!"                 => \$opts->{hackplane1},
 	   "presentationmathml|pmml"     => sub { addMathFormat($opts,'pmml'); },
 	   "contentmathml|cmml"          => sub { addMathFormat($opts,'cmml'); },
 	   "openmath|om"                 => sub { addMathFormat($opts,'om'); },
@@ -83,19 +102,39 @@ sub read {
 	   "noopenmath|noom"             => sub { removeMathFormat($opts,'om'); },
 	   "nokeepXMath|noxmath"         => sub { removeMathFormat($opts,'xmath'); },
 	   "parallelmath"               => sub { $opts->{parallelmath} = 1;},
+	   # Some general XSLT/CSS/JavaScript options.
 	   "stylesheet=s"=>  \$opts->{stylesheet},
-           "stylesheetparam=s" => sub {my ($k,$v) = split(':',$_[1]);
-                                  $opts->{stylesheetparam}->{$k}=$v;},
+           "xsltparameter=s" => sub {my ($k,$v) = split(':',$_[1]);
+                                  $opts->{xsltparameter}->{$k}=$v;},
 	   "css=s"       =>  \@{$opts->{css}},
 	   "defaultcss!" =>  \$opts->{defaultcss},
-	   "comments!" =>  \$opts->{comments},
-	   "VERSION!"   => \$opts->{showversion},
-	   "debug=s"   => \@{$opts->{debug}},
-     "documentid=s" => \$opts->{documentid},
-	   "mathimages!"                 => \$opts->{mathimages},
-	   "mathimagemagnification=f"    => \$opts->{mathimagemag},
-	   "plane1!"                     => \$opts->{plane1},
-	   "hackplane1!"                 => \$opts->{hackplane1},
+	   "javascript=s" => \@{$opts->{javascript}},
+	   "icon=s" => \$opts->{icon},
+	   # Options for broader document set processing
+	   "split!" => \$opts->{split},
+  	   "splitat=s"             =>sub { $opts->{splitat}=$_[1];
+					   $opts->{split}=1 unless defined $opts->{split};},
+	   "splitpath=s"           =>sub { $opts->{splitpath}=$_[1];
+					   $opts->{split}=1 unless defined $opts->{split};},
+	   "splitnaming=s"         =>sub { $opts->{splitnaming}=$_[1];
+					   $opts->{split}=1 unless defined $opts->{split};},
+	   "scan!"                 =>\$opts->{scan},
+	   "crossref!"             =>\$opts->{crossref},
+	   "urlstyle=s"            =>\$opts->{urlstyle} ,
+	   "navigationtoc=s"       =>\$opts->{navtoc},
+	   "navtoc=s"              =>\$opts->{navtoc},
+	   # Generating indices
+	   "index!"                =>\$opts->{index},
+	   "permutedindex!"        =>\$opts->{permutedindex},
+	   "splitindex!"           =>\$opts->{splitindex},
+	   # Generating Bibliographies
+	   "bibliography=s" => \@{$opts->{bibliographies}}, # TODO: Document
+	   "splitbibliography!"    =>\$opts->{splitbibliography},
+	   # Options for two phase processing
+	   "prescan"               =>\$opts->{prescan},
+	   "dbfile=s"              =>\$opts->{dbfile},
+	   "sitedirectory=s"=>\$opts->{sitedirectory},
+	   "sourcedirectory=s"=>\$opts->{sourcedirectory},
 	   # For graphics: vaguely similar issues, but more limited.
 	   # includegraphics images (eg. ps) can be converted to webimages (eg.png)
 	   # picture/pstricks images can be converted to png or possibly svg.
@@ -103,6 +142,11 @@ sub read {
 	   "graphicsmap=s" =>\@{$opts->{graphicsmaps}},
 	   "svg!"       => \$opts->{svg},
 	   "pictureimages!"=>\$opts->{picimages},
+	    # HELP
+	   "comments!" =>  \$opts->{comments},
+	   "VERSION!"   => \$opts->{showversion},
+	   "debug=s"   => \@{$opts->{debug}},
+	   "documentid=s" => \$opts->{documentid},
 	   "help"      => sub { $opts->{help} = 1; } ,
 	  ) or pod2usage(-message => $opts->{identity}, -exitval=>1, -verbose=>99,
 			 -input => pod_where({-inc => 1}, __PACKAGE__),

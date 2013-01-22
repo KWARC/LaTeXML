@@ -406,7 +406,7 @@ sub convert_post {
     push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
 					 parameters=>{
             (@csspaths ? (CSS=>[@csspaths]):()),
-            ($opts->{stylesheetparam} ? (%{$opts->{stylesheetparam}}):())},
+            ($opts->{xsltparameter} ? (%{$opts->{xsltparameter}}):())},
 					 %PostOPS)) if $style;
   }
 
