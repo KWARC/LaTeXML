@@ -33,9 +33,7 @@ use LaTeXML::Post::Scan;
 
 # Switching to white-listing options that are important for new_latexml:
 our @COMPARABLE = qw(preload paths verbosity strict comments inputencoding includestyles documentid mathparse);
-
-use vars qw(%DAEMON_DB);
-%DAEMON_DB = () unless keys %DAEMON_DB;
+our %DAEMON_DB = () unless keys %DAEMON_DB;
 
 sub new {
   my ($class,$config) = @_;
