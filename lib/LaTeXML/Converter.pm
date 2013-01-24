@@ -217,7 +217,8 @@ sub convert {
       alarm(0);
       1;
     };
-    local $@ = 'Fatal:conversion:unknown Post-processing failed! (Unknown Reason)' if ((!$post_eval_return) && (!$@));
+    local $@ = 'Fatal:conversion:unknown Post-processing failed! (Unknown Reason)'
+      if ((!$post_eval_return) && (!$@));
     if ($@) {                     #Fatal occured!
       $runtime->{status_code} = 3;
       if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
@@ -286,13 +287,13 @@ sub convert_post {
   my ($self,$dom) = @_;
   my $opts = $self->{opts};
   my $runtime = $self->{runtime};
-  my ($style,$parallel,$math_formats,$format,$verbosity,$defaultcss,$embed) = 
+  my ($xslt,$parallel,$math_formats,$format,$verbosity,$defaultcss,$embed) = 
     map {$opts->{$_}} qw(stylesheet parallelmath math_formats format verbosity defaultcss embed);
   $verbosity = $verbosity||0;
   my %PostOPS = (verbosity=>$verbosity,sourceDirectory=>$opts->{sourcedirectory}||'.',siteDirectory=>$opts->{sitedirectory}||".",nocache=>1,destination=>$opts->{destination});
   #Postprocess
   my @css=@{$opts->{css}};
-  unshift (@css,"core.css") if ($defaultcss);
+  unshift (@css,"core.css") if $defaultcss || ((!defined $defaultcss) && (!defined $xslt));
   $parallel = $parallel||0;
   
   my $doc = LaTeXML::Post::Document->new($dom,%PostOPS);
@@ -406,15 +407,20 @@ sub convert_post {
           shift(@csssources);
         }
         my $csssource = shift(@csssources);
+	# TODO: No! Multi-file setups need special treatment...
+	#       Switch to ZIP output here?
+	#       Should ZIP be supported within Converter already?
+	#       But, no... we don't want to ZIP if we're on the same filesystem...
+	#       Maybe return a list of resources to be included? That sounds good!!!
         pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
         push(@csspaths,$csspath);
       }
     }
-    push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$style,
+    push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$xslt,
 					 parameters=>{
             (@csspaths ? (CSS=>[@csspaths]):()),
             ($opts->{xsltparameter} ? (%{$opts->{xsltparameter}}):())},
-					 %PostOPS)) if $style;
+					 %PostOPS)) if $xslt;
   }
 
   # Do the actual post-processing:
