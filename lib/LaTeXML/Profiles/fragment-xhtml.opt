@@ -1,6 +1,5 @@
 # Identical to fragment.opt
 comments =
-parse =
 post =
 timeout = 120
 format = xhtml

@@ -52,7 +52,6 @@ $g_opts->read(\@ARGV);
 
 # Daemonize
 daemonize();
-
 #**********************************************************************
 # Set up the server
 my $server = setup_server($g_opts->get('port'));
@@ -103,13 +102,13 @@ while ( my $client = $server->accept() ) {
   foreach ($g_opts->keys) {
     $opts->set($_, $g_opts->get($_)) unless $opts->exists($_); 
   }
+  # Print to regular STDERR if debugging is requested
+  *STDERR = *STDERR_SAVED if ($LaTeXML::Converter::DEBUG);
 
   # Boot/find a daemon:
   my $converter = LaTeXML::Converter->get_converter($opts);
   #Override/extend with session-specific options in $opt:
   $converter->prepare_session($opts);
-  # Print to regular STDERR if debugging is requested
-  *STDERR = *STDERR_SAVED if ($LaTeXML::Converter::DEBUG);
   
   #Send a request:
   $g_opts->set('input_counter',$g_opts->get('input_counter')+1);

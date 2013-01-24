@@ -1,5 +1,4 @@
 comments =
-parse =
 post =
 timeout = 120
 format = html5

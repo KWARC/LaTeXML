@@ -17,6 +17,7 @@ use warnings;
 use Pod::Usage;
 use Carp;
 use Encode;
+use Data::Dumper;
 
 use LaTeXML;
 use LaTeXML::Global;
@@ -28,10 +29,10 @@ use LaTeXML::Util::Extras;
 use LaTeXML::Post::Scan;
 
 #**********************************************************************
-our @IGNORABLE = qw(timeout profile port preamble postamble port destination log removed_math_formats whatsin whatsout math_formats input_limit input_counter dographics mathimages mathimagemag );
-# TODO: Should I change from exclusive to inclusive? What is really important to compare?
-# paths, preload, preamble, ... all the LaTeXML->new() params?
-# If we're not daemonizing postprocessing we can safely ignore all its options and reuse the conversion objects.
+#our @IGNORABLE = qw(timeout profile port preamble postamble port destination log removed_math_formats whatsin whatsout math_formats input_limit input_counter dographics mathimages mathimagemag );
+
+# Switching to white-listing options that are important for new_latexml:
+our @COMPARABLE = qw(preload paths verbosity strict comments inputencoding includestyles documentid mathparse);
 
 use vars qw(%DAEMON_DB);
 %DAEMON_DB = () unless keys %DAEMON_DB;
@@ -56,23 +57,13 @@ sub prepare_session {
   # 1. Ensure option "sanity"
   $opts->check;
   $opts = $opts->options;
+  my $opts_comparable = { map { $_ => $opts->{$_} } @COMPARABLE };
+  my $self_opts_comparable = { map { $_ => $self->{opts}->{$_} } @COMPARABLE };
   #TODO: Some options like paths and includes are additive, we need special treatment there
-  #2. Check if there is some change from the current situation:
-  my $opts_tmp={};
-  #2.1 Don't compare ignorable options
-  foreach (@IGNORABLE) {
-    $opts_tmp->{$_} = $opts->{$_};
-    if (exists $self->{opts}->{$_}) {
-      $opts->{$_} = $self->{opts}->{$_};
-    } else {
-      delete $opts->{$_};
-    }
-  }
   #2.2. Compare old and new $opts hash
   my $something_to_do;
-  $something_to_do= LaTeXML::Util::ObjectDB::compare($opts, $self->{opts}) ? 0 : 1;
-  #2.3. Reinstate ignorables, set new options to converter:
-  $opts->{$_} = $opts_tmp->{$_} foreach (@IGNORABLE);
+  $something_to_do= LaTeXML::Util::ObjectDB::compare($opts_comparable, $self_opts_comparable) ? 0 : 1;
+  #2.3. Set new options in converter:
   $self->{opts} = $opts;
 
   #3. If there is something to do, initialize a session:

@@ -1,6 +1,5 @@
 # Identical to fragment-xhtml
 comments =
-parse =
 post =
 timeout = 120
 format = xhtml
