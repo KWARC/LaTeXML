@@ -134,7 +134,7 @@ sub convert {
   print STDERR "\n$LaTeXML::Version::IDENTITY\n" if $opts->{verbosity} >= 0;
   print STDERR "processing started ".localtime()."\n" if $opts->{verbosity} >= 0;
   # Handle What's IN?
-  # 1. Math profile should get a mathdoc() wrapper
+  # 1. Math should get a mathdoc() wrapper
   if ($opts->{whatsin} eq "math") {
     $source = "literal:".MathDoc($source);
   }
@@ -248,7 +248,7 @@ sub convert {
   if ($opts->{whatsout} eq 'fragment') {
     $result = GetEmbeddable($result);
   } elsif ($opts->{whatsout} eq 'math') {
-    # 2. Fetch math in math profile:
+    # 2. Fetch math out:
     $result = GetMath($result);
   } else { # 3. No need to do anything for document whatsout (it's default)
   }
@@ -281,11 +281,11 @@ sub get_converter {
   my ($self,$conf) = @_;
   $conf->check; # Options are fully expanded
   # TODO: Make this more flexible via an admin interface later
-  my $profile = $conf->get('profile')||'custom';
-  my $d = $DAEMON_DB{$profile};
+  my $key = $conf->get('cache_key');
+  my $d = $DAEMON_DB{$key};
   if (! defined $d) {
     $d = LaTeXML::Converter->new($conf->clone);
-    $DAEMON_DB{$profile}=$d;
+    $DAEMON_DB{$key}=$d;
   }
   return $d;
 }
@@ -467,7 +467,7 @@ sub new_latexml {
 			  documentid=>$opts->{documentid},
 			  mathparse=>$opts->{mathparse});
   if(my @baddirs = grep {! -d $_} @{$opts->{paths}}){
-    warn $opts->{identity}.": these path directories do not exist: ".join(', ',@baddirs)."\n"; }
+    warn "\n$LaTeXML::Version::IDENTITY : these path directories do not exist: ".join(', ',@baddirs)."\n"; }
 
   $latexml->withState(sub {
       my($state)=@_;

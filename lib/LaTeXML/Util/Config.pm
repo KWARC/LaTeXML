@@ -225,7 +225,8 @@ sub check {
 sub _obey_profile {
   my ($self) = @_;
   $self->{dirty}=1;
-  my $profile = lc($self->{opts}->{profile}||'custom');
+  my $opts = $self->{opts};
+  my $profile = lc($opts->{profile}||'custom');
   # Look at the PROFILES_DB or find a profiles file (otherwise fallback to custom)
   my $profile_opts={};
   if ($profile ne 'custom') {
@@ -239,29 +240,32 @@ sub _obey_profile {
     } else {
       # Throw an error, fallback to custom
       croak ("Error:unexpected:$profile Profile $profile was not recognized, reverting to 'custom'");
-      $self->{opts}->{profile} = 'custom';
+      $opts->{profile} = 'custom';
       $profile='custom';
     }
   }
-
-  my $opts = $self->{opts};
-  # Merge the new options with the profile defaults:
-  for my $key (grep {defined $opts->{$_}} (CORE::keys %$opts)) {
-    if ($key =~ /^p(ath|reload)/) { # Paths and preloads get merged in
-      $profile_opts->{$key} = [] unless defined $profile_opts->{$key};
-      foreach my $entry (@{$opts->{$key}}) {
-        my $new=1;
-        foreach (@{$profile_opts->{$key}}) {
-          if ($entry eq $_) { $new=0; last; }
-        }
-        # If new to the array, push:
-        push (@{$profile_opts->{$key}}, $entry) if ($new);
+  # Erase the profile, save it as cache key
+  delete $opts->{profile};
+  $opts->{cache_key} = $profile unless defined $opts->{cache_key};
+  if (%$profile_opts) {
+    # Merge the new options with the profile defaults:
+    for my $key (grep {defined $opts->{$_}} (CORE::keys %$opts)) {
+      if ($key =~ /^p(ath|reload)/) { # Paths and preloads get merged in
+	$profile_opts->{$key} = [] unless defined $profile_opts->{$key};
+	foreach my $entry (@{$opts->{$key}}) {
+	  my $new=1;
+	  foreach (@{$profile_opts->{$key}}) {
+	    if ($entry eq $_) { $new=0; last; }
+	  }
+	  # If new to the array, push:
+	  push (@{$profile_opts->{$key}}, $entry) if ($new);
+	}
+      } else { # The other options get overwritten
+	$profile_opts->{$key} = $opts->{$key};
       }
-    } else { # The other options get overwritten
-      $profile_opts->{$key} = $opts->{$key};
     }
+    %$opts=%$profile_opts; # Move back into the user options
   }
-  %$opts=%$profile_opts; # Move back into the user options
 }
 
 # TODO: Best way to throw errors when options don't work out? 

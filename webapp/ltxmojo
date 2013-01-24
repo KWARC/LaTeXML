@@ -159,7 +159,6 @@ helper create_config => sub {
   # Read into a Config object:
   my $config = LaTeXML::Util::Config->new;
   $config->read($cmdopts);
-  $config->set('identity', "Mojo for LaTeXML (version $LaTeXML::Version::VERSION, rev $LaTeXML::Version::REVISION); Profile: " . ($config->get('profile')||'custom'));
   return $config;
 };
 
