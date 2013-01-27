@@ -19,8 +19,6 @@ use Carp;
 use Encode;
 use Data::Dumper;
 
-use LaTeXML;
-use LaTeXML::Global;
 use LaTeXML::Package qw(pathname_is_literaldata);
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::WWW;
@@ -74,6 +72,11 @@ sub initialize_session {
   my ($self) = @_;
   $self->{runtime} = {};
   $self->bind_log;
+  # Empty the package namespace
+  foreach my $subname (keys %LaTeXML::Package::Pool::) {
+    delete $LaTeXML::Package::Pool::{$subname};
+  }
+
   my $latexml;
   my $init_eval_return = eval {
     # Prepare LaTeXML object
@@ -156,6 +159,7 @@ sub convert {
     delete $opts->{'postamble_wrapper'};
     # Now, convert to DOM and output, if desired.
     if ($digested) {
+      require LaTeXML::Global;
       local $LaTeXML::Global::STATE = $latexml->{state};
       if ($opts->{format} eq 'tex') {
         $serialized = LaTeXML::Global::UnTeX($digested);
@@ -191,20 +195,26 @@ sub convert {
     # Close and restore STDERR to original condition.
     my $log=$self->flush_log;
     # Hope to clear some memory:
-    $digested=undef;
-    $serialized=undef;
-    $dom=undef;
+    $self->sanitize($log) if ($runtime->{status_code} == 3);
     return {result=>undef,log=>$log,status=>$runtime->{status},status_code=>$runtime->{status_code}};
   }
   print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
   print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
-
+  if ($runtime->{status_code} == 3) {
+    # Terminate on Fatal errors
+    print STDERR " \n\nIt is Fatal!!!\n";
+    my $log = $self->flush_log;
+    $serialized = $dom->toString unless defined $serialized;
+    $self->sanitize($log) if ($runtime->{status_code} == 3);
+    return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
+  }
   if ($serialized) {
       # If serialized has been set, we are done with the job
       my $log = $self->flush_log;
       # Hope to clear some memory:
       $digested=undef;
       $dom=undef;
+      $self->sanitize($log) if ($runtime->{status_code} == 3);
       return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
   } # Else, continue with the regular XML workflow...
   my $result = $dom;
@@ -240,7 +250,7 @@ sub convert {
   } elsif ($opts->{whatsout} eq 'math') {
     # 2. Fetch math out:
     $result = GetMath($result);
-  } else { # 3. No need to do anything for document whatsout (it's default)
+} else { # 3. No need to do anything for document whatsout (it's default)
   }
   # Serialize result for direct use:
   undef $serialized;
@@ -261,6 +271,7 @@ sub convert {
   $digested=undef;
   $dom=undef;
   $result=undef;
+  $self->sanitize($log) if ($runtime->{status_code} == 3);
   return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
 }
 
@@ -452,7 +463,7 @@ sub new_latexml {
       push @pre, $pre;
     }
   }
-
+  require LaTeXML;
   my $latexml = LaTeXML->new(preload=>[@pre], searchpaths=>[@{$opts->{paths}}],
                           graphicspaths=>['.'],
 			  verbosity=>$opts->{verbosity}, strict=>$opts->{strict},
@@ -500,6 +511,19 @@ sub flush_log {
   my $log = $self->{log};
   $self->{log}=q{};
   return $log;
+}
+
+sub sanitize {
+  my ($self,$log)=@_;
+  if ($log =~ m/^Fatal:internal/m) {
+    # TODO : Anything else? Clean up the whole stomach etc?
+    $self->{latexml}->withState(sub {
+      my($state)=@_; # Remove current state frame
+      my $stomach = $state->getStomach;
+      undef $stomach;
+    });
+    $self->{ready} = 0;
+  }
 }
 
 1;

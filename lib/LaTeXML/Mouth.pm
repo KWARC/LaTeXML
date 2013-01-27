@@ -149,7 +149,7 @@ sub getLocator {
     $lstart = $l-1;
     $cstart = $nc - $c;
   }
-  "at $$self{source}#textrange(from=$lstart;$cstart,to=$l;$c)";
+  "$$self{source}#textrange(from=$lstart;$cstart,to=$l;$c)";
   # if($length && (defined $l || defined $c)){
   #   my $chars=$$self{chars};
   #   my $n = $$self{nchars}; 

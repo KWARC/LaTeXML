@@ -209,10 +209,11 @@ sub withState {
 
 sub initializeState {
   my($self,@files)=@_;
-  my $stomach  = $STATE->getStomach; # The current Stomach;
+  my $state = $$self{state};
+  my $stomach  = $state->getStomach; # The current Stomach;
   my $gullet = $stomach->getGullet;
   $stomach->initialize;
-  my $paths = $STATE->lookupValue('SEARCHPATHS');
+  my $paths = $state->lookupValue('SEARCHPATHS');
   foreach my $preload (@files){
     my($options,$type);
     $options = $1 if $preload =~ s/^\[([^\]]*)\]//;
