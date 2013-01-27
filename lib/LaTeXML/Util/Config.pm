@@ -233,7 +233,7 @@ sub _obey_profile {
     if (defined $PROFILES_DB->{$profile}) {
       %$profile_opts = %{$PROFILES_DB->{$profile}}
     } elsif (my $file = pathname_find($profile.'.opt',paths=>[],
-                                      types=>[], installation_subdir=>'Profiles')) {
+                                      types=>[], installation_subdir=>'resources/Profiles')) {
       my $conf_tmp = LaTeXML::Util::Config->new;
       $conf_tmp->read(_read_options_file($file));
       $profile_opts = $conf_tmp->options;
