@@ -67,7 +67,10 @@ II. Apache + Mod_Perl and Plack
 <VirtualHost *:80>
     ServerName latexml.example.com 
     DocumentRoot /path/to/LaTeXML/webapp
-    Header set Access-Control-Allow-Origin *                                                                                                  
+    Header set Access-Control-Allow-Origin *                                    
+
+    PerlOptions +Parent
+                                                              
     <Perl>
       $ENV{PLACK_ENV} = 'production';
       $ENV{MOJO_HOME} = '/path/to/LaTeXML/webapp';
