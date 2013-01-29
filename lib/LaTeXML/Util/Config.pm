@@ -74,7 +74,6 @@ sub read {
 	   "autoflush=s" => \$opts->{input_limit},
            "timeout=s"   => \$opts->{timeout}, #TODO: JOB and SERVER timeouts!
            "port=s"      => \$opts->{port},
-           "local!"       => \$opts->{local},
 	   # Post-processing
 	   "post!"      => \$opts->{post},
 	   "validate!" => \$opts->{validate},
@@ -310,7 +309,7 @@ sub _prepare_options {
 
   # Unset destinations unless local conversion has been requested:
   if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
-    {carp "I/O from filesystem not allowed without --local!\n".
+    {carp "I/O from filesystem not allowed for non-local conversion jobs!\n".
        " Will revert to sockets!\n";
      undef $opts->{destination}; undef $opts->{log};
      undef $opts->{postdest}; undef $opts->{postlog};}
@@ -597,7 +596,7 @@ Clones $config into a new LaTeXML::Util::Config object, $config_clone.
 latexmls/latexmlc [options]
 
  Options:
- --destination=file specifies destination file, requires --local.
+ --destination=file specifies destination file.
  --output=file      [obsolete synonym for --destination]
  --preload=module   requests loading of an optional module;
                     can be repeated
@@ -612,8 +611,7 @@ latexmls/latexmlc [options]
                     that employ relative paths.
  --path=dir         adds dir to the paths searched for files,
                     modules, etc; 
- --log=file         specifies log file, reuqires --local
-                    default: STDERR
+ --log=file         specifies log file (default: STDERR)
  --autoflush=count  Automatically restart the daemon after 
                     "count" inputs. Good practice for vast batch 
                     jobs. (default: 100)
@@ -621,9 +619,6 @@ latexmls/latexmlc [options]
                     Default is 600 seconds, set 0 to disable.
                     Also used to terminate processing jobs
  --port=number      Specify server port (default: 3354)
- --local            Request a local server (default: off)
-                    Required for the --log and --destination switches
-                    Required for processing filenames on input
  --documentid=id    assign an id to the document root.
  --quiet            suppress messages (can repeat)
  --verbose          more informative output (can repeat)
@@ -682,7 +677,7 @@ latexmls/latexmlc [options]
 
 In I<math> C<profile>, latexmls accepts one TeX formula on input.
     In I<standard> and I<fragment> C<profile>, latexmls accepts one I<texfile>
-    filename per line on input, but only when --local is specified.
+    filename per line on input, but only when the job is local.
     If I<texfile> has an explicit extension of C<.bib>, it is processed
     as a BibTeX bibliography.
 
@@ -699,7 +694,6 @@ In I<math> C<profile>, latexmls accepts one TeX formula on input.
 
 =item C<--destination>=I<file>
 
-Requires: C<--local>
 Specifies the destination file; by default the XML is written to STDOUT.
 
 =item C<--preload>=I<module>
@@ -747,7 +741,6 @@ Add I<dir> to the search paths used when searching for files, modules, style fil
 
 =item C<--log>=I<file>
 
-Requires: C<--local>
 Specifies the log file; be default any conversion messages are printed to STDERR.
 
 =item C<--autoflush>=I<count>
@@ -764,14 +757,6 @@ Set an inactivity timeout value in seconds. If the daemon is not given any input
 =item C<--port>=I<number>
 
 Specify server port (default: 3334 for math, 3344 for fragment and 3354 for standard)
-
-=item C<--local>
-
-Request a local server (default: off)
-    Required for the C<--log> and C<--destination> switches
-    Required for processing filenames on input, as well as for any filesystem access.
-    If switched off, the only means of communication with the server is via the respective socket.
-    Caveat: When C<--local> is disabled, fatal errors cause an empty output at the moment.
 
 =item C<--documentid>=I<id>
 

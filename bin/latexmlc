@@ -7,7 +7,6 @@ use strict;
 use warnings;
 
 use Pod::Usage;
-use Carp;
 use Cwd qw(cwd abs_path);
 use IO::Socket;
 
@@ -39,25 +38,11 @@ my $opts=LaTeXML::Util::Config->new(
   timeout => -1, # Don't start a server as default
   port => 3354,
   verbosity=>0);
+my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
 
 # Parse and load command-line options
 $opts->read(\@ARGV);
 
-my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
-$opts->set('port', $portlist{$opts->get('profile')}) unless $opts->get('port');
-$opts->set('port', 3334) unless $opts->get('port'); #Fall back to 3334 if all fails...
-
-# Local if no timeout wanted (classic latexml invocation):
-$opts->set('local', 1) if (($opts->get('timeout') == -1) && (!defined $opts->get('local')));
-# TODO: Rethink this carefully, where does the "local" security get inspected?
-# Unset destinations unless local conversion has been requested:
-if (!$opts->get('local') && ($opts->get('destination') || $opts->get('log') || $opts->get('postdest') || $opts->get('postlog'))) 
-  {carp "I/O from filesystem not allowed without --local!\n".
-     " Will revert to sockets!\n";
-   $opts->set('destination',undef);
-   $opts->set('log',undef);
-   $opts->set('postdest',undef);
-   $opts->set('postlog',undef);}
 #***************************************************************************
 #Add some base, so that relative paths work
 my $cdir = abs_path(cwd());
@@ -70,25 +55,26 @@ my $deststat;
 $deststat = (stat($opts->get('destination')))[9] if $opts->get('destination');
 $deststat = 0 unless defined $deststat;
 
-# Revert to sockets if no --local
-if (!$opts->get('local') && ($opts->get('destination') || $opts->get('log')))
-  {carp "I/O from filesystem not allowed without --local!\n".
-     " Will revert to sockets!\n";
-   $opts->set('destination',undef);
-   $opts->set('log',undef); }
-
 push @{$opts->get('paths')}, $cdir; #add current path, to ensure never empty
+
+# Get the full source of interest
+my $source = $opts->get('source');
+$opts->delete('source');
+if($source eq '-'){
+  { local $/ = undef;
+    $source="literal:".<>; }}
 
 #***************************************************************************
 # Prepare output variables:
 my  ($result, $status, $log);
 
-# TODO: Maybe allow remote hosts?
-#       Coming to think of it, maybe allow latexmlc to talk to ltxmojo via http?
-#       e.g. latexmlc --remote=latexml.mathweb.org/convert --mode=math '1+2=3'
+# TODO: Talk to the web service via HTTP
 #Setup client and communicate
+$opts->set('port', $portlist{$opts->get('profile')}) unless $opts->get('port');
+$opts->set('port', 3334) unless $opts->get('port'); #Fall back to 3334 if all fails...
+$opts->set('address','127.0.0.1') unless $opts->get('address');
 my $sock = IO::Socket::INET->new
-  ( PeerAddr => '127.0.0.1',
+  ( PeerAddr => $opts->get('address'),
     PeerPort => $opts->get('port'),
     Proto => 'tcp',
   ); #Attempt connecting to a service
@@ -97,44 +83,33 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
   # NOTE: Log will differ, single run gets initialization log at STDERR
   #       while server communication suppresses that part of the log otherwise
   #   (except when errors occur)
-  my $source = $opts->get('source');
-  $opts->delete('source');
-  if($source eq '-'){
-    { local $/ = undef;
-      $source="literal:".<>; }}
-
   my $converter = LaTeXML::Converter->get_converter($opts);
   $converter->prepare_session($opts);
   my $response = $converter->convert($source);
-
   ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
 
 } else {
   #Startup daemon and feed in args, if needed
-  my $destopt = (($opts->get('local')) && ($opts->get('destination'))
-     && ('--destination='.$opts->get('destination'))) || '';
-  my $formatopt = (($opts->get('format')) && ('--format='.$opts->get('format'))) || '';
   system("$RealBin_safe/latexmls",'--port='.$opts->get('port'),
-    '--timeout='.$opts->get('timeout'),'--autoflush='.$opts->get('input_limit'),
-     $destopt, $formatopt) unless $sock;
+    '--timeout='.$opts->get('timeout'),'--autoflush='.$opts->get('input_limit')) unless $sock;
 
   #daemon is running, reconnect and feed in request
-  $sock = IO::Socket::INET->new 
-    ( PeerAddr => '127.0.0.1',
+  $sock = IO::Socket::INET->new
+    ( PeerAddr => $opts->get('address'),
       PeerPort => $opts->get('port'),
       Proto => 'tcp',
     );
-  croak "Fatal:perl:socket-create Could not create socket: $!\n" unless $sock; 
-  my ($response,$batch);
+  if (!$sock) { print STDERR "Fatal:perl:socket-create Could not create socket: $!\n"; exit 1; }
   # TODO: Think about sending the command-line options themselves,
   #       then external applications could easily also reuse the socket server.
+  $opts->set('source',$source);
   $sock->send(encode_json($opts->options)."\nEND REQUEST\n");
+  my ($response,$batch);
   do {
     $sock->recv($batch,1024);
     $response.=$batch;
   } while ($batch);
   close($sock);
-
   $response = decode_json($response);
   ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
 }
@@ -147,8 +122,10 @@ if ($log) {
   if ($opts->get('log') && $opts->get('local')) {
     my $clog = $opts->get('log');
     my $log_handle;
-    open($log_handle,">",$clog) or
-       croak "Fatal:IO:forbidden Couldn't open log file $clog : $!\n";
+    if (! open($log_handle,">",$clog)) {
+      print STDERR "Fatal:IO:forbidden Couldn't open log file $clog : $!\n";
+      exit 1;
+    }
     print $log_handle $log;
     close $log_handle;
   } else {print STDERR $log,"\n";}#STDERR log otherwise
@@ -157,7 +134,10 @@ if ($log) {
 if ($result) {
   if ($opts->get('destination') && $opts->get('local')) {
     my $output_handle;
-    open($output_handle,">",$opts->get('destination')) or croak "Fatal:IO:forbidden Couldn't open output file ".$opts->get('destination').": $!";
+    if ( ! open($output_handle,">",$opts->get('destination')) ) {
+      print STDERR "Fatal:IO:forbidden Couldn't open output file ".$opts->get('destination').": $!";
+      exit 1;
+    }
     print $output_handle $result;
     close $output_handle;
   } else { print STDOUT $result,"\n"; } #Output to STDOUT

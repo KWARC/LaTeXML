@@ -10,7 +10,6 @@ eval 'exec /usr/bin/perl -w -S $0 ${1+"$@"}'
 # General packages
 use strict;
 use warnings;
-use Carp;
 use Pod::Usage;
 # LaTeXML
 use FindBin;
@@ -95,7 +94,7 @@ while ( my $client = $server->accept() ) {
 
   if ($opts->get('base') && $opts->get('base')!~/(\w+):\/\//)
   { chdir $opts->get('base')
-     or croak "Fatal:server:chdir Can't chdir to ".$opts->get('base').": $!"; }
+     or croak("Fatal:server:chdir Can't chdir to ".$opts->get('base').": $!"); }
 
   # We now have a LaTeXML options object - $opts.
   # Make sure the g_opts are included as defaults
@@ -128,7 +127,7 @@ while ( my $client = $server->accept() ) {
   if ($g_opts->get('input_limit') && 
       (($g_opts->get('input_counter')||0) >= $g_opts->get('input_limit'))) {
     exec("$RealBin_safe/latexmls",@$ARGV_SAVED)
-      or croak ("Fatal:server:restart Daemon autoflush Failed!\n");
+      or croak("Fatal:server:restart Daemon autoflush Failed!");
   }
   timeout_handler() if ($opts->get('timeout') == -1); # Terminate immediately if desired
   alarm($opts->get('timeout'));              #Timeout if inactive for too long...
@@ -152,17 +151,17 @@ sub daemonize {
   #This causes more problems than it solves (e.g. sTeX setup)
   #chdir '/'                 or croak "Can't chdir to /: $!";
   open STDIN, '<', '/dev/null' 
-    or croak "Fatal:server:daemonize  Can't read /dev/null: $!";
+    or croak("Fatal:server:daemonize  Can't read /dev/null: $!");
   open STDOUT, '>', '/dev/null'
-    or croak "Fatal:server:daemonize  Can't write to /dev/null: $!";
+    or croak("Fatal:server:daemonize  Can't write to /dev/null: $!");
   defined(my $pid = fork)
-    or croak "Fatal:server:daemonize  Can't fork: $!";
+    or croak("Fatal:server:daemonize  Can't fork: $!");
   exit if $pid;
   setsid
-    or croak "Fatal:server:daemonize  Can't start a new session: $!";
+    or croak("Fatal:server:daemonize  Can't start a new session: $!");
   *STDERR_SAVED = *STDERR;
   *STDERR = *STDOUT
-    or croak "Fatal:server:daemonize Can't dup stdout: $!";
+    or croak("Fatal:server:daemonize Can't dup stdout: $!");
   return;
 }
 
@@ -174,10 +173,14 @@ sub setup_server {
         'Listen'    => SOMAXCONN,
         'Reuse'     => 1,
     );
-  croak "Fatal:server:init can't setup server" unless $sock_server;
+  croak("Fatal:server:init can't setup server") unless $sock_server;
   return $sock_server;
 }
 
+sub croak {
+ print STDERR $_,"\n";
+ exit 1;
+}
 
 #**********************************************************************
 __END__
