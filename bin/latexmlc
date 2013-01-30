@@ -40,6 +40,11 @@ my $opts=LaTeXML::Util::Config->new(
   verbosity=>0);
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
 
+$opts->set('port', $portlist{$opts->get('profile')}) unless $opts->get('port');
+$opts->set('port', 3334) unless $opts->get('port'); #Fall back to 3334 if all fails...
+$opts->set('address','127.0.0.1') unless ($opts->get('address') && ($opts->get('address') ne 'localhost'));
+# Local if peerhost is localhost:
+$opts->set('local', $opts->get('address') eq '127.0.0.1');
 # Parse and load command-line options
 $opts->read(\@ARGV);
 
@@ -60,19 +65,16 @@ push @{$opts->get('paths')}, $cdir; #add current path, to ensure never empty
 # Get the full source of interest
 my $source = $opts->get('source');
 $opts->delete('source');
+if (! $source) {print STDERR "Input was empty.\n"; exit 1; }
 if($source eq '-'){
   { local $/ = undef;
     $source="literal:".<>; }}
-
 #***************************************************************************
 # Prepare output variables:
 my  ($result, $status, $log);
 
 # TODO: Talk to the web service via HTTP
 #Setup client and communicate
-$opts->set('port', $portlist{$opts->get('profile')}) unless $opts->get('port');
-$opts->set('port', 3334) unless $opts->get('port'); #Fall back to 3334 if all fails...
-$opts->set('address','127.0.0.1') unless $opts->get('address');
 my $sock = IO::Socket::INET->new
   ( PeerAddr => $opts->get('address'),
     PeerPort => $opts->get('port'),
@@ -83,6 +85,7 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
   # NOTE: Log will differ, single run gets initialization log at STDERR
   #       while server communication suppresses that part of the log otherwise
   #   (except when errors occur)
+  $opts->set('local',1);
   my $converter = LaTeXML::Converter->get_converter($opts);
   $converter->prepare_session($opts);
   my $response = $converter->convert($source);
@@ -119,7 +122,7 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
 
 # Special features for latexmls:
 if ($log) {
-  if ($opts->get('log') && $opts->get('local')) {
+  if ($opts->get('log')) {
     my $clog = $opts->get('log');
     my $log_handle;
     if (! open($log_handle,">",$clog)) {
@@ -132,7 +135,7 @@ if ($log) {
 }
 
 if ($result) {
-  if ($opts->get('destination') && $opts->get('local')) {
+  if ($opts->get('destination')) {
     my $output_handle;
     if ( ! open($output_handle,">",$opts->get('destination')) ) {
       print STDERR "Fatal:IO:forbidden Couldn't open output file ".$opts->get('destination').": $!";

@@ -86,6 +86,8 @@ while ( my $client = $server->accept() ) {
 
   # Thaw request into options:
   $opts = LaTeXML::Util::Config->new(%{decode_json($request)});
+  # Local if peerhost is localhost:
+  $opts->{local} = ($client->peerhost eq '127.0.0.1');
   $opts->set('source',$opts->get('tex')) if (!($opts->get('source')) && $opts->get('tex'));
   $opts->delete('tex');
   # Prepare TeX source

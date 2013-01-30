@@ -48,7 +48,6 @@ sub daemon_ok {
   my $opts = read_options("$base.opt");
   push @$opts, ( ['destination', "$localname.test.xml"],
 		['log', "/dev/null"],
-		['local', ''],
 		['timeout',5],
 		['autoflush',1],
 		['nocomments', ''] );
