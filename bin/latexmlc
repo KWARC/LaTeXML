@@ -40,13 +40,14 @@ my $opts=LaTeXML::Util::Config->new(
   verbosity=>0);
 my %portlist = ( math=>3334, fragment=>3344, standard=>3354);
 
+# Parse and load command-line options
+$opts->read(\@ARGV);
+
 $opts->set('port', $portlist{$opts->get('profile')}) unless $opts->get('port');
 $opts->set('port', 3334) unless $opts->get('port'); #Fall back to 3334 if all fails...
 $opts->set('address','127.0.0.1') unless ($opts->get('address') && ($opts->get('address') ne 'localhost'));
 # Local if peerhost is localhost:
-$opts->set('local', $opts->get('address') eq '127.0.0.1');
-# Parse and load command-line options
-$opts->read(\@ARGV);
+$opts->set('local', (( $opts->get('timeout') == -1 ) || ($opts->get('address') eq '127.0.0.1')));
 
 #***************************************************************************
 #Add some base, so that relative paths work
@@ -55,7 +56,6 @@ $cdir =~ s/ /\\ /g;
 $opts->set('base',$cdir) unless $opts->get('base');
 
 # Record if destination exists, for summary
-$opts->set('destination', pathname_canonical($opts->get('destination'))) if $opts->get('destination');
 my $deststat;
 $deststat = (stat($opts->get('destination')))[9] if $opts->get('destination');
 $deststat = 0 unless defined $deststat;
@@ -85,7 +85,6 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
   # NOTE: Log will differ, single run gets initialization log at STDERR
   #       while server communication suppresses that part of the log otherwise
   #   (except when errors occur)
-  $opts->set('local',1);
   my $converter = LaTeXML::Converter->get_converter($opts);
   $converter->prepare_session($opts);
   my $response = $converter->convert($source);

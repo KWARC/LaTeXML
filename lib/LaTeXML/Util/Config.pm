@@ -156,7 +156,7 @@ sub read {
 	    -sections => 'OPTIONS/SYNOPSIS', output=>\*STDOUT) if $opts->{help};
 
   # Check that destination is valid before wasting any time...
-  if($opts->{destination} && $opts->{local}){
+  if($opts->{destination}){
     $opts->{destination} = pathname_canonical($opts->{destination});
     if(my $dir = pathname_directory($opts->{destination})){
       pathname_mkdir($dir) or croak "Couldn't create destination directory $dir: $!"; }}
