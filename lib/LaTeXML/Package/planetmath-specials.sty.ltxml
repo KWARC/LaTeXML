@@ -27,8 +27,8 @@ AssignMapping('RDFa_prefixes','dct'=>'http://purl.org/dc/terms/');
 AssignMapping('RDFa_prefixes','msc'=>"http://msc2010.org/resources/MSC/2010/");
 AssignMapping('RDFa_prefixes','xsd'=>'http://www.w3.org/2001/XMLSchema#');
 AssignMapping('RDFa_prefixes','pm'=>"$pmbaseURI/ns/");
-AssignMapping('RDFa_prefixes','pmarticle'=>"$pmbaseURI/article/");
-AssignMapping('RDFa_prefixes','pmuser'=>"$pmbaseURI/user/");
+AssignMapping('RDFa_prefixes','pmarticle'=>"$pmbaseURI/");
+AssignMapping('RDFa_prefixes','pmuser'=>"$pmbaseURI/");
 AssignMapping('RDFa_prefixes','pmconcept'=>"$pmbaseURI/concept/");
 
 # URIs for Metadata Resources:
@@ -38,12 +38,12 @@ DefMacro('\conceptURI{}','pmconcept:#1');
 
 # Metadata commands
 # Generic metadata constructors (use to define your own metadata):
-DefMacro('\lxRDFProperty[]{}{}{}','\lxRDF{datatype={#1},property={#2:#3},content={#4}}');
+DefMacro('\lxRDFProperty[][]{}{}{}','\lxRDF{datatype={#1},about={#2},property={#3:#4},content={#5}}');
 DefMacro('\lxRDFResource[]{}{}{}','\lxRDF{about={#1},property={#2:#3},resource={#4}}');
 
-DefMacro('\pmmeta@literal@adhoc[]{}{}','\lxRDFProperty[#1]{pm}{#2}{#3}');
+DefMacro('\pmmeta@literal@adhoc[][]{}{}','\lxRDFProperty[#1][#2]{pm}{#3}{#4}');
 DefMacro('\pmmeta@uri@adhoc[]{}{}','\lxRDFResource[#1]{pm}{#2}{#3}');
-DefMacro('\pmmeta@literal@dct[]{}{}','\lxRDFProperty[#1]{dct}{#2}{#3}');
+DefMacro('\pmmeta@literal@dct[][]{}{}','\lxRDFProperty[#1][#2]{dct}{#3}{#4}');
 DefMacro('\pmmeta@uri@dct[]{}{}','\lxRDFResource[#1]{dct}{#2}{#3}');
 # PlanetMath Metadata:
 
@@ -54,7 +54,7 @@ DefMacro('\pmkeyword{}','\pmmeta@literal@adhoc{keyword}{#1}');
 
 DefMacro('\pmparent[]{}','\pmmeta@uri@adhoc{parent}{\articleURI{#2}}'); # Ignore optional argument, the mandatory is a cannonical name
 DefMacro('\pmrelated{}','\pmmeta@uri@adhoc{related}{\articleURI{#1}}');
-DefMacro('\pmsynonym{}{}','\pmmeta@uri@adhoc[\conceptURI{#1}]{synonym}{\conceptURI{#2}}'); # Consider DCT alternative for the alias
+DefMacro('\pmsynonym{}{}','\pmmeta@literal@adhoc[][\conceptURI{#2}]{synonym}{#1}'); # Consider DCT alternative for the alias
 DefMacro('\pmowner{}{}','\pmmeta@uri@adhoc{owner}{\userURI{#2}}');
 DefMacro('\pmmodifier{}{}','\pmmeta@uri@adhoc{modifier}{\userURI{#2}}'); # Note : we should use usernames (maybe), but keep in mind they have SPACES in them.
 
