@@ -55,8 +55,8 @@ DefMacro('\pmkeyword{}','\pmmeta@literal@adhoc{keyword}{#1}');
 DefMacro('\pmparent[]{}','\pmmeta@uri@adhoc{parent}{\articleURI{#2}}'); # Ignore optional argument, the mandatory is a cannonical name
 DefMacro('\pmrelated{}','\pmmeta@uri@adhoc{related}{\articleURI{#1}}');
 DefMacro('\pmsynonym{}{}','\pmmeta@literal@adhoc[][\conceptURI{#2}]{synonym}{#1}'); # Consider DCT alternative for the alias
-DefMacro('\pmowner{}{}','\pmmeta@uri@adhoc{owner}{\userURI{#2}}');
-DefMacro('\pmmodifier{}{}','\pmmeta@uri@adhoc{modifier}{\userURI{#2}}'); # Note : we should use usernames (maybe), but keep in mind they have SPACES in them.
+DefMacro('\pmowner{}{}','\pmmeta@uri@adhoc{owner}{\userURI{#1}}');
+DefMacro('\pmmodifier{}{}','\pmmeta@uri@adhoc{modifier}{\userURI{#1}}'); # Note : we should use usernames (maybe), but keep in mind they have SPACES in them.
 
 DefMacro('\pmrecord{}{}','\pmmeta@literal@dct{hasVersion}{#1}'); # The second argument of the \pmrecord is the Noosphere ID, which we can ignore
 DefMacro('\pmcanonicalname{}','\pmmeta@literal@dct{identifier}{#1}');
@@ -64,7 +64,7 @@ DefMacro('\pmcreated Semiverbatim','\pmmeta@literal@dct[xsd:date]{created}{#1}')
 DefMacro('\pmmodified Semiverbatim','\pmmeta@literal@dct[xsd:date]{modified}{#1}');
 DefMacro('\pmtitle{}','\title{#1}\pmmeta@literal@dct{title}{#1}');
 DefMacro('\pmtype{}','\pmmeta@literal@dct{type}{#1}'); # Maybe types are resources?
-DefMacro('\pmauthor{}{}','\pmmeta@uri@dct{creator}{\userURI{#2}}'); # First argument is a username, second DB id (ignore second).
+DefMacro('\pmauthor{}{}','\pmmeta@uri@dct{creator}{\userURI{#1}}'); # First argument is a username, second DB id (ignore second).
 DefMacro('\pmclassification{}{}','\pmmeta@uri@dct{subject}{#1:#2}'); #Arbitrary metadata, simply register the #1 argument as a namespace (e.g. msc)
 
 #FUTURE: add, as much as you have information, additional triples:
