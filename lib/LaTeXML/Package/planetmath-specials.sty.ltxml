@@ -117,9 +117,9 @@ DefMacro('\PMlinkexternal{}{}','\pmathhref{#2}{#1}');
 
 # Links and RDFa:
 DefMacro('\PMlinkname{}{}',
-  '\pmathhref{\PMURI#2\PMEXT}{#1}\pmmeta@uri@adhoc{linksTo}{\articleURI{#2}}');
+  '\pmathhref{\PMURI#2\PMEXT}{#1\lxRDFa{about=,property={pm:linksTo},resource={pmarticle:#2}}}');
 DefMacro('\PMlinkid{}{}',
-  '\pmathhref{\PMURI#2\PMEXT}{#1}\pmmeta@uri@adhoc{linksToID}{\articleURI{#2}}');
+  '\pmathhref{\PMURI#2\PMEXT}{#1\lxRDFa{about=,property={pm:linksTo},resource={pmarticle:#2}}}');
 
 # No-ops for now:
 DefMacro('\PMlinkescapetext','');
