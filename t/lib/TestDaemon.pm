@@ -50,6 +50,7 @@ sub daemon_ok {
 		['log', "/dev/null"],
 		['timeout',5],
 		['autoflush',1],
+    ['nodefaultcss',''],
 		['nocomments', ''] );
 
   my $invocation = "cd $dir; $FindBin::Bin/../blib/script/latexmlc ";

@@ -1,9 +1,10 @@
 # -*- CPERL -*-
 #**********************************************************************
-# Generate test cases for LaTeXML Client-Server processing
+# Test cases for LaTeXML Client-Server processing
 #**********************************************************************
 use FindBin;
 use lib "$FindBin::Bin/lib";
+use Test::More;
 use TestDaemon;
 
 # For each test $name there should be $name.xml and $name.log
@@ -11,13 +12,11 @@ use TestDaemon;
 #  latexmlc {$triggers} $name
 #).
 
-daemon_tests('t/daemon/api','make');
-daemon_tests('t/daemon/profiles','make');
-daemon_tests('t/daemon/profiles/stex','make');
-daemon_tests('t/daemon/formats','make');
-daemon_tests('t/daemon/runtimes','make');
-daemon_tests('t/daemon/complex','make');
-
+if (! $ENV{STEXSTYDIR}) {
+	plan(skip_all=>" sTeX bindings not found, set your STEXSTYDIR env var to test.");
+} else {
+	daemon_tests('t/daemon/profiles/stex');
+}
 
 #**********************************************************************
 1;
