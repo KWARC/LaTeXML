@@ -17,7 +17,7 @@ daemon_tests('t/daemon/profiles/stex','make');
 daemon_tests('t/daemon/formats','make');
 daemon_tests('t/daemon/runtimes','make');
 daemon_tests('t/daemon/complex','make');
-
+daemon_tests('t/daemon/marpa','make');
 
 #**********************************************************************
 1;

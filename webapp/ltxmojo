@@ -85,7 +85,6 @@ helper convert_zip => sub {
     }
     push @$opts, ($key,$value);
   }
-  push @$opts, ('local','');
   push @$opts, ('paths',[$srcdir]);
 
   $opts = $self->create_config($opts);
@@ -103,7 +102,6 @@ helper convert_zip => sub {
           $destination = $srcdir.$name.$ext;
         }
         open(OUT,">",$destination) or $self->render(text=>"Couldn't open output file ".$destination.": $!");
-        binmode(OUT,":encoding(UTF-8)");
         print OUT $result;
         close OUT;
       } else {
@@ -117,7 +115,6 @@ helper convert_zip => sub {
           $logfile = $srcdir.$name.$ext;
         }
         open(OUT,">",$logfile) or $self->render(text=>"Couldn't open log file ".$logfile.": $!");
-        binmode(OUT,":encoding(UTF-8)");
         print OUT $log;
         close OUT;
       }

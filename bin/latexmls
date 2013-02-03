@@ -63,8 +63,6 @@ local $SIG{'ALRM'} = 'timeout_handler';
 local $SIG{'TERM'} = 'term_handler';
 local $SIG{'INT'} = 'term_handler';
 
-binmode(STDERR,":encoding(UTF-8)");
-
 alarm($g_opts->get('timeout'));              #Timeout if inactive for too long...
 
 #**********************************************************************

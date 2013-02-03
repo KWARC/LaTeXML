@@ -53,6 +53,7 @@ our $RULES = [
               # I.1.3. Infix Operator - Type Constructors
               ['Type',[qw/FactorArgument _ ARROW _ FactorArgument/],'infix_apply_type'],
               ['Type',[qw/Type _ ARROW _ FactorArgument/],'infix_apply_type'],
+              ['Termlike',['Type']], # Types should be allowed as terminals
 
               # I.1.4. Infix Logical Operators
               ['Formula',['FormulaArgument']],
@@ -151,8 +152,8 @@ our $RULES = [
               # VI. Sequence structures
               # VI.1. Vectors:
               ['Entry', ['Term']],
-              ['Vector',[qw/Entry _ PUNCT _ Entry/],'infix_apply'],
-              ['Vector',[qw/Vector _ PUNCT _ Entry/],'infix_apply'],
+              ['Vector',[qw/Entry _ PUNCT _ Entry/],'infix_apply_vector'],
+              ['Vector',[qw/Vector _ PUNCT _ Entry/],'infix_apply_vector'],
               # VI.2. General sequences:
               # VI.2.1 Base case: elements
               ['Element',['Formula']],
@@ -163,17 +164,17 @@ our $RULES = [
               ['Element',['POSTFIX']],
               ['Element',['METARELOP']],
               # VI.2.2 Recursive case: sequences
-              ['Sequence',[qw/Vector _ PUNCT _ Element/],'infix_apply'],
-              ['Sequence',[qw/Entry _ PUNCT _ Element/],'infix_apply'],
-              ['Sequence',[qw/Element _ PUNCT _ Entry/],'infix_apply'],
-              ['Sequence',[qw/Sequence _ PUNCT _ Entry/],'infix_apply'],
+              ['Sequence',[qw/Vector _ PUNCT _ Element/],'infix_apply_sequence'],
+              ['Sequence',[qw/Entry _ PUNCT _ Element/],'infix_apply_sequence'],
+              ['Sequence',[qw/Element _ PUNCT _ Entry/],'infix_apply_sequence'],
+              ['Sequence',[qw/Sequence _ PUNCT _ Entry/],'infix_apply_sequence'],
               # Yuck! Vector adjustments to avoid multiple parses
-              ['Sequence',[qw/Element _ PUNCT _ Element/],'infix_apply'],
-              ['Sequence',[qw/Sequence _ PUNCT _ Element/],'infix_apply'],
+              ['Sequence',[qw/Element _ PUNCT _ Element/],'infix_apply_sequence'],
+              ['Sequence',[qw/Sequence _ PUNCT _ Element/],'infix_apply_sequence'],
 
               # VI.3. Term sequences - TODO: what are these really? progressions?
-              ['TermSequence',[qw/Term _ PUNCT _ Term/],'infix_apply'],
-              ['TermSequence',[qw/TermSequence _ PUNCT _ Term/],'infix_apply'],
+              ['TermSequence',[qw/Term _ PUNCT _ Term/],'infix_apply_sequence'],
+              ['TermSequence',[qw/TermSequence _ PUNCT _ Term/],'infix_apply_sequence'],
 
               # VII. Scripts
 	            # VII.1. Post scripts
@@ -202,9 +203,11 @@ our $RULES = [
 
               # X. Lexicon adjustments
               ['FactorArgument',['ATOM'],'first_arg_term'],
-              ['FormulaArgument',['ATOM'],'first_arg_formula'],
+              #['FormulaArgument',['ATOM'],'first_arg_formula'],
               ['FactorArgument',['UNKNOWN'],'first_arg_term'],
-              ['FormulaArgument',['UNKNOWN'],'first_arg_formula'],
+              # TODO: Reconsider if atoms should be allowed as "formulas"
+              #       creates a lot of (spurious?) ambiguity
+              #['FormulaArgument',['UNKNOWN'],'first_arg_formula'],
               ['FactorArgument',['NUMBER'],'first_arg_number'],
               ['RELOP',['EQUALS']],
               # Terminals... TODO: make this into a map and/or rethink
@@ -223,6 +226,9 @@ our $RULES = [
               ['PREFIX',['OPFUNCTION']],
               ['PREFIX',['LIMITOP']],
               ['PREFIX',['OPERATOR']],
+              ['PREFIX',['PREFIXTerminal']],
+              ['POSTFIX',['FACTORIAL']], # TODO: Look into postfix lexing
+              ['POSTFIX',['POSTFIXTerminal']], # TODO: Look into postfix lexing
               ['BIGOP',['SUMOP']],
               ['BIGOP',['INTOP']],
               # XI. Start:
@@ -297,7 +303,7 @@ sub parse {
       $category = 'EQUALS' if ($lexeme eq 'equals');
     }
 
-    $category.='Terminal' if $category =~ /^(((META)?REL|ADD|LOGIC|MUL|SUP)OP)|ARROW$/;
+    $category.='Terminal' if $category =~ /^(((META)?REL|ADD|LOGIC|MUL|SUP)OP)|ARROW|P(RE|OST)FIX$/;
     #print STDERR "$category:$lexeme:$id\n";
     $rec_events = $rec->read($category,$lexeme.':'.$id);
     if (! defined $rec_events) {

@@ -85,6 +85,8 @@ sub chain_apply_relation { infix_apply(@_,'relation'); }
 sub infix_apply_formula { infix_apply(@_,'formula'); }
 sub chain_apply_formula { infix_apply(@_,'formula'); }
 sub infix_apply_entry { infix_apply(@_,'entry'); }
+sub infix_apply_vector { infix_apply(@_,'vector'); }
+sub infix_apply_sequence { infix_apply(@_,'sequence'); }
 
 sub extend_operator {
   my ( $state, $base, $c, $ext_lex) = @_;

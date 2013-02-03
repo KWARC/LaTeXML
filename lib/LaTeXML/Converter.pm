@@ -496,6 +496,7 @@ sub bind_log {
     open($log_handle,">",\$self->{log}) or croak "Can't redirect STDERR to log! Dying...";
     *STDERR_SAVED=*STDERR;
     *STDERR = *$log_handle;
+    binmode(STDERR,':encoding(UTF-8)');
     $self->{log_handle} = $log_handle;
   }
   return;

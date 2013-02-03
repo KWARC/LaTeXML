@@ -1,0 +1,8 @@
+comments =
+timeout = 120
+parse = Marpa
+format = xhtml
+pmml =
+cmml =
+preload = ids.sty
+path = $LATEXMLINPUTS
