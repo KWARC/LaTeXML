@@ -6,9 +6,9 @@
 use strict;
 use warnings;
 
-use Pod::Usage;
 use Cwd qw(cwd abs_path);
 use IO::Socket;
+use JSON::XS qw(encode_json decode_json);
 
 my $RealBin_safe;
 use FindBin;
@@ -23,10 +23,7 @@ use lib $RealBin_safe."/../lib";
 #$ENV{PATH} = "$RealBin_safe:/usr/bin:/usr/local/bin:";
 
 use LaTeXML::Converter;
-use LaTeXML::Version;
-use LaTeXML::Util::Pathname;
 use LaTeXML::Util::Config;
-use JSON::XS qw(encode_json decode_json);
 
 binmode(STDERR,":encoding(UTF-8)");
 binmode(STDOUT,":encoding(UTF-8)");
@@ -82,14 +79,10 @@ my $sock = IO::Socket::INET->new
   ); #Attempt connecting to a service
 if ((!$sock) && ($opts->get('timeout') == -1)) {
   # Don't boot a server, single job requested:
-  # NOTE: Log will differ, single run gets initialization log at STDERR
-  #       while server communication suppresses that part of the log otherwise
-  #   (except when errors occur)
   my $converter = LaTeXML::Converter->get_converter($opts);
   $converter->prepare_session($opts);
   my $response = $converter->convert($source);
   ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
-
 } else {
   #Startup daemon and feed in args, if needed
   system("$RealBin_safe/latexmls",'--port='.$opts->get('port'),
@@ -105,15 +98,32 @@ if ((!$sock) && ($opts->get('timeout') == -1)) {
   # TODO: Think about sending the command-line options themselves,
   #       then external applications could easily also reuse the socket server.
   $opts->set('source',$source);
-  $sock->send(encode_json($opts->options)."\nEND REQUEST\n");
-  my ($response,$batch);
+  my $message .= encode_json($opts->options);
+  my $message_length = length($message);
+  my $address = $opts->get('address');
+  my $port = $opts->get('port');
+  my $payload = <<POST_Request;
+POST $address:$port HTTP/1.0
+User-Agent: latexmlc
+Content-Type: application/x-www-form-urlencoded
+Content-Length: $message_length
+
+$message
+POST_Request
+  $sock->send($payload);
+  my ($response_string,$batch);
   do {
     $sock->recv($batch,1024);
-    $response.=$batch;
+    $response_string.=$batch;
   } while ($batch);
   close($sock);
-  $response = decode_json($response);
-  ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
+  my $http_response = HTTP::Response->parse($response_string);
+  if ($http_response->is_success) {
+    my $response = decode_json($http_response->content);
+    ($result, $status, $log) = map { $response->{$_} } qw(result status log) if defined $response;
+  } else {
+    print STDERR "Fatal:HTTP:".$http_response->code()." ".$http_response->message()."\n"; exit 1;
+  }
 }
 
 #***************************************************************************
@@ -164,19 +174,22 @@ __END__
 
 =head1 NAME
 
-C<latexmlc> - A client for L<latexml>, L<latexmlpost> and L<latexmlmath>.
+C<latexmlc> - A omni-executable for LaTeXML, capable of
+  stand-alone socket-server and (soon) web service conversion.
 
 =head1 SYNOPSYS
 
 See the OPTIONS section in L<LaTeXML::Util::Config> for usage information.
-Also consult latexmlc --help
+  Also consult latexmlc --help
 
 =head1 DESCRIPTION
 
-L<latexmlc> provides a client which automatically sets up a LaTeXML local server if necessary
-(via L<latexmls>).
+L<latexmlc> provides a client which automatically sets up a LaTeXML local server
+  if necessary (via L<latexmls>).
 
-If such server already exists, the client proceeds to communicate normally.
+  If such server already exists, the client proceeds to communicate normally.
+
+  A stand-alone conversion (the default) can also be requested via --timeout=-1
 
 =head1 SEE ALSO
 
@@ -184,4 +197,3 @@ L<latexmls>, L<ltxmojo>, L<LaTeXML::Util::Config>
 
 =cut
 #**********************************************************************
-
