@@ -79,7 +79,7 @@ DefMacro('\pmprivacy{}','\pmmeta@literal@adhoc{privacy}{#1}');
 # TODO: Make this robust and relativize paths when we have Drupal rewriting!
 # Basically, we're transforming the graphics options into graphicx format.
 my $graphicURL = 'http://alpha.planetmath.org/sites/default/files/pictures/';
-DefMacro('\includegraphics','\webgraphic');
+DefMacro('\includegraphics','\webgraphic'); # Handy alias
 DefKeyVal('webgraphic','width','Semiverbatim');
 DefKeyVal('webgraphic','height','Semiverbatim');
 DefKeyVal('webgraphic','local','Semiverbatim');
@@ -91,19 +91,24 @@ DefConstructor('\webgraphic OptionalKeyVals:webgraphic {}',
        . "?&KeyVal(#1,'height')(imageheight='&KeyVal(#1,'height')' )()"
        . "?&KeyVal(#1,'alt')(description='&KeyVal(#1,'alt')' )()"
        . ")() />",
-  afterConstruct => sub {
-    my ($document,$whatsit) = @_;
-    my $graphic_src = $document->getElement->getAttribute('imagesrc');
-
-    my $node = $document->openElementAt($document->getDocument->getDocumentElement, 'ltx:keywords',
-                                        rel => 'pm:containsGraphic',resource => $graphic_src);
-    $document->closeElementAt($node);
-  },
   properties=> sub {
     my $src = $graphicURL.ToString($_[2]);
     $src .= '.png' unless ($src =~ /\.(\w{3})$/);
-    (url=>$src);
-});
+    (url=>$src); },
+  beforeConstruct=> sub {
+    my($document,$whatsit) = @_;
+    #TODO: This should be floating to 'ltx:rdf' once the figure bug is fixed.
+    if(my $savenode = $document->floatToElement('ltx:section')){
+      my $rdf = $document->openElement('ltx:rdf');
+      # a bit of trouble to add empty elements!
+      $rdf->setAttribute('about'=>'');
+      $rdf->setAttribute('property'=>'pm:containsGraphic');
+      $rdf->setAttribute('resource'=>$whatsit->getProperty('url'));
+      $document->closeElement('ltx:rdf');
+      $document->setNode($savenode);
+      print STDERR "\n\nDOC: ".$document->getDocument->toString(1)."\n\n";
+      return;
+    }});
 
 ### Originally in pmath.sty.ltxml ###
 # This is a package for rendering PlanetMath entries at home
