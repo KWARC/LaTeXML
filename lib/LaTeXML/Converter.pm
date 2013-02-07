@@ -147,7 +147,7 @@ sub convert {
   my ($digested,$dom,$serialized);
   # Digest source:
   my $convert_eval_return = eval {
-    local $SIG{'ALRM'} = sub { die "alarm\n" };
+    local $SIG{'ALRM'} = sub { die "Fatal:conversion:timeout Conversion timed out after ".$opts->{timeout}." seconds!\n"; };
     alarm($opts->{timeout});
     my $mode = ($opts->{type} eq 'auto') ? 'TeX' : $opts->{type};
     $digested = $latexml->digestFile($source,preamble=>$opts->{'preamble_wrapper'},
@@ -184,13 +184,8 @@ sub convert {
   });
   if ($eval_report) {#Fatal occured!
     $runtime->{status_code} = 3;
-    if ($eval_report =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
-      print STDERR "Fatal:conversion:timeout Conversion timed out after ".$opts->{timeout}." seconds!\n";
-      print STDERR "\nConversion incomplete (timeout): ".$runtime->{status}.".\n";
-    } else {
-      print STDERR $eval_report."\n";
-      print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
-    }
+    print STDERR $eval_report."\n";
+    print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
     print STDERR "Status:conversion:".($runtime->{status_code}||'0')."\n";
     # Close and restore STDERR to original condition.
     my $log=$self->flush_log;

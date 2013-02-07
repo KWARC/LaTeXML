@@ -54,7 +54,11 @@ sub daemon_ok {
 		['nocomments', ''] );
 
   my $invocation = "cd $dir; $FindBin::Bin/../blib/script/latexmlc ";
+  my $timed = undef;
   foreach my $opt(@$opts) {
+    if ($$opt[0] eq 'timeout') { # Ensure .opt timeout takes precedence
+      if ($timed) { next; } else {$timed=1;}
+    }
     $invocation.= "--".$$opt[0].($$opt[1] ? ("='".$$opt[1]."' ") : (' '));
   }
   $invocation .= " 2>$localname.test.log; cd -";
