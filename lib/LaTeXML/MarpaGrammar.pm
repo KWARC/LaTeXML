@@ -142,6 +142,7 @@ our $RULES = [
               ['FormulaArgument',[qw/FormulaArgument _ COLON _ Type/],'infix_apply_formula'],
 
               # V. Fences
+              ['FactorArgument',[qw/OPEN _ CLOSE/],'fenced_empty'],
               ['FactorArgument',[qw/OPEN _ Term _ CLOSE/],'fenced'],
               ['FormulaArgument',[qw/OPEN _ Formula _ CLOSE/],'fenced'],
               ['RelativeFormulaArgument',[qw/OPEN _ RelativeFormula _ CLOSE/],'fenced'], # Examples???
@@ -209,6 +210,7 @@ our $RULES = [
               #       creates a lot of (spurious?) ambiguity
               #['FormulaArgument',['UNKNOWN'],'first_arg_formula'],
               ['FactorArgument',['NUMBER'],'first_arg_number'],
+              ['FactorArgument',['ID'],'first_arg_term'],
               ['RELOP',['EQUALS']],
               # Terminals... TODO: make this into a map and/or rethink
               ['RELOP',['RELOPTerminal']],
@@ -312,7 +314,7 @@ sub parse {
   }
 
   my @values = ();
-  $$lexref = q{}; # Reset this , so that we are consistent with the RecDescent behaviour
+  $$lexref = undef; # Reset this , so that we are consistent with the RecDescent behaviour
   if (!$failed) {
     my $value_ref;
     do {

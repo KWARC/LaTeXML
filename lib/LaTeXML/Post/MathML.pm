@@ -1373,7 +1373,8 @@ DefMathML("Token:?:moment",             undef, sub{['m:moment'];});
 #   vector, matrix, matrixrow, determinant, transpose, selector, 
 #   vectorproduct, scalarproduct, outerproduct.
 
-DefMathML("Token:?:vector",         undef, sub{['m:vector'];});
+DefMathML("Token:?:vector",         sub{}, sub{['m:vector'];});
+DefMathML("Token:?:sequence",       sub{}, sub{['m:csymbol',{cd=>'underspecified'},'sequence']});
 DefMathML("Token:?:matrix",         undef, sub{['m:matrix'];});
 DefMathML("Token:?:determinant",    undef, sub{['m:determinant'];});
 DefMathML("Token:?:transpose",      undef, sub{['m:transpose'];});

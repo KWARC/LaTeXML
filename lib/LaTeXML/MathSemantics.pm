@@ -85,8 +85,16 @@ sub chain_apply_relation { infix_apply(@_,'relation'); }
 sub infix_apply_formula { infix_apply(@_,'formula'); }
 sub chain_apply_formula { infix_apply(@_,'formula'); }
 sub infix_apply_entry { infix_apply(@_,'entry'); }
-sub infix_apply_vector { infix_apply(@_,'vector'); }
-sub infix_apply_sequence { infix_apply(@_,'sequence'); }
+sub infix_apply_vector { 
+  my ( $state, $t1, $c, $op, $c2, $t2) = @_;
+  my $app = ApplyNary(New('vector',undef,meaning=>"vector",omcd=>"arith1"),$t1,$t2); 
+  $app->[1]->{'cat'}='vector';
+  $app;}
+sub infix_apply_sequence { 
+  my ( $state, $t1, $c, $op, $c2, $t2) = @_;
+  my $app = ApplyNary(New('sequence',undef,meaning=>"sequence",omcd=>"underspecified"),$t1,$t2); 
+  $app->[1]->{'cat'}='sequence';
+  $app;}
 
 sub extend_operator {
   my ( $state, $base, $c, $ext_lex) = @_;
