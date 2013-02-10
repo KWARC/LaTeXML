@@ -7,4 +7,9 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 use TestLaTeXML;
 
-latexml_tests("t/encoding");
+my @missing = grep {defined} map {`kpsewhich $_` ? undef : $_ } qw(ly1enc t2aenc t2benc t2cenc);
+if(@missing){
+		plan(skip_all=>"TeX encoding definitions ".join(", ",@missing)." not installed.");
+} else { 
+	latexml_tests("t/encoding");
+}
