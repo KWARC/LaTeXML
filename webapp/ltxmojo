@@ -87,7 +87,8 @@ helper convert_zip => sub {
   }
   push @$opts, ('paths',[$srcdir]);
 
-  $opts = $self->create_config($opts);
+  my $config = LateXML::Util::Config->new();
+  $config->read_json($opts);
   my $converter = LaTeXML::Converter->get_converter($opts);
   #Override/extend with session-specific options in $opt:
   $converter->prepare_session($opts);
@@ -147,20 +148,6 @@ helper convert_zip => sub {
   #   }
   # }
 
-helper create_config => sub {
-  my ($self,$opts) = @_;
-  my $cmdopts = [];
-  while (my ($key,$value) = splice(@$opts,0,2)) {
-    $value = $value ? "=$value" : '';
-    next if ((!$value) && ($key =~ /^preamble|path|preload|profile|destination|postamble|base|bibliography|sitedirectory|sourcedirectory|format|mode|source|whatsin|whatsout|port|autoflush|timeout|log|inputencoding|stylesheet|css|debug|documentid/)); #TODO: How to bootstrap here to avoid preamble=&...?
-    push @$cmdopts, "--$key$value";
-  }
-  # Read into a Config object:
-  my $config = LaTeXML::Util::Config->new;
-  $config->read($cmdopts);
-  return $config;
-};
-
 helper convert_string => sub {
   my ($self) = @_;  
   my ($source,$is_jsonp);
@@ -193,7 +180,8 @@ helper convert_string => sub {
     }
     push @$opts, ($key,$value);
   }
-  my $config = $self->create_config($opts);
+  my $config = LaTeXML::Util::Config->new();
+  $config->read_json($opts);
   # We now have a LaTeXML config object - $config.
   my $converter = LaTeXML::Converter->get_converter($config);
 

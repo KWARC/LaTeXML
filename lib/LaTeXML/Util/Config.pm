@@ -42,12 +42,12 @@ sub read {
   GetOptions(
 	   # Basics and Paths
 	   "output=s"  => \$opts->{destination},
-           "destination=s" => \$opts->{destination},
+     "destination=s" => \$opts->{destination},
 	   "log=s"       => \$opts->{log},
 	   "preload=s" => \@{$opts->{preload}},
 	   "preamble=s" => \$opts->{preamble},
 	   "postamble=s" => \$opts->{postamble},
-           "base=s"  => \$opts->{base},
+     "base=s"  => \$opts->{base},
 	   "path=s"    => \@{$opts->{paths}},
 	   "quiet"     => sub { $opts->{verbosity}--; },
 	   "verbose"   => sub { $opts->{verbosity}++; },
@@ -64,16 +64,17 @@ sub read {
 	   "parse=s"   => \$opts->{mathparse},
 	   # Profiles
 	   "profile=s"  => \$opts->{profile},
+     "cache_key=s" => \$opts->{cache_key},
 	   "mode=s"  => \$opts->{profile},
-           "source=s"  => \$opts->{source},
+     "source=s"  => \$opts->{source},
 	   # Output framing
-           "embed"   => sub { $opts->{whatsin} = 'fragment'; },
+     "embed"   => sub { $opts->{whatsin} = 'fragment'; },
 	   "whatsin=s" => \$opts->{whatsin},
 	   "whatsout=s" => \$opts->{whatsout},
 	   # Daemon options
 	   "autoflush=s" => \$opts->{input_limit},
-           "timeout=s"   => \$opts->{timeout}, #TODO: JOB and SERVER timeouts!
-           "port=s"      => \$opts->{port},
+     "timeout=s"   => \$opts->{timeout}, #TODO: JOB and SERVER timeouts!
+     "port=s"      => \$opts->{port},
 	   # Post-processing
 	   "post!"      => \$opts->{post},
 	   "validate!" => \$opts->{validate},
@@ -171,6 +172,19 @@ sub read {
   }
   return;
 }
+
+sub read_json {
+  my ($self,$opts) = @_;
+  my $cmdopts = [];
+  while (my ($key,$value) = splice(@$opts,0,2)) {
+    $value = $value ? "=$value" : '';
+    next if ((!$value) && ($key =~ /^preamble|path|preload|profile|destination|postamble|base|bibliography|sitedirectory|sourcedirectory|format|mode|source|whatsin|whatsout|port|autoflush|timeout|log|inputencoding|stylesheet|css|debug|documentid/)); #TODO: How to bootstrap here to avoid preamble=&...?
+    push @$cmdopts, "--$key$value";
+  }
+  # Read into a Config object:
+  $self->read($cmdopts);
+}
+
 ###########################################
 #### Options Object Hashlike API      #####
 ###########################################
