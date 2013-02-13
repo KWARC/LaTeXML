@@ -2,7 +2,6 @@ comments =
 post =
 whatsin = fragment
 whatsout = document
-timeout = 120
 format = xhtml
 pmml =
 cmml =

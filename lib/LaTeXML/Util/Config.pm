@@ -21,13 +21,14 @@ use Pod::Usage;
 use Pod::Find qw(pod_where);
 use LaTeXML::Util::Pathname;
 use LaTeXML::Global;
-
+use Data::Dumper;
 our $PROFILES_DB={}; # Class-wide, caches all profiles that get used while the server is alive
 
 sub new {
   my ($class,%opts) = @_;
   #TODO: How about defaults in the daemon server use case? Should we support those here?
   #      or are defaults always bad/confusing to allow?
+  %opts = () unless %opts;
   bless {dirty=>1,opts=>\%opts}, $class;
 }
 
@@ -35,120 +36,148 @@ sub new {
 ###########################################
 #### Command-line reader              #####
 ###########################################
+sub getopt_specification {
+  my (%options) = @_;
+  my $opts = $options{options}||{};
+  my $spec = {
+  # Basics and Paths
+  "output=s" => \$opts->{destination}, 
+  "destination=s" => \$opts->{destination},
+  "log=s"       => \$opts->{log},
+  "preload=s" => \@{$opts->{preload}},
+  "preamble=s" => \$opts->{preamble},
+  "postamble=s" => \$opts->{postamble},
+  "base=s"  => \$opts->{base},
+  "path=s"    => \@{$opts->{paths}},
+  "quiet"     => sub { $opts->{verbosity}--; },
+  "verbose"   => sub { $opts->{verbosity}++; },
+  "strict"    => \$opts->{strict},
+  "includestyles"=> \$opts->{includestyles},
+  "inputencoding=s"=> \$opts->{inputencoding},
+  # Formats
+  "xml"       => sub { $opts->{format} = 'xml'; },
+  "tex"       => sub { $opts->{format} = 'tex'; },
+  "box"       => sub { $opts->{format} = 'box'; },
+  "bibtex"    => sub { $opts->{type}='BibTeX'; },
+  "noparse"   => sub { $opts->{mathparse} = 'no'; },
+  "format=s"   => \$opts->{format},
+  "parse=s"   => \$opts->{mathparse},
+  # Profiles
+  "profile=s"  => \$opts->{profile},
+  "cache_key=s" => \$opts->{cache_key},
+  "mode=s"  => \$opts->{profile},
+  "source=s"  => \$opts->{source},
+  # Output framing
+  "embed"   => sub { $opts->{whatsin} = 'fragment'; },
+  "whatsin=s" => \$opts->{whatsin},
+  "whatsout=s" => \$opts->{whatsout},
+  # Daemon options
+  "autoflush=i" => \$opts->{input_limit},
+  "timeout=i"   => \$opts->{timeout},
+  "expire=i"    => \$opts->{expire},
+  "address=s"   => \$opts->{address},
+  "port=i"      => \$opts->{port},
+  # Post-processing
+  "post!"      => \$opts->{post},
+  "validate!" => \$opts->{validate},
+  "omitdoctype!" => \$opts->{omitdoctype},
+  "numbersections!" => \$opts->{numbersections},
+  "timestamp=s" => \$opts->{timestamp},
+  # Various choices for math processing.
+  # Note: Could want OM embedded in mml annotation, too.
+  # In general, could(?) want multiple math reps within <Math>
+  # OR, multiple math reps combined with <mml:sematics>
+  #   or, in fact, _other_ parallel means? (om?, omdoc? ...)
+  # So, need to separate multiple transformations from the combination.
+  # However, IF combining, then will need to support a id/ref mechanism.
+  "mathimages!"                 => \$opts->{mathimages},
+  "mathimagemagnification=f"    => \$opts->{mathimagemag},
+  "linelength=i"                => \$opts->{linelength},
+  "plane1!"                     => \$opts->{plane1},
+  "hackplane1!"                 => \$opts->{hackplane1},
+  "presentationmathml|pmml"     => sub { _addMathFormat($opts,'pmml'); },
+  "contentmathml|cmml"          => sub { _addMathFormat($opts,'cmml'); },
+  "openmath|om"                 => sub { _addMathFormat($opts,'om'); },
+  "keepXMath|xmath"             => sub { _addMathFormat($opts,'xmath'); },
+  "nopresentationmathml|nopmml" => sub { _removeMathFormat($opts,'pmml'); },
+  "nocontentmathml|nocmml"      => sub { _removeMathFormat($opts,'cmml'); },
+  "noopenmath|noom"             => sub { _removeMathFormat($opts,'om'); },
+  "nokeepXMath|noxmath"         => sub { _removeMathFormat($opts,'xmath'); },
+  "parallelmath"               => \$opts->{parallelmath},
+  # Some general XSLT/CSS/JavaScript options.
+  "stylesheet=s"=>  \$opts->{stylesheet},
+  "xsltparameter=s" => sub {my ($k,$v) = split(':',$_[1]);
+                        $opts->{xsltparameter}->{$k}=$v;},
+  "css=s"       =>  \@{$opts->{css}},
+  "defaultcss!" =>  \$opts->{defaultcss},
+  "javascript=s" => \@{$opts->{javascript}},
+  "icon=s" => \$opts->{icon},
+  # Options for broader document set processing
+  "split!" => \$opts->{split},
+  "splitat=s"             =>sub { $opts->{splitat}=$_[1];
+     $opts->{split}=1 unless defined $opts->{split};},
+  "splitpath=s"           =>sub { $opts->{splitpath}=$_[1];
+     $opts->{split}=1 unless defined $opts->{split};},
+  "splitnaming=s"         =>sub { $opts->{splitnaming}=$_[1];
+     $opts->{split}=1 unless defined $opts->{split};},
+  "scan!"                 =>\$opts->{scan},
+  "crossref!"             =>\$opts->{crossref},
+  "urlstyle=s"            =>\$opts->{urlstyle} ,
+  "navigationtoc=s"       =>\$opts->{navtoc},
+  "navtoc=s"              =>\$opts->{navtoc},
+  # Generating indices
+  "index!"                =>\$opts->{index},
+  "permutedindex!"        =>\$opts->{permutedindex},
+  "splitindex!"           =>\$opts->{splitindex},
+  # Generating Bibliographies
+  "bibliography=s" => \@{$opts->{bibliographies}}, # TODO: Document
+  "splitbibliography!"    =>\$opts->{splitbibliography},
+  # Options for two phase processing
+  "prescan"               =>\$opts->{prescan},
+  "dbfile=s"              =>\$opts->{dbfile},
+  "sitedirectory=s"=>\$opts->{sitedirectory},
+  "sourcedirectory=s"=>\$opts->{sourcedirectory},
+  # For graphics: vaguely similar issues, but more limited.
+  # includegraphics images (eg. ps) can be converted to webimages (eg.png)
+  # picture/pstricks images can be converted to png or possibly svg.
+  "graphicimages!"=>\$opts->{dographics},
+  "graphicsmap=s" =>\@{$opts->{graphicsmaps}},
+  "svg!"       => \$opts->{svg},
+  "pictureimages!"=>\$opts->{picimages},
+  # HELP
+  "comments!" =>  \$opts->{comments},
+  "VERSION!"   => \$opts->{showversion},
+  "debug=s"   => \@{$opts->{debug}},
+  "documentid=s" => \$opts->{documentid},
+  "help"      => \$opts->{help}
+  };
+  return ($spec,$opts) unless ($options{type} && ($options{type} eq 'keyvals'));
+  # Representation use case:
+  my $keyvals = $options{keyvals}||[];
+  my $rep_spec = {}; # Representation specification
+  foreach my $key(keys %$spec) {
+    if ($key =~ /^(.+)=\w$/) {
+      my $name = $1;
+      $rep_spec->{$key} = sub {push @$keyvals, [$name,$_[1]]};
+    } else {
+      $rep_spec->{$key} = sub {
+        my $ctl = $_[0]->{ctl};
+        my $used = ($ctl->[0] ? 'no' : '').$ctl->[1];
+        push @$keyvals, [$used,undef]};
+    }
+  }
+  return ($rep_spec,$keyvals); 
+}
+# TODO: Separate the keyvals scan from getopt_specification()
+#       into its own sub, using @GETOPT_KEYS entirely.
+our @GETOPT_KEYS = keys %{(getopt_specification())[0]};
+
 sub read {
   my ($self,$argref) = @_;
   my $opts = $self->{opts};
   local @ARGV = @$argref;
-  GetOptions(
-	   # Basics and Paths
-	   "output=s"  => \$opts->{destination},
-     "destination=s" => \$opts->{destination},
-	   "log=s"       => \$opts->{log},
-	   "preload=s" => \@{$opts->{preload}},
-	   "preamble=s" => \$opts->{preamble},
-	   "postamble=s" => \$opts->{postamble},
-     "base=s"  => \$opts->{base},
-	   "path=s"    => \@{$opts->{paths}},
-	   "quiet"     => sub { $opts->{verbosity}--; },
-	   "verbose"   => sub { $opts->{verbosity}++; },
-	   "strict"    => sub { $opts->{strict} = 1; },
-	   "includestyles"=> sub { $opts->{includestyles} = 1; },
-	   "inputencoding=s"=> \$opts->{inputencoding},
-	   # Formats
-	   "xml"       => sub { $opts->{format} = 'xml'; },
-	   "tex"       => sub { $opts->{format} = 'tex'; },
-	   "box"       => sub { $opts->{format} = 'box'; },
-	   "bibtex"    => sub { $opts->{type}='BibTeX'; },
-	   "noparse"   => sub { $opts->{mathparse} = 0; },
-	   "format=s"   => \$opts->{format},
-	   "parse=s"   => \$opts->{mathparse},
-	   # Profiles
-	   "profile=s"  => \$opts->{profile},
-     "cache_key=s" => \$opts->{cache_key},
-	   "mode=s"  => \$opts->{profile},
-     "source=s"  => \$opts->{source},
-	   # Output framing
-     "embed"   => sub { $opts->{whatsin} = 'fragment'; },
-	   "whatsin=s" => \$opts->{whatsin},
-	   "whatsout=s" => \$opts->{whatsout},
-	   # Daemon options
-	   "autoflush=s" => \$opts->{input_limit},
-     "timeout=s"   => \$opts->{timeout}, #TODO: JOB and SERVER timeouts!
-     "port=s"      => \$opts->{port},
-	   # Post-processing
-	   "post!"      => \$opts->{post},
-	   "validate!" => \$opts->{validate},
-	   "omitdoctype!" => \$opts->{omitdoctype},
-	   "numbersections!" => \$opts->{numbersections},
-	   "timestamp=s" => \$opts->{timestamp},
-	   # Various choices for math processing.
-	   # Note: Could want OM embedded in mml annotation, too.
-	   # In general, could(?) want multiple math reps within <Math>
-	   # OR, multiple math reps combined with <mml:sematics>
-	   #   or, in fact, _other_ parallel means? (om?, omdoc? ...)
-	   # So, need to separate multiple transformations from the combination.
-	   # However, IF combining, then will need to support a id/ref mechanism.
-	   "mathimages!"                 => \$opts->{mathimages},
-	   "mathimagemagnification=f"    => \$opts->{mathimagemag},
-	   "linelength=i"                => \$opts->{linelength},
-	   "plane1!"                     => \$opts->{plane1},
-	   "hackplane1!"                 => \$opts->{hackplane1},
-	   "presentationmathml|pmml"     => sub { _addMathFormat($opts,'pmml'); },
-	   "contentmathml|cmml"          => sub { _addMathFormat($opts,'cmml'); },
-	   "openmath|om"                 => sub { _addMathFormat($opts,'om'); },
-	   "keepXMath|xmath"             => sub { _addMathFormat($opts,'xmath'); },
-	   "nopresentationmathml|nopmml" => sub { _removeMathFormat($opts,'pmml'); },
-	   "nocontentmathml|nocmml"      => sub { _removeMathFormat($opts,'cmml'); },
-	   "noopenmath|noom"             => sub { _removeMathFormat($opts,'om'); },
-	   "nokeepXMath|noxmath"         => sub { _removeMathFormat($opts,'xmath'); },
-	   "parallelmath"               => sub { $opts->{parallelmath} = 1;},
-	   # Some general XSLT/CSS/JavaScript options.
-	   "stylesheet=s"=>  \$opts->{stylesheet},
-           "xsltparameter=s" => sub {my ($k,$v) = split(':',$_[1]);
-                                  $opts->{xsltparameter}->{$k}=$v;},
-	   "css=s"       =>  \@{$opts->{css}},
-	   "defaultcss!" =>  \$opts->{defaultcss},
-	   "javascript=s" => \@{$opts->{javascript}},
-	   "icon=s" => \$opts->{icon},
-	   # Options for broader document set processing
-	   "split!" => \$opts->{split},
-  	   "splitat=s"             =>sub { $opts->{splitat}=$_[1];
-					   $opts->{split}=1 unless defined $opts->{split};},
-	   "splitpath=s"           =>sub { $opts->{splitpath}=$_[1];
-					   $opts->{split}=1 unless defined $opts->{split};},
-	   "splitnaming=s"         =>sub { $opts->{splitnaming}=$_[1];
-					   $opts->{split}=1 unless defined $opts->{split};},
-	   "scan!"                 =>\$opts->{scan},
-	   "crossref!"             =>\$opts->{crossref},
-	   "urlstyle=s"            =>\$opts->{urlstyle} ,
-	   "navigationtoc=s"       =>\$opts->{navtoc},
-	   "navtoc=s"              =>\$opts->{navtoc},
-	   # Generating indices
-	   "index!"                =>\$opts->{index},
-	   "permutedindex!"        =>\$opts->{permutedindex},
-	   "splitindex!"           =>\$opts->{splitindex},
-	   # Generating Bibliographies
-	   "bibliography=s" => \@{$opts->{bibliographies}}, # TODO: Document
-	   "splitbibliography!"    =>\$opts->{splitbibliography},
-	   # Options for two phase processing
-	   "prescan"               =>\$opts->{prescan},
-	   "dbfile=s"              =>\$opts->{dbfile},
-	   "sitedirectory=s"=>\$opts->{sitedirectory},
-	   "sourcedirectory=s"=>\$opts->{sourcedirectory},
-	   # For graphics: vaguely similar issues, but more limited.
-	   # includegraphics images (eg. ps) can be converted to webimages (eg.png)
-	   # picture/pstricks images can be converted to png or possibly svg.
-	   "graphicimages!"=>\$opts->{dographics},
-	   "graphicsmap=s" =>\@{$opts->{graphicsmaps}},
-	   "svg!"       => \$opts->{svg},
-	   "pictureimages!"=>\$opts->{picimages},
-	    # HELP
-	   "comments!" =>  \$opts->{comments},
-	   "VERSION!"   => \$opts->{showversion},
-	   "debug=s"   => \@{$opts->{debug}},
-	   "documentid=s" => \$opts->{documentid},
-	   "help"      => sub { $opts->{help} = 1; } ,
-	  ) or pod2usage(-message => $LaTeXML::Version::IDENTITY, -exitval=>1, -verbose=>99,
+  my ($spec) = getopt_specification(options=>$opts);
+  GetOptions(%{$spec}) or pod2usage(-message => $LaTeXML::Version::IDENTITY, -exitval=>1, -verbose=>99,
 			 -input => pod_where({-inc => 1}, __PACKAGE__),
 			 -sections => 'OPTIONS/SYNOPSIS', -output=>\*STDERR);
 
@@ -173,16 +202,29 @@ sub read {
   return;
 }
 
-sub read_json {
+sub read_keyvals {
   my ($self,$opts) = @_;
   my $cmdopts = [];
   while (my ($key,$value) = splice(@$opts,0,2)) {
+    # TODO: Is skipping over empty values ever harmful? Do we have non-empty defaults anywhere?
+    next if (!$value) && (grep {/^$key\=/} @GETOPT_KEYS);
+    $key = "--$key" unless $key=~/^\-\-/;
     $value = $value ? "=$value" : '';
-    next if ((!$value) && ($key =~ /^preamble|path|preload|profile|destination|postamble|base|bibliography|sitedirectory|sourcedirectory|format|mode|source|whatsin|whatsout|port|autoflush|timeout|log|inputencoding|stylesheet|css|debug|documentid/)); #TODO: How to bootstrap here to avoid preamble=&...?
-    push @$cmdopts, "--$key$value";
+    push @$cmdopts, "$key$value";
   }
   # Read into a Config object:
   $self->read($cmdopts);
+}
+
+sub scan_to_keyvals {
+  my ($self,$argref) = @_;
+  local @ARGV = @$argref;
+  my ($spec,$keyvals) = getopt_specification(type=>'keyvals');
+  GetOptions(%$spec) or pod2usage(-message => $LaTeXML::Version::IDENTITY, -exitval=>1, -verbose=>99,
+       -input => pod_where({-inc => 1}, __PACKAGE__),
+       -sections => 'OPTIONS/SYNOPSIS', -output=>\*STDERR);
+  push @$keyvals, ['source',$ARGV[0]] if $ARGV[0];
+  return $keyvals;  
 }
 
 ###########################################
@@ -215,7 +257,7 @@ sub options {
   $self->{opts};
 }
 sub clone {
-  my ($self)=@_;
+  my ($self) = @_;
   my $clone = LaTeXML::Util::Config->new(%{$self->options});
   $clone->{dirty} = $self->{dirty};
   $clone;
@@ -293,6 +335,7 @@ sub _prepare_options {
   #======================================================================
   eval "\$LaTeXML::".$_."::DEBUG=1; " foreach @{$opts->{debug}};
   $opts->{timeout} = 600 if ((! defined $opts->{timeout}) || ($opts->{timeout} !~ /\d+/)); # 10 minute timeout default
+  $opts->{expire} = 600 if ((! defined $opts->{expire}) || ($opts->{expire} !~ /\d+/)); # 10 minute timeout default
   $opts->{dographics} = 1 unless defined $opts->{dographics}; #TODO: Careful, POST overlap!
   $opts->{mathparse} = 'RecDescent' unless defined $opts->{mathparse};
   $opts->{mathparse} = 0 if ($opts->{mathparse} eq 'no');
@@ -629,9 +672,9 @@ latexmls/latexmlc [options]
  --autoflush=count  Automatically restart the daemon after 
                     "count" inputs. Good practice for vast batch 
                     jobs. (default: 100)
- --timeout=secs     Set a timeout value for inactivity.
-                    Default is 600 seconds, set 0 to disable.
-                    Also used to terminate processing jobs
+ --timeout=secs     Time cap for conversion jobs (default 600)
+ --expire=secs      Time cap for server inactivity (default 600)
+ --address=URL      Specify server address (default: localhost)
  --port=number      Specify server port (default: 3354)
  --documentid=id    assign an id to the document root.
  --quiet            suppress messages (can repeat)
@@ -762,11 +805,22 @@ Specifies the log file; be default any conversion messages are printed to STDERR
 Automatically restart the daemon after converting "count" inputs.
     Good practice for vast batch jobs. (default: 100)
     
-=item C<--timeout>=I<secs>
+=item C<--expire>=I<secs>
 
 Set an inactivity timeout value in seconds. If the daemon is not given any input
     for the timeout period it will automatically self-destruct.
-    The default value is 600 seconds, set to 0 to disable.
+    The default value is 600 seconds, set to 0 to never expire,
+     -1 to entirely opt out of using a server.
+
+=item C<--timeout>=I<secs>
+
+Set time cap for conversion jobs, in seconds. Any job failing to convert in the
+    time range would return with a Fatal error of timing out.
+    Default value is 600, set to 0 to disable.
+
+=item C<--address>=I<URL>
+
+Specify server address (default: localhost)
 
 =item C<--port>=I<number>
 

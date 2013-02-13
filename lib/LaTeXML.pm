@@ -189,7 +189,7 @@ sub convertDocument {
      $model->applyRewrites($document,$document->getDocument->documentElement);
      NoteEnd("Rewriting");
 
-     LaTeXML::MathParser->new(parser=>$self->{mathparse})->parseMath($document) if $self->{mathparse};
+     LaTeXML::MathParser->new(parser=>$self->{mathparse})->parseMath($document) if ($self->{mathparse} && ($self->{mathparse} ne 'no'));
      NoteBegin("Finalizing");
      my $xmldoc = $document->finalize();
      NoteEnd("Finalizing");

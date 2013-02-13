@@ -1,5 +1,4 @@
 comments =
-timeout = 120
 xml =
 preload = ids.sty
 path = $LATEXMLINPUTS

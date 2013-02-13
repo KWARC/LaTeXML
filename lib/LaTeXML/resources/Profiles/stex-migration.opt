@@ -1,5 +1,4 @@
 comments =
-timeout = 120
 format = xml
 whatsin = document
 whatsout = document

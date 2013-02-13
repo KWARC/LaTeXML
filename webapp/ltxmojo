@@ -16,7 +16,7 @@ use Mojo::ByteStream qw(b);
 use Archive::Zip qw(:CONSTANTS :ERROR_CODES);
 use IO::String;
 use File::Path;
-#use Data::Dumper;
+use Data::Dumper;
 use Encode;
 
 use Startup;
@@ -85,10 +85,10 @@ helper convert_zip => sub {
     }
     push @$opts, ($key,$value);
   }
-  push @$opts, ('paths',[$srcdir]);
+  push @$opts, ('path',$srcdir);
 
   my $config = LateXML::Util::Config->new();
-  $config->read_json($opts);
+  $config->read_keyvals($opts);
   my $converter = LaTeXML::Converter->get_converter($opts);
   #Override/extend with session-specific options in $opt:
   $converter->prepare_session($opts);
@@ -181,7 +181,9 @@ helper convert_string => sub {
     push @$opts, ($key,$value);
   }
   my $config = LaTeXML::Util::Config->new();
-  $config->read_json($opts);
+  print STDERR Dumper($opts);
+  $config->read_keyvals($opts);
+    print STDERR Dumper($config);
   # We now have a LaTeXML config object - $config.
   my $converter = LaTeXML::Converter->get_converter($config);
 

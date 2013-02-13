@@ -1,5 +1,4 @@
 comments =
-timeout = 120
 parse = Marpa
 format = xhtml
 pmml =

@@ -1,6 +1,5 @@
 comments =
 post =
-timeout = 120
 format = xml
 whatsin = math
 whatsout = document
