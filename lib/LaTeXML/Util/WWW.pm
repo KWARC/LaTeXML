@@ -35,9 +35,9 @@ sub auth_get {
       $realm = $1;
     }
     # Prompt for username pass for this location:
-    my $req; my $tries=3;
+    my $req; my $tries=2;
     my ($uname,$pass) = @{$$authlist{$realm}} if $$authlist{$realm};
-    while (!($response && $response->is_success) && $tries>0) { # 3 tries
+    while (!($response && $response->is_success) && $tries>0) { # 2 tries
       $tries--;
       if (!$uname) {
         $req = HTTP::Request->new(GET => $url);
@@ -51,6 +51,7 @@ sub auth_get {
       }
     }
   }
+  return auth_get("$url.tex",$authlist) if ((!$response->is_success) && $url!~/\.tex$/);
   Fatal('www','get',$url,'HTTP GET failed with: "'.$response->message.'"') unless ($response->is_success);
   $response->content;
 }
