@@ -8,7 +8,7 @@ use warnings;
 
 use Cwd qw(cwd abs_path);
 use IO::Socket;
-use Data::Dumper;
+#use Data::Dumper;
 
 my $RealBin_safe;
 use FindBin;
@@ -53,9 +53,10 @@ $port = ($local ? 3334 : 80) unless $port; #Fall back if all fails...
 #Add some base, so that relative paths work
 my $cdir = abs_path(cwd());
 $cdir =~ s/ /\\ /g;
-$opts->set('base',$cdir);
-push @$keyvals, ['base',$cdir] unless $opts->get('base');
-
+if (! $opts->get('base')) {
+  $opts->set('base',$cdir);
+  push @$keyvals, ['base',$cdir];
+}
 # Record if destination exists, for summary
 my $deststat;
 $deststat = (stat($opts->get('destination')))[9] if $opts->get('destination');
