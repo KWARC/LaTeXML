@@ -20,6 +20,7 @@ RequirePackage('webgraphic');
 RequirePackage('html');
 RequirePackage('url');
 RequirePackage('hyperref');
+RequirePackage('graphicx');
 
 # Metadata namespaces:
 my $pmbaseURI = "http://alpha.planetmath.org"; # Careful: Get the URI right before we publish LOD
@@ -106,7 +107,7 @@ DefConstructor('\webgraphic OptionalKeyVals:webgraphic {}',
       $rdf->setAttribute('resource'=>$whatsit->getProperty('url'));
       $document->closeElement('ltx:rdf');
       $document->setNode($savenode);
-      print STDERR "\n\nDOC: ".$document->getDocument->toString(1)."\n\n";
+      #print STDERR "\n\nDOC: ".$document->getDocument->toString(1)."\n\n";
       return;
     }});
 
