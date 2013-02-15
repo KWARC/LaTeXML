@@ -20,7 +20,6 @@ RequirePackage('webgraphic');
 RequirePackage('html');
 RequirePackage('url');
 RequirePackage('hyperref');
-RequirePackage('graphicx');
 
 # Metadata namespaces:
 my $pmbaseURI = "http://alpha.planetmath.org"; # Careful: Get the URI right before we publish LOD
@@ -80,18 +79,22 @@ DefMacro('\pmprivacy{}','\pmmeta@literal@adhoc{privacy}{#1}');
 # TODO: Make this robust and relativize paths when we have Drupal rewriting!
 # Basically, we're transforming the graphics options into graphicx format.
 my $graphicURL = 'http://alpha.planetmath.org/sites/default/files/pictures/';
-DefMacro('\includegraphics','\webgraphic'); # Handy alias
-DefKeyVal('webgraphic','width','Semiverbatim');
-DefKeyVal('webgraphic','height','Semiverbatim');
-DefKeyVal('webgraphic','local','Semiverbatim');
+DefKeyVal('webgraphic','width','Dimension');
+DefKeyVal('webgraphic','height','Dimension');
 DefKeyVal('webgraphic','alt','Semiverbatim');
-DefConstructor('\webgraphic OptionalKeyVals:webgraphic {}',
+DefKeyVal('webgraphic','keepaspectratio','','true');
+DefKeyVal('webgraphic','clip','','true');
+DefKeyVal('webgraphic','magnifiable','','true');
+
+DefMacro('\includegraphics','\webgraphic'); # Handy alias
+DefConstructor('\webgraphic OptionalMatch:* OptionalKeyVals:webgraphic Semiverbatim',
        "<ltx:graphics imagesrc='#url' "
        . "?#1("
        . "?&KeyVal(#1,'width')(imagewidth='&KeyVal(#1,'width')' )()"
        . "?&KeyVal(#1,'height')(imageheight='&KeyVal(#1,'height')' )()"
        . "?&KeyVal(#1,'alt')(description='&KeyVal(#1,'alt')' )()"
        . ")() />",
+  alias=>'\includegraphics',
   properties=> sub {
     my $src = $graphicURL.ToString($_[2]);
     $src .= '.png' unless ($src =~ /\.(\w{3})$/);
@@ -107,7 +110,6 @@ DefConstructor('\webgraphic OptionalKeyVals:webgraphic {}',
       $rdf->setAttribute('resource'=>$whatsit->getProperty('url'));
       $document->closeElement('ltx:rdf');
       $document->setNode($savenode);
-      #print STDERR "\n\nDOC: ".$document->getDocument->toString(1)."\n\n";
       return;
     }});
 
