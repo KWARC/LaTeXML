@@ -16,7 +16,7 @@ use Mojo::ByteStream qw(b);
 use Archive::Zip qw(:CONSTANTS :ERROR_CODES);
 use IO::String;
 use File::Path;
-use Data::Dumper;
+#use Data::Dumper;
 use Encode;
 
 use Startup;
@@ -181,9 +181,7 @@ helper convert_string => sub {
     push @$opts, ($key,$value);
   }
   my $config = LaTeXML::Util::Config->new();
-  print STDERR Dumper($opts);
   $config->read_keyvals($opts);
-    print STDERR Dumper($config);
   # We now have a LaTeXML config object - $config.
   my $converter = LaTeXML::Converter->get_converter($config);
 
