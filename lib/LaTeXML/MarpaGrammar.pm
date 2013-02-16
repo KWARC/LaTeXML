@@ -51,8 +51,8 @@ our $RULES = [
               ['Term',[qw/Term _ ADDOP _ TermArgument/],'infix_apply_term'],
 
               # I.1.3. Infix Operator - Type Constructors
-              ['Type',[qw/FactorArgument _ ARROW _ FactorArgument/],'infix_apply_type'],
-              ['Type',[qw/Type _ ARROW _ FactorArgument/],'infix_apply_type'],
+              ['Type',[qw/Factor _ ARROW _ Factor/],'infix_apply_type'],
+              ['Type',[qw/Type _ ARROW _ Factor/],'infix_apply_type'],
               ['Termlike',['Type']], # Types should be allowed as terminals
 
               # I.1.4. Infix Logical Operators
@@ -137,13 +137,14 @@ our $RULES = [
 
       	      # IV.1.2. Infix Modifier - Typing
               #['Entry',[qw/FactorArgument _ COLON _ Type/],'infix_apply'],
-              ['FactorArgument',[qw/FactorArgument _ COLON _ Type/],'infix_apply_term'],
-              ['TermArgument',[qw/TermArgument _ COLON _ Type/],'infix_apply_term'],
+              ['PostTerm',[qw/FactorArgument _ COLON _ Factor/],'infix_apply_term'], # Base types x : A
+              ['PostTerm',[qw/FactorArgument _ COLON _ Type/],'infix_apply_term'], # Function types
+              ['PostTerm',[qw/TermArgument _ COLON _ Type/],'infix_apply_term'],
               ['FormulaArgument',[qw/FormulaArgument _ COLON _ Type/],'infix_apply_formula'],
 
               # V. Fences
               ['FactorArgument',[qw/OPEN _ CLOSE/],'fenced_empty'],
-              ['FactorArgument',[qw/OPEN _ Term _ CLOSE/],'fenced'],
+              ['FactorArgument',[qw/OPEN _ Entry _ CLOSE/],'fenced'],
               ['FormulaArgument',[qw/OPEN _ Formula _ CLOSE/],'fenced'],
               ['RelativeFormulaArgument',[qw/OPEN _ RelativeFormula _ CLOSE/],'fenced'], # Examples???
               ['ADDOP',[qw/OPEN _ ADDOP _ CLOSE/],'fenced'], # (-) ?? TODO: what about the other ops?
@@ -218,14 +219,18 @@ our $RULES = [
               ['METARELOP',['EQUALS']],
               ['METARELOP',['VERTBAR']],
               ['ADDOP',['LOGICOP']], # Boolean algebra, lattices
+              ['ADDOP',['MODIFIER']], # TODO: \pmod ? Where does it fit?
               ['ADDOP',['ADDOPTerminal']],
               ['MULOP',['MULOPTerminal']],
+              ['MULOP',['PERIOD']], # TODO: Think about PERIOD, lex?
               ['MULOP',['VERTBAR']],
               ['LOGICOP',['LOGICOPTerminal']],
               ['ARROW',['ARROWTerminal']],
               ['SUPOP',['SUPOPTerminal']],
               ['PREFIX',['TRIGFUNCTION']],
               ['PREFIX',['OPFUNCTION']],
+              ['PREFIX',['FUNCTION']],
+              ['PREFIX',['MODIFIEROP']], #TODO: Think this through, maybe lex change
               ['PREFIX',['LIMITOP']],
               ['PREFIX',['OPERATOR']],
               ['PREFIX',['PREFIXTerminal']],
@@ -233,6 +238,7 @@ our $RULES = [
               ['POSTFIX',['POSTFIXTerminal']], # TODO: Look into postfix lexing
               ['BIGOP',['SUMOP']],
               ['BIGOP',['INTOP']],
+              ['BIGOP',['BIGOPTerminal']],
               # XI. Start:
               ['Start',['Termlike'],'finalize'],
               ['Start',['Formula'],'finalize'],
@@ -304,8 +310,7 @@ sub parse {
     } elsif ($category eq 'RELOP') {
       $category = 'EQUALS' if ($lexeme eq 'equals');
     }
-
-    $category.='Terminal' if $category =~ /^(((META)?REL|ADD|LOGIC|MUL|SUP)OP)|ARROW|P(RE|OST)FIX$/;
+    $category.='Terminal' if $category =~ /^(((META)?REL|ADD|LOGIC|MUL|SUP|BIG)OP)|ARROW|P(RE|OST)FIX$/;
     #print STDERR "$category:$lexeme:$id\n";
     $rec_events = $rec->read($category,$lexeme.':'.$id);
     if (! defined $rec_events) {
