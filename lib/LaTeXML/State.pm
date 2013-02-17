@@ -85,7 +85,7 @@ use LaTeXML::Global;
 sub new {
   my($class, %options)=@_;
   my $self = bless {table=>{}, undo=>[{_FRAME_LOCK_=>1}], prefixes=>{}, status=>{},
-		    stomach=>$options{stomach}, model=>$options{model}}, $class; 
+		    stomach=>$options{stomach}, model=>$options{model}, mathparser=>$options{mathparser}}, $class; 
   $$self{table}{value}{VERBOSITY}=[0];
   if($options{catcodes} =~ /^(standard|style)/){
     # Setup default catcodes.
@@ -143,8 +143,9 @@ sub assign_internal {
   }}
 
 #======================================================================
-sub getStomach { $_[0]->{stomach}; }
-sub getModel   { $_[0]->{model}; }
+sub getStomach     { $_[0]->{stomach}; }
+sub getModel       { $_[0]->{model}; }
+sub getMathParser  { $_[0]->{mathparser}; }
 
 #======================================================================
 

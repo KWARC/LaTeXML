@@ -42,6 +42,7 @@ sub new {
   my($class,%options)=@_;
   my $state     = LaTeXML::State->new(catcodes=>'standard',
 				      stomach=>LaTeXML::Stomach->new(),
+              mathparser=>LaTeXML::MathParser->new(),
 				      model  => $options{model} || LaTeXML::Model->new());
   $state->assignValue(VERBOSITY=>(defined $options{verbosity} ? $options{verbosity} : 0),
 		      'global');
@@ -170,6 +171,7 @@ sub convertDocument {
   $self->withState(sub {
      my($state)=@_;
      my $model    = $state->getModel;   # The document model.
+     my $math_parser = $state->getMathParser;
      my $document  = LaTeXML::Document->new($model);
      local $LaTeXML::DOCUMENT = $document;
      NoteBegin("Building");
@@ -189,7 +191,7 @@ sub convertDocument {
      $model->applyRewrites($document,$document->getDocument->documentElement);
      NoteEnd("Rewriting");
 
-     LaTeXML::MathParser->new(parser=>$self->{mathparse})->parseMath($document) if ($self->{mathparse} && ($self->{mathparse} ne 'no'));
+     $math_parser->parseMath($document,parser=>$self->{mathparse}) if ($self->{mathparse} && ($self->{mathparse} ne 'no'));
      NoteBegin("Finalizing");
      my $xmldoc = $document->finalize();
      NoteEnd("Finalizing");

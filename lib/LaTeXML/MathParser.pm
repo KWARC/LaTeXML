@@ -45,26 +45,29 @@ our $DEFAULT_FONT = LaTeXML::MathFont->new(family=>'serif', series=>'medium',
 
 # ================================================================================
 sub new {
-  my($class,%options)=@_;
-  my $internalparser;
-  my $parse;
-  if ($options{parser} =~ /^marpa/i) {
-    require LaTeXML::MarpaGrammar;
-    $internalparser = LaTeXML::MarpaGrammar->new();
-    $parse = sub { $internalparser->parse(@_); }
-  } else {
-    require LaTeXML::MathGrammar;
-    $internalparser = LaTeXML::MathGrammar->new();
-    $parse = sub { my ($rule,$unparsed) = @_;
-                   $internalparser->$rule($unparsed); }
-  }
-  die("Math Parser grammar failed") unless $internalparser;
-
-  my $self = bless {invoke=>$parse},$class;
+  my($class)=@_;
+  my $self = bless {type=>'undef'},$class;
   $self; }
 
 sub parseMath {
   my($self,$document,%options)=@_;
+  if ($options{parser}) {
+    if (lc($options{parser}) ne $self->{type}) {
+      my $parse;
+      if ($options{parser} =~ /^marpa/i) {
+        require LaTeXML::MarpaGrammar;
+        my $internalparser = LaTeXML::MarpaGrammar->new();
+        $parse = sub { $internalparser->parse(@_); }
+      } else {
+        require LaTeXML::MathGrammar;
+        my $internalparser = LaTeXML::MathGrammar->new();
+        $parse = sub { my ($rule,$unparsed) = @_;
+                    $internalparser->$rule($unparsed); }
+      }
+      $self->{invoke} = $parse;
+      $self->{type} = lc($options{parser});
+    }
+  }
   local $LaTeXML::MathParser::DOCUMENT = $document;
   $self->clear;			# Not reentrant!
   if(my @math =  $document->findnodes('descendant-or-self::ltx:XMath[not(ancestor::ltx:XMath)]')){
