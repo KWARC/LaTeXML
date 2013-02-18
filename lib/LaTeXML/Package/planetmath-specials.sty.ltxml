@@ -66,8 +66,7 @@ DefMacro('\pmtitle{}','\title{#1}\pmmeta@literal@dct{title}{#1}');
 DefMacro('\pmtype{}','\pmmeta@literal@dct{type}{#1}'); # Maybe types are resources?
 DefMacro('\pmauthor{}{}','\pmmeta@uri@dct{creator}{\userURI{#1}}'); # First argument is a username, second DB id (ignore second).
 DefMacro('\pmclassification{}{}','\pmmeta@uri@dct{subject}{#1:#2}'); #Arbitrary metadata, simply register the #1 argument as a namespace (e.g. msc)
-DefMacro('\pmprivacy{}','\pmmeta@literal@adhoc{privacy}{#1}');
-
+DefMacro('\pmprivacy{}','\pmmeta@literal@adhoc[xsd:integer]{privacy}{#1}');
 #FUTURE: add, as much as you have information, additional triples:
 #<some-URI-you-made-up-from-the-authors-ID> rdf:type foaf:Person ;
 #  foaf:name "Name" ;
