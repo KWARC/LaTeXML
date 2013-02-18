@@ -66,8 +66,7 @@ DefMacro('\pmtitle{}','\title{#1}\pmmeta@literal@dct{title}{#1}');
 DefMacro('\pmtype{}','\pmmeta@literal@dct{type}{#1}'); # Maybe types are resources?
 DefMacro('\pmauthor{}{}','\pmmeta@uri@dct{creator}{\userURI{#1}}'); # First argument is a username, second DB id (ignore second).
 DefMacro('\pmclassification{}{}','\pmmeta@uri@dct{subject}{#1:#2}'); #Arbitrary metadata, simply register the #1 argument as a namespace (e.g. msc)
-DefMacro('\pmprivacy{}','\pmmeta@literal@adhoc{privacy}{#1}');
-
+DefMacro('\pmprivacy{}','\pmmeta@literal@adhoc[xsd:integer]{privacy}{#1}');
 #FUTURE: add, as much as you have information, additional triples:
 #<some-URI-you-made-up-from-the-authors-ID> rdf:type foaf:Person ;
 #  foaf:name "Name" ;
@@ -79,24 +78,24 @@ DefMacro('\pmprivacy{}','\pmmeta@literal@adhoc{privacy}{#1}');
 # TODO: Make this robust and relativize paths when we have Drupal rewriting!
 # Basically, we're transforming the graphics options into graphicx format.
 my $graphicURL = 'http://alpha.planetmath.org/sites/default/files/pictures/';
-DefKeyVal('webgraphic','width','Dimension');
-DefKeyVal('webgraphic','height','Dimension');
-DefKeyVal('webgraphic','alt','Semiverbatim');
-DefKeyVal('webgraphic','keepaspectratio','','true');
-DefKeyVal('webgraphic','clip','','true');
-DefKeyVal('webgraphic','magnifiable','','true');
+DefKeyVal('pmgraphic','width','Dimension');
+DefKeyVal('pmgraphic','height','Dimension');
+DefKeyVal('pmgraphic','alt','Semiverbatim');
+DefKeyVal('pmgraphic','keepaspectratio','','true');
+DefKeyVal('pmgraphic','clip','','true');
+DefKeyVal('pmgraphic','magnifiable','','true');
 
-DefMacro('\includegraphics','\webgraphic'); # Handy alias
-DefConstructor('\webgraphic OptionalMatch:* OptionalKeyVals:webgraphic Semiverbatim',
+DefMacro('\includegraphics','\pmincludegraphics'); # Handy alias
+DefConstructor('\pmincludegraphics OptionalMatch:* OptionalKeyVals:pmgraphic Semiverbatim',
        "<ltx:graphics imagesrc='#url' "
        . "?#1("
-       . "?&KeyVal(#1,'width')(imagewidth='&KeyVal(#1,'width')' )()"
-       . "?&KeyVal(#1,'height')(imageheight='&KeyVal(#1,'height')' )()"
+       . "?&KeyVal(#1,'width')(width='&KeyVal(#1,'width')' )()"
+       . "?&KeyVal(#1,'height')(height='&KeyVal(#1,'height')' )()"
        . "?&KeyVal(#1,'alt')(description='&KeyVal(#1,'alt')' )()"
        . ")() />",
   alias=>'\includegraphics',
   properties=> sub {
-    my $src = $graphicURL.ToString($_[2]);
+    my $src = $graphicURL.ToString($_[3]);
     $src .= '.png' unless ($src =~ /\.(\w{3})$/);
     (url=>$src); },
   beforeConstruct=> sub {
