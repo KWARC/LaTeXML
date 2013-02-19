@@ -106,10 +106,9 @@ sub getopt_specification {
   "parallelmath"               => \$opts->{parallelmath},
   # Some general XSLT/CSS/JavaScript options.
   "stylesheet=s"=>  \$opts->{stylesheet},
-  "xsltparameter=s" => sub {my ($k,$v) = split(':',$_[1]);
-                        $opts->{xsltparameter}->{$k}=$v;},
+  "xsltparameter=s" => \@{$opts->{xsltparameters}},
   "css=s"       =>  \@{$opts->{css}},
-  "defaultcss!" =>  \$opts->{defaultcss},
+  "defaultresources!" =>  \$opts->{defaultresources},
   "javascript=s" => \@{$opts->{javascript}},
   "icon=s" => \$opts->{icon},
   # Options for broader document set processing
@@ -709,7 +708,10 @@ latexmls/latexmlc [options]
                     to be used by the post-processor.
  --css=cssfile           adds a css stylesheet to html/xhtml
                          (can be repeated)
- --nodefaultcss          disables the default css stylesheet
+ --nodefaultresources    disables processing built-in resources
+ --javscript=jsfile      adds a link to a javascript file into
+                         html/html5/xhtml (can be repeated)
+ --xsltparameter=name:value passes parameters to the XSLT stylesheet.
  --sitedirectory=dir     specifies the base directory of the site
  --sourcedirectory=dir   specifies the base directory of the
                            original TeX source
@@ -960,16 +962,36 @@ Sets a stylesheet of choice to be used by the postprocessor.
 Adds I<cssfile> as a css stylesheet to be used in the transformed html/xhtml.
     Multiple stylesheets can be used; they are included in the html in the
     order given, following the default C<core.css>
-    (but see C<--nodefaultcss>). Some stylesheets included in the distribution are
+    (but see C<--nodefaultresources>). Some stylesheets included in the distribution are
   --css=navbar-left   Puts a navigation bar on the left.
                       (default omits navbar)
   --css=navbar-right  Puts a navigation bar on the left.
   --css=theme-blue    A blue coloring theme for headings.
   --css=amsart        A style suitable for journal articles.
 
-=item C<--nodefaultcss>
+=item C<--javascript>=I<jsfile>
 
-Disables the inclusion of the default C<core.css> stylesheet.
+Includes a link to the javascript file I<jsfile>, to be used in the transformed html/html5/xhtml.
+Multiple javascript files can be included; they are linked in the html in the order given.
+The javascript file is copied to the destination directory, unless it is an absolute url.
+
+=item C<--nodefaultresources>
+
+Disables the copying and inclusion of resources added by the binding files;
+This includes CSS, javascript or other files.  This does not affect
+resources explicitly requested by the C<--css> or C<--javascript> options.
+
+=item C<--timestamp>=I<timestamp>
+
+Provides a timestamp (typically a time and date) to be embedded in
+the comments by the stock XSLT stylesheets.
+If you don't supply a timestamp, the current time and date will be used.
+(You can use C<--timestamp=0> to omit the timestamp).
+
+=item C<--xsltparameter>=I<name>:I<value>
+
+Passes parameters to the XSLT stylesheet.
+See the manual or the stylesheet itself for available parameters.
 
 =item C<--nocomments>
 

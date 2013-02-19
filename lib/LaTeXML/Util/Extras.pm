@@ -84,11 +84,11 @@ sub GetMath {
 sub GetEmbeddable {
   my ($doc) = @_;
   return unless defined $doc;
-  my ($embeddable) = $doc->findnodes('//*[@class="document"]');
+  my ($embeddable) = $doc->findnodes('//*[@class="ltx_document"]');
   if ($embeddable) {
     # Only one child? Then get it, must be a inline-compatible one!
     while (($embeddable->nodeName eq 'div') && (scalar(@{$embeddable->childNodes}) == 1) &&
-	   ($embeddable->getAttribute('class') =~ /^main|content|document|para|header$/) && 
+	   ($embeddable->getAttribute('class') =~ /^ltx_(page_(main|content)|document|para|header)$/) && 
 	   (! defined $embeddable->getAttribute('style'))) {
       if (defined $embeddable->firstChild) {
 	$embeddable=$embeddable->firstChild;

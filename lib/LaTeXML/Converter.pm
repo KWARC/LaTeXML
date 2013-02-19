@@ -293,16 +293,14 @@ sub convert_post {
   my ($self,$dom) = @_;
   my $opts = $self->{opts};
   my $runtime = $self->{runtime};
-  my ($xslt,$parallel,$math_formats,$format,$verbosity,$defaultcss,$embed) = 
-    map {$opts->{$_}} qw(stylesheet parallelmath math_formats format verbosity defaultcss embed);
+  my ($xslt,$parallel,$math_formats,$format,$verbosity,$defaultresources,$embed) = 
+    map {$opts->{$_}} qw(stylesheet parallelmath math_formats format verbosity defaultresources embed);
   $verbosity = $verbosity||0;
   my %PostOPS = (verbosity=>$verbosity,sourceDirectory=>$opts->{sourcedirectory}||'.',siteDirectory=>$opts->{sitedirectory}||".",nocache=>1,destination=>$opts->{destination});
   #Postprocess
-  my @css=@{$opts->{css}};
-  unshift (@css,"core.css") if $defaultcss || ((!defined $defaultcss) && (!defined $xslt));
   $parallel = $parallel||0;
   
-  my $doc = LaTeXML::Post::Document->new($dom,%PostOPS);
+  my $DOCUMENT = LaTeXML::Post::Document->new($dom,%PostOPS);
   my @procs=();
   #TODO: Add support for the following:
   my $dbfile = $opts->{dbfile};
@@ -316,7 +314,7 @@ sub convert_post {
   if ($opts->{split}) {
     require LaTeXML::Post::Split;
     push(@procs,LaTeXML::Post::Split->new(split_xpath=>$opts->{splitpath},splitnaming=>$opts->{splitnaming},
-                                          %PostOPS)); }
+                                          db=>$DB,%PostOPS)); }
   my $scanner = ($opts->{scan} || $DB) && (LaTeXML::Post::Scan->new(db=>$DB,%PostOPS));
   push(@procs,$scanner) if $opts->{scan};
   if (!($opts->{prescan})) {
@@ -336,10 +334,6 @@ sub convert_post {
 					       ($opts->{numbersections} ? (number_sections=>1):()),
 					       ($opts->{navtoc} ? (navigation_toc=>$opts->{navtoc}):()),
 					       %PostOPS)); }
-    if ($opts->{mathimages}) {
-      require LaTeXML::Post::MathImages;
-      push(@procs,LaTeXML::Post::MathImages->new(magnification=>$opts->{mathimagemag},%PostOPS));
-    }
     if ($opts->{picimages}) {
       require LaTeXML::Post::PictureImages;
       push(@procs,LaTeXML::Post::PictureImages->new(%PostOPS));
@@ -357,82 +351,123 @@ sub convert_post {
     if($opts->{svg}){
       require LaTeXML::Post::SVG;
       push(@procs,LaTeXML::Post::SVG->new(%PostOPS)); }
-    my @mprocs=();
-    ###    # If XMath is not first, it must be at END!  Or... ???
-    foreach my $fmt (@$math_formats) {
-      if($fmt eq 'xmath'){
-        require LaTeXML::Post::XMath;
-        push(@mprocs,LaTeXML::Post::XMath->new(%PostOPS)); }
-      elsif($fmt eq 'pmml'){
-        require LaTeXML::Post::MathML;
-        if(defined $opts->{linelength}){
-          push(@mprocs,LaTeXML::Post::MathML::PresentationLineBreak->new(
+    if (@$math_formats) {
+      my @mprocs=();
+      ###    # If XMath is not first, it must be at END!  Or... ???
+      foreach my $fmt (@$math_formats) {
+	if($fmt eq 'xmath'){
+	  require LaTeXML::Post::XMath;
+	  push(@mprocs,LaTeXML::Post::XMath->new(%PostOPS)); }
+	elsif($fmt eq 'pmml'){
+	  require LaTeXML::Post::MathML;
+	  if(defined $opts->{linelength}){
+	    push(@mprocs,LaTeXML::Post::MathML::PresentationLineBreak->new(
                     linelength=>$opts->{linelength},
                     (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
                     ($opts->{hackplane1} ? (hackplane1=>1):()),
                     %PostOPS)); }
-        else {
-          push(@mprocs,LaTeXML::Post::MathML::Presentation->new(
+	  else {
+	    push(@mprocs,LaTeXML::Post::MathML::Presentation->new(
                     (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
                     ($opts->{hackplane1} ? (hackplane1=>1):()),
                     %PostOPS)); }}
-      elsif($fmt eq 'cmml'){
-        require LaTeXML::Post::MathML;
-        push(@mprocs,LaTeXML::Post::MathML::Content->new(
-          (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
-          ($opts->{hackplane1} ? (hackplane1=>1):()),
-          %PostOPS)); }
-      elsif($fmt eq 'om'){
-        require LaTeXML::Post::OpenMath;
-        push(@mprocs,LaTeXML::Post::OpenMath->new(
-          (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
-          ($opts->{hackplane1} ? (hackplane1=>1):()),
-          %PostOPS)); }
-    }
-###    $keepXMath  = 0 unless defined $keepXMath;
-### OR is $parallelmath ALWAYS on whenever there's more than one math processor?
-    if($parallel) {
-      my $main = shift(@mprocs);
-      $main->setParallel(@mprocs);
-      push(@procs,$main); }
-    else {
-      push(@procs,@mprocs); }
-
-    require LaTeXML::Post::XSLT;
-    my @csspaths=();
-    if (@css) {
-      foreach my $css (@css) {
-        $css .= '.css' unless $css =~ /\.css$/;
-        # Dance, if dest is current dir, we'll find the old css before the new one!
-        my @csssources = map {pathname_canonical($_)}
-          pathname_findall($css,types=>['css'],
-			    (),
-			    installation_subdir=>'style');
-        my $csspath = pathname_absolute($css,pathname_directory('.'));
-        while (@csssources && ($csssources[0] eq $csspath)) {
-          shift(@csssources);
-        }
-        my $csssource = shift(@csssources);
-	# TODO: No! Multi-file setups need special treatment...
-	#       Switch to ZIP output here?
-	#       Should ZIP be supported within Converter already?
-	#       But, no... we don't want to ZIP if we're on the same filesystem...
-	#       Maybe return a list of resources to be included? That sounds good!!!
-        pathname_copy($csssource,$csspath)  if $csssource && -f $csssource;
-        push(@csspaths,$csspath);
+	elsif($fmt eq 'cmml'){
+	  require LaTeXML::Post::MathML;
+	  push(@mprocs,LaTeXML::Post::MathML::Content->new(
+            (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
+            ($opts->{hackplane1} ? (hackplane1=>1):()),
+            %PostOPS)); }
+	elsif($fmt eq 'om'){
+	  require LaTeXML::Post::OpenMath;
+	  push(@mprocs,LaTeXML::Post::OpenMath->new(
+            (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
+            ($opts->{hackplane1} ? (hackplane1=>1):()),
+            %PostOPS)); }
       }
+      ###    $keepXMath  = 0 unless defined $keepXMath;
+      ### OR is $parallelmath ALWAYS on whenever there's more than one math processor?
+      if($parallel) {
+	my $main = shift(@mprocs);
+	$main->setParallel(@mprocs);
+	push(@procs,$main); }
+      else {
+	push(@procs,@mprocs); }
     }
-    push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$xslt,
-					 parameters=>{
-            (@csspaths ? (CSS=>[@csspaths]):()),
-            ($opts->{xsltparameter} ? (%{$opts->{xsltparameter}}):())},
-					 %PostOPS)) if $xslt;
-  }
+    if ($opts->{mathimages}) {
+      require LaTeXML::Post::MathImages;
+      push(@procs,LaTeXML::Post::MathImages->new(magnification=>$opts->{mathimagemag},%PostOPS));
+    }
+    if ($xslt) {
+      require LaTeXML::Post::XSLT;
+      my $parameters={LATEXML_VERSION=>"'$LaTeXML::VERSION'"};
+      my @searchpaths = ('.',$DOCUMENT->getSearchPaths);
+      foreach my $css (@{$opts->{css}}) {
+	if(pathname_is_url($css)){ # external url ? no need to copy
+	  print STDERR "Using CSS=$css\n" if $verbosity > 0;
+	  push(@{$parameters->{CSS}}, $css); }
+	elsif(my $csssource = pathname_find($css, types=>['css'],paths=>[@searchpaths],
+				       installation_subdir=>'style')){
+	  print STDERR "Using CSS=$csssource\n" if $verbosity > 0;
+	  my $cssdest = pathname_absolute($css,pathname_directory($opts->{destination}));
+	  $cssdest .= '.css' unless $cssdest =~ /\.css$/;
+	  warn "CSS source $csssource is same as destination!" if $csssource eq $cssdest;
+	  pathname_copy($csssource,$cssdest) if $opts->{local}; # TODO: Look into local copying carefully
+	  push(@{$$parameters{CSS}}, $cssdest); }
+	else {
+	  warn "Couldn't find CSS file $css in paths ".join(',',@searchpaths)."\n";
+	  push(@{$$parameters{CSS}}, $css); }} # but still put the link in!
+      foreach my $js (@{$opts->{javascript}}) {
+	if (pathname_is_url($js)) { # external url ? no need to copy
+	  print STDERR "Using JAVASCRIPT=$js\n" if $verbosity > 0;
+	  push(@{$$parameters{JAVASCRIPT}}, $js);
+	} elsif (my $jssource = pathname_find($js, types=>['js'],paths=>[@searchpaths],
+					      installation_subdir=>'style')) {
+	  print STDERR "Using JAVASCRIPT=$jssource\n" if $verbosity > 0;
+	  my $jsdest = pathname_absolute($js,pathname_directory($opts->{destination}));
+	  $jsdest .= '.js' unless $jsdest =~ /\.js$/;
+	  warn "Javascript source $jssource is same as destination!" if $jssource eq $jsdest;
+	  pathname_copy($jssource,$jsdest) if $opts->{local}; #TODO: Local handling
+	  push(@{$$parameters{JAVASCRIPT}}, $jsdest);
+	} else {
+	  warn "Couldn't find Javascript file $js in paths ".join(',',@searchpaths)."\n";
+	  push(@{$$parameters{JAVASCRIPT}}, $js);
+	}
+      }				# but still put the link in!
+      if ($opts->{icon}) {
+	if (my $iconsrc = pathname_find($opts->{icon},paths=>[$DOCUMENT->getSearchPaths])) {
+	  print STDERR "Using icon=$iconsrc\n" if $verbosity > 0;
+	  my $icondest = pathname_absolute($opts->{icon},pathname_directory($opts->{destination}));
+	  pathname_copy($iconsrc,$icondest) if $opts->{local};
+	  $$parameters{ICON}=$icondest;
+	} else {
+	  warn "Couldn't find ICON ".$opts->{icon}." in paths ".join(',',@searchpaths)."\n";
+	  $$parameters{ICON}=$opts->{icon};
+	}
+      }
+      if (! defined $opts->{timestamp}) {
+	$opts->{timestamp} = localtime();
+      }
+      if ($opts->{timestamp}) {
+	$$parameters{TIMESTAMP}="'".$opts->{timestamp}."'";
+      }
+      # Now add in the explicitly given XSLT parameters
+      foreach my $parm (@{$opts->{xsltparameters}}) {
+	if ($parm =~ /^\s*(\w+)\s*:\s*(.*)$/) {
+	  $$parameters{$1}="'".$2."'";
+	} else {
+	  warn "xsltparameter not in recognized format: 'name:value' got: '$parm'\n";
+	}
+      }
 
+      push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$xslt,
+		   parameters=>$parameters,
+		   noresources=>(defined $opts->{defaultresources}) && !$opts->{defaultresources},
+		   %PostOPS)); }
+  }
   # Do the actual post-processing:
   my $postdoc;
   my $latexmlpost = LaTeXML::Post->new(verbosity=>$verbosity||0);
-  ($postdoc) = $latexmlpost->ProcessChain($doc,@procs);
+  ($postdoc) = $latexmlpost->ProcessChain($DOCUMENT,@procs);
   $DB->finish;
 
   $runtime->{status}.= "\nPost: ".$latexmlpost->getStatusMessage;

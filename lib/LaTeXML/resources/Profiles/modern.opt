@@ -3,5 +3,6 @@ parse = Marpa
 format = xhtml
 pmml =
 cmml =
+nodefaultresources = 
 preload = ids.sty
 path = $LATEXMLINPUTS

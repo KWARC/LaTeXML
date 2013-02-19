@@ -3,6 +3,8 @@
 <?latexml class="article"?>
 <?latexml RelaxNGSchema="LaTeXML"?>
 <document xmlns="http://dlmf.nist.gov/LaTeXML" xml:id="id1">
+  <resource src="LaTeXML.css" type="text/css"/>
+  <resource src="ltx-article.css" type="text/css"/>
   <para xml:id="id1.p1">
     <p xml:id="id1.p1.1">Some structure:</p>
   </para>

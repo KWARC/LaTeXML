@@ -23,4 +23,4 @@ path = $STEXSTYDIR/cmath
 path = $STEXSTYDIR/../schema/rng
 includestyles =
 stylesheet = $STEXSTYDIR/../xsl/migration.xsl
-nodefaultcss =
+nodefaultresources =

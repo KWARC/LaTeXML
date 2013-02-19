@@ -7,6 +7,7 @@ whatsin = fragment
 whatsout = fragment
 pmml =
 cmml =
+nodefaultresources = 
 preload = LaTeX.pool
 preload = article.cls
 preload = amsmath.sty

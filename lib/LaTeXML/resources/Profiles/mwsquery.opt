@@ -6,6 +6,7 @@ whatsout = document
 stylesheet = MWSquery.xsl
 pmml =
 cmml =             
+nodefaultresources = 
 preload = LaTeX.pool
 preload = article.cls
 preload = amsmath.sty

@@ -28,4 +28,4 @@ path = $STEXSTYDIR/workaddress
 path = $STEXSTYDIR/../schema/rng
 includestyles =
 stylesheet = $STEXSTYDIR/../xsl/omdocpost.xsl
-nodefaultcss =
+nodefaultresources =

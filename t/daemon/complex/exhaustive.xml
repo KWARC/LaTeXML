@@ -4,6 +4,8 @@
 <?latexml package="amsthm"?>
 <?latexml RelaxNGSchema="LaTeXML"?>
 <document xmlns="http://dlmf.nist.gov/LaTeXML" xmlns:m="http://www.w3.org/1998/Math/MathML" xml:id="Document">
+  <resource src="LaTeXML.css" type="text/css"/>
+  <resource src="ltx-article.css" type="text/css"/>
   <para xml:id="p1" fragid="p1">
     <p>Preamble file loaded</p>
   </para>

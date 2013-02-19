@@ -50,7 +50,9 @@ sub daemon_ok {
 		['log', "/dev/null"],
 		['timeout',5],
 		['autoflush',1],
-    ['nodefaultcss',''],
+		['timestamp','0'],
+		['nodefaultresources',''],
+		['xsltparameter','LATEXML_VERSION:TEST'],
 		['nocomments', ''] );
 
   my $invocation = "cd $dir; $FindBin::Bin/../blib/script/latexmlc ";
@@ -59,7 +61,7 @@ sub daemon_ok {
     if ($$opt[0] eq 'timeout') { # Ensure .opt timeout takes precedence
       if ($timed) { next; } else {$timed=1;}
     }
-    $invocation.= "--".$$opt[0].($$opt[1] ? ("='".$$opt[1]."' ") : (' '));
+    $invocation.= "--".$$opt[0].(length($$opt[1]) ? ("='".$$opt[1]."' ") : (' '));
   }
   $invocation .= " 2>$localname.test.log; cd -";
   if (!$generate) {
