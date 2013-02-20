@@ -312,4 +312,25 @@ examples['tik'] = ['\\documentclass{article}\\usepackage{tikz}\\begin{document}'
 '\\pgfxycurve(0,0)(1,3)(7,4)(0,9)',
 '\\pgffill',
 '\\end{tikzpicture}\\end{document}'].join('\n');
+
+examples['psp'] = ['\\documentclass{article}\\usepackage{pstricks}\\begin{document}',
+'{\\color{red}\\textbf{Warning:}} {\\color{blue}pstricks} support is epxerimental and at a proof-of-concept stage.\\',
+'\\begin{center}',
+'\\begin{pspicture}(-1,-0.5)(4,3.5)',
+'\\pspolygon[linecolor=blue](0,0)(0,3)(3,1)',
+'\\rput(0,-0.25){$A$}',
+'\\rput(3,0.75){$B$}',
+'\\rput(0,3.25){$C$}',
+'\\psline(0,0)(-2.5,1.35)(0,3)',
+'\\psline(-2.5,1.35)(3,1)',
+'\\rput(-2.8,1.3){$P$}',
+'\\rput(0.75,0.85){$F$}',
+'\\psline(0,3)(0.7,1.15)(0,0)',
+'\\psdot(-0.7,1.23)',
+'\\rput(-0.55,1.5){$Q$}',
+'\\psline(0,0)(-0.7,1.2)',
+'\\psdot[linecolor=red](0.7,1.15)',
+'\\end{pspicture}',
+'\\end{center}',
+'\\end{document}'].join('\n');
 }
