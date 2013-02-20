@@ -312,6 +312,7 @@ sub find_documentclass_and_packages {
   foreach my $pi ($doc->findnodes(".//processing-instruction('latexml')")){
     my $data = $pi->textContent;
     my $entry={};
+    print STDERR "\n\nData: $data\n\n";
     while($data=~ s/\s*([\w\-\_]*)=([\"\'])(.*?)\2//){
       $$entry{$1}=$3; }
     if($$entry{class}){
