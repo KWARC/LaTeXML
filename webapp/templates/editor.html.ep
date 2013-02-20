@@ -34,10 +34,10 @@ var hasPreamble = /^([\s\S]*\\begin{document})([\s\S]*)\\end{document}([\s\S]*)$
 
 var sendRequest = function(tex, my_counter, onthefly){
     if (my_counter == ac_counter) {
-	$('#message').html('');
+	$('#message').html('<br />');
 	$('#log').html('');
-	$('#previewtext').text('Converting...');
-	$('#message').text('Converting...');
+	$('#previewtext').html('Converting...<br />');
+	$('#message').html('Converting...<br />');
         $("body").css("cursor","progress");
 	if (ac_counter == 1) send_called = 0;
 	send_called++;
