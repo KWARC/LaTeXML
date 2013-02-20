@@ -4,10 +4,10 @@
 <head>
   <title><%= title %></title>
   <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
-  <link rel="stylesheet" type="text/css" href="css/external/core.css" />
+  <link rel="stylesheet" type="text/css" href="css/external/LaTeXML.css" />
   <link rel="stylesheet" type="text/css" href="css/external/jquery-ui.css" />
   <link rel="stylesheet" type="text/css" href="css/external/trac.css" />
-  <link rel="stylesheet" type="text/css" href="css/external/latexml.css" />
+  <link rel="stylesheet" type="text/css" href="css/external/trac-sanity.css" />
   <link rel="shortcut icon"  type="image/x-icon" href="css/external/favicon.ico" />
   <link rel="icon"  type="image/x-icon" href="css/external/favicon.ico" />
 <style type="text/css">
