@@ -463,6 +463,9 @@ sub _prepare_options {
   # If really nothing hints to define format, then default it to XML
   $opts->{format} = 'xml' unless defined $opts->{format};
 
+  #TODO: HACK: Disable for now, causes problems...
+  $opts->{picimages}  = 0;
+
   $self->{dirty}=0;
 }
 
