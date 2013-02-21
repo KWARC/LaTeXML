@@ -313,7 +313,9 @@ examples['tik'] = ['\\documentclass{article}\\usepackage{tikz}\\begin{document}'
 '\\pgffill',
 '\\end{tikzpicture}\\end{document}'].join('\n');
 
-examples['psp'] = ['\\documentclass{article}\\usepackage{pstricks}\\begin{document}',
+examples['psp'] = ['\\documentclass{article}',
+'\\usepackage{pstricks}',
+'\\begin{document}',
 '{\\color{red}\\textbf{Warning:}} {\\color{blue}pstricks} support is experimental and at a proof-of-concept stage.\\',
 '\\begin{center}',
 '\\begin{pspicture}(-1,-0.5)(4,3.5)',
