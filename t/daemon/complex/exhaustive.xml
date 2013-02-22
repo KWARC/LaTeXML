@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?latexml package="article.cls"?>
+<?latexml class="article.cls"?>
 <?latexml package="color"?>
 <?latexml package="amsthm"?>
 <?latexml RelaxNGSchema="LaTeXML"?>

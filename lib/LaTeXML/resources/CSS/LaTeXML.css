@@ -45,6 +45,7 @@ h6 + p { display:inline; }
 /* .ltx_chapter_title, etc should be in ltx-article.css etc.
  */
 .ltx_page_main { margin:0px; padding:1em 3em 1em 2em; }
+.ltx_tocentry  { list-style-type:none; }
 
 /*======================================================================
   Para level */
@@ -197,7 +198,7 @@ cite                 { font-style: normal; }
 /*.ltx_centering  { text-align:center; margin:auto; }*/
 /*.ltx_inline-block.ltx_centering,*/
 /* Hmm.... is this right in general? */
-.ltx_centering  { display:block; margin:auto; }*/
+.ltx_centering  { display:block; margin:auto; }
 
 
 /* .ltx_phantom handled in xslt */
