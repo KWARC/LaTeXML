@@ -1147,7 +1147,7 @@ sub FindFile {
   if($options{type}){		# Specific type requested? Search for it.
     FindFile_aux($file.".".$options{type},%options); }
   else {			# If no type given, we MAY expect .tex, or maybe NOT!!
-    FindFile_aux("$file.tex",%options) || FindFile_aux($file,%options); }}
+    (($file !~ /\.tex$/) && FindFile_aux("$file.tex",%options)) || FindFile_aux($file,%options); }}
 
 sub FindFile_aux {
   my($file,%options)=@_;
@@ -1168,7 +1168,7 @@ sub FindFile_aux {
      && ($path=pathname_find("$file.ltxml",paths=>$paths,installation_subdir=>'Package'))){
     return $path; }
   # If we're EXCLUDING ltxml, then FIRST use pathname_find to search for file (faster, blahblah)
-  if($options{noltxml} && ($path=pathname_find_x($file,paths=>$paths,urlbase=>$urlbase))){
+  if($options{noltxml} && ($path=pathname_find($file,paths=>$paths,urlbase=>$urlbase))){
     return $path; }
   # Otherwise, pass on to kpsewhich
   # Depending on flags, maybe search for ltxml in texmf or for plain tex in ours!
@@ -1183,18 +1183,15 @@ sub FindFile_aux {
   if(my $result = `TEXINPUTS=$texinputs $kpsewhich $candidates`){
     if($result =~ /^\s*(\S+)\n/s){
       return $1; }}
+  if ($urlbase && ($path=url_find($file,urlbase=>$urlbase))) {
+    return $path;
+  }
+  return;
  }
 
 sub pathname_is_nasty {
   my($pathname)=@_;
   $pathname =~ /[^\w\-_\+\=\/\\\.~]/; }
-
-# Note that this looks for cached filecontents, too!
-sub pathname_find_x {
-  my($path,%options)=@_;
-  if(LookupValue($path.'_contents')){
-    return $path; }
-  pathname_find($path,%options) || url_find($path,%options); }
 
 sub maybeReportSearchPaths {
   if(LookupValue('SEARCHPATHS_REPORTED')){ 
