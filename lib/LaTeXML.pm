@@ -1,3 +1,4 @@
+# -*- CPERL -*-
 # /=====================================================================\ #
 # |  LaTeXML                                                            | #
 # | Main Module                                                         | #
@@ -12,6 +13,7 @@
 
 package LaTeXML;
 use strict;
+use warnings;
 use LaTeXML::Global;
 use LaTeXML::Error;
 use LaTeXML::State;
@@ -25,15 +27,8 @@ use LaTeXML::Bib;
 use LaTeXML::Package qw(pathname_is_literaldata);
 use LaTeXML::Version;
 use Encode;
-our @ISA = (qw(LaTeXML::Object));
-
-use File::Basename 'dirname';
-my $FILE_BASE;
-BEGIN {
-    $FILE_BASE = dirname(__FILE__);
-}
-
 use vars qw($VERSION);
+our @ISA = (qw(LaTeXML::Object));
 $VERSION = $LaTeXML::Version::VERSION; # for backward compatibility
 
 #**********************************************************************
@@ -52,13 +47,14 @@ sub new {
 		      'global');
   $state->assignValue(DOCUMENTID=>(defined $options{documentid} ? $options{documentid} : ''),
 		      'global');
-  $state->assignValue(SEARCHPATHS=> [ map(pathname_absolute(pathname_canonical($_)),
-					  @{$options{searchpaths} || []})], 'global');
-  $state->assignValue(GRAPHICSPATHS=> [ map(pathname_absolute(pathname_canonical($_)),
-					    @{$options{graphicspaths} || []}) ],'global');
+  $state->assignValue(SEARCHPATHS=> [ map {pathname_absolute(pathname_canonical($_))}
+				      @{$options{searchpaths} || []}],
+		      'global');
+  $state->assignValue(GRAPHICSPATHS=> [ map {pathname_absolute(pathname_canonical($_))}
+					@{$options{graphicspaths} || []} ],'global');
   $state->assignValue(INCLUDE_STYLES=>$options{includeStyles}|| 0,'global');
   $state->assignValue(PERL_INPUT_ENCODING=>$options{inputencoding}) if $options{inputencoding};
-  bless {state   => $state, 
+  return bless {state   => $state, 
 	 mathparse=>((defined $options{mathparse}) ? $options{mathparse} : 'RecDescent'),
 	 preload=>$options{preload},
 	}, $class; }
@@ -70,17 +66,18 @@ sub convertAndWriteFile {
   my($self,$file)=@_;
   $file =~ s/\.tex$//;
   my $dom = $self->convertFile($file);
-  $dom->toFile("$file.xml",1) if $dom; }
+  $dom->toFile("$file.xml",1) if $dom;
+  return; }
 
 sub convertFile {
   my($self,$file)=@_;
   my $digested = $self->digestFile($file);
   return unless $digested;
-  $self->convertDocument($digested); }
+  return $self->convertDocument($digested); }
 
 sub getStatusMessage {
   my($self)=@_;
-  $$self{state}->getStatusMessage; }
+  return $$self{state}->getStatusMessage; }
 sub getStatusCode {
   my($self)=@_;
   $$self{state}->getStatusCode; }
@@ -113,6 +110,7 @@ sub digestFile {
       ($dir,$name,$ext)=pathname_split($request);  }
     else {
       Fatal('missing_file',$request,undef,"Can't find $mode file $request"); }}
+  return
   $self->withState(sub {
      my($state)=@_;
      NoteBegin("Digesting $mode $name");
@@ -120,9 +118,9 @@ sub digestFile {
      $state->assignValue(SOURCEFILE=>$request)  if (!pathname_is_literaldata($request));
      $state->assignValue(SOURCEDIRECTORY=>$dir) if defined $dir;
      $state->unshiftValue(SEARCHPATHS=>$dir)
-       if defined $dir && !grep($_ eq $dir, @{$state->lookupValue('SEARCHPATHS')});
+       if defined $dir && !grep {$_ eq $dir} @{$state->lookupValue('SEARCHPATHS')};
      $state->unshiftValue(GRAPHICSPATHS=>$dir)
-       if defined $dir && !grep($_ eq $dir, @{$state->lookupValue('GRAPHICSPATHS')});
+       if defined $dir && !grep {$_ eq $dir} @{$state->lookupValue('GRAPHICSPATHS')};
 
      $state->installDefinition(LaTeXML::Expandable->new(T_CS('\jobname'),undef,
 							Tokens(Explode($name))));
@@ -137,7 +135,7 @@ sub digestFile {
        LaTeXML::Package::InputContent("literal:".$bib->toTeX); }
      my $list = $self->finishDigestion;
      NoteEnd("Digesting $mode $name");
-     $list; });
+     return $list; });
 }
 
 sub finishDigestion {
@@ -150,24 +148,25 @@ sub finishDigestion {
   if(my $env = $state->lookupValue('current_environment')){
     Error('expected',"\\end{$env}",$stomach,"Input ended while environment $env was open"); } 
   $stomach->getGullet->flush;
-  LaTeXML::List->new(@stuff); }
+  return LaTeXML::List->new(@stuff); }
 
 sub loadPreamble {
   my($self,$preamble)=@_;
   my $gullet  = $$self{state}->getStomach->getGullet;
   if($preamble eq 'standard_preamble.tex'){
     $preamble = 'literal:\documentclass{article}\begin{document}'; }
-  LaTeXML::Package::InputContent($preamble); }
+  return LaTeXML::Package::InputContent($preamble); }
 
 sub loadPostamble {
   my($self,$postamble)=@_;
   my $gullet  = $$self{state}->getStomach->getGullet;
   if($postamble eq 'standard_postamble.tex'){
     $postamble = 'literal:\end{document}'; }
-  LaTeXML::Package::InputContent($postamble); }
+  return LaTeXML::Package::InputContent($postamble); }
 
 sub convertDocument {
   my($self,$digested)=@_;
+  return
   $self->withState(sub {
      my($state)=@_;
      my $model    = $state->getModel;   # The document model.
@@ -197,7 +196,7 @@ sub convertDocument {
      NoteBegin("Finalizing");
      my $xmldoc = $document->finalize();
      NoteEnd("Finalizing");
-     $xmldoc; }); }
+     return $xmldoc; }); }
 
 sub withState {
   my($self,$closure)=@_;
@@ -209,7 +208,7 @@ sub withState {
   local $SIG{__WARN__} = sub { LaTeXML::Error::perl_warn_handler(@_); };
   local $LaTeXML::DUAL_BRANCH= '';
 
-  &$closure($STATE); }
+  return &$closure($STATE); }
 
 sub initializeState {
   my($self,@files)=@_;
@@ -236,12 +235,13 @@ sub initializeState {
   }
   LaTeXML::Package::InputDefinitions($preload,type=>$type,
 	        handleoptions=>$handleoptions, options=>$options); 
-  }}
+  }
+  return; }
 
 sub writeDOM {
   my($self,$dom,$name)=@_;
   $dom->toFile("$name.xml",1);
-  1; }
+  return 1; }
 
 #**********************************************************************
 # Should post processing be managed from here too?
