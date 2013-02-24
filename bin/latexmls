@@ -28,7 +28,7 @@ use JSON::XS qw(encode_json decode_json);
 # LaTeXML packages
 use LaTeXML::Converter;
 use LaTeXML::Util::Config;
-
+use LaTeXML::Util::Pathname;
 #**********************************************************************
 
 # Bookkeeping
@@ -77,9 +77,14 @@ while ( my $client = $server->accept() ) {
     my $source = $opts->get('source');
     $opts->delete('source');
 
-    if ($opts->get('base') && $opts->get('base')!~/(\w+):\/\//) {
-      chdir $opts->get('base')
-       or croak("Fatal:server:chdir Can't chdir to ".$opts->get('base').": $!");
+    my $base = $opts->get('base');
+    if ($base && !pathname_is_url($base)) {
+      my $canonical_base = pathname_canonical($base);
+      if ($canonical_base ne pathname_cwd()) {
+        chdir $canonical_base
+         or croak("Fatal:server:chdir Can't chdir to $canonical_base: $!");
+        $LaTeXML::Util::Pathname::Pathname_CWD=$canonical_base;
+      }
     }
 
     # We now have a LaTeXML options object - $opts.
@@ -157,9 +162,6 @@ sub daemonize {
 sub setup_server {
   my ($localport) = @_;
   my $http_server = HTTP::Daemon->new(
-	 ReuseAddr => 1,
-   PeerAddr => '127.0.0.1',
-   PeerPort => $localport,
 	 LocalAddr => '127.0.0.1',
    LocalPort => $localport,
    Listen    => SOMAXCONN,
