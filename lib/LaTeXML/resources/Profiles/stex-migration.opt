@@ -20,6 +20,7 @@ path = $STEXSTYDIR/metakeys
 path = $STEXSTYDIR/mikoslides
 path = $STEXSTYDIR/etc
 path = $STEXSTYDIR/cmath
+path = $STEXSTYDIR/../schema
 path = $STEXSTYDIR/../schema/rng
 includestyles =
 stylesheet = $STEXSTYDIR/../xsl/migration.xsl
