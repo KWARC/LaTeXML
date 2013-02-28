@@ -8,7 +8,7 @@
     <p>Some structure:</p>
   </para>
   <section refnum="1" xml:id="S1">
-    <title><tag>1 </tag>One</title>
+    <title><tag close=" ">1</tag>One</title>
     <para xml:id="S1.p1">
       <p>Hm,</p>
       <itemize xml:id="I1">
