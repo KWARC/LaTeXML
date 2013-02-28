@@ -162,9 +162,8 @@ sub pathname_relative {
 sub pathname_absolute {
   my($pathname,$base)=@_;
   $pathname = pathname_canonical($pathname);
-  $base = pathname_cwd() unless $base;
-  ($base && !pathname_is_absolute($pathname) && !pathname_is_url($pathname)
-   ? File::Spec->rel2abs($pathname,pathname_canonical($base))
+  (!pathname_is_absolute($pathname) && !pathname_is_url($pathname)
+   ? File::Spec->rel2abs($pathname,($base ? pathname_canonical($base) : pathname_cwd()))
    : $pathname); }
 
 #======================================================================
