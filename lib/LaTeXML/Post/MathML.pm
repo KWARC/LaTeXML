@@ -553,6 +553,7 @@ our %plane1hack = (script=>$plane1map{script},  'bold-script'=>$plane1map{script
 sub stylizeContent {
   my($item,$mihack,%attr)=@_;
   my $iselement = (ref $item) eq 'XML::LibXML::Element';
+  my $href = ($iselement ? $item->getAttribute('href') : $attr{href});
   my $font  = ($iselement ? $item->getAttribute('font') : $attr{font})
     || $LaTeXML::MathML::FONT;
   my $size  = ($iselement ? $item->getAttribute('fontsize') : $attr{fontsize})
@@ -599,6 +600,7 @@ sub stylizeContent {
       $variant = ($plane1hack && ($variant =~ /^bold/) ? 'bold' : undef);  }}
 ###  ($text,$variant,$size && $sizes{$size},$color); }
   ($text,
+   ($href ? (href=>$href):()),
    ($variant  ? (mathvariant=>$variant):()),
    ($size     ? (mathsize=>$sizes{$size})  :()),
    ($color    ? (mathcolor=>$color):()),
