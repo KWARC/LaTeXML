@@ -95,7 +95,7 @@ DefConstructor('\webgraphic OptionalMatch:* OptionalKeyVals:webgraphic Semiverba
        . ")() />",
   alias=>'\includegraphics',
   properties=> sub {
-    my $src = $graphicURL.ToString($_[2]);
+    my $src = $graphicURL.ToString($_[3]);
     $src .= '.png' unless ($src =~ /\.(\w{3})$/);
     (url=>$src); },
   beforeConstruct=> sub {
