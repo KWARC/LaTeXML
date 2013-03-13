@@ -22,7 +22,7 @@ RequirePackage('url');
 RequirePackage('hyperref');
 
 # Metadata namespaces:
-my $pmbaseURI = "http://alpha.planetmath.org"; # Careful: Get the URI right before we publish LOD
+my $pmbaseURI = "http://planetmath.org"; # Careful: Get the URI right before we publish LOD
 AssignMapping('RDFa_prefixes','dct'=>'http://purl.org/dc/terms/');
 AssignMapping('RDFa_prefixes','msc'=>"http://msc2010.org/resources/MSC/2010/");
 AssignMapping('RDFa_prefixes','xsd'=>'http://www.w3.org/2001/XMLSchema#');
@@ -77,7 +77,7 @@ DefMacro('\pmprivacy{}','\pmmeta@literal@adhoc[xsd:integer]{privacy}{#1}');
 
 # TODO: Make this robust and relativize paths when we have Drupal rewriting!
 # Basically, we're transforming the graphics options into graphicx format.
-my $graphicURL = 'http://alpha.planetmath.org/sites/default/files/pictures/';
+my $graphicURL = 'http://planetmath.org/sites/default/files/pictures/';
 DefKeyVal('webgraphic','width','Dimension');
 DefKeyVal('webgraphic','height','Dimension');
 DefKeyVal('webgraphic','alt','Semiverbatim');
@@ -118,7 +118,7 @@ DefConstructor('\webgraphic OptionalMatch:* OptionalKeyVals:webgraphic Semiverba
 # In order for this package to render hyperlinks to PlanetMath
 # one of the following packages has to be loaded _before_
 # this package: html, hyperref, url.
-DefMacro('\PMURI','http://alpha.planetmath.org/');
+DefMacro('\PMURI','http://planetmath.org/');
 DefMacro('\PMEXT',''); # Do we need an extension at all here?
 DefMacro('\pmathhref{}{}','\htmladdnormallink{#2}{#1}');
 DefMacro('\PMlinkexternal{}{}','\pmathhref{#2}{#1}');
