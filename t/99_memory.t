@@ -6,7 +6,7 @@
 use FindBin;
 use lib "$FindBin::Bin/lib";
 use strict;
-use Test::More;
+use Test::More tests=>1;
 
 eval {require Test::LeakTrace; 1;};
 if ($@) {
@@ -14,6 +14,7 @@ if ($@) {
 } else {
   # Note that this is a singlet; the same Builder is shared.
  TODO: {
+    use Test::LeakTrace;
     no_leaks_ok {
       use LaTeXML;
     } 'load LaTeXML without leaks';
