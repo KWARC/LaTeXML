@@ -134,7 +134,6 @@ sub equals {
 #**********************************************************************
 package LaTeXML::Conditional;
 use LaTeXML::Global;
-use Data::Dumper;
 use base qw(LaTeXML::Expandable);
 
 sub new {

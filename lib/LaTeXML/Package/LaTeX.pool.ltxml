@@ -2912,7 +2912,7 @@ DefConstructor('\mbox {}',
 	       "<ltx:text _noautoclose='1'>#1</ltx:text>", mode=>'text', bounded=>1,
  	       beforeDigest=>sub { reenterTextMode(); });
 
-our %makebox_alignment=(l=>'left',r=>'right','s'=>'justified');
+our %makebox_alignment=(l=>'left',r=>'right',s=>'justified');
 DefMacro('\makebox','\@ifnextchar(\pic@makebox\@makebox');
 DefConstructor('\@makebox[Dimension][]{}',
 	       "<ltx:text ?#1(width='#1') ?#align(align='#align') _noautoclose='1'>#3</ltx:text>",
