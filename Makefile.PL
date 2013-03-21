@@ -40,7 +40,8 @@ WriteMakefile(NAME => 'LaTeXML',
 	      ABSTRACT => "transforms TeX and LaTeX into XML",
 	      PREREQ_PM => { 
 			    'Test::Simple'=>0,
-          'Test::LeakTrace'=>0,
+			    'Test::LeakTrace'=>0,
+			    'Marpa::R2'=>0,
 			    'DB_File'=>0,
 			    # If we have an "old" version of XML::LibXML,
 			    # we also need XPathContext.
