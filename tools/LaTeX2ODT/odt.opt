@@ -1,0 +1,5 @@
+#preload =
+whatsin = document
+whatsout = document
+path = $LATEXMLINPUTS
+#stylesheet = ltx2odt.xsl
