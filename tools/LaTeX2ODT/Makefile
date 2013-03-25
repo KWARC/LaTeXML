@@ -12,17 +12,15 @@ L2ODIR ?= .
 all: $(ODT)
 
 $(LTXML): %.ltxml: %.tex
-	latexmlc --includestyles --profile=$(L2ODIR)/odt $< --destination $@ --log $<.log
+	latexmlc --includestyles --profile=$(L2ODIR)/odt $< --destination $@ --log $@.log
 
 $(LTBIBS): %.bib.ltxml: %.bib
 	latexmlc $< --destination $@ --log $@.log
 
 $(CXML): %.xml: %.ltxml $(L2ODIR)/ltx2odt.xsl $(LTBIBS)
-#	latexmlpost $< --stylesheet ltx2odt.xsl --destination $@ $< --log $<.log
 	xsltproc $(L2ODIR)/ltx2odt.xsl $< > $@
 
 $(MXML): %.manifest.xml: %.ltxml $(L2ODIR)/ltx2manifest.xsl
-#	latexmlpost $< --stylesheet ltx2odt.xsl --destination $@ $< --log $<.log
 	xsltproc $(L2ODIR)/ltx2manifest.xsl $< > $@
 
 $(ODT): %.odt: %.xml $(IMG) %.manifest.xml
