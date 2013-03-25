@@ -17,14 +17,17 @@ I have tested the conversion with a simple test file (source: test.tex/campanile
 
 Limitations (after all I only spent around 6 hours on this):
 
-    I do not understand styling very well yet, so I am relying on the standard  styles. Unfortunately, they do not number sections and enumerations. But this can be changed by adding a suitable document format (or changing format in the document)
-    <ltx:text> is also disregarded until I understand the standard styles better.
-    figures and captions have not been tackled yet. 
-    bibtex fields are only covered as far as my simple example needed it. 
-    it only works with a single bibtex database (in particular, not with embedded bibliography environment)
-    no bibliography styles for citations; we directly take the reference keys.
-    the bibliography seems empty at first, but right-click and --> update index table.
-    ... you will find a lot that is not covered yet.
+   1.  I do not understand styling very well yet, so I am relying on the standard  styles. Unfortunately, they do not number sections and enumerations. But this can be changed by adding a suitable document format (or changing format in the document)
+    2. <ltx:text> is also disregarded until I understand the standard styles better.
+    3. figures and captions have not been tackled yet. 
+    4. bibtex fields are only covered as far as my simple example needed it. 
+    5. it only works with a single bibtex database (in particular, not with embedded bibliography environment)
+    6. no bibliography styles for citations; we directly take the reference keys.
+    7. the bibliography seems empty at first, but right-click and --> update index table.
+    8. I have not even started looking at MathML in ODT yet. But I think that they are using MathML as the formula representation format. 
+    9. there should be a way to generate meta.xml with information from the paper frontmatter instead of just copying over an empty one. 
+     ...
+     99. you will find a lot else that is not covered yet.
 
 I plan to develop LaTeX2ODT further whenever I have a paper to convert. Please feel free to help out.
 
