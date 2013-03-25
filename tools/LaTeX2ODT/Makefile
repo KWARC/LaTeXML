@@ -11,6 +11,11 @@ L2ODIR ?= .
 
 all: $(ODT)
 
+# if we are using biblatex:
+# Change \bibstyle to plain in your .aux file, delete the \citation{biblatex-control}, and remove *-blx.bib \bibdata
+local.bib: $(TARGET:%.tex=%.aux)
+	bibtool -x $< -o local.bib
+
 $(LTXML): %.ltxml: %.tex
 	latexmlc --includestyles --profile=$(L2ODIR)/odt $< --destination $@ --log $@.log
 

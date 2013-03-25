@@ -30,6 +30,7 @@
 
 <xsl:template match="ltx:document">
   <office:document-content>
+    <xsl:copy-of select="document('minimal/automatic-styles.xml',.)//office:automatic-styles"/>
     <office:body>
       <office:text><xsl:apply-templates/></office:text>
     </office:body>
