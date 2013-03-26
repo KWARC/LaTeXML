@@ -9,6 +9,7 @@
   xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
   xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0"
   xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"
+  xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
   version="1.0">  
   
 <xsl:output method="xml" indent="yes"/>
@@ -29,10 +30,14 @@
 </xsl:template>
 
 <xsl:template match="ltx:document">
-  <office:document-content>
-    <xsl:copy-of select="document('minimal/automatic-styles.xml',.)//office:automatic-styles"/>
+  <office:document-content office:version="1.2">
+    <office:scripts/>
+    <xsl:copy-of select="document('minimal/font-face-decls.xml')//office:font-face-decls"/>
     <office:body>
-      <office:text><xsl:apply-templates/></office:text>
+      <office:text>
+	<text:sequence-decls/>
+	<xsl:apply-templates/>
+      </office:text>
     </office:body>
   </office:document-content>
 </xsl:template>
@@ -40,7 +45,45 @@
 <!-- not appliccable -->
 <xsl:template match="ltx:resource"/>
 
-<xsl:template match="ltx:section|ltx:subsection">
+<xsl:template match="ltx:document/ltx:title">
+  <text:p text:style-name="title"><xsl:apply-templates/></text:p>
+</xsl:template>
+
+<xsl:template match="ltx:creator[@role='author']">
+  <text:p text:style-name="author"><xsl:apply-templates/></text:p>
+</xsl:template>
+
+
+<xsl:template match="ltx:date[@role='creation']">
+  <text:p text:style-name="address"><xsl:apply-templates/></text:p>
+</xsl:template>
+
+<xsl:template match="ltx:personname"><xsl:apply-templates/></xsl:template>
+
+<xsl:template match="ltx:contact[@role='email']">
+  <text:p text:style-name="email"><xsl:apply-templates/></text:p>
+</xsl:template>
+
+<!-- fix this when llncs.cls.ltxml is fixed -->
+<xsl:template match="ltx:note[@role='institutetext']">
+  <text:p text:style-name="address"><xsl:apply-templates/></text:p>
+</xsl:template>
+
+<xsl:template match="ltx:abstract">
+  <text:p text:style-name="abstract">
+    <text:span fo:font-weight="bold" style:font-weight-asian="bold"><xsl:value-of select="@name"/></text:span>
+    <xsl:apply-templates/>
+  </text:p>
+</xsl:template>
+
+<xsl:template match="ltx:keywords">
+  <text:p text:style-name="abstract">
+    <text:span text:style-name="boldtext"><xsl:value-of select="@name"/></text:span>
+    <xsl:apply-templates/>
+  </text:p>
+</xsl:template>
+
+<xsl:template match="ltx:section|ltx:subsection|ltx:subsubsection">
   <xsl:apply-templates/>
 </xsl:template>
 
@@ -50,6 +93,10 @@
 
 <xsl:template match="ltx:subsection/ltx:title">
   <text:h text:outline-level="2"><xsl:apply-templates/></text:h>
+</xsl:template>
+
+<xsl:template match="ltx:subsubsection/ltx:title">
+  <text:h text:outline-level="3"><xsl:apply-templates/></text:h>
 </xsl:template>
 
 <!-- do not show tags in titles -->
@@ -62,34 +109,98 @@
   <text:p><xsl:apply-templates/></text:p>
 </xsl:template>
 
+<xsl:template match="ltx:p" mode="nop"><xsl:apply-templates/></xsl:template>
+
 <xsl:template match="ltx:itemize">
-  <text:list text:style-name="L1"><xsl:apply-templates/></text:list>
+  <text:list text:style-name="WW8Num13"><xsl:apply-templates/></text:list>
 </xsl:template>
 
 <xsl:template match="ltx:enumerate">
-  <text:list text:style-name="L5"><xsl:apply-templates/></text:list>
+  <text:list text:style-name="WW8Num16"><xsl:apply-templates/></text:list>
 </xsl:template>
 
-<xsl:template match="ltx:item">
+<!-- not sure which style to use here -->
+<xsl:template match="ltx:description">
+  <text:list text:style-name="WW8Num13"><xsl:apply-templates/></text:list>
+</xsl:template>
+
+<xsl:template match="ltx:itemize/ltx:item">
+  <xsl:choose>
+    <xsl:when test="ltx:tag">
+      <text:list-item>
+	<text:p>
+	  <xsl:apply-templates select="ltx:tag"/>
+	  <xsl:apply-templates select="ltx:para/ltx:p[1]" mode="nop"/>
+	</text:p>
+	<xsl:apply-templates select="ltx:para/ltx:p[position()&gt; 1]"/>
+      </text:list-item>
+    </xsl:when>
+    <xsl:otherwise>
+      <text:list-item text:style-name="bulletitem"><xsl:apply-templates/></text:list-item>
+    </xsl:otherwise>
+  </xsl:choose>
+</xsl:template>
+
+<xsl:template match="ltx:enumerate/ltx:item">
+  <xsl:choose>
+    <xsl:when test="ltx:tag">
+      <text:list-item>
+	<text:p>
+	  <xsl:apply-templates select="ltx:tag"/>
+	  <xsl:apply-templates select="ltx:para/ltx:p[1]" mode="nop"/>
+	</text:p>
+	<xsl:apply-templates select="ltx:para/ltx:p[position()&gt; 1]"/>
+      </text:list-item>
+    </xsl:when>
+    <xsl:otherwise>
+      <text:list-item text:style-name="numitem"><xsl:apply-templates/></text:list-item>
+    </xsl:otherwise>
+  </xsl:choose>
+</xsl:template>
+
+<xsl:template match="ltx:enumerate/ltx:item">
   <text:list-item>
-    <xsl:apply-templates/>
+    <text:p>
+      <xsl:apply-templates select="ltx:tag"/>
+      <xsl:apply-templates select="ltx:para/ltx:p[1]" mode="nop"/>
+    </text:p>
+    <xsl:apply-templates select="ltx:para/ltx:p[position()&gt; 1]"/>
   </text:list-item>
 </xsl:template>
 
-<xsl:template match="ltx:itemize/ltx:item/ltx:para">
-  <text:p text:style-name="P1"><xsl:apply-templates select="ltx:p/text()"/></text:p>
+<xsl:template match="ltx:description/ltx:item">
+  <text:list-item><xsl:apply-templates/></text:list-item>
 </xsl:template>
 
-<xsl:template match="ltx:enumerate/ltx:item/ltx:para">
-  <text:p text:style-name="P6"><xsl:apply-templates select="ltx:p/text()"/></text:p>
+<xsl:template match="ltx:item/ltx:tag">
+  <text:span text:style-name="boldtext"><xsl:apply-templates/></text:span>
 </xsl:template>
 
 <xsl:template match="ltx:ref[@class='ltx_url' and @href]">
   <text:a xlink:type="simple" xlink:href="{@href}"><xsl:apply-templates/></text:a>
 </xsl:template>
 
-<!-- disregard styles for now -->
-<xsl:template match="ltx:text"><xsl:apply-templates/></xsl:template>
+<!-- extend styles, this is the fallback -->
+<!-- <xsl:template match="ltx:text">***<xsl:value-of select="@font"/></xsl:template> -->
+
+<xsl:template match="ltx:text[@font='bold']">
+  <text:span text:style-name="boldtext"><xsl:apply-templates/></text:span>
+</xsl:template>
+
+<xsl:template match="ltx:text[@font='normal']"><xsl:apply-templates/></xsl:template>
+
+<xsl:template match="ltx:text[@font='italic']">
+  <text:span text:style-name="italictext"><xsl:apply-templates/></text:span>
+</xsl:template>
+
+
+<xsl:template match="ltx:text[@font='typewriter']">
+  <text:span text:style-name="typewriter"><xsl:apply-templates/></text:span>
+</xsl:template>
+
+<xsl:template match="ltx:emph">
+  <text:span text:style-name="italictext"><xsl:apply-templates/></text:span>
+</xsl:template>
 
 <xsl:template match="ltx:tabular">
   <table:table>
@@ -119,13 +230,42 @@
   </text:note>
 </xsl:template>
 
-<!-- need width,height treatment -->
+<xsl:template match="ltx:ref[@labelref]">
+  <xsl:variable name="label" select="@labelref"/>
+  <xsl:value-of select="//ltx:*[contains(@labels,$label)]/@refnum"/>
+</xsl:template>
+
+<!-- need width,height treatment and a treatment for frame styles-->
 <xsl:template match="ltx:graphics">
-  <text:p text:style-name="Standard">
-    <draw:frame draw:style-name="fr1" draw:name="graphics1" text:anchor-type="paragraph" draw:z-index="0"
-		svg:width="2cm" svg:height="2cm">
+  <text:p text:style-name="image">
+    <draw:frame draw:style-name="Graphics" draw:name="graphics1" text:anchor-type="paragraph" draw:z-index="0">
       <draw:image xlink:href="Pictures/{@candidates}" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
+     </draw:frame>
+  </text:p>
+</xsl:template>
+
+<!-- need width,height treatment and a treatment for frame styles-->
+<xsl:template match="ltx:figure">
+  <text:p>
+    <draw:frame draw:style-name="Graphics" draw:name="graphics1" text:anchor-type="paragraph" draw:z-index="0"
+		svg:width="10cm" svg:height="10cm">
+      <draw:text-box>
+	<xsl:apply-templates/>
+      </draw:text-box>
     </draw:frame>
+  </text:p>
+</xsl:template>
+
+<!-- reconsider this? it should add to the list of figures --> 
+<xsl:template match="ltx:toccaption"/>
+
+<xsl:template match="ltx:caption/ltx:tag">
+  <text:span text:style-name="boldtext"><xsl:apply-templates/></text:span>
+</xsl:template>
+
+<xsl:template match="ltx:caption">
+  <text:p text:style-name="figurecaption">
+    <xsl:apply-templates/> 
   </text:p>
 </xsl:template>
 	      
@@ -176,6 +316,9 @@
   </xsl:for-each>
 </xsl:template>
 
+<xsl:template match="ltx:break"><text:line-break/></xsl:template>
+
+
 <xsl:template match="ltx:bibliography">
   <text:bibliography text:protected="true">
     <text:index-body>
@@ -184,5 +327,7 @@
   </text:bibliography>
 </xsl:template>
 
+<!-- eventually use this for generation of meta.xml? -->
+<xsl:template match="ltx:rdf"/>
 
 </xsl:stylesheet>

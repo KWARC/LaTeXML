@@ -1,6 +1,10 @@
 \documentclass{article}
 \usepackage{url,graphicx}
+\title{A Test for ODT generation in LaTeXML}
+\author{Michael Kohlhase\\Jacobs University\\\url{m.kohlhase@jacobs-university.de}}
+\date{\today}
 \begin{document}
+\maketitle
 
 \section{Purpose (Heading 1)}
 
@@ -43,6 +47,13 @@ another one \footnote{another footnote}.
 
 \section{An Image}
  \includegraphics[width=9cm]{campanile_fog}
+
+\section{A Figure}
+
+\begin{figure}[ht]
+  \includegraphics[width=9cm]{campanile_fog}
+  \caption{Testing a Figure}
+\end{figure}
 
 \section{Citations}
 a first citation \cite{aaa} and a second one \cite{bbb}
