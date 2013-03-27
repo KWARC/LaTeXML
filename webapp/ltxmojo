@@ -22,7 +22,7 @@ use Encode;
 use Startup;
 use LaTeXML::Util::Extras;
 use LaTeXML::Util::Config;
-use LaTeXML::Package qw(pathname_is_literaldata pathname_is_specialprotocol);
+use LaTeXML::Util::Pathname qw(pathname_is_literaldata pathname_is_url);
 use LaTeXML::Converter;
 
 our $dbfile  = '.LaTeXML_Mojo.cache';
@@ -192,7 +192,7 @@ helper convert_string => sub {
     $self->render(json => {result => '', status => "Fatal:input:empty No TeX provided on input", status_code=>3,
                            log => "Status:conversion:3\nFatal:input:empty No TeX provided on input"});
   } else {
-    $source = "literal:".$source unless (pathname_is_specialprotocol($source));
+    $source = "literal:".$source unless (pathname_is_url($source));
     #Send a request:
     my $response = $converter->convert($source);
     my ($result, $status, $status_code, $log);
