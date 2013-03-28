@@ -10,6 +10,7 @@
   xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0"
   xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"
   xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
+  xmlns:m="http://www.w3.org/1998/Math/MathML"
   version="1.0">  
   
 <xsl:output method="xml" indent="yes"/>
@@ -71,14 +72,15 @@
 
 <xsl:template match="ltx:abstract">
   <text:p text:style-name="abstract">
-    <text:span fo:font-weight="bold" style:font-weight-asian="bold"><xsl:value-of select="@name"/></text:span>
-    <xsl:apply-templates/>
+    <text:span text:style-name="boldtext"><xsl:value-of select="@name"/>: </text:span>
+    <xsl:apply-templates select="ltx:p[1]" mode="nop"/>
   </text:p>
+  <xsl:apply-templates select="ltx:p[position()&gt;1]" mode="abstract"/>
 </xsl:template>
 
 <xsl:template match="ltx:keywords">
   <text:p text:style-name="abstract">
-    <text:span text:style-name="boldtext"><xsl:value-of select="@name"/></text:span>
+    <text:span text:style-name="boldtext"><xsl:value-of select="@name"/>: </text:span>
     <xsl:apply-templates/>
   </text:p>
 </xsl:template>
@@ -110,6 +112,9 @@
 </xsl:template>
 
 <xsl:template match="ltx:p" mode="nop"><xsl:apply-templates/></xsl:template>
+<xsl:template match="ltx:p" mode="abstract">
+  <text:p text:style-name="abstract"><xsl:apply-templates/></text:p>
+</xsl:template>
 
 <xsl:template match="ltx:itemize">
   <text:list text:style-name="WW8Num13"><xsl:apply-templates/></text:list>
@@ -136,7 +141,7 @@
       </text:list-item>
     </xsl:when>
     <xsl:otherwise>
-      <text:list-item text:style-name="bulletitem"><xsl:apply-templates/></text:list-item>
+      <text:list-item><xsl:apply-templates/></text:list-item>
     </xsl:otherwise>
   </xsl:choose>
 </xsl:template>
@@ -153,7 +158,7 @@
       </text:list-item>
     </xsl:when>
     <xsl:otherwise>
-      <text:list-item text:style-name="numitem"><xsl:apply-templates/></text:list-item>
+      <text:list-item><xsl:apply-templates/></text:list-item>
     </xsl:otherwise>
   </xsl:choose>
 </xsl:template>
@@ -220,9 +225,8 @@
   <table:table-cell><text:p><xsl:apply-templates/></text:p></table:table-cell>
 </xsl:template>
 
-
 <xsl:template match="ltx:note[@role='footnote']">
-  <text:note>
+  <text:note note-class="footnote">
     <text:note-citation><xsl:value-of select="@mark"/></text:note-citation>
     <text:note-body>
       <text:p text:style-name="Footnote"><xsl:apply-templates/></text:p>
@@ -318,11 +322,14 @@
 
 <xsl:template match="ltx:break"><text:line-break/></xsl:template>
 
+<xsl:template match="ltx:Math">
+  <xsl:copy-of select="m:math"/>
+</xsl:template>
 
 <xsl:template match="ltx:bibliography">
-  <text:bibliography text:protected="true">
+  <text:bibliography text:protected="true" name="Rererences1">
     <text:index-body>
-      <text:index-title><text:p>Bibliography</text:p></text:index-title>
+      <text:index-title><text:p>References</text:p></text:index-title>
     </text:index-body>
   </text:bibliography>
 </xsl:template>

@@ -3,6 +3,7 @@
   xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
   xmlns:ltx="http://dlmf.nist.gov/LaTeXML"
   xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0"
+  xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" 
   version="1.0">  
   
 <xsl:output method="xml" indent="yes"/>
@@ -14,7 +15,7 @@
 
 <xsl:template match="/">
   <xsl:comment>generated from LTXML</xsl:comment>
-  <manifest:manifest>
+  <manifest:manifest office:version="1.2">
     <manifest:file-entry manifest:media-type="application/vnd.oasis.opendocument.text" manifest:full-path="/"/>
     <manifest:file-entry manifest:media-type="text/xml" manifest:full-path="content.xml"/>
     <manifest:file-entry manifest:media-type="text/xml" manifest:full-path="meta.xml"/>

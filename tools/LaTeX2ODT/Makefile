@@ -17,7 +17,7 @@ local.bib: $(TARGET:%.tex=%.aux)
 	bibtool -x $< -o local.bib
 
 $(LTXML): %.ltxml: %.tex
-	latexmlc --includestyles --profile=$(L2ODIR)/odt $< --destination $@ --log $@.log
+	latexmlc --includestyles --format=xml --pmml --profile=$(L2ODIR)/odt $< --destination $@ --log $@.log
 
 $(LTBIBS): %.bib.ltxml: %.bib
 	latexmlc $< --destination $@ --log $@.log
@@ -31,8 +31,10 @@ $(MXML): %.manifest.xml: %.ltxml $(L2ODIR)/ltx2manifest.xsl
 $(ODT): %.odt: %.xml $(IMG) %.manifest.xml
 	rm -Rf tmp2zip
 	mkdir tmp2zip
+	cp  $(L2ODIR)/minimal/mimetype tmp2zip
 	cp $(L2ODIR)/minimal/styles.xml $(L2ODIR)/minimal/meta.xml $(L2ODIR)/minimal/settings.xml tmp2zip
 	cp $< tmp2zip/content.xml
+	touch tmp2zip/content.xml # so that mimetype is first
 	mkdir tmp2zip/META-INF
 	cp $(basename $<).manifest.xml tmp2zip/META-INF/manifest.xml
 	mkdir tmp2zip/Pictures
