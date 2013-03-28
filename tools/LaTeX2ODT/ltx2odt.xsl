@@ -322,9 +322,16 @@
 
 <xsl:template match="ltx:break"><text:line-break/></xsl:template>
 
+
+<!-- this does not even start to work; we really need a special post-processor for this
 <xsl:template match="ltx:Math">
+<draw:frame draw:style-name="fr1" draw:name="Object1" text:anchor-type="as-char" svg:y="-0.1811in" svg:width="1.0575in" svg:height="0.2508in" draw:z-index="0">
+  <draw:object-ole xlink:href="./Object 1" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
+  <draw:image xlink:href="./ObjectReplacements/Object 1" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
+</draw:frame>
   <xsl:copy-of select="m:math"/>
 </xsl:template>
+-->
 
 <xsl:template match="ltx:bibliography">
   <text:bibliography text:protected="true" name="Rererences1">
