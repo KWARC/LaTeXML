@@ -1,0 +1,37 @@
+triggered by the recurring struggle to submit a paper to a conference that only accepts word, ...
+
+I have been going through the respective PDF2Word tools, (e.g. the free http://www.pdftoword.com or the paid Adobe offering), and  the upshot is that they only allow you to rescue the text, an all other things have to be re-done manually.
+
+Surprisingly, from a workflow perspective this is not much different from massaging the LaTeX sources in emacs and then loading them in a word file and then adding all the formatting by hand.
+
+All of this is especially tedious for bibliographies/citations, footnotes, and figures (BCFF; after all, this is where we LaTeX users are especially spoilt).
+
+The underlying problem is that all of these conversion pathways fail to preserve the semantics of the interesting parts (the BCFF) in the first conversion step.
+
+But fear not, we have a tool that can help: LaTeX (you have guessed it), knows about the semantics. I tested this hypothesis and made a first LaTeX to OpenOffice converter based on LaTeXML. You can find it at https://svn.mathweb.org/repos/LaTeXML/branches/arXMLiv/tools/LaTeX2ODT (I did not quite know where to put it, please suggest something).
+
+The converter runs LaTeXML over the tex file and then two custom XSLT stylesheets that produce the ODT XML format. I
+automated the workflow (generating and zipping) via a Makefile, but it should be relatively simple (and much better) to integrate the workflow into postprocessing (after all that is one of the things Perl is good at; just that I am not good with perl).
+
+I have tested the conversion with a simple test file (source: test.tex/campanile_fog.jpg and result: test.odt attached), it can deal with sectioning, footnotes, images, bibliographies/citations. I am sure that more coverage is relatively easy to add, we just need to understand the ODT format better.
+
+Limitations (after all I only spent around 6 hours on this):
+
+   1.  I do not understand styling very well yet, so I am relying on the standard  styles. Unfortunately, they do not number sections and enumerations. But this can be changed by adding a suitable document format (or changing format in the document)
+    2. <ltx:text> is also disregarded until I understand the standard styles better.
+    3. figures and captions have not been tackled yet. 
+    4. bibtex fields are only covered as far as my simple example needed it. 
+    5. it only works with a single bibtex database (in particular, not with embedded bibliography environment)
+    6. no bibliography styles for citations; we directly take the reference keys.
+    7. the bibliography seems empty at first, but right-click and --> update index table.
+    8. I have not even started looking at MathML in ODT yet. But I think that they are using MathML as the formula representation format. 
+    9. there should be a way to generate meta.xml with information from the paper frontmatter instead of just copying over an empty one. 
+     ...
+     99. you will find a lot else that is not covered yet.
+
+I plan to develop LaTeX2ODT further whenever I have a paper to convert. Please feel free to help out.
+
+I chose the ODT format since it is open source. It would probably be just as simple to generate OOXML.
+
+I only just found out that tex4ht does a good job at converting analogously, but it is supposed to be underdocumented and unstable (but probably has more coverage than my converter).
+
