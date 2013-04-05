@@ -8,6 +8,9 @@ LTBIBS = $(BIBS:%=%.ltxml)
 
 IMG ?= campanile_fog.jpg
 L2ODIR ?= .
+XSLT = $(shell ls $(L2ODIR)/XSLT/*.xsl)
+MXSL = $(L2ODIR)/XSLT/ltx2content_types.xsl
+OXSL = $(L2ODIR)/XSLT/LaTeXML-WML.xsl
 
 all: $(DOCX)
 
@@ -22,24 +25,24 @@ $(LTXML): %.ltxml: %.tex
 $(LTBIBS): %.bib.ltxml: %.bib
 	latexmlc $< --destination $@ --log $@.log
 
-$(CXML): %.xml: %.ltxml $(L2ODIR)/ltx2docx.xsl $(LTBIBS)
-	xsltproc $(L2ODIR)/ltx2docx.xsl $< > $@
+$(CXML): %.xml: %.ltxml $(XSLT) $(LTBIBS)
+	xsltproc $(OXSL) $< > $@
 
-$(MXML): %.content_types.xml: %.ltxml $(L2ODIR)/ltx2content_types.xsl
-	xsltproc $(L2ODIR)/ltx2content_types.xsl $< > $@
+$(MXML): %.content_types.xml: %.ltxml $(XSLT)
+	xsltproc $(MXSL) $< > $@
 
 $(DOCX): %.docx: %.xml $(IMG) %.content_types.xml
 	rm -Rf tmp2zip
 	mkdir tmp2zip
 	cp -r $(L2ODIR)/minimal/_rels tmp2zip
 	cp -r $(L2ODIR)/minimal/docProps tmp2zip
-	mkdir tmp2zip/word
+	cp -r $(L2ODIR)/minimal/word tmp2zip
 	cp $< tmp2zip/word/document.xml
 	cp $(basename $<).content_types.xml tmp2zip/\[Content_Types\].xml
 	mkdir tmp2zip/media
 	cp $(IMG) tmp2zip/media
 	cd tmp2zip; zip -r ../$@ *;cd -
-#	rm -Rf tmp2zip 
+	rm -Rf tmp2zip 
 
 docxclean:
 	rm *.css $(MXML) $(CXML) $(LTBIBS) $(LTXML)
@@ -49,3 +52,6 @@ texclean:
 	rm *.aux *.log *.synctex.gz *.bbl *.blg
 
 clean:	docxclean texclean
+
+echo: 	
+	echo $(XSLT)
