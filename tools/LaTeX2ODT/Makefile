@@ -8,6 +8,9 @@ LTBIBS = $(BIBS:%=%.ltxml)
 
 IMG ?= campanile_fog.jpg
 L2ODIR ?= .
+XSLT = $(shell ls $(L2ODIR)/XSLT/*.xsl)
+MXSL = $(L2ODIR)/XSLT/ltx2manifest.xsl
+OXSL = $(L2ODIR)/XSLT/LaTeXML-ODT.xsl
 
 all: $(ODT)
 
@@ -22,11 +25,11 @@ $(LTXML): %.ltxml: %.tex
 $(LTBIBS): %.bib.ltxml: %.bib
 	latexmlc $< --destination $@ --log $@.log
 
-$(CXML): %.xml: %.ltxml $(L2ODIR)/ltx2odt.xsl $(LTBIBS)
-	xsltproc $(L2ODIR)/ltx2odt.xsl $< > $@
+$(CXML): %.xml: %.ltxml $(XSLT) $(LTBIBS)
+	xsltproc $(OXSL) $< > $@
 
-$(MXML): %.manifest.xml: %.ltxml $(L2ODIR)/ltx2manifest.xsl
-	xsltproc $(L2ODIR)/ltx2manifest.xsl $< > $@
+$(MXML): %.manifest.xml: %.ltxml $(XSLT)
+	xsltproc $(MXSL) $< > $@
 
 $(ODT): %.odt: %.xml $(IMG) %.manifest.xml
 	rm -Rf tmp2zip
