@@ -59,7 +59,6 @@
 
 <xsl:template match="ltx:cite/ltx:ref">
   <xsl:variable name="key" select="@idref"/>
-  <xsl:message>key: <xsl:value-of select="$key"/></xsl:message>
   <xsl:variable name="bibitem" select="//ltx:bibitem[@xml:id=$key]"/>
   <text:bibliography-mark text:identifier="{.}" text:bibliography-type="{$bibitem/@type}">
       <xsl:if test="$bibitem/ltx:bibtag[@class='ltx_bib_author']">
@@ -87,15 +86,40 @@
 	  <xsl:value-of select="normalize-space($bibitem//ltx:bib-part[@role='pages'])"/>
 	</xsl:attribute>
       </xsl:if>
+      <xsl:if test="$bibitem//ltx:bib-part[@role='volume']">
+	<xsl:attribute name="text:volume">
+	  <xsl:value-of select="normalize-space($bibitem//ltx:bib-part[@role='volume'])"/>
+	</xsl:attribute>
+      </xsl:if>
+      <xsl:if test="$bibitem//ltx:bib-part[@role='number']">
+	<xsl:attribute name="text:number">
+	  <xsl:value-of select="normalize-space($bibitem//ltx:bib-part[@role='number'])"/>
+	</xsl:attribute>
+      </xsl:if>
+      <xsl:if test="$bibitem//ltx:bib-part[@role='series']">
+	<xsl:attribute name="text:series">
+	  <xsl:value-of select="normalize-space($bibitem//ltx:bib-part[@role='series'])"/>
+	</xsl:attribute>
+      </xsl:if>
       <xsl:if test="$bibitem//ltx:bib-publisher">
 	<xsl:attribute name="text:publisher">
 	  <xsl:value-of select="normalize-space($bibitem//ltx:bib-publisher)"/>
 	</xsl:attribute>
       </xsl:if>
+      <xsl:if test="$bibitem//ltx:text[contains(@class,'isbn')]">
+	<xsl:attribute name="text:isbn">
+	  <xsl:value-of select="normalize-space($bibitem//ltx:text[contains(@class,'isbn')])"/>
+	</xsl:attribute>
+      </xsl:if>
+      <xsl:if test="$bibitem//ltx:text[contains(@class,'issn')]">
+	<xsl:attribute name="text:issn">
+	  <xsl:value-of select="normalize-space($bibitem//ltx:text[contains(@class,'issn')])"/>
+	</xsl:attribute>
+      </xsl:if>
 <!-- 	also text:address, text:annote, text:booktitle, text:chapter, text:edition,
-	text:editor, text:howpublished, text:identifier, text:institution, text:isbn,
-	text:issn, text:month, text:note, text:number, text:organizations,
-	text:report-type, text:school, text:series, text:url, text:volume -->
+	text:editor, text:howpublished, text:identifier, text:institution,
+	text:month, text:note, text:organizations,
+	text:report-type, text:school, text:url -->
 	<xsl:text>[</xsl:text>
 	<xsl:value-of select="."/>
 	<xsl:text>]</xsl:text>
