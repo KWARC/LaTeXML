@@ -19,11 +19,14 @@ all: $(ODT)
 local.bib: $(TARGET:%.tex=%.aux)
 	bibtool -x $< -o local.bib
 
-$(LTXML): %.ltxml: %.tex
-	latexmlc --includestyles --format=xml --pmml --profile=$(L2ODIR)/odt $< --destination $@ --log $@.log
+$(LTXML): %.ltxml: %.tex $(LTBIBS)
+#	latexmlc --includestyles --format=xml --pmml --profile=$(L2ODIR)/odt $< --destination $@ --log $@.log
+	latexml --includestyles $< --destination $<.xml
+	latexmlpost --format=xml --pmml  $<.xml --destination $@ --bib=$(LTBIBS)
 
 $(LTBIBS): %.bib.ltxml: %.bib
-	latexmlc $< --destination $@ --log $@.log
+#	latexmlc $< --destination $@ --log $@.log
+	latexml $< --destination $@
 
 $(CXML): %.xml: %.ltxml $(XSLT) $(LTBIBS)
 	xsltproc $(OXSL) $< > $@

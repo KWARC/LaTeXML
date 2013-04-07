@@ -52,8 +52,60 @@
   <xsl:value-of select="//ltx:*[contains(@labels,$label)]/@refnum"/>
 </xsl:template>
 
+<!-- we disregard the [.. ] -->
 <xsl:template match="ltx:cite">
-  <!-- only works for one file now -->
+  <xsl:apply-templates select="ltx:ref"/>
+</xsl:template>
+
+<xsl:template match="ltx:cite/ltx:ref">
+  <xsl:variable name="key" select="@idref"/>
+  <xsl:message>key: <xsl:value-of select="$key"/></xsl:message>
+  <xsl:variable name="bibitem" select="//ltx:bibitem[@xml:id=$key]"/>
+  <text:bibliography-mark text:identifier="{.}" text:bibliography-type="{$bibitem/@type}">
+      <xsl:if test="$bibitem/ltx:bibtag[@class='ltx_bib_author']">
+	<xsl:attribute name="text:author">
+	  <xsl:value-of select="normalize-space($bibitem/ltx:bibtag[@class='ltx_bib_author'])"/>
+	</xsl:attribute>
+      </xsl:if>
+      <xsl:if test="$bibitem/ltx:bibtag[@class='ltx_bib_title']">
+	<xsl:attribute name="text:title">
+	  <xsl:value-of select="normalize-space($bibitem/ltx:bibtag[@class='ltx_bib_title'])"/>
+	</xsl:attribute>
+      </xsl:if>
+      <xsl:if test="$bibitem//ltx:text[@class='ltx_bib_journal']">
+	<xsl:attribute name="text:journal">
+	  <xsl:value-of select="normalize-space($bibitem//ltx:text[@class='ltx_bib_journal'])"/>
+	</xsl:attribute>
+      </xsl:if>
+      <xsl:if test="$bibitem/ltx:bibtag[@class='ltx_bib_year']">
+	<xsl:attribute name="text:year">
+	  <xsl:value-of select="normalize-space($bibitem/ltx:bibtag[@class='ltx_bib_year'])"/>
+	</xsl:attribute>
+      </xsl:if>
+      <xsl:if test="$bibitem//ltx:bib-part[@role='pages']">
+	<xsl:attribute name="text:pages">
+	  <xsl:value-of select="normalize-space($bibitem//ltx:bib-part[@role='pages'])"/>
+	</xsl:attribute>
+      </xsl:if>
+      <xsl:if test="$bibitem//ltx:bib-publisher">
+	<xsl:attribute name="text:publisher">
+	  <xsl:value-of select="normalize-space($bibitem//ltx:bib-publisher)"/>
+	</xsl:attribute>
+      </xsl:if>
+<!-- 	also text:address, text:annote, text:booktitle, text:chapter, text:edition,
+	text:editor, text:howpublished, text:identifier, text:institution, text:isbn,
+	text:issn, text:month, text:note, text:number, text:organizations,
+	text:report-type, text:school, text:series, text:url, text:volume -->
+	<xsl:text>[</xsl:text>
+	<xsl:value-of select="."/>
+	<xsl:text>]</xsl:text>
+    </text:bibliography-mark>
+
+  <xsl:apply-templates select="ltx:ref"/>
+</xsl:template>
+
+<!-- the old way: we get the information directly from the bib
+<xsl:template match="ltx:cite">
   <xsl:for-each select="ltx:bibref/@bibrefs">
     <xsl:variable name="key" select="."/>
     <xsl:variable name="bibref" select="$biblist/ltx:bibentry[@key=$key]"/>
@@ -88,17 +140,17 @@
 	  <xsl:value-of select="normalize-space($bibref/ltx:bib-publisher)"/>
 	</xsl:attribute>
       </xsl:if>
-	<!-- also text:address, text:annote, text:booktitle, text:chapter, text:edition,
-	     text:editor, text:howpublished, text:identifier, text:institution, text:isbn,
-	     text:issn, text:month, text:note, text:number, text:organizations,
-	     text:report-type, text:school, text:series, text:url, text:volume -->
+	also text:address, text:annote, text:booktitle, text:chapter, text:edition,
+	text:editor, text:howpublished, text:identifier, text:institution, text:isbn,
+	text:issn, text:month, text:note, text:number, text:organizations,
+	text:report-type, text:school, text:series, text:url, text:volume
 	<xsl:text>[</xsl:text>
 	<xsl:value-of select="$key"/>
 	<xsl:text>]</xsl:text>
     </text:bibliography-mark>
   </xsl:for-each>
 </xsl:template>
-
+-->
     
 </xsl:stylesheet>
 
