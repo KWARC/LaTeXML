@@ -337,7 +337,9 @@ sub _prepare_options {
   $opts->{expire} = 600 if ((! defined $opts->{expire}) || ($opts->{expire} !~ /\d+/)); # 10 minute timeout default
   $opts->{dographics} = 1 unless defined $opts->{dographics}; #TODO: Careful, POST overlap!
   $opts->{mathparse} = 'RecDescent' unless defined $opts->{mathparse};
-  $opts->{mathparse} = 0 if ($opts->{mathparse} eq 'no');
+  if ($opts->{mathparse} eq 'no') {
+    $opts->{mathparse} = 0;
+    $opts->{nomathparse} = 1; } #Backwards compatible
   $opts->{verbosity} = 10 unless defined $opts->{verbosity};
   $opts->{preload} = [] unless defined $opts->{preload};
   $opts->{paths} = ['.'] unless defined $opts->{paths};
