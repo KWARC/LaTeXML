@@ -11,7 +11,7 @@ our @EXPORT = (qw(daemon_tests daemon_ok),
 # Note that this is a singlet; the same Builder is shared.
 our $Test=Test::Builder->new();
 
-# Test the invocations of all *.opt files in the given directory (typically t/something)
+# Test the invocations of all *.spec files in the given directory (typically t/something)
 # Skip any that have no corresponding *.xml and *.log files.
 
 # When daemon_tests is run with 'make' as a second argument, it will generate tests, instead of
@@ -28,7 +28,7 @@ sub daemon_tests {
     do_fail($directory,"Couldn't read directory $directory:$!"); }
   else {
     local $Test::Builder::Level =  $Test::Builder::Level+1;
-    my @tests = map("$directory/$_", grep(s/\.opt$//, sort readdir(DIR)));
+    my @tests = map("$directory/$_", grep(s/\.spec$//, sort readdir(DIR)));
     closedir(DIR);
     $Test->expected_tests(3*scalar(@tests)+$Test->expected_tests) unless $generate;
 
@@ -45,7 +45,7 @@ sub daemon_ok {
   my($base,$dir,$generate)=@_;
   my $localname = $base;
   $localname =~ s/$dir\///;
-  my $opts = read_options("$base.opt");
+  my $opts = read_options("$base.spec");
   push @$opts, ( ['destination', "$localname.test.xml"],
 		['log', "/dev/null"],
 		['timeout',5],
