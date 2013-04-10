@@ -4,5 +4,5 @@ format = xhtml
 pmml =
 cmml =
 nodefaultresources = 
-preload = ids.sty
+preload = [ids]latexml.sty
 path = $LATEXMLINPUTS

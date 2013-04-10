@@ -28,13 +28,30 @@ RegisterNamespace(xhtml=>"http://www.w3.org/1999/xhtml");
 
 DefMacroI("\\\@empty",undef,Tokens());
 
-# Base ID prefixes everything.
+#======================================================================
+# Core ID functionality.
+#======================================================================
+# DOCUMENTID is the ID of the document
+# AND prefixes IDs on all other elements.
 if(my $docid = LookupValue('DOCUMENTID')){
   # Wrap in T_OTHER so funny chars don't screw up (no space!)
   DefMacroI('\thedocument@ID',undef,T_OTHER($docid)); }
 else {
   Let(T_CS('\thedocument@ID'),T_CS('\@empty')); }
 NewCounter('@XMARG','document',idprefix=>'XM');
+
+# Optionally, add ID's to ALL nodes.
+# By default, this is ON;
+# Set to 0 (or \usepackage[noids]{latexml}) to turn disable.
+AssignValue(GENERATE_IDS=>1,'global');
+Tag('ltx:*',afterOpen=>sub {
+      # If GENERATE_IDS is true, we'll assign an ID to EVERY element,
+      # EXCEPT ltx:document which only gets an id from an EXPLICIT \thedocument@id.
+      my $tag = $_[0]->getNodeQName($_[1]);
+      if(($tag ne 'ltx:document')
+	 && ($tag ne 'ltx:XMWrap') # No auto-generated id on wrap???
+	 && LookupValue('GENERATE_IDS')){
+	GenerateID(@_); }});
 
 DefRegister('\pdfoutput',Number(0));
 
@@ -1500,47 +1517,97 @@ sub reenterTextMode {
 
 sub REF { $_[0] && $_[0]->{$_[1]}; }
 
-DefConstructor('\hbox BoxSpecification HBoxContents',
-	       "<ltx:text width='&REF(#1,to)' pad-width='&REF(#1,spread)' _noautoclose='1'>#2</ltx:text>",
+DefConstructor('\hbox BoxSpecification HBoxContents', sub {
+  # "<ltx:text width='&REF(#1,to)' pad-width='&REF(#1,spread)' _noautoclose='1'>#2</ltx:text>",
+  my($document,$spec,$contents)=@_;
+  my $model=$document->getModel;
+  my $context = $document->getElement;
+  my $current = $context;
+  my $tag = $document->getNodeQName($current);
+
+  # What is the CORRECT (& general) way to ask whether we're in "vertical mode"??
+#  my $vmode = $tag eq 'ltx:inline-block'; # ie, explicitly \vbox !?!?!?!
+  my $vmode = $current->getAttribute('_vertical_mode_');
+  my $newtag = ($vmode ? 'ltx:p' : 'ltx:text');
+  $document->openElement($newtag,_noautoclose=>1,
+                         width=>$spec && $$spec{to},'pad-width'=>$spec && $$spec{spread});
+  $document->absorb($contents);
+  $document->closeElement($newtag); },
+
  	       mode=>'text', bounded=>1,
  	       # Workaround for $ in alignment; an explicit \hbox gives us a normal $.
  	       # And also things like \centerline that will end up bumping up to block level!
  	       beforeDigest=>sub { reenterTextMode(); });
 
+# This attempts to be a generalize vbox construction;
+# It tries to figure out whether an inline-block is needed,
+# and attempts to figure out whether sequences of the inserted content
+# need to be explicitly wrapped in some kind of block element (presumably ltx:p).
+sub insertBlock {
+  my($document,$contents,%blockattr)=@_;
+  # Create something like:
+  # "<ltx:inline-block vattach='$vattach' height='..' pad-height='..'>#2</ltx:inline-block>"
+  my $model=$document->getModel;
+  my $context = $document->getElement; # Where we originally start inserting.
 
-# SHOULD Be a little smarter: if we're already in a block level context, don't open inline-block
-# but that doesn't really quite capture the logic....
-# Also, the whole business of laying out SOME of the children as rows is completely fuzzy..
-DefConstructor('\vbox BoxSpecification VBoxContents', 
-#	       "<ltx:inline-block vattach='bottom' height='&REF(#1,to)' pad-height='&REF(#1,spread)'>#2</ltx:inline-block>",
-	       sub {
-		 my($document,$spec,$contents,%props)=@_;
-		 my $model=$document->getModel;
-		 my $block = $document->openElement('ltx:inline-block',vattach=>'bottom', 
-						    height=>$spec && $$spec{to}, 'pad-height'=>$spec && $$spec{spread});
-		 # Ignore the leading and trailing { & } from the BoxContents.
-		 my @contents=$contents->unlist;
-		 foreach my $row (@contents[1..$#contents-1]){
-		   $document->absorb($row);
-		   if(my $prev = $document->getLastChildElement($block)){
-		     $document->maybeCloseElement($model->getNodeQName($prev)); }}
-		 $document->closeElement('ltx:inline-block'); },
+  # If we're "explicitly" asking for a vbox, or can't currently put an ltx:p in
+  # (which would be a typical block mode item), then we'd better open an inline-blokc
+  # [A thought is to close any open ltx:p, or create & delete one, just to "prime" it.
+  # but those seem a bad idea, because we may want a vbox inside a p, or....]
+  my $newblock = undef;
+  map( ($blockattr{$_} || delete $blockattr{$_}), keys %blockattr);
+  my $hasattr = scalar(keys %blockattr);
+  if($hasattr || ! $model->canContain($context,'ltx:p')){
+    # [If we DONT open, we lose the vattach!]
+    $newblock = $document->openElement('ltx:inline-block',%blockattr); }
+
+  # Insert the content for the block, and reduce
+  $document->getElement->setAttribute('_vertical_mode_'=>1); # HACK!!!! (see \hbox)
+  my @nodes = $document->filterChildren($document->filterDeletions($document->absorb($contents)));
+
+  # Scan the inserted nodes, wrapping sequences of Inline items with a ltx:p
+  my @newnodes=();
+  while(@nodes){
+    if($model->getNodeQName($nodes[0]) eq 'ltx:break'){ # ltx:break are superflous, now.
+      $document->removeNode(shift(@nodes));
+      next; }
+    my @n;                      # Collect up sequences of Inline
+    while(@nodes && ($model->isInSchemaClass('Inline',$nodes[0]))){
+      push(@n,shift(@nodes)); }
+    if(@n){
+      push(@newnodes,$document->wrapNodes('ltx:p',@n)); }
+    else {
+      push(@newnodes,shift(@nodes)); }}
+
+  # Close everything back up to the originally open element.
+  my $x;
+  while(isDescendant($x=$document->getElement,$context)){
+    $document->closeElement($model->getNodeQName($x)); }
+
+  # Check if the ltx:inline-block container is really needed.
+  if($newblock){
+      my @rows = $newblock->childNodes;
+      if(scalar(@rows) < 1){    # Insertion came up empty?
+        $document->removeNode($newblock); } # then remove the new block entirely
+      elsif((scalar(@rows) ==1)             # Else only 1 item inside, then flatten
+            && $model->canContain($newblock->parentNode,$rows[0]) # if allowed.
+            && (!$hasattr || grep($model->canHaveAttribute($rows[0],$_), keys %blockattr))){
+        map($rows[0]->setAttribute($_=>$blockattr{$_}), keys %blockattr);
+        $document->unwrapNodes($newblock); }}
+
+  # And return the list of "rows" in the box (in case they need attributes....)
+  @newnodes; }
+
+DefConstructor('\vbox BoxSpecification VBoxContents', sub {
+  my($document,$spec,$contents,%props)=@_;
+  insertBlock($document,$contents, vattach=>'bottom',
+              height=>$spec && $$spec{to},'pad-height'=>$spec && $$spec{spread}); },
  	       mode=>'text');
 
-
-DefConstructor('\vtop BoxSpecification VBoxContents', 
-# "<ltx:inline-block vattach='top' height='&REF(#1,to)' pad-height='&REF(#1,spread)'>#2</ltx:inline-block>",
-	       sub {
-		 my($document,$spec,$contents,%props)=@_;
-		 my $model=$document->getModel;
-		 my $block = $document->openElement('ltx:inline-block',vattach=>'top', 
-						    height=>$spec && $$spec{to}, 'pad-height'=>$spec && $$spec{spread});
-		 my @contents=$contents->unlist;
-		 foreach my $row (@contents[1..$#contents-1]){
-		   $document->absorb($row);
-		   if(my $prev = $document->getLastChildElement($block)){
-		     $document->maybeCloseElement($model->getNodeQName($prev)); }}
-		 $document->closeElement('ltx:inline-block'); },
+DefConstructor('\vtop BoxSpecification VBoxContents', sub {
+  my($document,$spec,$contents,%props)=@_;
+  insertBlock($document,$contents, vattach=>'top',
+              height=>$spec && $$spec{to},'pad-height'=>$spec && $$spec{spread}); },
 	       mode=>'text');
 
 DefParameterType('RuleSpecification',sub {
@@ -1610,7 +1677,7 @@ DefPrimitive('{',sub {
     LaTeXML::MathList->new($open,@body); }
   else {
     LaTeXML::List->new($open,@body); }});
-  
+
 #DefConstructor('}',  '',    beforeDigest=>sub{$_[0]->egroup;});
 DefPrimitive('}',sub { my $f = LookupValue('font'); $_[0]->egroup; Box(undef,$f,undef,T_END); });
 
@@ -2537,6 +2604,8 @@ sub add_body_TeX {
 Tag('ltx:Math',  afterClose=>\&add_body_TeX);
 Tag('ltx:Math',  afterClose=>\&cleanup_Math);
 
+# AHHH, but,what about inline-block... is that allowed?
+# So, better would be pull up context of XMText IFFFF it is allowed in the parent of the Math!!!!
 sub cleanup_Math {
   my($document,$mathnode)=@_;
   # If the Math contains ONLY XMath that ONLY contain XMText,
@@ -2549,6 +2618,46 @@ sub cleanup_Math {
   # Replace Math/XMath/XMText/* by *
   $document->replaceNode($mathnode,
 			 map($_->childNodes,map($_->childNodes,$mathnode->childNodes))); }
+
+# Here's for an inverse case: when an XMText isn't "really" a text
+# if it only contains an Math  ORR, a tabular with only Math in the cells?
+# First case: pull it back into the math, but in an XMWrap to isolate it for parsing.
+# Should we just pull any mixed text math up or only a single Math?
+# For the tabular case, convert it to an XMArray.
+Tag('ltx:XMText',  afterClose=>\&cleanup_XMText);
+sub cleanup_XMText {
+  my($document,$textnode)=@_;
+  my @children = $textnode->childNodes;
+  return unless (scalar(@children)==1);
+  my $model = $document->getModel;
+  my $childtag = $model->getNodeQName($children[0]);
+  # Careful of both elements and text nodes!
+  if($document->findnode('ltx:text[count(* | text()) = 1][ltx:Math]',$textnode)){
+    # Replace XMText/text/Math/XMath/* by XMWrap/*  (this should preserve the parse?)
+    $textnode=$document->renameNode($textnode,'ltx:XMWrap');
+    map( $document->replaceNode($_,map($_->childNodes,map($_->childNodes,$_->childNodes))),
+         $textnode->childNodes); }
+
+  elsif($childtag eq 'ltx:Math'){
+    # Replace XMText/Math/XMath/* by XMWrap/*  (this should preserve the parse?)
+    $textnode=$document->renameNode($textnode,'ltx:XMWrap');
+    map( $document->replaceNode($_,map($_->childNodes,$_->childNodes)),
+         $textnode->childNodes); }
+  elsif($childtag eq 'ltx:tabular'){
+    my $table = $children[0];
+    # Should we ONLY do this if all cells are math?
+    return if $document->findnodes('*[local-name() != "tr"] | ltx:tr[not(ltx:td)] | ltx:tr/ltx:td[not(ltx:Math)]',$table);
+    $table = $document->renameNode($table,'ltx:XMArray');
+    foreach my $row ($table->childNodes){
+      $row = $document->renameNode($row,'ltx:XMRow');
+      foreach my $cell ($row->childNodes){
+        # Replace td/Math/XMath/* by XMCell/*
+        $cell = $document->renameNode($cell,'ltx:XMCell');
+        foreach my $m ($cell->childNodes){
+          $document->replaceNode($m,map($_->childNodes,$m->childNodes)); }}}
+    # And now we don't need the XMText any more.
+    $document->unwrapNodes($textnode); }
+}
 
 #**********************************************************************
 # Support for MathFork.
@@ -2807,6 +2916,8 @@ Let(T_CS('\leqno'),T_CS('\eqno'));
 DefConstructor('\@@eqno{}',"^ refnum='#eqnum'",
 	       reversion=>'',
 	      afterDigest=>sub { my $num = ToString($_[1]->getArg(1));
+                                 # special purpose cleanup!?!?!
+				 $num=~ s/^\\hbox\{(.*)\}$/$1/;
 				 $num=~ s/^\{(.*)\}$/$1/;
 				 $num=~ s/^\((.*)\)$/$1/;
 				 $_[1]->setProperties(eqnum=>$num); });
@@ -3603,25 +3714,48 @@ RawTeX(' \def\loop#1\repeat{\def\body{#1}\iterate}
          \def\iterate{\body \let\next=\iterate \else\let\next=\relax\fi \next}
          \let\repeat=\fi ');
 
-DefConstructorI('\enskip',  undef,
-		"?#isMath(<ltx:XMHint name='enskip' width='#width'/>)(\x{2000})",
-		properties=>{isSpace=>1, width=>sub{ Dimension('0.5em'); }});
-DefConstructorI('\enspace', undef,
-		"?#isMath(<ltx:XMHint name='enskip' width='#width'/>)(\x{2000})",
-		properties=>{isSpace=>1, width=>sub{ Dimension('0.5em'); }});
-DefConstructorI('\quad',   undef,
-		"?#isMath(<ltx:XMHint name='quad' width='#width'/>)(\x{2001})",
-		properties=>{isSpace=>1, width=>sub{ Dimension('1em'); }});
+DefMacroI('\enskip',undef,'\ifmmode\@math@enskip\else\@text@enskip\fi');
+DefConstructorI('\@math@enskip',  undef,
+                "<ltx:XMHint name='enskip' width='#width'/>",
+                alias=>'\enskip',
+                properties=>{isSpace=>1, width=>sub{ Dimension('0.5em'); }});
+DefPrimitiveI('\@text@enskip',  undef,"\x{2000}",alias=>'\enskip');
+
+DefMacroI('\enspace',undef,'\ifmmode\@math@espace\else\@text@enspace\fi');
+DefConstructorI('\@math@enspace', undef,
+                "<ltx:XMHint name='enskip' width='#width'/>",
+                alias=>'\enspace',
+                properties=>{isSpace=>1, width=>sub{ Dimension('0.5em'); }});
+DefPrimitiveI('\@text@enspace',  undef,"\x{2000}",alias=>'\enspace');
+
+DefMacroI('\quad',undef,'\ifmmode\@math@quad\else\@text@quad\fi');
+DefConstructorI('\@math@quad',   undef,
+                "<ltx:XMHint name='quad' width='#width'/>",
+                alias=>'\quad',
+                properties=>{isSpace=>1, width=>sub{ Dimension('1em'); }});
+DefPrimitiveI('\@text@quad',  undef,"\x{2001}",alias=>'\quad');
+
 # Conceivably should be treated as punctuation! (but maybe even \quad should !?!)
-DefConstructorI('\qquad',  undef,
-		"?#isMath(<ltx:XMHint name='qquad' width='#width'/>)(\x{2001}\x{2001})",
-		properties=>{isSpace=>1, width=>sub{ Dimension('2em'); }});
-DefConstructorI('\thinspace',   undef,
-		"?#isMath(<ltx:XMHint name='thinspace' width='#width'/>)( )",
-		properties=>{isSpace=>1, width=>sub{ Dimension('0.16667em'); }});
-DefConstructorI('\negthinspace',undef,
-		"?#isMath(<ltx:XMHint name='negthinspace' width='#width'/>)()",
-		properties=>{isSpace=>1, width=>sub{ Dimension('-0.16667em'); }});
+DefMacroI('\qquad',undef,'\ifmmode\@math@qquad\else\@text@qquad\fi');
+DefConstructorI('\@math@qquad',  undef,
+                "<ltx:XMHint name='qquad' width='#width'/>",
+                alias=>'\qquad',
+                properties=>{isSpace=>1, width=>sub{ Dimension('2em'); }});
+DefPrimitiveI('\@text@qquad',  undef,"\x{2001}\x{2001}",alias=>'\qquad');
+
+DefMacroI('\thinspace',undef,'\ifmmode\@math@thinspace\else\@text@thinspace\fi');
+DefConstructorI('\@math@thinspace',   undef,
+                "<ltx:XMHint name='thinspace' width='#width'/>",
+                alias=>'\thinspace', 
+                properties=>{isSpace=>1, width=>sub{ Dimension('0.16667em'); }});
+DefPrimitiveI('\@text@thinspace',  undef,"\x{2009}",alias=>'\thinspace');
+
+DefMacroI('\negthinspace',undef,'\ifmmode\@math@negthinspace\else\@text@negthinspace\fi');
+DefConstructorI('\@math@negthinspace',undef,
+                "<ltx:XMHint name='negthinspace' width='#width'/>",
+                alias=>'\negthinspace',
+                properties=>{isSpace=>1, width=>sub{ Dimension('-0.16667em'); }});
+DefPrimitiveI('\@text@negthinspace',  undef,"", alias=>'\negthinspace');
 
 DefConstructor('\hglue Glue', "?#isMath(<ltx:XMHint name='hglue' width='#1'/>)(\x{2001})",
 	      properties=>{isSpace=>1});
@@ -3916,8 +4050,9 @@ our %accents
      '\r' => ["\x{030A}","o"], # COMBINING RING ABOVE & non-combining
      '\H' => ["\x{030B}","\x{02DD}"], # COMBINING DOUBLE ACUTE ACCENT & non-combining
      '\c' => ["\x{0327}",UTF(0xB8)], # COMBINING CEDILLA & CEDILLA
-     '\d' => ["\x{0323}",'.'], # COMBINING DOT BELOW & DOT (?)
-     '\b' => ["\x{0331}",UTF(0xAF)], # COMBINING MACRON BELOW  & MACRON
+# NOTE: The next two get define for math, as well; See below
+     '\@text@daccent' => ["\x{0323}",'.'], # COMBINING DOT BELOW & DOT (?)
+     '\@text@baccent' => ["\x{0331}",UTF(0xAF)], # COMBINING MACRON BELOW  & MACRON
      '\t' => ["\x{0361}","-"],	# COMBINING DOUBLE INVERTED BREVE & ???? What????
      # this one's actually defined in mathscinet.sty, but just stick it here!
      '\lfhook'=>["\x{0326}",","], # COMBINING COMMA BELOW
@@ -3926,15 +4061,21 @@ our %accents
 		);
 
 # Create a box applying an accent to a letter
+# Hopefully, we'll get a Box from digestion with a plain string.
+# Then we can apply combining accents to it.
 sub applyAccent {
   my($stomach,$letter,$combiningchar,$standalonechar,$reversion)=@_;
-  $letter = Expand($letter);
-  my @letters = map(($_ eq '\i' ? 'i': ($_ eq '\j' ? 'j' : $_)),
-		    map(ToString($_), ($letter ? $letter->unlist : ())));
-  if(!scalar(@letters) || ((scalar(@letters)==1) && ($letters[0] eq '\ '))){
-    Box($standalonechar,undef,undef,$reversion); }
-  else { # Put the accent AFTER the first char(?)
-    Box(NFC($letters[0].$combiningchar.join('',@letters[1..$#letters])),undef,undef,$reversion); }}
+  my $box = Digest($letter);
+  my $locator = $box->getLocator;
+  my $font    = $box->getFont;
+  my $string  = $box->toString;
+  $string =~ tr/\x{0131}\x{0237}/ij/;
+  $string =~ s/\s/ /g;
+  my @letters = split(//,$string);
+  Box( ($string =~ /^\s*$/
+        ? $standalonechar
+        : NFC($letters[0].$combiningchar.join('',@letters[1..$#letters]))),
+       $font,$locator,$reversion); }
 
 # Defines an accent command using a combining char that follows the
 # 1st char of the argument.  In cases where there is no argument, $standalonechar is used.
@@ -3942,7 +4083,8 @@ sub DefAccent {
   my ($accent, $combiningchar, $standalonechar) = @_;
   DefPrimitive($accent."{}", sub {
     my($stomach,$letter)=@_;
-    applyAccent($stomach,$letter,$combiningchar, $standalonechar, Invocation($accent,$letter)); });
+    applyAccent($stomach,$letter,$combiningchar, $standalonechar, Invocation($accent,$letter)); },
+               mode=>'text');
 }
 
 foreach my $accent (keys %accents) {
@@ -3956,13 +4098,45 @@ DefPrimitive('\accent Number {}',sub {
   my $fontinfo = LookupValue('fontinfo_'.$fam.'_text');
   my $acc = ($fontinfo && $$fontinfo{encoding} ? FontDecode($n,$$fontinfo{encoding}) : chr($n));
   my $reversion = Invocation(T_CS('\accent'),$num,$letter);
-  # Reverse lookup of the non-spacing accent char
+  # NOTE: REVERSE LOOKUP in above accent list for the non-spacing accent char
   my($entry) = $acc && grep($acc eq $$_[1], values %accents);
   if($entry){
     applyAccent($stomach,$letter,@$entry,$reversion); }
   else {
     Warn('unexpected',"accent$n",$stomach,"Accent '$n' not recognized");
     Box(ToString($letter),undef,undef,$reversion); }});
+
+# Note that these two apparently work in Math? BUT the argument is treated as text!!!
+DefMacro('\d{}','\ifmmode\@math@daccent{#1}\else\@text@daccent{#1}\fi');
+DefMacro('\b{}','\ifmmode\@math@baccent{#1}\else\@text@baccent{#1}\fi');
+
+DefConstructor('\@math@daccent {}',
+	       "<ltx:XMApp><ltx:XMTok role='UNDERACCENT'>\x{22c5}</ltx:XMTok>"
+               .  "?#textarg(<ltx:XMText>#textarg</ltx:XMText>)(<ltx:XMArg>#matharg</ltx:XMArg>)"
+               ."</ltx:XMApp>",
+               mode=>'text', alias=>'\d',
+	       afterDigest=>sub {
+		 my($stomach,$whatsit)=@_;
+		 my $arg = $whatsit->getArg(1);
+                 if($arg->isMath){
+                   $whatsit->setProperty(matharg=>$arg->getBody); }
+                 else {
+                   $whatsit->setProperty(textarg=>$arg); };
+		 return; });
+
+DefConstructor('\@math@baccent {}',
+	       "<ltx:XMApp><ltx:XMTok role='UNDERACCENT'>".UTF(0xAF)."</ltx:XMTok>"
+               .  "?#textarg(<ltx:XMText>#textarg</ltx:XMText>)(<ltx:XMArg>#matharg</ltx:XMArg>)"
+               ."</ltx:XMApp>",
+               mode=>'text', alias=>'\b',
+	       afterDigest=>sub {
+		 my($stomach,$whatsit)=@_;
+		 my $arg = $whatsit->getArg(1);
+                 if($arg->isMath){
+                   $whatsit->setProperty(matharg=>$arg->getBody); }
+                 else {
+                   $whatsit->setProperty(textarg=>$arg); };
+		 return; });
 
 #======================================================================
 # TeX Book, Appendix B. p. 357
@@ -3975,27 +4149,56 @@ Let(T_CS('\bye'),T_CS('\end'));
 
 Let(T_CS('\sp'),T_SUPER);
 Let(T_CS('\sb'),T_SUB);
-DefConstructorI('\,',undef,
-		"?#isMath(<ltx:XMHint name='thinspace' width='#width'/>)(\x{2009})",
-		properties=>{isSpace=>1, width=>sub{ LookupValue('\thinmuskip'); }});
-DefConstructorI('\!',undef,
-		"?#isMath(<ltx:XMHint name='negthinspace' width='#width'/>)()",
-		properties=>{isSpace=>1, width=>sub{ LookupValue('\thinmuskip')->negate; }});
-DefConstructorI('\>',undef,
-		"?#isMath(<ltx:XMHint name='medspace' width='#width'/>)()",
-		properties=>{isSpace=>1, width=>sub{ LookupValue('\medmuskip'); }});
-DefConstructorI('\;',undef,
-		"?#isMath(<ltx:XMHint name='thickspace' width='#width'/>)(\x{2004})",
-		properties=>{isSpace=>1, width=>sub{ LookupValue('\thickmuskip'); }});
+
+DefMacroI('\,',undef, '\ifmmode\@math@thinmuskip\else\@text@thinmuskip\fi');
+DefConstructorI('\@math@thinmuskip',undef,
+                "<ltx:XMHint name='thinspace' width='#width'/>",
+                alias=>'\,',
+                properties=>{isSpace=>1, width=>sub{ LookupValue('\thinmuskip'); }});
+DefPrimitiveI('\@text@thinmuskip',undef,"\x{2009}",alias=>'\,');
+
+DefMacroI('\!',undef, '\ifmmode\@math@negthinmuskip\else\@text@negthinmuskip\fi');
+DefConstructorI('\@math@negthinmuskip',undef,
+                "<ltx:XMHint name='negthinspace' width='#width'/>",
+		alias=>'\!',
+                properties=>{isSpace=>1, width=>sub{ LookupValue('\thinmuskip')->negate; }});
+DefPrimitiveI('\@text@negthinmuskip',undef,"",alias=>'\!');
+
+DefMacroI('\>',undef, '\ifmmode\@math@medmuskip\else\@text@medmuskip\fi');
+DefConstructorI('\@math@medmuskip',undef,
+		"<ltx:XMHint name='medspace' width='#width'/>",
+		alias=>'\>',
+                properties=>{isSpace=>1, width=>sub{ LookupValue('\medmuskip'); }});
+DefPrimitiveI('\@text@medmuskip',undef,"",alias=>'\>');
+
+DefMacroI('\;',undef, '\ifmmode\@math@thickmuskip\else\@text@thickmuskip\fi');
+DefConstructorI('\@math@thickmuskip',undef,
+		"<ltx:XMHint name='thickspace' width='#width'/>",
+		alias=>'\;',
+                properties=>{isSpace=>1, width=>sub{ LookupValue('\thickmuskip'); }});
+DefPrimitiveI('\@text@thickmuskip',undef,"\x{2004}",alias=>'\;');
+
 Let(T_CS('\:'),T_CS('\>'));
-DefConstructorI('\ ',undef,
-		"?#isMath(<ltx:XMHint name='medspace' width='#width'/>)(".UTF(0xA0).")",
+DefMacroI('\ ',undef, '\ifmmode\@math@nbspace\else\@text@nbspace\fi');
+DefConstructorI('\@math@nbspace',undef,
+		"<ltx:XMHint name='medspace' width='#width'/>",
+		alias=>'\ ',
+                properties=>{isSpace=>1, width=>sub{ Dimension('1em'); }});
+DefPrimitiveI('\@text@nbspace',undef,UTF(0xA0),alias=>'\ ');
+
+DefMacroI('\	',undef, '\ifmmode\@math@tab\else\@text@tab\fi');
+DefConstructorI('\@math@tab',undef, # Tab!!
+		"<ltx:XMHint name='medspace' width='#width'/>",
+                alias=>'\	', # TAB
 		properties=>{isSpace=>1, width=>sub{ Dimension('1em'); }});
-DefConstructorI('\	',undef, # Tab!!
-		"?#isMath(<ltx:XMHint name='medspace' width='#width'/>)(".UTF(0xA0).")",
-		properties=>{isSpace=>1, width=>sub{ Dimension('1em'); }});
-DefConstructorI('\/',undef,"?#isMath(<ltx:XMHint name='italiccorr'/>)()",
-	      properties=>{isSpace=>1});
+DefPrimitiveI('\@text@tab',undef,UTF(0xA0),alias=>'\	'); # TAB!!! What else?
+
+DefMacroI('\/',undef, '\ifmmode\@math@italiccorr\else\@text@italiccorr\fi');
+DefConstructorI('\@math@italiccorr',undef,
+                "<ltx:XMHint name='italiccorr'/>",
+                alias=>'\/',
+                properties=>{isSpace=>1});
+DefPrimitiveI('\@text@italiccorr',undef,"",alias=>'\/');
 
 # What kind of magic might allow \mskip to translate these back into the above?
 DefMacroI('\thinmuskip',undef, "3 mu");
@@ -4139,7 +4342,15 @@ DefConstructorI('\nolimits',undef,sub {
    my $node = $_[0]->getElement;
    $node = $_[0]->getLastChildElement($node)||$node;
    $node->removeAttribute('scriptpos'); }); # default is 'post', so we can just remove the attrib.
-
+DefConstructorI('\displaylimits',undef,sub {
+   my($document,%props)=@_;
+   my $node = $_[0]->getElement;
+   $node = $_[0]->getLastChildElement($node)||$node;
+   if(($props{mathstyle}||'text') eq 'display'){
+     $node->setAttribute(scriptpos=>'mid'); }
+   else {
+     $node->removeAttribute('scriptpos'); }},
+		properties=>sub { (mathstyle=>LookupValue('mathstyle')); });
 #----------------------------------------------------------------------
 # Actually from LaTeX; Table 3.4. Binary Operation Symbols, p.42
 #----------------------------------------------------------------------
@@ -4545,17 +4756,25 @@ sub lookup_delimiter {
 
 # This is a little messier than you'd think.
 # These effectively create a group between the \left,\right.
+# And this also gives us a single list of things to parse separately.
+# Since \left,\right are TeX, primitives and must be paired up,
+# we use a bit of macro trickery to simulate.
+# [The \@hidden@bgroup/egroup keep from putting a {} into the UnTeX] 
+# HOWEVER, an additional complication is that it is a common mistake to omit the balancing \right!
+# Using an \egroup (or hidden) makes it hard to recover, so use a special egroup
 DefMacro('\left XToken','\@left #1\@hidden@bgroup');
-# DefMacro('\right XToken','\@hidden@egroup\@right #1');
-# However, note that it is a relatively common error to have an unbalanced \right)
-# If we let this fail within Stomach, we'll get an incomprehensible message.
-DefMacro('\right XToken',sub {
-  if($STATE->isValueBound('MODE',0) # Last stack frame was a mode switch!?!?!
-      || $STATE->lookupValue('groupNonBoxing')){ # or group was opened with \begingroup
-    Error('unexpected','\right',undef,"Unbalanced \\right, no balancing \\left."); }
-  else {
-    (T_CS('\@hidden@egroup'),T_CS('\@right'),$_[1]); }});
+# Like \@hidden@egroup, but softer about missing \left
+DefConstructor('\right@hidden@egroup','',
+               afterDigest=>sub {
+                 my($stomach)=@_;
+                 if($STATE->isValueBound('MODE',0) # Last stack frame was a mode switch!?!?!
+                    || $STATE->lookupValue('groupNonBoxing')){ # or group was opened with \begingroup
+                   Error('unexpected','\right',undef,"Unbalanced \\right, no balancing \\left."); }
+                 else {
+                   $stomach->egroup; }},
+	      reversion=>'');
 
+DefMacro('\right XToken','\right@hidden@egroup\@right #1');
 
 DefConstructor('\@left Token',
 	       "?#char(<ltx:XMTok role='#role' name='#name'>#char</ltx:XMTok>)(<ltx:XMHint/>)",
@@ -4787,7 +5006,8 @@ DefMacro('\cases{}',
 	 '\@@cases{\@start@alignment#1\@finish@alignment}');
 DefConstructor('\@@cases{}',
 	       sub { my($document,$body,%props)=@_;
-		     constructAlignment($document,$body,attributes=>{meaning=>'cases'}); },
+		     constructAlignment($document,$body,
+					attributes=>{meaning=>'cases', open=>'{'}); },
 	       reversion=>'\cases{#1}', bounded=>1,
 	       beforeDigest=>sub { 
  		 my $col1 = {before=>Tokens(), after=>Tokens(T_CS('\hfil'))};
@@ -4912,27 +5132,29 @@ DefMathI('\*',undef,"\x{2062}", role=>'MULOP', name=>'', meaning=>'times'); # IN
 # NOTE that \mathord and \mathbin aren't really right here.
 # We need a finer granularity than TeX does: an ORD could be several things,
 # a BIN could be a MULOP or ADDOP.
-DefConstructor('\mathord{}',"<ltx:XMWrap role='ID'>#1</ltx:XMWrap>", bounded=>1);
-# This is probably wrong..
-#DefConstructor('\mathop{}', "<ltx:XMWrap role='FUNCTION'>#1</ltx:XMWrap>", bounded=>1);
-DefConstructor('\mathop{}', "<ltx:XMWrap role='BIGOP'>#1</ltx:XMWrap>", bounded=>1);
-DefConstructor('\mathbin{}', "<ltx:XMWrap role='BINOP'>#1</ltx:XMWrap>", bounded=>1);
-DefConstructor('\mathrel{}',"<ltx:XMWrap role='RELOP'>#1</ltx:XMWrap>", bounded=>1);
-DefConstructor('\mathrel{}',"<ltx:XMWrap role='RELOP'>#1</ltx:XMWrap>", bounded=>1);
-DefConstructor('\mathopen{}', "<ltx:XMWrap role='OPEN'>#1</ltx:XMWrap>", bounded=>1);
-DefConstructor('\mathclose{}', "<ltx:XMWrap role='CLOSE'>#1</ltx:XMWrap>", bounded=>1);
-DefConstructor('\mathpunct{}', "<ltx:XMWrap role='PUNCT'>#1</ltx:XMWrap>", bounded=>1);
+DefConstructor('\mathord{}',  "<ltx:XMWrap role='ID'   >#1</ltx:XMWrap>", bounded=>1);
+DefConstructor('\mathop{}',   "<ltx:XMWrap role='BIGOP'>#1</ltx:XMWrap>", bounded=>1);
+DefConstructor('\mathbin{}',  "<ltx:XMWrap role='BINOP'>#1</ltx:XMWrap>", bounded=>1);
+DefConstructor('\mathrel{}',  "<ltx:XMWrap role='RELOP'>#1</ltx:XMWrap>", bounded=>1);
+DefConstructor('\mathopen{}', "<ltx:XMWrap role='OPEN' >#1</ltx:XMWrap>", bounded=>1);
+DefConstructor('\mathclose{}',"<ltx:XMWrap role='CLOSE'>#1</ltx:XMWrap>", bounded=>1);
+DefConstructor('\mathpunct{}',"<ltx:XMWrap role='PUNCT'>#1</ltx:XMWrap>", bounded=>1);
 
-# If we only have XMTok children and none of them has a role "script", concatenate:
+# If an XMWrap (presumably from \mathop, \mathbin, etc)
+# has multiple children, ALL are XMTok, within a restricted set of roles,
+# we want to concatenate the text content into a single XMTok.
 DefMathRewrite(xpath=>'descendant-or-self::ltx:XMWrap['
 	       # Only XMWrap's from the above class of operators
-	       .'(@role="OP" or @role="BIGOP" or @role="ADDOP" or @role="MULOP" '
-	       . 'or @role="OPEN" or @role="CLOSE" or @role="RELOP")'
+	       .'(@role="OP" or @role="BIGOP" or @role="RELOP" '
+               . 'or @role="ADDOP" or @role="MULOP" or @role="BINOP" '
+	       . 'or @role="OPEN" or @role="CLOSE")'
+               .' and count(child::*) > 1 '
 	       # with only XMTok as children with the roles in (roughly) the same set
 	       .' and not(child::*[local-name() != "XMTok"])'
 	       .' and not(ltx:XMTok['
-	       .   '@role !="OP" and @role!="BIGOP" and @role!="ADDOP" and @role!="MULOP" '
-	       .   'and @role!="OPEN" and @role!="CLOSE" and @role!="RELOP" and @role!="METARELOP"'
+	       .   '@role !="OP" and @role!="BIGOP" and @role!="RELOP" and @role!="METARELOP" '
+               .   'and @role!="ADDOP" and @role!="MULOP" and @role!="BINOP" '
+	       .   'and @role!="OPEN" and @role!="CLOSE"'
 	       .   '])]',
  replace=>sub {
    my ($document,$node) = @_;
@@ -4968,8 +5190,8 @@ DefPrimitiveI('\j',   undef,"\x{0237}");
 
 DefConstructor('\buildrel Until:\over {}',
 	       "<ltx:XMApp role='RELOP'>"
-	       .  "<ltx:XMTok role='SUPERSCRIPTOP'/>"
-	       .  "<ltx:XMArg scriptpos='#scriptpos'>#2</ltx:XMArg>"
+	       .  "<ltx:XMTok role='SUPERSCRIPTOP' scriptpos='#scriptpos'/>"
+	       .  "<ltx:XMArg>#2</ltx:XMArg>"
 	       .  "<ltx:XMArg>#1</ltx:XMArg>"
 	       ."</ltx:XMApp>",
 	       properties=>{scriptpos=>sub{ "mid".$_[0]->getBoxingLevel; }});
@@ -5123,90 +5345,16 @@ DefConstructor('\@hidden{}','',reversion=>'');
 DefRewrite(xpath=>'descendant-or-self::ltx:XMWrap[count(child::*)=1]',
 	  replace=>sub { my($document,$wrap)=@_;
 			 if(my $node = $document->getFirstChildElement($wrap)){
+                           # Copy attributes but NOT internal ones,
+                           # NOR xml:id, else we get clashes
 			   foreach my $attribute ($wrap->attributes){
 			     if($attribute->nodeType == XML_ATTRIBUTE_NODE){
 			       my $attr = $attribute->nodeName;
 			       $document->setAttribute($node,$attr=>$attribute->getValue)
-				 unless $attr =~ /^_/; }}
+				 unless ($attr eq 'xml:id') || $attr =~ /^_/; }}
 			   ## WHY THIS????
 			   $document->getNode->appendChild($node); }});
 #======================================================================
-# HACKERY!!!  This seems to require too much knowledge about inline vs block and such.
-# Perhaps this really should be done as a daemon that runs when the current node is closed?
-# Or perhaps even better, it should temporarily modify the Model such that the current node
-# only accepts block level markup; that would automagically elevate stuff to <p> when needed!(?)
-our $INLINE_TAGS = "ltx:text|ltx:emph|ltx:acronym|ltx:rule|ltx:anchor|ltx:ref|ltx:cite|ltx:bibref|ltx:Math|ltx:graphics";
-sub insertBlock {
-  my($document,$body)=@_;
-  # Make sure we're at some kind of block level, by closing any open p (is ltx:p enough?)
-  $document->maybeCloseElement('ltx:p');
-  my $prev = $document->getNode->lastChild; # and remember the last node before insertion.
-
-  $document->absorb($body);	    # Now insert.
-  $document->maybeCloseElement('ltx:p'); # and close any ltx:p, to be safe
-
-  # This is the current node AFTER the insertion (may have moved up/down, whatever)
-  my $current = $document->getNode; # Watch that Current node makes sense after surgery.
-  my $model   = $document->getModel;
-  my $parent  = $document->getElement; # parent of the insertions
-  return () unless $parent;
-  # Find $previous position within the CURRENT parent
-  my $x;
-  while($prev && ($x=$prev->parentNode) && !$x->isSameNode($parent)){
-    $prev = $x; }
-  # Now look at all nodes at current level of insertion
-  my @nodes = $parent->childNodes;
-  if($prev && grep($prev->isSameNode($_), @nodes)){ # Remove the "old" nodes from @nodes
-    while( !$nodes[0]->isSameNode($prev)){ shift(@nodes); }
-    shift(@nodes); }
-  # So, what remains in @nodes is the current set of inserted nodes (whew)
-
-  # If we're at a level that can contain ltx:p, we want to watch for lines of text
-  # that should be wrapped in a ltx:p so they can be centered, aligned, whatever.
-  if ($model->canContain($parent,'ltx:p')) {
-    my @new = ();
-    my @savenodes = @nodes;	# These are the ones that got recently added.
-
-    # Wrap any "inline" nodes in a ltx:p, but delete any pure whitespace text nodes
-    while (@nodes) {
-      my @x=();		 # Collect up the next group of "inline" nodes
-      my $moved_current = 0; # whether we have affected the document's current node.
-      while (@nodes && (($nodes[0]->nodeType == XML_TEXT_NODE)
-			|| (($nodes[0]->nodeType == XML_ELEMENT_NODE)
-			    && ($model->getNodeQName($nodes[0]) =~ /^($INLINE_TAGS)$/)))) {
-	$moved_current = 1 if ${$nodes[0]} == $$current;
-	push(@x,shift(@nodes)); }
-      if (@x && !grep(($_->nodeType != XML_TEXT_NODE)
-		      || ($_->textContent =~ /\S/), @x)) { # Only whitespace text nodes?
-	map($parent->removeChild($_),@x); # just remove them
-	# Watch out if we've deleted the current node!
-	$document->setNode( (@new ? $new[-1] : $parent) ) if $moved_current; }
-      elsif (@x) { # Some worthwhile inline nodes to wrap in a <ltx:p>
-	my $para = $document->openElementAt($parent,'ltx:p');
-	$parent->removeChild($para);
-	$parent->replaceChild($para,$x[0]); # replace 1st child by the <ltx:p>
-	$document->setNode($para) if $moved_current; # new <ltx:p> will become current
-	foreach my $c (@x) {
-	  if ($c->nodeType == XML_TEXT_NODE) {
-	    my $t = $c->textContent;
-	    $para->appendTextNode($t) if $t =~ /\S/; } # append if more than just whitespace.
-	  else {
-	    $para->appendChild($c); }
-	  $parent->removeChild($c); }
-	push(@new,$para); }
-      # other element (block or similar), just move to new list
-      elsif ($nodes[0]->nodeType == XML_ELEMENT_NODE) {
-	if ($model->getNodeQName($nodes[0]) eq 'ltx:break') { # except for <break>!
-	  $parent->removeChild(shift(@nodes));
-	  # Watch out if we've deleted the current node!
-	  $document->setNode($new[-1]) if $moved_current; }
-	else {
-	  push(@new,shift(@nodes)); }}
-      else {
-	shift(@nodes); }}
-    @nodes = (@new ? @new : @savenodes); }
-
-  @nodes; }
 
 sub aligningEnvironment {
   my($align,$class,$document,%props)=@_;

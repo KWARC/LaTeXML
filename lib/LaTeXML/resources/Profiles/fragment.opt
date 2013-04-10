@@ -18,5 +18,5 @@ preload = eucal.sty
 preload = [dvipsnames]xcolor.sty
 preload = url.sty
 preload = hyperref.sty
-preload = ids.sty
+preload = [ids]latexml.sty
 path = $LATEXMLINPUTS

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?latexml package="ids"?>
+<?latexml options="ids" package="latexml"?>
 <?latexml class="article"?>
 <?latexml RelaxNGSchema="LaTeXML"?>
-<document xmlns="http://dlmf.nist.gov/LaTeXML" xml:id="id1">
+<document xmlns="http://dlmf.nist.gov/LaTeXML">
   <resource src="LaTeXML.css" type="text/css"/>
   <resource src="ltx-article.css" type="text/css"/>
-  <para xml:id="id1.p1">
-    <p xml:id="id1.p1.1">Some structure:</p>
+  <para xml:id="p1">
+    <p xml:id="p1.1">Some structure:</p>
   </para>
   <section refnum="1" xml:id="S1">
     <title><tag close=" ">1</tag>One</title>

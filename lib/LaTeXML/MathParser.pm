@@ -200,14 +200,10 @@ sub parse_rec {
   my $tag  = getQName($node);
   if(my $requested_rule = $node->getAttribute('rule')){
     $rule = $requested_rule; }
-#### SEGFAULT TEST (uncomment next line)
-####  $self->translate_hints($document,$node);
   if(my $result= $self->parse_single($node,$document,$rule)){
     $$self{passed}{$tag}++;
    if($tag eq 'ltx:XMath'){	# Replace the content of XMath with parsed result
      NoteProgress('['.++$$self{n_parsed}.']');
-#### SEGFAULT TEST (Uncomment next line & comment out following 2)
-####     map($document->removeNode($_),element_nodes($node));
      map($document->unRecordNodeIDs($_),element_nodes($node));
      $node->removeChildNodes;
      $document->appendTree($node,$result);
@@ -251,50 +247,6 @@ sub parse_children {
       $self->parse_children($child,$document); }}}
 
 our $HINT_PUNCT_THRESHOLD = 10.0; # \quad or bigger becomes punctuation ?
-###our $HINT_PUNCT_THRESHOLD = 100000.0; # \quad or bigger becomes punctuation ?
-# Move any spacing XMHints to the previous node's rspace (other alternatives exist!)
-# and them remove them from the stream.
-#### SEGFAULT TEST
-#### This sub somehow irritates XML::LibXML
-#### filter_hints is gentler!
-sub translate_hints {
-  my($self,$document,$node)=@_;
-  my @children = element_nodes($node);
-  my $prev = undef;
-  while(@children){
-    my $c = shift(@children);
-    if(getQName($c) eq 'ltx:XMHint'){ # Is this a Hint node?
-      if(my $width = $c->getAttribute('width')){ # Is it a spacing hint?
-	# Get the pts (combining w/any following spacing hints)
-	my $pts = getXMHintSpacing($width);
-	while(@children && (getQName($children[0]) eq 'ltx:XMHint') # Combine w/ more?
-	      && ($width = $c->getAttribute('width'))){
-	  $pts += getXMHintSpacing($width);
-	  $document->removeNode(shift(@children)); } # and remove the extra hints
-	# A wide space, between Stuff, is likely acting like punctuation, so convert it
-	if($prev && (($prev->getAttribute('role')||'') ne 'PUNCT')
-	   && scalar(@children) && ($pts >= $HINT_PUNCT_THRESHOLD)){
-	  $c = $document->renameNode($c,'ltx:XMTok');
-	  $c->removeAttribute('width');
-	  $c->removeAttribute('height');   # ?
-	  $c->setAttribute(role=>'PUNCT');  # convert to punctuation!
-	  $c->appendText( "\x{2001}" x int($pts/10)); } # fill with quads?
-	else {
-	  if($pts){
-	    if($prev){		# Else add rspace to previous item
-	      $prev->setAttribute(rspace=>$pts.'pt'); }
-### This should be enabled, but think some more about the contexts (eg split in t/ams/amsdisplay)
-###	    elsif(scalar(@children)){ # or maybe lspace to next??
-###	      $children[0]->setAttribute(rspace=>$pts.'pt'); }
-	  }
-	  $document->removeNode($c); } # at any rate, remove it now
-	$prev = undef; }
-      else {			# Non-spacing hint?
-	$prev = undef; # probably means there's no previous node to add spacing to?
-	$document->removeNode($c); }} # we'll just ignore it (what else?)
-    else {			   # Normal node?
-      $prev = $c; }		# just note it to possibly add spacing
-  }}
 
 sub filter_hints {
   my($self,$document,@nodes)=@_;
@@ -318,7 +270,7 @@ sub filter_hints {
 	  $c->removeAttribute('width');
 	  $c->removeAttribute('height');   # ?
 	  $c->setAttribute(role=>'PUNCT');  # convert to punctuation!
-	  $c->appendText( "\x{2001}" x int($pts/10));  # fill with quads?
+	  $c->appendText(spacingToString($pts));
 	  push(@filtered,$c); }
 	else {
 	  if($pts){
@@ -326,7 +278,7 @@ sub filter_hints {
 	      $prev->setAttribute(rspace=>$pts.'pt'); }
 ### This should be enabled, but think some more about the contexts (eg split in t/ams/amsdisplay)
 ###	    elsif(scalar(@nodes)){ # or maybe lspace to next??
-###	      $nodes[0]->setAttribute(rspace=>$pts.'pt'); }
+###	      $nodes[0]->setAttribute(lspace=>$pts.'pt'); }
 	  }}}
       $prev=undef; } # at any rate, remove it now
     else {			   # Normal node? keep it
@@ -336,9 +288,25 @@ sub filter_hints {
 # Given a width attribute on an XMHint, return the pts, if any
 sub getXMHintSpacing {
   my($width)=@_;
-  if($width=~/^([\d\.\+\-]+)(pt|mu)(\s+plus\s+[\d\.]+pt)?(\s+minus\s+[\d\.]+pt)?$/){
+  if($width && ($width=~/^([\d\.\+\-]+)(pt|mu)(\s+plus\s+[\d\.]+pt)?(\s+minus\s+[\d\.]+pt)?$/)){
     ($2 eq 'mu' ? $1/1.8 : $1); }
   else { 0; }}
+
+# We've pretty much builtin the assumption that the target XML is "As If" 10 pts,
+# so we'll assume that 1em is 10 pts.
+our $POINTS_PER_EM = 10.0;
+# Convert spacing, given as a number of points, to a string of appropriate spacing chars
+sub spacingToString {
+  my($points)=@_;
+  my $spacing='';
+  my $ems = $points/$POINTS_PER_EM;
+  my $n= int($ems);
+  if($n > 0    ){ $spacing .= ("\x{2003}" x $n); $ems -= $n; }
+  if($ems > 0.500){ $spacing .= "\x{2002}";      $ems -= 0.500; }
+  if($ems > 0.333){ $spacing .= "\x{2003}";      $ems -= 0.333; }
+  if($ems > 0.250){ $spacing .= "\x{2005}";      $ems -= 0.250; }
+  if($ems > 0.166){ $spacing .= "\x{2006}";      $ems -= 0.166; }
+  $spacing; }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Low-Level hack parsing when "real" parsing fails;
@@ -352,10 +320,7 @@ sub getXMHintSpacing {
 # Especially, when we want to try alternative parse strategies.
 sub parse_kludge {
   my($self,$mathnode,$document)=@_;
-#### SEGFAULT TEST (Uncomment next line)
-##  $self->translate_hints($document,$mathnode);
   my @nodes = $self->filter_hints($document,element_nodes($mathnode));
-
   # the 1st array in stack accumlates the nodes within the current fenced row.
   # When there's only a single array, it's single entry will be the complete row.
   my @stack=([],[]);
@@ -380,10 +345,15 @@ sub parse_kludge {
 ####  map($document->removeNode($_),@nodes);
   map($document->unRecordNodeIDs($_),element_nodes($mathnode));
   $mathnode->removeChildNodes;
-  my $kludge = $stack[0][0][0];
-  $document->appendTree($mathnode,
-	       (ref $kludge eq 'ARRAY') && ($$kludge[0] eq 'ltx:XMWrap')
-	       ? @$kludge[2..$#$kludge] : ($kludge)); }
+  # We're hoping for a single list on the stack,
+  # But extra CLOSEs will leave extra junk behind, so process all the stacked lists.
+  my @replacements=();
+  foreach my $pair (@{ $stack[0] }){
+    my $kludge = $$pair[0];
+    push(@replacements,(ref $kludge eq 'ARRAY') && ($$kludge[0] eq 'ltx:XMWrap')
+         ? @$kludge[2..$#$kludge] : ($kludge)); }
+  $document->appendTree($mathnode,@replacements); }
+
 
 sub parse_kludgeScripts_rec {
   my($self,$a,$b,@more)=@_;
@@ -401,8 +371,7 @@ sub parse_kludgeScripts_rec {
 
 # sub parse_kludge {
 #   my($self,$mathnode,$document)=@_;
-#   $self->translate_hints($document,$mathnode);
-#   my @nodes = element_nodes($mathnode);
+#   my @nodes = $self->filter_hints($document,element_nodes($mathnode));
 #   map($mathnode->removeChild($_),@nodes);
 #   my @result=();
 #   while(@nodes){
@@ -881,10 +850,15 @@ sub extract_separators {
   my(@stuff)=@_;
   my ($punct,@args);
   if(@stuff){
-    push(@args,shift(@stuff));
-    while(@stuff){
-      $punct .= ($punct ? ' ':''). p_getValue(shift(@stuff)); # Delimited by SINGLE SPACE!
-      push(@args,shift(@stuff)); }}
+    push(@args,shift(@stuff));  # Grab 1st expression
+    while(@stuff){              # Expecting pairs of punct, expression
+      my $p = shift(@stuff);
+      $punct .= 
+        ($punct ? ' ':'') # Delimited by SINGLE SPACE!
+          . spacingToString(getXMHintSpacing(p_getAttribute($p,'lspace')))
+            . p_getValue($p)
+              . spacingToString(getXMHintSpacing(p_getAttribute($p,'rspace')));
+      push(@args,shift(@stuff)); }}             # Collect the next expression.
   ($punct,@args); }
 
 # ================================================================================
@@ -939,10 +913,15 @@ sub isMatchingClose {
 sub Fence {
   my(@stuff)=@_;
   # Peak at delimiters to guess what kind of construct this is.
+  my $nargs = scalar(@stuff);
+  Error("expected","arguments",undef,
+        "Even number of arguments to Fence(); should be of form open,expr,(punct,expr)*,close",
+        "got ".join(' ',map(ToString($_),@stuff)) )
+    unless $nargs % 2;
   my ($open,$close) = ($stuff[0],$stuff[$#stuff]);
   my $o  = p_getValue($open);
   my $c = p_getValue($close);
-  my $n = int((scalar(@stuff)-2+1)/2);
+  my $n = int(($nargs-2+1)/2);
   my @p= map(p_getValue(@stuff[2*$_]), 1..$n-1);
   my $op = ($n==0
 	    ? undef
