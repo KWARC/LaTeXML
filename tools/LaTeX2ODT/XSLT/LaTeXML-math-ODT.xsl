@@ -18,7 +18,7 @@
     xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0"
     xmlns:text  = "urn:oasis:names:tc:opendocument:xmlns:text:1.0"
     xmlns:xlink="http://www.w3.org/1999/xlink"
-    exclude-result-prefixes = "ltx text xlink draw">
+    exclude-result-prefixes = "ltx text xlink draw m">
 
 <!-- this does not even start to work; we really need a special post-processor for this
 <xsl:template match="ltx:Math">

@@ -99,6 +99,10 @@
 <xsl:template match="ltx:item/ltx:tag">
   <text:span text:style-name="boldtext"><xsl:apply-templates/></text:span>
 </xsl:template>
+
+<xsl:template match="ltx:quote">
+  <text:p text:style-name="quote"><xsl:apply-templates/></text:p>
+</xsl:template>
     
 </xsl:stylesheet>
 

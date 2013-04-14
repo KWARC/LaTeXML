@@ -75,15 +75,23 @@
 </xsl:template>
 
 <xsl:template match="ltx:creator[@role='author']">
-  <text:p text:style-name="author"><xsl:apply-templates/></text:p>
+  <xsl:apply-templates/>
 </xsl:template>
-
 
 <xsl:template match="ltx:date[@role='creation']">
   <text:p text:style-name="address"><xsl:apply-templates/></text:p>
 </xsl:template>
 
-<xsl:template match="ltx:personname"><xsl:apply-templates/></xsl:template>
+<xsl:template match="ltx:personname">
+<text:p text:style-name="author">
+  <xsl:apply-templates/>
+</text:p>
+</xsl:template>
+
+<xsl:template match="ltx:contact">
+  <xsl:message>hey</xsl:message>
+  <text:p text:style-name="address"><xsl:apply-templates/></text:p>
+</xsl:template>
 
 <xsl:template match="ltx:contact[@role='email']">
   <text:p text:style-name="email"><xsl:apply-templates/></text:p>

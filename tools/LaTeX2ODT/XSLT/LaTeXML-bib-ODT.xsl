@@ -17,7 +17,7 @@
     xmlns:m="http://www.w3.org/1998/Math/MathML"
     xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
     xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
-    exclude-result-prefixes = "ltx">
+    exclude-result-prefixes = "ltx m office text">
 
   <!-- ======================================================================
        Bibliography

@@ -16,7 +16,7 @@
     xmlns:ltx   = "http://dlmf.nist.gov/LaTeXML"
     xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
     xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
-    exclude-result-prefixes = "ltx text">
+    exclude-result-prefixes = "ltx text table">
 
 <xsl:template match="ltx:tabular">
   <table:table>
