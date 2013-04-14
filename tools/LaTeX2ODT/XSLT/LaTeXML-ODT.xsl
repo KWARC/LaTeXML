@@ -32,6 +32,7 @@
 <!-- fallback for debugging -->
 <xsl:template match="*">
   <xsl:message>cannot deal with element <xsl:value-of select="local-name()"/> yet!</xsl:message>
+  <xsl:comment >*** cannot deal with element <xsl:value-of select="local-name()"/> here yet! ***</xsl:comment>
 </xsl:template>
 
 <xsl:template match="/">

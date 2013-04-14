@@ -30,6 +30,8 @@
   <text:p><xsl:apply-templates/></text:p>
 </xsl:template>
 
+
+
 <xsl:template match="ltx:p" mode="nop"><xsl:apply-templates/></xsl:template>
 <xsl:template match="ltx:p" mode="abstract">
   <text:p text:style-name="abstract"><xsl:apply-templates/></text:p>
@@ -100,8 +102,26 @@
   <text:span text:style-name="boldtext"><xsl:apply-templates/></text:span>
 </xsl:template>
 
+<!-- **fixme** (remove mode) when the generated markup is more sane -->
+<!-- this seems to be used for inparaenum and friends -->
+<xsl:template match="ltx:text[ltx:anchor]">
+  <xsl:apply-templates mode="paralist"/>
+</xsl:template>
+<xsl:template match="ltx:text" mode="paralist">
+  <xsl:apply-templates mode="paralist"/>
+</xsl:template>
+<xsl:template match="ltx:anchor" mode="paralist">
+  <text:span text:style-name="italictext"><xsl:apply-templates/></text:span>
+  <xsl:text> </xsl:text>
+</xsl:template>
+<!-- ** end fixme ** -->
+
 <xsl:template match="ltx:quote">
-  <text:p text:style-name="quote"><xsl:apply-templates/></text:p>
+  <xsl:apply-templates mode="quote"/>
+</xsl:template>
+
+<xsl:template match="ltx:p" mode="quote">
+ <text:p text:style-name="quote"><xsl:apply-templates/></text:p>
 </xsl:template>
     
 </xsl:stylesheet>

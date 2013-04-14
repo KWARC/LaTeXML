@@ -1792,6 +1792,9 @@
     <style:style style:name="italictext" style:family="text">
       <style:text-properties fo:font-style="italic" style:font-style-asian="italic" style:font-style-complex="italic"/>
     </style:style>
+    <style:style style:name="quote" style:family="paragraph" style:parent-style-name="Standard" style:next-style-name="address">
+      <style:paragraph-properties fo:margin-left=".5in" fo:margin-right=".5in" fo:margin-top="0in" fo:margin-bottom="0in" style:contextual-spacing="false" fo:text-align="center" style:justify-single-word="false" fo:text-indent="0in" style:auto-text-indent="false"/>
+    </style:style>
     <!-- end LaTeX2ODT extensions -->
   </office:styles>
   <office:automatic-styles>

@@ -36,7 +36,7 @@
   </office:document-content>
 </xsl:template>
 
-<xsl:template match="ltx:section|ltx:subsection|ltx:subsubsection">
+<xsl:template match="ltx:section|ltx:subsection|ltx:subsubsection|ltx:paragraph">
   <xsl:apply-templates/>
 </xsl:template>
 
@@ -50,6 +50,10 @@
 
 <xsl:template match="ltx:subsubsection/ltx:title">
   <text:h text:outline-level="3"><xsl:apply-templates/></text:h>
+</xsl:template>
+
+<xsl:template match="ltx:paragraph/ltx:title">
+  <text:h text:outline-level="4"><xsl:apply-templates/></text:h>
 </xsl:template>
 
 <!-- do not show tags in titles -->
@@ -89,7 +93,6 @@
 </xsl:template>
 
 <xsl:template match="ltx:contact">
-  <xsl:message>hey</xsl:message>
   <text:p text:style-name="address"><xsl:apply-templates/></text:p>
 </xsl:template>
 

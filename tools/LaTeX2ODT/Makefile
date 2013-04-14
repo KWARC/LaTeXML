@@ -15,7 +15,7 @@ OXSL = $(L2ODIR)/XSLT/LaTeXML-ODT.xsl
 all: $(ODT)
 
 # if we are using biblatex:
-# Change \bibstyle to plain in your .aux file, delete the \citation{biblatex-control}, and remove *-blx.bib \bibdata
+# Change \bibstyle to plain in your .aux file, delete the \citation{biblatex-control}, and remove *-blx.bib from \bibdata
 local.bib: $(TARGET:%.tex=%.aux)
 	bibtool -x $< -o local.bib
 
