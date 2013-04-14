@@ -22,15 +22,13 @@
        ltx:p, ltx:equation, ltx:equationgroup, ltx:quote, ltx:block,
        ltx:listingblock, ltx:itemize, ltx:enumerate, ltx:description
        ====================================================================== -->
-<xsl:preserve-space elements="ltx:p"/>
+<xsl:preserve-space elements="ltx:p ltx:text"/>
 <xsl:strip-space elements="ltx:*"/>
 
 
 <xsl:template match="ltx:p">
   <text:p><xsl:apply-templates/></text:p>
 </xsl:template>
-
-
 
 <xsl:template match="ltx:p" mode="nop"><xsl:apply-templates/></xsl:template>
 <xsl:template match="ltx:p" mode="abstract">
@@ -50,7 +48,7 @@
   <text:list text:style-name="WW8Num13"><xsl:apply-templates/></text:list>
 </xsl:template>
 
-<xsl:template match="ltx:itemize/ltx:item">
+<xsl:template match="ltx:itemize/ltx:item|ltx:enumerate/ltx:item|ltx:description/ltx:item">
   <xsl:choose>
     <xsl:when test="ltx:tag">
       <text:list-item>
@@ -59,6 +57,7 @@
 	  <xsl:apply-templates select="ltx:para/ltx:p[1]" mode="nop"/>
 	</text:p>
 	<xsl:apply-templates select="ltx:para/ltx:p[position()&gt; 1]"/>
+	<xsl:apply-templates select="ltx:para[position()&gt; 1]"/>
       </text:list-item>
     </xsl:when>
     <xsl:otherwise>
@@ -67,39 +66,14 @@
   </xsl:choose>
 </xsl:template>
 
-<xsl:template match="ltx:enumerate/ltx:item">
-  <xsl:choose>
-    <xsl:when test="ltx:tag">
-      <text:list-item>
-	<text:p>
-	  <xsl:apply-templates select="ltx:tag"/>
-	  <xsl:apply-templates select="ltx:para/ltx:p[1]" mode="nop"/>
-	</text:p>
-	<xsl:apply-templates select="ltx:para/ltx:p[position()&gt; 1]"/>
-      </text:list-item>
-    </xsl:when>
-    <xsl:otherwise>
-      <text:list-item><xsl:apply-templates/></text:list-item>
-    </xsl:otherwise>
-  </xsl:choose>
-</xsl:template>
-
-<xsl:template match="ltx:enumerate/ltx:item">
-  <text:list-item>
-    <text:p>
-      <xsl:apply-templates select="ltx:tag"/>
-      <xsl:apply-templates select="ltx:para/ltx:p[1]" mode="nop"/>
-    </text:p>
-    <xsl:apply-templates select="ltx:para/ltx:p[position()&gt; 1]"/>
-  </text:list-item>
-</xsl:template>
-
-<xsl:template match="ltx:description/ltx:item">
-  <text:list-item><xsl:apply-templates/></text:list-item>
-</xsl:template>
 
 <xsl:template match="ltx:item/ltx:tag">
   <text:span text:style-name="boldtext"><xsl:apply-templates/></text:span>
+  <xsl:text> </xsl:text>
+</xsl:template>
+
+<xsl:template match="ltx:inline-block">
+  <xsl:apply-templates/>
 </xsl:template>
 
 <!-- **fixme** (remove mode) when the generated markup is more sane -->

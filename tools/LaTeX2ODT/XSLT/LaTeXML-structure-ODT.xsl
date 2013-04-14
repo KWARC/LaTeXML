@@ -36,7 +36,7 @@
   </office:document-content>
 </xsl:template>
 
-<xsl:template match="ltx:section|ltx:subsection|ltx:subsubsection|ltx:paragraph">
+<xsl:template match="ltx:section|ltx:subsection|ltx:subsubsection">
   <xsl:apply-templates/>
 </xsl:template>
 
@@ -52,8 +52,16 @@
   <text:h text:outline-level="3"><xsl:apply-templates/></text:h>
 </xsl:template>
 
-<xsl:template match="ltx:paragraph/ltx:title">
-  <text:h text:outline-level="4"><xsl:apply-templates/></text:h>
+<!-- for paragraph things are more complicated, since we want to smuggle the 
+     title into the first text:p -->
+<xsl:template match="ltx:paragraph">
+  <text:p text:style-name="newparagraph">
+    <text:span text:style-name="italictext"><xsl:apply-templates select="ltx:title/*|ltx:title/text()"/></text:span>
+    <xsl:text> </xsl:text>
+    <xsl:apply-templates select="ltx:para/ltx:p[1]" mode="nop"/>
+  </text:p>
+  <xsl:apply-templates select="ltx:para/ltx:p[position()!=1]"/>
+  <xsl:apply-templates select="ltx:para[position()!=1]"/>
 </xsl:template>
 
 <!-- do not show tags in titles -->
@@ -98,17 +106,6 @@
 
 <xsl:template match="ltx:contact[@role='email']">
   <text:p text:style-name="email"><xsl:apply-templates/></text:p>
-</xsl:template>
-
-<xsl:variable name="bib" select="//ltx:bibliography/@files"/>
-<xsl:variable name="biblist" select="document(concat($bib,'.bib.ltxml'),.)//ltx:bibliography/ltx:biblist"/>
-
-<xsl:template match="ltx:bibliography">
-  <text:bibliography text:protected="true" name="Rererences1">
-    <text:index-body>
-      <text:index-title><text:p>References</text:p></text:index-title>
-    </text:index-body>
-  </text:bibliography>
 </xsl:template>
 
 </xsl:stylesheet>

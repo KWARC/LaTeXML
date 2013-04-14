@@ -42,7 +42,7 @@
 <xsl:template match="ltx:toccaption"/>
 
 <xsl:template match="ltx:caption/ltx:tag">
-  <text:span text:style-name="boldtext"><xsl:apply-templates/></text:span>
+  <text:span text:style-name="boldtext"><xsl:apply-templates/><xsl:value-of select="@close"/></text:span>
 </xsl:template>
 
 <xsl:template match="ltx:caption">

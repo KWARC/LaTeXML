@@ -25,7 +25,11 @@
   <xsl:include href="LaTeXML-tabular-ODT.xsl"/>
   <xsl:include href="LaTeXML-picture-ODT.xsl"/>
   <xsl:include href="LaTeXML-structure-ODT.xsl"/>
+<!-- we have two ways of treating bibs, 
+     the first one just makes it look like a bib, 
+     the second one (experimental) uses ODT's mechanisms -->
   <xsl:include href="LaTeXML-bib-ODT.xsl"/>
+<!--  <xsl:include href="LaTeXML-bib-ODT.xsl"/>-->
 
   <xsl:output method="xml" encoding='utf-8'/>
 

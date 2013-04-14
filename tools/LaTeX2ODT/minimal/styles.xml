@@ -1786,6 +1786,9 @@
     <style:style style:name="boldtext" style:family="text">
       <style:text-properties fo:font-weight="bold" style:font-weight-asian="bold"/>
     </style:style>
+    <style:style style:name="sansserif" style:family="text">
+      <style:text-properties style:font-name="Arial"/>
+    </style:style>
     <style:style style:name="typewriter" style:family="text">
       <style:text-properties style:font-name="Courier" style:font-name-complex="Courier"/>
     </style:style>
@@ -1793,7 +1796,16 @@
       <style:text-properties fo:font-style="italic" style:font-style-asian="italic" style:font-style-complex="italic"/>
     </style:style>
     <style:style style:name="quote" style:family="paragraph" style:parent-style-name="Standard" style:next-style-name="address">
-      <style:paragraph-properties fo:margin-left=".5in" fo:margin-right=".5in" fo:margin-top="0in" fo:margin-bottom="0in" style:contextual-spacing="false" fo:text-align="center" style:justify-single-word="false" fo:text-indent="0in" style:auto-text-indent="false"/>
+      <style:paragraph-properties fo:margin-left=".2in" fo:margin-right=".2in" fo:margin-top=".1in" fo:margin-bottom=".1in" style:contextual-spacing="false" fo:text-align="justify" style:justify-single-word="false" fo:text-indent="0in" style:auto-text-indent="false"/>
+    </style:style>
+    <style:style style:name="newparagraph" style:family="paragraph" style:parent-style-name="Standard">
+      <style:paragraph-properties fo:margin-top=".1in"/>
+    </style:style>
+    <style:style style:name="superscript" style:family="text">
+      <style:text-properties style:text-position="super 58%"/>
+    </style:style>
+    <style:style style:name="subscript" style:family="text">
+      <style:text-properties style:text-position="sub 58%"/>
     </style:style>
     <!-- end LaTeX2ODT extensions -->
   </office:styles>
