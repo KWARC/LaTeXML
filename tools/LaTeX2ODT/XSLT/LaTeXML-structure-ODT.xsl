@@ -58,10 +58,10 @@
   <text:p text:style-name="newparagraph">
     <text:span text:style-name="italictext"><xsl:apply-templates select="ltx:title/*|ltx:title/text()"/></text:span>
     <xsl:text> </xsl:text>
-    <xsl:apply-templates select="ltx:para/ltx:p[1]" mode="nop"/>
+    <xsl:apply-templates select="ltx:para[1]/*[1]" mode="nop"/>
   </text:p>
-  <xsl:apply-templates select="ltx:para/ltx:p[position()!=1]"/>
-  <xsl:apply-templates select="ltx:para[position()!=1]"/>
+  <xsl:apply-templates select="ltx:para[1]/*[position()!=1]"/>
+  <xsl:apply-templates select="*[position()!=1]"/>
 </xsl:template>
 
 <!-- do not show tags in titles -->

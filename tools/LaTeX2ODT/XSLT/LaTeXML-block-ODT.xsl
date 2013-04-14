@@ -54,10 +54,10 @@
       <text:list-item>
 	<text:p>
 	  <xsl:apply-templates select="ltx:tag"/>
-	  <xsl:apply-templates select="ltx:para/ltx:p[1]" mode="nop"/>
+	  <xsl:apply-templates select="ltx:para[1]/*[1]" mode="nop"/>
 	</text:p>
-	<xsl:apply-templates select="ltx:para/ltx:p[position()&gt; 1]"/>
-	<xsl:apply-templates select="ltx:para[position()&gt; 1]"/>
+	<xsl:apply-templates select="ltx:para[1]/*[position()&gt; 1]"/>
+	<xsl:apply-templates select="*[position()&gt; 1]"/>
       </text:list-item>
     </xsl:when>
     <xsl:otherwise>
