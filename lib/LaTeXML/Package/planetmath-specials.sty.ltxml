@@ -20,6 +20,7 @@ RequirePackage('webgraphic');
 RequirePackage('html');
 RequirePackage('url');
 RequirePackage('hyperref');
+RequirePackage('graphicx');
 
 # Metadata namespaces:
 my $pmbaseURI = "http://planetmath.org"; # Careful: Get the URI right before we publish LOD
@@ -84,20 +85,24 @@ DefKeyVal('webgraphic','alt','Semiverbatim');
 DefKeyVal('webgraphic','keepaspectratio','','true');
 DefKeyVal('webgraphic','clip','','true');
 DefKeyVal('webgraphic','magnifiable','','true');
-
+use Data::Dumper;
 DefMacro('\includegraphics','\webgraphic'); # Handy alias
 DefConstructor('\webgraphic OptionalMatch:* OptionalKeyVals:webgraphic Semiverbatim',
        "<ltx:graphics imagesrc='#url' "
-       . "?#1("
-       . "?&KeyVal(#1,'width')(imagewidth='&KeyVal(#1,'width')' )()"
-       . "?&KeyVal(#1,'height')(imageheight='&KeyVal(#1,'height')' )()"
+       . "?#2("
+       . "?#imagewidth(imagewidth='#imagewidth' )()"
+       . "?#imageheight(imageheight='#imageheight' )()"
        . "?&KeyVal(#1,'alt')(description='&KeyVal(#1,'alt')' )()"
        . ")() />",
   alias=>'\includegraphics',
   properties=> sub {
     my $src = $graphicURL.ToString($_[3]);
     $src .= '.png' unless ($src =~ /\.(\w{3})$/);
-    (url=>$src); },
+    my $imagewidth = KeyVal($_[2],'width');
+    $imagewidth = $imagewidth->toString if $imagewidth;
+    my $imageheight = KeyVal($_[2],'height');
+    $imageheight = $imageheight->toString if $imageheight;
+    (url=>$src, imagewidth=>$imagewidth, imageheight=>$imageheight); },
   beforeConstruct=> sub {
     my($document,$whatsit) = @_;
     #TODO: This should be floating to 'ltx:rdf' once the figure bug is fixed.
