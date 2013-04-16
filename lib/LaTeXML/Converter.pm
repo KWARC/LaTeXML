@@ -256,7 +256,10 @@ sub convert {
       if ($result =~ /LaTeXML/) { # Special for documents
         $serialized = $result->getDocument->toStringHTML;
       } else { # Regular for fragments
+	do {
+	  local $XML::LibXML::setTagCompression = 1;
 	  $serialized = $result->toString(1);
+	}
       }
     }
   }
