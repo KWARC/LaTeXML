@@ -300,6 +300,14 @@ get '/editor' => sub {
   $self->render();
 } => 'editor';
 
+get '/editor5' => sub {
+  my $self    = shift;
+  my $headers = Mojo::Headers->new;
+  $headers->add('Content-Type', 'text/html');
+  $self->res->content->headers($headers);
+  $self->render();
+} => 'editor5';
+
 get '/ws-editor' => sub {
   my $self    = shift;
   my $headers = Mojo::Headers->new;
