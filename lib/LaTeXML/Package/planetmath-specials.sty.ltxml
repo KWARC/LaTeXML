@@ -134,6 +134,8 @@ DefMacro('\PMlinkname{}{}',
   '\pmathhref{\PMURI#2\PMEXT}{#1\lxRDFa{about=,property={pm:linksTo},resource={pmarticle:#2}}}');
 DefMacro('\PMlinkid{}{}',
   '\pmathhref{\PMURI#2\PMEXT}{#1\lxRDFa{about=,property={pm:linksTo},resource={pmarticle:#2}}}');
+DefConstructor('\nolink{}','<ltx:text class="nolink">#1</ltx:text>');
+DefMacro('\PMnolink','\nolink'); #Just in case
 
 # No-ops for now:
 DefMacro('\PMlinkescapetext','');
