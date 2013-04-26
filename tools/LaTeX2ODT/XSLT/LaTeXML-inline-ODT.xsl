@@ -46,6 +46,18 @@
   <text:span text:style-name="typewriter"><xsl:apply-templates/></text:span>
 </xsl:template>
 
+<xsl:template match="ltx:text[@font='smallcaps']">
+  <text:span text:style-name="smallcaps"><xsl:apply-templates/></text:span>
+</xsl:template>
+
+<xsl:template match="ltx:text[contains(@class,'ltx_lstlisting')]">
+  <text:span text:style-name="typewriter"><xsl:apply-templates/></text:span>
+</xsl:template>
+
+<xsl:template match="ltx:text[contains(@class,'ltx_lst_space')]">
+  <xsl:apply-templates/>
+</xsl:template>
+
 <xsl:template match="ltx:emph">
   <text:span text:style-name="italictext"><xsl:apply-templates/></text:span>
 </xsl:template>

@@ -97,6 +97,24 @@
 <xsl:template match="ltx:p" mode="quote">
  <text:p text:style-name="quote"><xsl:apply-templates/></text:p>
 </xsl:template>
-    
+
+<!-- we flatten out the listings table structure -->
+<xsl:template match="ltx:listingblock">
+  <xsl:apply-templates mode="listing"/>
+</xsl:template>
+
+<xsl:template match="ltx:tr" mode="listing">
+  <xsl:apply-templates mode="listing"/>
+  <xsl:text>&#xA;</xsl:text>
+</xsl:template>    
+
+<xsl:template match="ltx:table|ltx:td|ltx:text" mode="listing">
+  <xsl:apply-templates mode="listing"/>
+</xsl:template>
+
+<!-- template
+<xsl:template match="ltx:text" mode="listing">
+  <xsl:apply-templates/>
+</xsl:template>-->
 </xsl:stylesheet>
 

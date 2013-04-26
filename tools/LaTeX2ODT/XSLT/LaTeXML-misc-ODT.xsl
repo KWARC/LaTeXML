@@ -26,6 +26,10 @@
 
 <xsl:template match="ltx:break"><text:line-break/></xsl:template>
 
+<xsl:template match="ltx:verbatim[@font='typewriter']">
+  <text:span text:style-name="typewriter"><xsl:apply-templates/></text:span>
+</xsl:template>
+
 <!-- need width,height treatment and a treatment for frame styles-->
 <xsl:template match="ltx:graphics">
   <text:p text:style-name="image">
