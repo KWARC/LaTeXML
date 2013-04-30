@@ -12,7 +12,7 @@ our @EXPORT = (qw(daemon_tests daemon_ok),
 our $Test=Test::Builder->new();
 
 # Test the invocations of all *.spec files in the given directory (typically t/something)
-# Skip any that have no corresponding *.xml and *.log files.
+# Skip any that have no corresponding *.xml and *.status files.
 
 # When daemon_tests is run with 'make' as a second argument, it will generate tests, instead of
 # testing against existing ones.
@@ -33,10 +33,10 @@ sub daemon_tests {
     $Test->expected_tests(3*scalar(@tests)+$Test->expected_tests) unless $generate;
 
     foreach my $test (@tests){
-      if((-f "$test.xml" && -f "$test.log") || ($generate)) {
+      if((-f "$test.xml" && -f "$test.status") || ($generate)) {
 	daemon_ok($test,$directory,$generate); }
       else {
-	$Test->skip("Missing $test.xml and/or $test.log"); }
+	$Test->skip("Missing $test.xml and/or $test.status"); }
     }
   }
 }
@@ -63,21 +63,21 @@ sub daemon_ok {
     }
     $invocation.= "--".$$opt[0].(length($$opt[1]) ? ("='".$$opt[1]."' ") : (' '));
   }
-  $invocation .= " 2>$localname.test.log; cd -";
+  $invocation .= " 2>$localname.test.status; cd -";
   if (!$generate) {
     is(system($invocation),0,"Progress: processed $localname...\n");
     { local $Test::Builder::Level =  $Test::Builder::Level+1;
       is_filecontent("$base.test.xml","$base.xml",$base);
-      is_filecontent("$base.test.log","$base.log",$base);
+      is_filecontent("$base.test.status","$base.status",$base);
     }
     unlink "$base.test.xml" if -e "$base.test.xml";
-    unlink "$base.test.log" if -e "$base.test.log";
+    unlink "$base.test.status" if -e "$base.test.status";
   }
   else {
     print STDERR "$invocation\n";
     system($invocation);
     move("$base.test.xml","$base.xml") if -e "$base.test.xml";
-    move("$base.test.log","$base.log") if -e "$base.test.log";
+    move("$base.test.status","$base.status") if -e "$base.test.status";
   }
 }
 
