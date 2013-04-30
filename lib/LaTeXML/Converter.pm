@@ -176,6 +176,7 @@ sub convert {
   my $eval_report = $@;
   $runtime->{status} = $latexml->getStatusMessage;
   $runtime->{status_code} = $latexml->getStatusCode;
+  $runtime->{status_data} = $latexml->{status};
   # End daemon run, by popping frame:
   $latexml->withState(sub {
     my($state)=@_; # Remove current state frame
@@ -473,11 +474,12 @@ sub convert_post {
   ($postdoc) = $latexmlpost->ProcessChain($DOCUMENT,@procs);
   $DB->finish;
 
-  $runtime->{status}.= "\nPost: ".$latexmlpost->getStatusMessage;
-  $runtime->{status_code} =($runtime->{status_code} > $latexmlpost->getStatusCode) ?
-    $runtime->{status_code} : $latexmlpost->getStatusCode;
+  # Merge postprocessing and main processing reports
+  $latexmlpost->{status}->{$_} += $runtime->{status_data}->{$_} foreach (qw(warning error fatal));
+  $runtime->{status} = $latexmlpost->getStatusMessage;
+  $runtime->{status_code} = $latexmlpost->getStatusCode;
 
-  print STDERR "\nPostprocessing complete: ".$latexmlpost->getStatusMessage."\n";
+  print STDERR "\nProcessing complete: ".$latexmlpost->getStatusMessage."\n";
   print STDERR "processing finished ".localtime()."\n" if $verbosity >= 0;
   return $postdoc;
 }
