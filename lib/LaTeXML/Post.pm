@@ -60,21 +60,6 @@ sub getStatusMessage {
   push(@report, "$$status{error} error".($$status{error}>1?'s':''))       if $$status{error};
   push(@report, "$$status{fatal} fatal error".($$status{fatal}>1?'s':'')) if $$status{fatal};
   join('; ', @report) || 'No obvious problems'; }
- sub getStatusCode {
-  my($self)=@_;
-  my $status= $$self{status};
-  my $code;
-  if ($$status{fatal} && $$status{fatal}>0) {
-      $code=3;
-  } elsif ($$status{error} && $$status{error}>0) {
-      $code=2;
-  } elsif ($$status{warning} && $$status{warning}>0) {
-      $code=1;
-  } else {
-      $code=0;
-  }
-  $code;
-}
 
 #======================================================================
 # Error & Progress reporting.
