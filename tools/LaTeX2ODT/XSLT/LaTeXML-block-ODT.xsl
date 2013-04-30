@@ -14,8 +14,9 @@
     version     = "1.0"
     xmlns:xsl   = "http://www.w3.org/1999/XSL/Transform"
     xmlns:ltx   = "http://dlmf.nist.gov/LaTeXML"
+    xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
     xmlns:text  = "urn:oasis:names:tc:opendocument:xmlns:text:1.0"
-    exclude-result-prefixes = "ltx text">
+    exclude-result-prefixes = "ltx text table">
 
   <!-- ======================================================================
        Various Block-level elements:
@@ -112,9 +113,24 @@
   <xsl:apply-templates mode="listing"/>
 </xsl:template>
 
-<!-- template
-<xsl:template match="ltx:text" mode="listing">
-  <xsl:apply-templates/>
-</xsl:template>-->
+<!-- display math -->
+<xsl:template match="ltx:equation">
+  <text:p text:style-name="abstract"><xsl:apply-templates/></text:p>
+</xsl:template>
+
+<!-- a real equation -->
+<xsl:template match="ltx:equation">
+  <table:table>
+    <table:table-row>
+      <table:table-cell>
+	<text:p text:style-name="abstract"><xsl:apply-templates/></text:p>
+      </table:table-cell>
+      <table:table-cell>
+	<text:p><xsl:value-of select="@frefnum"/></text:p>
+      </table:table-cell>
+    </table:table-row>
+  </table:table>
+</xsl:template>
+
 </xsl:stylesheet>
 

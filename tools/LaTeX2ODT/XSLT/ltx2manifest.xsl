@@ -22,7 +22,19 @@
     <manifest:file-entry manifest:media-type="text/xml" manifest:full-path="settings.xml"/>
     <manifest:file-entry manifest:media-type="text/xml" manifest:full-path="styles.xml"/> 
     <xsl:apply-templates select="//ltx:graphics"/>
+    <xsl:apply-templates select="//ltx:Math"/>
   </manifest:manifest>
+</xsl:template>
+
+<xsl:template match="ltx:Math">
+  <xsl:variable name="filename" select="substring-after(@imagesrc,'mi/')"/>
+<!-- do not generate until we copy the MathML over
+     <manifest:file-entry manifest:full-path="{$filename}/content.xml" manifest:media-type="text/xml"/>
+     <manifest:file-entry manifest:full-path="{$filename}/" manifest:version="1.2" manifest:media-type="application/vnd.oasis.opendocument.formula"/>
+-->
+<!-- should we do something about settings (probably never)
+     <manifest:file-entry manifest:full-path="${filename}/settings.xml" manifest:media-type="text/xml"/>-->
+ <manifest:file-entry manifest:full-path="Pictures/{$filename}" manifest:media-type="image/png"/>
 </xsl:template>
 
 <xsl:template match="ltx:graphics">
