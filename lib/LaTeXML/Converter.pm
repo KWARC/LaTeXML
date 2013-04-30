@@ -23,7 +23,6 @@ use LaTeXML::Package qw(pathname_is_literaldata);
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::WWW;
 use LaTeXML::Util::ObjectDB;
-use LaTeXML::Util::Extras;
 use LaTeXML::Post::Scan;
 
 #**********************************************************************
@@ -564,6 +563,99 @@ sub sanitize {
     });
     $self->{ready} = 0;
   }
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Utilities for wrapping and unwrapping math & document fragments
+# Possibly misplaced....
+
+sub MathDoc {
+#======================================================================
+# TeX Source
+#======================================================================
+# First read and digest whatever we're given.
+    my ($tex) = @_;
+# We need to determine whether the TeX we're given needs to be wrapped in \[...\]
+# Does it have $'s around it? Does it have a display math environment?
+# The most elegant way would be to notice as soon as we start adding to the doc
+# and switch to math mode if necessary, but that's tricky.
+# Let's just try a manual hack, looking for known switches...
+our $MATHENVS = 'math|displaymath|equation*?|eqnarray*?'
+  .'|multline*?|align*?|falign*?|alignat*?|xalignat*?|xxalignat*?|gather*?';
+$tex =~ s/\A\s+//m; #as usual, strip leading ...
+$tex =~ s/\s+\z//m; # ... and trailing space
+$tex =~ s/literal://; # Strip leading literal as well.
+if(($tex =~ /\A\$/m) && ($tex =~ /\$\z/m)){} # Wrapped in $'s
+elsif(($tex =~ /\A\\\(/m) && ($tex =~ /\\\)\z/m)){} # Wrapped in \(...\)
+elsif(($tex =~ /\A\\\[/m) && ($tex =~ /\\\]\z/m)){} # Wrapped in \[...\]
+elsif(($tex =~ /\A\\begin\{($MATHENVS)\}/m) && ($tex =~ /\\end\{$1\}\z/m)){}
+else {
+  $tex = '\\( '.$tex.' \\)'; }
+
+my $texdoc = <<"EODOC";
+\\begin{document}
+$tex
+\\end{document}
+EODOC
+return $texdoc;
+}
+
+sub GetMath {
+  my ($source) = @_;
+  my $math_xpath = '//*[local-name()="math" or local-name()="Math"]';
+  return unless defined $source;
+  my @mnodes = $source->findnodes($math_xpath);
+  my $math_count = scalar(@mnodes);
+  my $math = $mnodes[0] if $math_count;
+  if ($math_count > 1) {
+    my $math_found = 0;
+    while ($math_found != $math_count) {
+      $math_found = $math->findnodes('.'.$math_xpath)->size;
+      $math_found++ if ($math->localname =~ /^math$/i);
+      $math = $math->parentNode if ($math_found != $math_count);
+    }
+    $math = $math->parentNode while ($math->nodeName =~ '^t[rd]$');
+    $math;
+  } elsif ($math_count == 0) {
+    GetEmbeddable($source);
+  } else {
+    $math;
+  }
+}
+
+sub GetEmbeddable {
+  my ($doc) = @_;
+  return unless defined $doc;
+  my ($embeddable) = $doc->findnodes('//*[@class="ltx_document"]');
+  if ($embeddable) {
+    # Only one child? Then get it, must be a inline-compatible one!
+    while (($embeddable->nodeName eq 'div') && (scalar(@{$embeddable->childNodes}) == 1) &&
+	   ($embeddable->getAttribute('class') =~ /^ltx_(page_(main|content)|document|para|header)$/) && 
+	   (! defined $embeddable->getAttribute('style'))) {
+      if (defined $embeddable->firstChild) {
+	$embeddable=$embeddable->firstChild;
+      } else {
+	last;
+      }
+    }
+    # Is the root a <p>? Make it a span then, if it has only math/text/spans - it should be inline
+    # For MathJax-like inline conversion mode
+    # TODO: Make sure we are schema-complete wrt nestable inline elements, and maybe find a smarter way to do this?
+    if (($embeddable->nodeName eq 'p') &&
+	((@{$embeddable->childNodes}) == (grep {$_->nodeName =~ /math|text|span/} $embeddable->childNodes))) {
+      $embeddable->setNodeName('span');
+      $embeddable->setAttribute('class','text');
+    }
+
+    # Copy over document namespace declarations:
+    foreach ($doc->getDocumentElement->getNamespaces) {
+      $embeddable->setNamespace( $_->getData , $_->getLocalName, 0 );
+    }
+    # Also, copy the prefix attribute, for RDFa:
+    my $prefix = $doc->getDocumentElement->getAttribute('prefix');
+    $embeddable->setAttribute('prefix',$prefix) if ($prefix);
+  }
+  return $embeddable||$doc;
 }
 
 1;
