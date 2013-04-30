@@ -176,7 +176,7 @@ sub convert {
   my $eval_report = $@;
   $runtime->{status} = $latexml->getStatusMessage;
   $runtime->{status_code} = $latexml->getStatusCode;
-  $runtime->{status_data} = $latexml->{status};
+  $runtime->{status_data}->{$_} = $latexml->{state}->{status}->{$_} foreach (qw(warning error fatal));
   # End daemon run, by popping frame:
   $latexml->withState(sub {
     my($state)=@_; # Remove current state frame
@@ -194,11 +194,10 @@ sub convert {
     $self->sanitize($log) if ($runtime->{status_code} == 3);
     return {result=>undef,log=>$log,status=>$runtime->{status},status_code=>$runtime->{status_code}};
   }
-  print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
-  print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
   if ($runtime->{status_code} == 3) {
     # Terminate on Fatal errors
-    print STDERR " \n\nIt is Fatal!!!\n";
+    print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
+    print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
     my $log = $self->flush_log;
     $serialized = $dom->toString unless defined $serialized;
     $self->sanitize($log) if ($runtime->{status_code} == 3);
@@ -237,6 +236,9 @@ sub convert {
       #   just avoid crashing...
     $result = undef;
     }
+  } else {
+    print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
+    print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
   }
 
   # Handle What's OUT?
@@ -475,11 +477,13 @@ sub convert_post {
   $DB->finish;
 
   # Merge postprocessing and main processing reports
-  $latexmlpost->{status}->{$_} += $runtime->{status_data}->{$_} foreach (qw(warning error fatal));
+  foreach my $message_type(qw(warning error fatal)) {
+    my $count = $runtime->{status_data}->{$message_type} || 0;
+    $latexmlpost->{status}->{$message_type} += $count; }
   $runtime->{status} = $latexmlpost->getStatusMessage;
   $runtime->{status_code} = $latexmlpost->getStatusCode;
 
-  print STDERR "\nProcessing complete: ".$latexmlpost->getStatusMessage."\n";
+  print STDERR "\nConversion complete: ".$latexmlpost->getStatusMessage."\n";
   print STDERR "processing finished ".localtime()."\n" if $verbosity >= 0;
   return $postdoc;
 }
