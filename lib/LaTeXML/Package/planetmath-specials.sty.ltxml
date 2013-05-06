@@ -137,6 +137,9 @@ DefMacro('\PMlinkid{}{}',
 DefConstructor('\nolink{}','<ltx:text class="nolink">#1</ltx:text>');
 DefMacro('\PMnolink','\nolink'); #Just in case
 
+# NNexus macros:
+DefConstructor('\nolink{}','<ltx:ref>#1</ltx:ref>');
+
 # No-ops for now:
 DefMacro('\PMlinkescapetext','');
 DefMacro('\PMlinkescapeword{}','');

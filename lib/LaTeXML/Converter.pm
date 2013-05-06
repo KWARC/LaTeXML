@@ -14,7 +14,6 @@ package LaTeXML::Converter;
 use strict;
 use warnings;
 
-use Pod::Usage;
 use Carp;
 use Encode;
 use Data::Dumper;
