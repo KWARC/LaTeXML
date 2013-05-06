@@ -27,7 +27,7 @@
 <xsl:template match="ltx:para"><xsl:apply-templates/></xsl:template>
 
 <!-- need width,height treatment and a treatment for frame styles-->
-<xsl:template match="ltx:figure">
+<xsl:template match="ltx:figure|ltx:table">
   <text:p>
     <draw:frame draw:style-name="Graphics" draw:name="graphics1" text:anchor-type="paragraph" draw:z-index="0"
 		svg:width="10cm" svg:height="10cm">

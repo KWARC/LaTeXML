@@ -102,7 +102,8 @@
   <xsl:text>[</xsl:text><xsl:apply-templates/><xsl:text>]</xsl:text>
 </xsl:template>
 
-<xsl:template match="ltx:bib-part|ltx:bib-date|ltx:bib-title|ltx:bib-place|ltx:bib-publisher|ltx:bib-organization|ltx:bib-type">
+<xsl:template match="ltx:bib-part|ltx:bib-date|ltx:bib-title|ltx:bib-place|ltx:bib-publisher|ltx:bib-organization|
+		     ltx:bib-type|ltx:bib-edition|ltx:bib-language">
   <xsl:apply-templates/>
 </xsl:template>
 </xsl:stylesheet>
