@@ -4,20 +4,20 @@
 #**********************************************************************
 use FindBin;
 use lib "$FindBin::Bin/lib";
-use TestDaemon;
+use TestLaTeXML;
 
 # For each test $name there should be $name.xml and $name.log
 # (the latter from a previous `good' run of 
 #  latexmlc {$triggers} $name
 #).
 
-daemon_tests('t/daemon/api','make');
-daemon_tests('t/daemon/profiles','make');
-daemon_tests('t/daemon/profiles/stex','make');
-daemon_tests('t/daemon/formats','make');
-daemon_tests('t/daemon/runtimes','make');
-daemon_tests('t/daemon/complex','make');
-daemon_tests('t/daemon/marpa','make');
+latexml_tests('t/daemon/api','generate');
+latexml_tests('t/daemon/profiles','generate');
+latexml_tests('t/daemon/profiles/stex','generate');
+latexml_tests('t/daemon/formats','generate');
+latexml_tests('t/daemon/runtimes','generate');
+latexml_tests('t/daemon/complex','generate');
+latexml_tests('t/daemon/marpa','generate');
 
 #**********************************************************************
 1;

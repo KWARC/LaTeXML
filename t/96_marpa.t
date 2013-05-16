@@ -5,7 +5,7 @@
 use FindBin;
 use lib "$FindBin::Bin/lib";
 use Test::More;
-use TestDaemon;
+use TestLaTeXML;
 # For each test $name there should be $name.xml and $name.log
 # (the latter from a previous `good' run of 
 #  latexmlc {$triggers} $name
@@ -16,7 +16,7 @@ if ($@) {
 } else {
 	TODO: {
 		local $TODO = ' Marpa tests not yet inspected...';
-		daemon_tests('t/daemon/marpa');
+		latexml_tests('t/daemon/marpa');
 	}
 }
 

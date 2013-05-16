@@ -1,3 +1,4 @@
+# -*- CPERL -*-
 #======================================================================
 # Makefile Maker for LaTeXML
 # Bruce.Miller@NIST.gov

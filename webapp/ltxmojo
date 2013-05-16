@@ -20,7 +20,6 @@ use File::Path;
 use Encode;
 
 use Startup;
-use LaTeXML::Util::Extras;
 use LaTeXML::Util::Config;
 use LaTeXML::Util::Pathname qw(pathname_is_literaldata pathname_is_url);
 use LaTeXML::Converter;

@@ -137,7 +137,7 @@ sub convertLaTeXArgs {
 						  extra=>[$optional,undef]));
     $nargs--; }
   push(@params,map(LaTeXML::Parameters::newParameter('Plain','{}'), 1..$nargs));
-  LaTeXML::Parameters->new(@params); }
+  (@params ? LaTeXML::Parameters->new(@params) : undef); }
 
 #======================================================================
 # Convenience functions for writing definitions.
@@ -404,20 +404,26 @@ sub RefStepCounter {
 #  my $id      = $has_id && ToString(DigestLiteral($idtokens));
   my $id      = $has_id && ToString(DigestLiteral(T_CS("\\the$ctr\@ID")));
 
-  my $refnum  = ToString(Digest(T_CS("\\the$ctr")));
-  my $frefnum = ToString(Digest(Invocation(T_CS('\lx@fnum@@'),$ctr)));
-  my $rrefnum  = ToString(Digest(Invocation(T_CS('\lx@refnum@@'),$ctr)));
+#  my $refnum  = ToString(Digest(T_CS("\\the$ctr")));
+#  my $frefnum = ToString(Digest(Invocation(T_CS('\lx@fnum@@'),$ctr)));
+#  my $rrefnum  = ToString(Digest(Invocation(T_CS('\lx@refnum@@'),$ctr)));
 
+  my $refnum  = Digest(T_CS("\\the$ctr"));
+  my $frefnum = Digest(Invocation(T_CS('\lx@fnum@@'),$ctr));
+  my $rrefnum  = Digest(Invocation(T_CS('\lx@refnum@@'),$ctr));
+  my $s_refnum  = ToString($refnum);
+  my $s_frefnum  = ToString($frefnum);
+  my $s_rrefnum  = ToString($rrefnum);
   # Any scopes activated for previous value of this counter (& any nested counters) must be removed.
   # This may also include scopes activated for \label
   deactivateCounterScope($ctr);
   # And install the scope (if any) for this reference number.
   AssignValue(current_counter=>$ctr,'local');
-  AssignValue('scopes_for_counter:'.$ctr => [$ctr.':'.$refnum],'local');
-  $STATE->activateScope($ctr.':'.$refnum);
+  AssignValue('scopes_for_counter:'.$ctr => [$ctr.':'.$s_refnum],'local');
+  $STATE->activateScope($ctr.':'.$s_refnum);
   (refnum=>$refnum,
-   ($frefnum && (!$refnum || ($frefnum ne $refnum)) ? (frefnum=>$frefnum):()),
-   ($rrefnum && ($frefnum ? ($rrefnum ne $frefnum) : (!$refnum || ($rrefnum ne $refnum)))
+   ($frefnum && (!$refnum || ($s_frefnum ne $s_refnum)) ? (frefnum=>$frefnum):()),
+   ($rrefnum && ($frefnum ? ($s_rrefnum ne $s_frefnum) : (!$refnum || ($s_rrefnum ne $s_refnum)))
     ? (rrefnum=>$rrefnum):()),
    ($has_id ? (id=>$id):())); }
 
@@ -1178,11 +1184,11 @@ sub FindFile_aux {
   return if grep(pathname_is_nasty($_), @$paths); # SECURITY! No nasty paths in cmdline
   # Do we need to sanitize these environment variables?
   my $kpsewhich = $ENV{LATEXML_KPSEWHICH} || 'kpsewhich';
-  my $texinputs = join(':',@$paths, $ENV{TEXINPUTS}||':');
+  local $ENV{TEXINPUTS} = join(':',@$paths, $ENV{TEXINPUTS}||':');
   my $candidates = join(' ',
 			(!$options{noltxml} ? ("$file.ltxml"):()),
 			(!$options{notex}   ? ($file):()));
-  if(my $result = `TEXINPUTS=$texinputs $kpsewhich $candidates`){
+  if(my $result = `$kpsewhich $candidates`){
     if($result =~ /^\s*(\S+)\n/s){
       return $1; }}
   if ($urlbase && ($path=url_find($file,urlbase=>$urlbase))) {

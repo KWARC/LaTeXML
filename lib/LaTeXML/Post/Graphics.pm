@@ -52,7 +52,7 @@ sub new {
   $$self{ignore_options}     = $options{ignore_options}   || [];
   $$self{trivial_scaling}    = $options{trivial_scaling}  || 1;
   $$self{graphics_types}     = $options{graphics_types}
-    || [qw(png gif jpg jpeg 
+    || [qw(svg png gif jpg jpeg 
 	   eps ps ai pdf)];
   $$self{type_properties}    = $options{type_properties}
     || {
@@ -73,7 +73,10 @@ sub new {
 	gif =>{destination_type=>'gif',  transparent=>1,
 	       ncolors=>'400%', unit=>'pixel'},
 	png =>{destination_type=>'png',  transparent=>1,
-	       ncolors=>'400%', unit=>'pixel'}},
+	       ncolors=>'400%', unit=>'pixel'},
+	svg =>{destination_type=>'svg',
+	       raster=>0, desirability=>11}, # use these, as is
+    }, 
   $$self{background}        = $options{background}       || "#FFFFFF";
   $self; }
 
@@ -199,8 +202,16 @@ sub transformGraphic {
 	NoteProgressDetailed(" [Reuse $cached @ $width x $height]");
 	return ($cached,$width,$height); }}}
   # Trivial scaling case: Use original image with (at most) different width & height.
+  my $triv_scaling = $$self{trivial_scaling} && ($type eq $srctype)
+      && !grep(!($_->[0]=~/^scale/),@$transform);
+  if(!$triv_scaling && (defined $properties{raster}) && !$properties{raster}){
+      Warn("limitation",$source,undef,
+	   "Cannot (yet) apply complex transforms to non-raster images",
+	   join(',',map(join(' ',@$_),grep(!($_->[0]=~/^scale/),@$transform))));
+      $triv_scaling = 1;
+      $transform=[grep(($_->[0]=~/^scale/),@$transform)]; }
   my ($image,$width,$height);
-  if($$self{trivial_scaling} && ($type eq $srctype) && !grep(!($_->[0]=~/^scale/),@$transform)){
+  if($triv_scaling){
     # With a simple scaling transformation we can preserve path & file-names
     # But only if we can mimic the relative path in the site directory.
     # Get image source file relative to the document's source file
