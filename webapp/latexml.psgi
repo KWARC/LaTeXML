@@ -34,10 +34,6 @@ sub parse_request_body {
     }
 
     my $input = $env->{'psgi.input'};
-    if ($env->{'psgix.input.buffered'}) {
-        # Just in case if input is read by middleware/apps beforehand
-        $input->seek(0, 0);
-    }
     my $body = '';
     my $spin = 0;
     while ($cl) {
@@ -51,8 +47,6 @@ sub parse_request_body {
         }
     }
 
-    $input->seek(0, 0);
-  
     # Parse the body:
     # Split, and make sure keys with no values get an empty string stub
     my $parameters = [ map {scalar(@{$_})==1 ? (@{$_},'') : @{$_}}
