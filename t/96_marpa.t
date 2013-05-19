@@ -14,10 +14,11 @@ eval {require Marpa::R2; 1;};
 if ($@) {
 	plan(skip_all=>"Marpa::R2 not installed.");
 } else {
-	TODO: {
-		local $TODO = ' Marpa tests not yet inspected...';
-		latexml_tests('t/daemon/marpa');
-	}
+	plan(skip_all=>"Not yet ready to test Marpa parsing.");
+	# TODO: {
+	# 	local $TODO = ' Marpa tests not yet inspected...';
+	# 	latexml_tests('t/daemon/marpa');
+	# }
 }
 
 #**********************************************************************
