@@ -71,7 +71,8 @@ WriteMakefile(NAME => 'LaTeXML',
           'Plack::Test' => 0,
           'HTTP::Request::Common' => 0,
 			   },
-	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmlc','bin/latexmls'],
+	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmlc','bin/latexmls',
+                       'bin/latexml.psgi'],
 	      macro => $MORE_MACROS,
 	      );
 

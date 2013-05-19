@@ -18,6 +18,7 @@ bin/latexmlpost
 bin/latexmlmath
 bin/latexmlc
 bin/latexmls
+bin/latexml.psgi
 #==================================================
 # Core Modules
 #==================================================

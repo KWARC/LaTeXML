@@ -171,7 +171,7 @@ sub daemon_ok {
   }
 }
 
-our $psgi_app = require("$FindBin::Bin/../webapp/latexml.psgi");
+our $psgi_app = require("$FindBin::Bin/../blib/script/latexml.psgi");
 sub psgi_ok {
   my($base,$dir,$generate)=@_;
   my $localname = $base;
