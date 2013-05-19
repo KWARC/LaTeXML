@@ -206,9 +206,9 @@ sub read_keyvals {
   my $cmdopts = [];
   while (my ($key,$value) = splice(@$opts,0,2)) {
     # TODO: Is skipping over empty values ever harmful? Do we have non-empty defaults anywhere?
-    next if (!$value) && (grep {/^$key\=/} @GETOPT_KEYS);
+    next if (! length($value)) && (grep {/^$key\=/} @GETOPT_KEYS);
     $key = "--$key" unless $key=~/^\-\-/;
-    $value = $value ? "=$value" : '';
+    $value = length($value) ? "=$value" : '';
     push @$cmdopts, "$key$value";
   }
   # Read into a Config object:
