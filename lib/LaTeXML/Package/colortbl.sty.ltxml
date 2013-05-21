@@ -46,16 +46,16 @@ DefPrimitive('\@userowcolor',sub {
 # so it will already get itself inserted into the tabular column's preload,
 # We'll basically do the same as \cellcolor, for now, and ignore the spacing
 DefMacro('\columncolor[]{}[][]',
-	 '\if@@rowcolored\else\pagecolor[#1]{#2}\@setcellcolor\fi');
+	 '\if@@rowcolored\else\ifx.#1.\pagecolor{#2}\else\pagecolor[#1]{#2}\fi\@setcellcolor\fi');
 
 # \rowcolor[<model>]{<color>}
 # Set the background color, and arrange for it to attach to the ltx:td
-DefMacro('\rowcolor[]{}','\pagecolor[#1]{#2}\@setrowcolor');
+DefMacro('\rowcolor[]{}','\ifx.#1.\pagecolor{#2}\else\pagecolor[#1]{#2}\fi\@setrowcolor');
 
 # \cellcolor[<model>]{<color>}
 # Set the background color (we should already be in a cell),
 # but also copy it to the ltx:td!
-DefMacro('\cellcolor[]{}','\pagecolor[#1]{#2}\@setcellcolor');
+DefMacro('\cellcolor[]{}','\ifx.#1.\pagecolor{#2}\else\pagecolor[#1]{#2}\fi\@setcellcolor');
 
 # Set the row's backgroundcolor from the current background color
 DefConstructor('\@setrowcolor',sub {
@@ -66,7 +66,8 @@ DefConstructor('\@setrowcolor',sub {
   afterDigest=>sub { my $bg = $_[1]->getProperty('font')->getBackground;
 		     $_[1]->setProperty(background=>$bg);
 		     AssignValue(tabular_row_color=>$bg,'global'); },
-  properties=>{alignmentSkippable=>1});
+  properties=>{alignmentSkippable=>1},
+  alias=>'');      # Make it go away in math (?)
 
 # Set the cell's backgroundcolor from the current background color
 DefConstructor('\@setcellcolor',sub {
@@ -74,8 +75,8 @@ DefConstructor('\@setcellcolor',sub {
   if(my $node = $document->findnode('ancestor-or-self::ltx:td',$document->getNode)){
     if(my $bg = $props{font} && $props{font}->getBackground){
       $document->setAttribute($node,backgroundcolor=>$bg); }}},
-  properties=>{alignmentSkippable=>1});
-
+  properties=>{alignmentSkippable=>1},
+  alias=>'');      # Make it go away in math (?)
 # \arrayrulecolor
 DefMacro('\arrayrulecolor[]{}','');
 

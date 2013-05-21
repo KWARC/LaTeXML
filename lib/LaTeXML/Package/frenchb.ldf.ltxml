@@ -1,0 +1,26 @@
+# -*- CPERL -*-
+use LaTeXML::Package;
+# /=====================================================================\ #
+# |  frenchb.ldf                                                        | #
+# | Implementation for LaTeXML                                          | #
+# |=====================================================================| #
+# | Part of LaTeXML:                                                    | #
+# |  Public domain software, produced as part of work done by the       | #
+# |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
+# | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
+# \=========================================================ooo==U==ooo=/ #
+use strict;
+
+InputDefinitions('frenchb',type=>'ldf', noltxml=>1);
+
+DefConstructor('\fup{}',        "<ltx:sup>#1</ltx:sup>");
+DefConstructor('\FB@up@fake{}', "<ltx:sup>#1</ltx:sup>");
+
+# Attempt to make it work with older & newer versions.
+Let(T_CS('\ltx@orig@nombre'),T_CS('\nombre'));
+DefMacro('\nombre{}','\@ifpackageloaded{numprint}{\numprint{#1}}{\ltx@orig@nombre{#1}}');
+
+1;
+

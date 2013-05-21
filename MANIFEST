@@ -18,7 +18,6 @@ bin/latexmlpost
 bin/latexmlmath
 bin/latexmlc
 bin/latexmls
-bin/latexml.psgi
 #==================================================
 # Core Modules
 #==================================================
@@ -319,6 +318,7 @@ lib/LaTeXML/Package/floatfig.sty.ltxml
 lib/LaTeXML/Package/floatflt.sty.ltxml
 lib/LaTeXML/Package/fontenc.sty.ltxml
 lib/LaTeXML/Package/fourier.sty.ltxml
+lib/LaTeXML/Package/frenchb.ldf.ltxml
 lib/LaTeXML/Package/gen-j-l.cls.ltxml
 lib/LaTeXML/Package/gen-m-l.cls.ltxml
 lib/LaTeXML/Package/gen-p-l.cls.ltxml
@@ -365,6 +365,7 @@ lib/LaTeXML/Package/multirow.sty.ltxml
 lib/LaTeXML/Package/natbib.sty.ltxml
 lib/LaTeXML/Package/newcent.sty.ltxml
 lib/LaTeXML/Package/ngerman.sty.ltxml
+lib/LaTeXML/Package/numprint.sty.ltxml
 lib/LaTeXML/Package/palatino.sty.ltxml
 lib/LaTeXML/Package/paralist.sty.ltxml
 lib/LaTeXML/Package/pifont.sty.ltxml
@@ -521,6 +522,9 @@ t/babel/greek.xml
 t/babel/page545.pdf
 t/babel/page545.tex
 t/babel/page545.xml
+t/babel/numprints.pdf
+t/babel/numprints.tex
+t/babel/numprints.xml
 t/complex/aliceblog.pdf
 t/complex/aliceblog.tex
 t/complex/aliceblog.xml
@@ -902,6 +906,7 @@ t/daemon/document.tex
 t/daemon/fragment.tex
 t/daemon/post.tex
 t/daemon/pre.tex
+t/daemon/stex.tex
 t/daemon/tiny.bib
 t/daemon/api/port.spec
 t/daemon/api/port.status
@@ -950,7 +955,6 @@ t/daemon/profiles/standard.status
 t/daemon/profiles/standard.xml
 t/daemon/profiles/stex/stex.spec
 t/daemon/profiles/stex/stex.status
-t/daemon/profiles/stex/stex.tex
 t/daemon/profiles/stex/stex.xml
 t/daemon/runtimes/timeout.spec
 t/daemon/runtimes/timeout.status

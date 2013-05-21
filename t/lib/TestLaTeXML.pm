@@ -2,15 +2,13 @@ package TestLaTeXML;
 use strict;
 use warnings;
 
-use Plack::Test;
 use Test::More;
-use HTTP::Request::Common;
 use LaTeXML::Util::Pathname;
-use URI::Escape;
 use JSON::XS;
 use FindBin;
 use File::Copy;
 use Exporter;
+
 our @ISA = qw(Exporter);
 our @EXPORT = (qw(latexml_ok is_xmlcontent is_filecontent is_strings skip_all
 		 latexml_tests),
@@ -42,7 +40,6 @@ sub latexml_tests {
         skip("No file $test.xml and/or $test.status",1)
           unless ((-f "$test.xml") && (-f "$test.status"));
         daemon_ok($test,$directory,$generate);
-        psgi_ok($test,$directory,$generate);
          }}}
   done_testing(); }
 
@@ -171,48 +168,6 @@ sub daemon_ok {
   }
 }
 
-our $psgi_app = require("$FindBin::Bin/../blib/script/latexml.psgi");
-sub psgi_ok {
-  my($base,$dir,$generate)=@_;
-  my $localname = $base;
-  $localname =~ s/$dir\///;
-  my $opts = read_options("$base.spec");
-  push @$opts, (
-    ['destination', "$localname.test.xml"],
-    ['timeout',5],
-    ['autoflush',1],
-    ['base',pathname_absolute($dir,pathname_cwd())],
-    ['timestamp','0'],
-    ['nodefaultresources',''],
-    ['xsltparameter','LATEXML_VERSION:TEST'],
-    ['nocomments', ''] );
-  my $body = '';
-  my $timed = undef;
-  foreach my $opt(@$opts) {
-    if ($$opt[0] eq 'timeout') { # Ensure .opt timeout takes precedence
-      if ($timed) { next; } else {$timed=1;}
-    }
-    $body.= $$opt[0] . '=' . (length($$opt[1]) ? uri_escape($$opt[1]) : '') . '&';
-  }
-  chop $body; # remove trailing ampersand
-  if (!$generate) {
-    #print STDERR Dumper($body);
-    test_psgi app=>$psgi_app, client => sub {
-      my $cb  = shift;
-      my $res = decode_json($cb->(POST "/", Content => $body)->content);
-      my $result_strings = [ split("\n",($res->{result}||'')) ];
-      $result_strings = [''] unless scalar(@$result_strings);
-      is_strings($result_strings,
-                  get_filecontent("$base.xml"),$base);
-      unlink "$base.test.xml" if -e "$base.test.xml";
-      unlink "$base.test.status" if -e "$base.test.status";
-    };
-  }
-  else {
-    #TODO: Skip 3 tests
-  }
-}
-
 sub read_options {
   my $opts = [];
   open (OPT,"<",shift);
@@ -243,7 +198,7 @@ sub get_filecontent {
   if (scalar(@lines)) {
     $lines[-1] =~ s/\s+$//;
   } else {
-    push @lines, '' unless scalar(@lines);
+    push @lines, '';
   }
   \@lines;
 }

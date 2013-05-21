@@ -66,13 +66,8 @@ WriteMakefile(NAME => 'LaTeXML',
           'Mojolicious::Lite' => 0,
           'JSON::XS' => 0,
           'Archive::Zip' => 0,
-          # PSGI Testing:
-          'URI::Escape' => 0,
-          'Plack::Test' => 0,
-          'HTTP::Request::Common' => 0,
 			   },
-	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmlc','bin/latexmls',
-                       'bin/latexml.psgi'],
+	      EXE_FILES => [ 'bin/latexml','bin/latexmlpost','bin/latexmlfind','bin/latexmlmath','bin/latexmlc','bin/latexmls'],
 	      macro => $MORE_MACROS,
 	      );
 
