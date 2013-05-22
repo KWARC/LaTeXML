@@ -67,9 +67,13 @@ our @EXPORT = (qw(&DefExpandable
 		  &PushValue &PopValue &UnshiftValue &ShiftValue
 		  &LookupMapping &AssignMapping &LookupMappingKeys
 		  &LookupCatcode &AssignCatcode
-		  &LookupMathcode &AssignMathcode
-		  &LookupMeaning &LookupDefinition &InstallDefinition),
-
+		  &LookupMeaning &LookupDefinition &InstallDefinition
+                  &LookupMathcode &AssignMathcode
+                  &LookupSFcode &AssignSFcode
+                  &LookupLCcode &AssignLCcode
+                  &LookupUCcode &AssignUCcode
+                  &LookupDelcode &AssignDelcode
+                ),
 	       # Random low-level token or string operations.
 	       qw(&CleanID &CleanLabel &CleanIndexKey &CleanBibKey &CleanURL
 		  &UTF
@@ -154,11 +158,20 @@ sub AssignMapping{ $STATE->assignMapping(@_); }
 sub LookupMappingKeys { $STATE->lookupMappingKeys(@_); }
 sub LookupCatcode{ $STATE->lookupCatcode(@_); }
 sub AssignCatcode{ $STATE->assignCatcode(@_); return; }
-sub LookupMathcode{ $STATE->lookupMathcode(@_); return; }
-sub AssignMathcode{ $STATE->assignMathcode(@_); return; }
 sub LookupMeaning      { $STATE->lookupMeaning(@_); }
 sub LookupDefinition   { $STATE->lookupDefinition(@_); }
 sub InstallDefinition  { $STATE->installDefinition(@_); }
+sub LookupMathcode{ $STATE->lookupMathcode(@_); }
+sub AssignMathcode{ $STATE->assignMathcode(@_); return; }
+sub LookupSFcode  { $STATE->lookupSFcode(@_); }
+sub AssignSFcode  { $STATE->assignSFcode(@_); return; }
+sub LookupLCcode  { $STATE->lookupLCcode(@_); }
+sub AssignLCcode  { $STATE->assignLCcode(@_); return; }
+sub LookupUCcode  { $STATE->lookupUCcode(@_); }
+sub AssignUCcode  { $STATE->assignUCcode(@_); return; }
+sub LookupDelcode { $STATE->lookupDelcode(@_); }
+sub AssignDelcode { $STATE->assignDelcode(@_); return; }
+
 sub Let {
   my($token1,$token2,$scope)=@_;
   ($token1)=TokenizeInternal($token1)->unlist unless ref $token1;
