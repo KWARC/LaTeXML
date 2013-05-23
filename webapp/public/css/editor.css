@@ -19,9 +19,9 @@
 }
 #ace-editor
 {
-    height: 500px;
-    width: 600px;
-    font-size:15px;
+    height: 600px;
+    width: 780px;
+    font-size:12px;
     word-wrap: break-word;
     white-space: pre-line;
     border:1px solid #999999;

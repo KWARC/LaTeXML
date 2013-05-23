@@ -227,7 +227,7 @@ post '/convert' => sub {
     $self->convert_string;
   }
 };
-
+use Data::Dumper;
 websocket '/convert' => sub {
   my $self  = shift;
   my $json = Mojo::JSON->new;
@@ -237,13 +237,12 @@ websocket '/convert' => sub {
   Mojo::IOLoop->stream($self->tx->connection)->timeout(300);
   $self->on('message' => sub {
 	      my ($tx, $bytes) = @_;
-	      my $opts = {};
 	      #TODO: We want the options in the right order, is this Decode safe in this respect?
-	      $opts = $json->decode($bytes);
+	      my $opts = $json->decode($bytes);
 	      my $source = $opts->{source}; delete $opts->{source};
 	      $source = $opts->{tex} unless defined $opts->{source}; delete $opts->{tex};
 	      my $config = LaTeXML::Util::Config->new();
-        $config->read_keyvals($opts);
+        $config->read_keyvals([%$opts]);
 	      # We now have a LaTeXML options object - $opt.
 	      my $converter = LaTeXML::Converter->get_converter($config);
 	      #Override/extend with session-specific options in $opt:
