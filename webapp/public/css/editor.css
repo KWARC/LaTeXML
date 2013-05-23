@@ -17,3 +17,16 @@
     font-style:italic;
     font-size:15px;
 }
+#ace-editor
+{
+    height: 500px;
+    width: 600px;
+    font-size:15px;
+    word-wrap: break-word;
+    white-space: pre-line;
+    border:1px solid #999999;
+    margin:5px 0;
+    padding:3px;
+    margin-left:5px;
+    margin-right:5px;
+}
