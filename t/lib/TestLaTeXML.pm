@@ -13,35 +13,57 @@ our @ISA = qw(Exporter);
 our @EXPORT = (qw(latexml_ok is_xmlcontent is_filecontent is_strings skip_all
 		 latexml_tests),
 	       @Test::More::EXPORT);
+our $kpsewhich = $ENV{LATEXML_KPSEWHICH} || 'kpsewhich';
 
 # Note that this is a singlet; the same Builder is shared.
 
 # Test the conversion of all *.tex files in the given directory (typically t/something)
 # Skip any that have no corresponding *.xml file.
 sub latexml_tests {
-  my($directory,$generate)=@_;
+  my($directory,%options)=@_;
 
   if(!opendir(DIR,$directory)){
     # Can't read directory? Fail (assumed single) test.
     do_fail($directory,"Couldn't read directory $directory:$!"); }
   else {
     my @dir_contents = sort readdir(DIR);
-    my @core_tests = map("$directory/$_", grep(s/\.tex$//, @dir_contents));
-    my @daemon_tests = map("$directory/$_", grep(s/\.spec$//, @dir_contents));
+    my @core_tests   = grep(s/\.tex$//, @dir_contents);
+    my @daemon_tests = grep(s/\.spec$//, @dir_contents);
     closedir(DIR);
     eval { use_ok("LaTeXML"); }; # || skip_all("Couldn't load LaTeXML"); }
 
-    foreach my $test (@core_tests){
+  SKIP:{
+    my $requires = $options{requires} || {}; # normally a hash: test=>[files...]
+    if(!ref $requires){	# scalar== filename required by ALL
+      check_requirements("$directory/",$requires); # may SKIP:
+      $requires={}; }		# but turn to normal, empty set
+    elsif($$requires{'*'}){
+      check_requirements("$directory/",$$requires{'*'}); }
+
+    foreach my $name (@core_tests){
+      my $test = "$directory/$name";
       SKIP: {
         skip("No file $test.xml",1) unless (-f "$test.xml");
+	next unless check_requirements($test,$$requires{$name});
         latexml_ok("$test.tex","$test.xml",$test); }}
-    foreach my $test (@daemon_tests){
+    foreach my $name (@daemon_tests){
+      my $test = "$directory/$name";
       SKIP: {
-        skip("No file $test.xml and/or $test.status",1)
+        skip("No file $test.xml and/or $$test.status",1)
           unless ((-f "$test.xml") && (-f "$test.status"));
-        daemon_ok($test,$directory,$generate);
-         }}}
+	next unless check_requirements($test,$$requires{$name});
+        daemon_ok($test,$directory,$options{generate});
+      }}}}
   done_testing(); }
+
+sub check_requirements {
+  my($test,$reqmts)=@_;
+  foreach my $reqmt (!$reqmts ? () : (ref $reqmts ? @$reqmts : $reqmts)){
+    if(`$kpsewhich $reqmt`){}
+    else {
+      skip("Missing requirement $reqmt for $test",1);
+      return 0; }}
+  return 1; }
 
 sub do_fail {
   my($name,$diag)=@_;
