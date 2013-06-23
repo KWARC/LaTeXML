@@ -47,7 +47,7 @@ $(ODT): %.odt: %.xml $(IMG) %.manifest.xml
 	@for d in $(shell ls mi/*); do cp $$d tmp2zip/Pictures; done;
 	cp $(basename $<).manifest.xml tmp2zip/META-INF/manifest.xml
 	cd tmp2zip; zip -r ../$@ *;cd -
-#	rm -Rf tmp2zip 
+	rm -Rf tmp2zip 
 
 odtclean:
 	rm *.css $(MXML) $(CXML) $(LTBIBS) $(LTXML)
