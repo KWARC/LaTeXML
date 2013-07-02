@@ -1,6 +1,7 @@
 % layout 'default';
 % title 'In-browser Editor of LaTeX Fragments';
 <link rel="stylesheet" type="text/css" href="css/editor.css" />
+
 <%= javascript 'js/external/jquery.min.js' %>
 <%= javascript 'js/editor/examples.js' %>
 
@@ -18,7 +19,12 @@
 <div id="counter" style="width: 45%; background-color: #cccccc; display: inline;">&nbsp;</div>
 <br /><div style="float:left"><%= select_field example =>
   [["Equations"=>"eqn"],["Tables"=>"tbl"],["Narrative"=>"nar"],["Color"=>"clr"],["Web
-  Graphics"=>"wgr"],["PSTricks Graphics"=>"psp"],["Metadata"=>"met"],["Wiki Syntax"=>"wik"],["Obfuscated"=>"xii"],["Turing Machine"=>"tur"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %></div>
+  Graphics"=>"wgr"],["PSTricks Graphics"=>"psp"],["Metadata"=>"met"],["Wiki Syntax"=>"wik"],["Obfuscated"=>"xii"],["Turing Machine"=>"tur"],["Select Example"=>"","selected"=>"selected"]],id => 'example_select' %>
+
+<%= select_field ltxstyle =>
+  [["Article"=>"ltx-article"],["AMS Art"=>"ltx-amsart"],["APJ"=>"ltx-apj"],["Book"=>"ltx-book"],
+["Report"=>"ltx-report"],["Select Style"=>"","selected"=>"selected"]],id => 'ltxstyle_select' %>
+</div>
 <!-- ["Tikz Graphics"=>"tik"], -->
 <div style="display:none"><div id="source"></div></div>
 <%= javascript 'js/external/ace-min/ace.js' %>
@@ -120,7 +126,7 @@ function do_convert_on_the_fly(e) {
 var examples = new Array();
 load_examples(examples);
 $(document).ready(function() {
-    $('#example_select').change(function () {
+  $('#example_select').change(function () {
     var str = "";
     $('#example_select option:selected').each(function () {
       str = $(this).attr("value");
@@ -131,6 +137,21 @@ $(document).ready(function() {
       editor.clearSelection();
     }
   });
+
+  $('#ltxstyle_select').change(function () {
+    var stylename = "";
+    $('#ltxstyle_select option:selected').each(function () {
+      stylename = $(this).attr("value");
+    });
+    if (stylename.length>0) {
+      // Dynamically load the CSS:
+      $('#ltxstyle_link').remove();
+    $("<link>").appendTo("head").attr({ rel: 'stylesheet', type: 'text/css',
+      id: 'ltxstyle_link',
+      href: 'css/external/'+stylename+'.css'});
+    }
+  });
+
 
   editor.on('change', function() {
     setTimeout(do_convert_on_the_fly, 100);

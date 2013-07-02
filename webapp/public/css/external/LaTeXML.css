@@ -18,11 +18,14 @@
 /* Main content */
 .ltx_page_content { clear:both; }
 .ltx_page_header  { border-bottom:1px solid; margin-bottom:5px; }
-.ltx_page_footer  { border-top:1px solid; margin-top:5px;  }
+.ltx_page_footer  { clear:both; border-top:1px solid; margin-top:5px;  }
 
 .ltx_page_header:after,
 .ltx_page_footer:after,
 .ltx_page_content:after { content:"."; display:block; height:0; clear:both; visibility:hidden; }
+
+.ltx_page_footer:before
+ { content:"."; display:block; height:0; clear:both; visibility:hidden; }
 
 .ltx_page_logo     { font-size:80%; margin-top: 5px; float:right; }
 .ltx_page_logo a   { font-variant: small-caps; }
@@ -45,6 +48,7 @@ h6 + p { display:inline; }
 /* .ltx_chapter_title, etc should be in ltx-article.css etc.
  */
 .ltx_page_main { margin:0px; padding:1em 3em 1em 2em; }
+.ltx_tocentry  { list-style-type:none; }
 
 /*======================================================================
   Para level */
@@ -65,6 +69,9 @@ h6 + p { display:inline; }
 .ltx_align_bottom   {vertical-align:bottom; }
 .ltx_align_middle   {vertical-align:middle; }
 .ltx_align_baseline {vertical-align:baseline; }
+
+.ltx_align_floatleft  { float:left; }
+.ltx_align_floatright { float:right; }
 
 td.ltx_align_left,   th.ltx_align_left,
 td.ltx_align_right,  th.ltx_align_right,
@@ -88,7 +95,7 @@ table.ltx_eqn_eqnarray tr.ltx_eqn_lefteqn + tr td.ltx_align_right { min-width:2e
 tr > td.ltx_eqn_pad { width:50%; }
 
 /* Position the tag to look like a normal item bullet. */
-li.ltx_item .ltx_tag { display:inline; margin-left:-1.5em; }
+li.ltx_item > .ltx_tag { display:inline; margin-left:-1.5em; }
 .ltx_item .ltx_tag + .ltx_para,
 .ltx_item .ltx_tag + .ltx_para .ltx_p  { display:inline; }
 
@@ -151,11 +158,13 @@ table { border-collapse:collapse; }
 /*======================================================================
  Meta stuff, footnotes */
 .ltx_note_content { display:none; }
+/*right:5%;  */
 .ltx_note_content {
-     width: 70%; right:5%;  font-size:80%;
+     max-width: 70%; font-size:80%; left:15%;
      background:#E0E0E0; border:3px outset gray; }
 .ltx_note_mark    { color:blue; }
 .ltx_note_type    { font-weight: bold; }
+.ltx_note { display:inline-block; text-indent:0; } /* So we establish containing block */
 .ltx_note:hover .ltx_note_content 
    { display:block; position:absolute; z-index:10; }
 
@@ -191,9 +200,11 @@ table { border-collapse:collapse; }
 cite                 { font-style: normal; }
 
 .ltx_red        { color:red; }
-.ltx_centering  { text-align:center; margin:auto; }
-.ltx_inline-block.ltx_centering,
-img.ltx_centering  { display:block; margin:auto; }
+/*.ltx_centering  { text-align:center; margin:auto; }*/
+/*.ltx_inline-block.ltx_centering,*/
+/* Hmm.... is this right in general? */
+.ltx_centering  { display:block; margin:auto; text-align:center; }
+table.ltx_centering { display:table; } /*!!! */
 
 /* .ltx_phantom handled in xslt */
 
