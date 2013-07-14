@@ -77,11 +77,11 @@ helper convert_zip => sub {
   my $opts=[];
   # Ugh, disallow 'null' as a value!!! (TODO: Smarter fix??)
   while (my ($key,$value) = splice(@all_params,0,2)) {
-    $value = '' if ($value && ($value  eq 'null'));
     if ($key=~/local|path/) {
       # You don't get to specify harddrive info in the web service
       next;
     }
+    $value = '' if ($value && ($value  eq 'null'));
     push @$opts, ($key,$value);
   }
   push @$opts, ('path',$srcdir);
@@ -164,7 +164,6 @@ helper convert_string => sub {
   my $opts = [];
   # Ugh, disallow 'null' as a value!!! (TODO: Smarter fix??)
   while (my ($key,$value) = splice(@all_params,0,2)) {
-    $value = '' if ($value && ($value  eq 'null'));
     # JSONP ?
     if ($key eq 'jsonp') {
       $is_jsonp = $value;
@@ -177,6 +176,7 @@ helper convert_string => sub {
       # You don't get to specify harddrive info in the web service
       next;
     }
+    $value = '' if ($value && ($value  eq 'null'));
     push @$opts, ($key,$value);
   }
   my $config = LaTeXML::Util::Config->new();
@@ -187,7 +187,7 @@ helper convert_string => sub {
   #Override/extend with session-specific options in $opt:
   $converter->prepare_session($config);
   # If there are no protocols, use literal: as default:
-  if (!$source) {
+  if ((! defined $source) || (length($source)<1)) {
     $self->render(json => {result => '', status => "Fatal:input:empty No TeX provided on input", status_code=>3,
                            log => "Status:conversion:3\nFatal:input:empty No TeX provided on input"});
   } else {
