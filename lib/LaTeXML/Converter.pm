@@ -328,6 +328,7 @@ sub convert_post {
                                                 split=>$opts->{splitindex}, scanner=>$scanner,
                                                 %PostOPS)); }
     if (@{$opts->{bibliographies}}) {
+      @{$opts->{bibliographies}} = map {/\.bib$/ ? convert($_) : $_ } @{$opts->{bibliographies}};      
       require LaTeXML::Post::MakeBibliography;
       push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>$opts->{bibliographies},
 						       split=>$opts->{splitbibliography}, scanner=>$scanner,

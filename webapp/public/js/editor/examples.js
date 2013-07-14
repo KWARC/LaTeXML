@@ -601,4 +601,33 @@ examples['bab'] = [
 '\\end{document}',
 ].join("\n");
 
+examples['rand'] = [
+'\\documentclass{article}',
+'\\usepackage{lcg,forloop}',
+'\\newtoks\\dierckxtoks',
+'\\newcounter{row_number}',
+'',
+'\\begin{document}',
+'',
+'\\chgrand[first=1, last=200, counter=kids]',
+'\\dierckxtoks={}',
+'',
+'\\forloop{row_number}{1}{\\value{row_number} < 10}{% ',
+'  \\rand',
+'  \\edef\\x{\\the\\dierckxtoks\\arabic{kids} \\noexpand\\\\}',
+'  \\dierckxtoks\\expandafter{\\x}%',
+'} ',
+'\\begin{table}',
+'\\begin{center}',
+'\\begin{tabular}{|l|}\\hline',
+'\\the\\dierckxtoks',
+'\\hline',
+'\\end{tabular}',
+'\\end{center}',
+'\\caption{Ten pseudo-random numbers between 1 and 200}',
+'\\end{table}',
+'',
+'\\end{document}',
+].join("\n");
+
 }
