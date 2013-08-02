@@ -197,6 +197,7 @@ sub convert {
     print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
     print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
     my $log = $self->flush_log;
+    $serialized = $dom if ($opts->{format} eq 'dom');
     $serialized = $dom->toString unless defined $serialized;
     $self->sanitize($log) if ($runtime->{status_code} == 3);
     return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
@@ -257,11 +258,13 @@ sub convert {
       if ($result =~ /LaTeXML/) { # Special for documents
         $serialized = $result->getDocument->toStringHTML;
       } else { # Regular for fragments
-	do {
-	  local $XML::LibXML::setTagCompression = 1;
-	  $serialized = $result->toString(1);
-	}
+        do {
+          local $XML::LibXML::setTagCompression = 1;
+          $serialized = $result->toString(1);
+        }
       }
+    } elsif ($opts->{format} eq 'dom') {
+      $serialized = $result;
     }
   }
   print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
@@ -331,14 +334,14 @@ sub convert_post {
       @{$opts->{bibliographies}} = map {/\.bib$/ ? convert($_) : $_ } @{$opts->{bibliographies}};      
       require LaTeXML::Post::MakeBibliography;
       push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>$opts->{bibliographies},
-						       split=>$opts->{splitbibliography}, scanner=>$scanner,
-						       %PostOPS)); }
+                   split=>$opts->{splitbibliography}, scanner=>$scanner,
+                   %PostOPS)); }
     if ($opts->{crossref}) {
       require LaTeXML::Post::CrossRef;
       push(@procs,LaTeXML::Post::CrossRef->new(db=>$DB,urlstyle=>$opts->{urlstyle},format=>$format,
-					       ($opts->{numbersections} ? (number_sections=>1):()),
-					       ($opts->{navtoc} ? (navigation_toc=>$opts->{navtoc}):()),
-					       %PostOPS)); }
+                 ($opts->{numbersections} ? (number_sections=>1):()),
+                 ($opts->{navtoc} ? (navigation_toc=>$opts->{navtoc}):()),
+                 %PostOPS)); }
     if ($opts->{picimages}) {
       require LaTeXML::Post::PictureImages;
       push(@procs,LaTeXML::Post::PictureImages->new(%PostOPS));
@@ -350,7 +353,7 @@ sub convert_post {
       if($opts->{graphicsmaps} && scalar(@{$opts->{graphicsmaps}})){
         my @maps = map([split(/\./,$_)], @{$opts->{graphicsmaps}});
         push(@g_options, (graphics_types=>[map($$_[0],@maps)],
-			     type_properties=>{map( ($$_[0]=>{destination_type=>($$_[1] || $$_[0])}), @maps)})); }
+           type_properties=>{map( ($$_[0]=>{destination_type=>($$_[1] || $$_[0])}), @maps)})); }
         push(@procs,LaTeXML::Post::Graphics->new(@g_options,%PostOPS));
     }
     if($opts->{svg}){
@@ -360,31 +363,31 @@ sub convert_post {
       my @mprocs=();
       ###    # If XMath is not first, it must be at END!  Or... ???
       foreach my $fmt (@$math_formats) {
-	if($fmt eq 'xmath'){
-	  require LaTeXML::Post::XMath;
-	  push(@mprocs,LaTeXML::Post::XMath->new(%PostOPS)); }
-	elsif($fmt eq 'pmml'){
-	  require LaTeXML::Post::MathML;
-	  if(defined $opts->{linelength}){
-	    push(@mprocs,LaTeXML::Post::MathML::PresentationLineBreak->new(
+  if($fmt eq 'xmath'){
+    require LaTeXML::Post::XMath;
+    push(@mprocs,LaTeXML::Post::XMath->new(%PostOPS)); }
+  elsif($fmt eq 'pmml'){
+    require LaTeXML::Post::MathML;
+    if(defined $opts->{linelength}){
+      push(@mprocs,LaTeXML::Post::MathML::PresentationLineBreak->new(
                     linelength=>$opts->{linelength},
                     (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
                     ($opts->{hackplane1} ? (hackplane1=>1):()),
                     %PostOPS)); }
-	  else {
-	    push(@mprocs,LaTeXML::Post::MathML::Presentation->new(
+    else {
+      push(@mprocs,LaTeXML::Post::MathML::Presentation->new(
                     (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
                     ($opts->{hackplane1} ? (hackplane1=>1):()),
                     %PostOPS)); }}
-	elsif($fmt eq 'cmml'){
-	  require LaTeXML::Post::MathML;
-	  push(@mprocs,LaTeXML::Post::MathML::Content->new(
+  elsif($fmt eq 'cmml'){
+    require LaTeXML::Post::MathML;
+    push(@mprocs,LaTeXML::Post::MathML::Content->new(
             (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
             ($opts->{hackplane1} ? (hackplane1=>1):()),
             %PostOPS)); }
-	elsif($fmt eq 'om'){
-	  require LaTeXML::Post::OpenMath;
-	  push(@mprocs,LaTeXML::Post::OpenMath->new(
+  elsif($fmt eq 'om'){
+    require LaTeXML::Post::OpenMath;
+    push(@mprocs,LaTeXML::Post::OpenMath->new(
             (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
             ($opts->{hackplane1} ? (hackplane1=>1):()),
             %PostOPS)); }
@@ -392,11 +395,11 @@ sub convert_post {
       ###    $keepXMath  = 0 unless defined $keepXMath;
       ### OR is $parallelmath ALWAYS on whenever there's more than one math processor?
       if($parallel) {
-	my $main = shift(@mprocs);
-	$main->setParallel(@mprocs);
-	push(@procs,$main); }
+  my $main = shift(@mprocs);
+  $main->setParallel(@mprocs);
+  push(@procs,$main); }
       else {
-	push(@procs,@mprocs); }
+  push(@procs,@mprocs); }
     }
     if ($opts->{mathimages}) {
       require LaTeXML::Post::MathImages;
@@ -407,67 +410,67 @@ sub convert_post {
       my $parameters={LATEXML_VERSION=>"'$LaTeXML::VERSION'"};
       my @searchpaths = ('.',$DOCUMENT->getSearchPaths);
       foreach my $css (@{$opts->{css}}) {
-	if(pathname_is_url($css)){ # external url ? no need to copy
-	  print STDERR "Using CSS=$css\n" if $verbosity > 0;
-	  push(@{$parameters->{CSS}}, $css); }
-	elsif(my $csssource = pathname_find($css, types=>['css'],paths=>[@searchpaths],
-				       installation_subdir=>'style')){
-	  print STDERR "Using CSS=$csssource\n" if $verbosity > 0;
-	  my $cssdest = pathname_absolute($css,pathname_directory($opts->{destination}));
-	  $cssdest .= '.css' unless $cssdest =~ /\.css$/;
-	  warn "CSS source $csssource is same as destination!" if $csssource eq $cssdest;
-	  pathname_copy($csssource,$cssdest) if $opts->{local}; # TODO: Look into local copying carefully
-	  push(@{$$parameters{CSS}}, $cssdest); }
-	else {
-	  warn "Couldn't find CSS file $css in paths ".join(',',@searchpaths)."\n";
-	  push(@{$$parameters{CSS}}, $css); }} # but still put the link in!
+  if(pathname_is_url($css)){ # external url ? no need to copy
+    print STDERR "Using CSS=$css\n" if $verbosity > 0;
+    push(@{$parameters->{CSS}}, $css); }
+  elsif(my $csssource = pathname_find($css, types=>['css'],paths=>[@searchpaths],
+               installation_subdir=>'style')){
+    print STDERR "Using CSS=$csssource\n" if $verbosity > 0;
+    my $cssdest = pathname_absolute($css,pathname_directory($opts->{destination}));
+    $cssdest .= '.css' unless $cssdest =~ /\.css$/;
+    warn "CSS source $csssource is same as destination!" if $csssource eq $cssdest;
+    pathname_copy($csssource,$cssdest) if $opts->{local}; # TODO: Look into local copying carefully
+    push(@{$$parameters{CSS}}, $cssdest); }
+  else {
+    warn "Couldn't find CSS file $css in paths ".join(',',@searchpaths)."\n";
+    push(@{$$parameters{CSS}}, $css); }} # but still put the link in!
       foreach my $js (@{$opts->{javascript}}) {
-	if (pathname_is_url($js)) { # external url ? no need to copy
-	  print STDERR "Using JAVASCRIPT=$js\n" if $verbosity > 0;
-	  push(@{$$parameters{JAVASCRIPT}}, $js);
-	} elsif (my $jssource = pathname_find($js, types=>['js'],paths=>[@searchpaths],
-					      installation_subdir=>'style')) {
-	  print STDERR "Using JAVASCRIPT=$jssource\n" if $verbosity > 0;
-	  my $jsdest = pathname_absolute($js,pathname_directory($opts->{destination}));
-	  $jsdest .= '.js' unless $jsdest =~ /\.js$/;
-	  warn "Javascript source $jssource is same as destination!" if $jssource eq $jsdest;
-	  pathname_copy($jssource,$jsdest) if $opts->{local}; #TODO: Local handling
-	  push(@{$$parameters{JAVASCRIPT}}, $jsdest);
-	} else {
-	  warn "Couldn't find Javascript file $js in paths ".join(',',@searchpaths)."\n";
-	  push(@{$$parameters{JAVASCRIPT}}, $js);
-	}
-      }				# but still put the link in!
+  if (pathname_is_url($js)) { # external url ? no need to copy
+    print STDERR "Using JAVASCRIPT=$js\n" if $verbosity > 0;
+    push(@{$$parameters{JAVASCRIPT}}, $js);
+  } elsif (my $jssource = pathname_find($js, types=>['js'],paths=>[@searchpaths],
+                installation_subdir=>'style')) {
+    print STDERR "Using JAVASCRIPT=$jssource\n" if $verbosity > 0;
+    my $jsdest = pathname_absolute($js,pathname_directory($opts->{destination}));
+    $jsdest .= '.js' unless $jsdest =~ /\.js$/;
+    warn "Javascript source $jssource is same as destination!" if $jssource eq $jsdest;
+    pathname_copy($jssource,$jsdest) if $opts->{local}; #TODO: Local handling
+    push(@{$$parameters{JAVASCRIPT}}, $jsdest);
+  } else {
+    warn "Couldn't find Javascript file $js in paths ".join(',',@searchpaths)."\n";
+    push(@{$$parameters{JAVASCRIPT}}, $js);
+  }
+      }       # but still put the link in!
       if ($opts->{icon}) {
-	if (my $iconsrc = pathname_find($opts->{icon},paths=>[$DOCUMENT->getSearchPaths])) {
-	  print STDERR "Using icon=$iconsrc\n" if $verbosity > 0;
-	  my $icondest = pathname_absolute($opts->{icon},pathname_directory($opts->{destination}));
-	  pathname_copy($iconsrc,$icondest) if $opts->{local};
-	  $$parameters{ICON}=$icondest;
-	} else {
-	  warn "Couldn't find ICON ".$opts->{icon}." in paths ".join(',',@searchpaths)."\n";
-	  $$parameters{ICON}=$opts->{icon};
-	}
+  if (my $iconsrc = pathname_find($opts->{icon},paths=>[$DOCUMENT->getSearchPaths])) {
+    print STDERR "Using icon=$iconsrc\n" if $verbosity > 0;
+    my $icondest = pathname_absolute($opts->{icon},pathname_directory($opts->{destination}));
+    pathname_copy($iconsrc,$icondest) if $opts->{local};
+    $$parameters{ICON}=$icondest;
+  } else {
+    warn "Couldn't find ICON ".$opts->{icon}." in paths ".join(',',@searchpaths)."\n";
+    $$parameters{ICON}=$opts->{icon};
+  }
       }
       if (! defined $opts->{timestamp}) {
-	$opts->{timestamp} = localtime();
+  $opts->{timestamp} = localtime();
       }
       if ($opts->{timestamp}) {
-	$$parameters{TIMESTAMP}="'".$opts->{timestamp}."'";
+  $$parameters{TIMESTAMP}="'".$opts->{timestamp}."'";
       }
       # Now add in the explicitly given XSLT parameters
       foreach my $parm (@{$opts->{xsltparameters}}) {
-	if ($parm =~ /^\s*(\w+)\s*:\s*(.*)$/) {
-	  $$parameters{$1}="'".$2."'";
-	} else {
-	  warn "xsltparameter not in recognized format: 'name:value' got: '$parm'\n";
-	}
+  if ($parm =~ /^\s*(\w+)\s*:\s*(.*)$/) {
+    $$parameters{$1}="'".$2."'";
+  } else {
+    warn "xsltparameter not in recognized format: 'name:value' got: '$parm'\n";
+  }
       }
 
       push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$xslt,
-		   parameters=>$parameters,
-		   noresources=>(defined $opts->{defaultresources}) && !$opts->{defaultresources},
-		   %PostOPS)); }
+       parameters=>$parameters,
+       noresources=>(defined $opts->{defaultresources}) && !$opts->{defaultresources},
+       %PostOPS)); }
   }
   # Do the actual post-processing:
   my $postdoc;
@@ -505,12 +508,12 @@ sub new_latexml {
   require LaTeXML;
   my $latexml = LaTeXML->new(preload=>[@pre], searchpaths=>[@{$opts->{paths}}],
                           graphicspaths=>['.'],
-			  verbosity=>$opts->{verbosity}, strict=>$opts->{strict},
-			  includeComments=>$opts->{comments},
-			  inputencoding=>$opts->{inputencoding},
-			  includeStyles=>$opts->{includestyles},
-			  documentid=>$opts->{documentid},
-			  mathparse=>$opts->{mathparse});
+        verbosity=>$opts->{verbosity}, strict=>$opts->{strict},
+        includeComments=>$opts->{comments},
+        inputencoding=>$opts->{inputencoding},
+        includeStyles=>$opts->{includestyles},
+        documentid=>$opts->{documentid},
+        mathparse=>$opts->{mathparse});
   if(my @baddirs = grep {! -d $_} @{$opts->{paths}}){
     warn "\n$LaTeXML::Version::IDENTITY : these path directories do not exist: ".join(', ',@baddirs)."\n"; }
 
@@ -652,19 +655,19 @@ sub GetEmbeddable {
   if ($embeddable) {
     # Only one child? Then get it, must be a inline-compatible one!
     while (($embeddable->nodeName eq 'div') && (scalar(@{$embeddable->childNodes}) == 1) &&
-	   ($embeddable->getAttribute('class') =~ /^ltx_(page_(main|content)|document|para|header)$/) && 
-	   (! defined $embeddable->getAttribute('style'))) {
+     ($embeddable->getAttribute('class') =~ /^ltx_(page_(main|content)|document|para|header)$/) && 
+     (! defined $embeddable->getAttribute('style'))) {
       if (defined $embeddable->firstChild) {
-	$embeddable=$embeddable->firstChild;
+  $embeddable=$embeddable->firstChild;
       } else {
-	last;
+  last;
       }
     }
     # Is the root a <p>? Make it a span then, if it has only math/text/spans - it should be inline
     # For MathJax-like inline conversion mode
     # TODO: Make sure we are schema-complete wrt nestable inline elements, and maybe find a smarter way to do this?
     if (($embeddable->nodeName eq 'p') &&
-	((@{$embeddable->childNodes}) == (grep {$_->nodeName =~ /math|text|span/} $embeddable->childNodes))) {
+  ((@{$embeddable->childNodes}) == (grep {$_->nodeName =~ /math|text|span/} $embeddable->childNodes))) {
       $embeddable->setNodeName('span');
       $embeddable->setAttribute('class','text');
     }
