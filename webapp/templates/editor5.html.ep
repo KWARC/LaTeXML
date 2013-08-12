@@ -1,8 +1,6 @@
 % layout 'html5';
 % title 'In-browser HTML5 Editor of LaTeX Fragments';
 <link rel="stylesheet" type="text/css" href="css/editor.css"></link>
-<%= javascript 'js/external/jquery.min.js' %>
-<%= javascript 'js/external/jquery-ui.min.js' %>
 <%= javascript 'js/editor/examples.js' %>
 %= javascript begin
 function show_log() {
@@ -12,6 +10,7 @@ function show_log() {
 function show_result() {
     $('#log').hide();
     $('#onthefly').show();
+    if (!canMathML) { MathJax.Hub.Typeset(); }
 }
 function setup_message(data) {
  $('#message').html($('#message').text(data.status).html().replace(/\n/g,"<br></br>")+"<a href='#'>(Details)</a>");

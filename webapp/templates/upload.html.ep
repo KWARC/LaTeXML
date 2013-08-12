@@ -1,6 +1,5 @@
 % layout 'html5';
 % title 'Upload Interface';
-<%= javascript 'js/external/jquery.min.js' %>
 <link rel="stylesheet" type="text/css" href="css/upload/fileAPI.css" />
 
 <div style="margin:10px;">

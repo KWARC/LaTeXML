@@ -58,7 +58,25 @@ option:hover {
     cursor: pointer;
 }
 </style>
+<%= javascript 'js/external/jquery.min.js' %>
+<%= javascript 'js/external/jquery-ui.min.js' %>
+<%= javascript begin %>
+//======================================================================
+// Load MathJax, IFF the current browser can't handle MathML natively.
 
+var agent = navigator.userAgent;
+var canMathML = ((agent.indexOf('Gecko') > -1) && (agent.indexOf('KHTML') === -1)
+ || agent.match(/MathPlayer/) );
+
+// Add script element loading MathJax unless we can handle MathML
+if (!canMathML) {
+  var el = document.createElement('script');
+  el.type = "text/javascript";
+  el.src = "http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=MML_HTMLorMML";
+  var head = document.getElementsByTagName("head")[0], script;
+  head.appendChild(el);
+};
+<% end %>
 </head>
 <body style="font-size:72.5%;">
     <div id="siteheader">

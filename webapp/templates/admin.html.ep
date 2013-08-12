@@ -1,6 +1,4 @@
 % layout 'default';
-  <%= javascript 'js/external/jquery.min.js' %>
-  <%= javascript 'js/external/jquery-ui.min.js' %>
   <%= javascript begin %>
   $(document).ready(function() {
     $("#accordion").accordion();

@@ -1,6 +1,5 @@
 % layout 'default';
 % title 'About';
-<%= javascript 'js/external/jquery.min.js' %>
 %= javascript begin
 var hasError = /error/;
 $(document).ready(function() {
@@ -14,8 +13,9 @@ $(document).ready(function() {
 			function(data){
 				if (!hasError.test(data.status)) { 
 					mythis.html(data.result);
-                                        $("body").css("cursor", "auto");
-                                        $("#message").text("Converted from TeX On-the-Fly!");
+          $("body").css("cursor", "auto");
+          $("#message").text("Converted from TeX On-the-Fly!");
+          if (!canMathML) { MathJax.Hub.Typeset(); }
 				}
    			}, "json");
 	});

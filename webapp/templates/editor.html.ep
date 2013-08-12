@@ -1,8 +1,6 @@
 % layout 'default';
 % title 'In-browser Editor of LaTeX Fragments';
 <link rel="stylesheet" type="text/css" href="css/editor.css" />
-
-<%= javascript 'js/external/jquery.min.js' %>
 <%= javascript 'js/editor/examples.js' %>
 
 <div style="display:inline; float:left; height: 95%; width: 45%; overflow-y:auto;">
@@ -43,6 +41,7 @@ function show_log() {
 function show_result() {
     $('#log').hide();
     $('#onthefly').show();
+    if (!canMathML) { MathJax.Hub.Typeset(); }
 }
 function setup_message(data) {
  $('#message').html($('#message').text(data.status).html().replace(/\n/g,"<br />")+"<a href='#'>(Details)</a>");
