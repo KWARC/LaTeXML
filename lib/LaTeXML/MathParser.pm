@@ -55,11 +55,16 @@ sub parseMath {
   if ($options{parser}) {
     if (lc($options{parser}) ne $self->{type}) {
       my $parse;
-      if ($options{parser} =~ /^marpa/i) {
+      if ($options{parser} =~ /^LaTeXML::(\w+)$/) {
+        my $loadable = eval "require $options{parser}";
+        # TODO: Fatal if not loadable
+        my $internalparser = $options{parser}->new();
+        $parse = sub { $internalparser->parse(@_); }}
+      elsif ($options{parser} =~ /^marpa/i) {
         require LaTeXML::MarpaGrammar;
         my $internalparser = LaTeXML::MarpaGrammar->new();
-        $parse = sub { $internalparser->parse(@_); }
-      } else {
+        $parse = sub { $internalparser->parse(@_); }}
+      else {
         require LaTeXML::MathGrammar;
         my $internalparser = LaTeXML::MathGrammar->new();
         $parse = sub { my ($rule,$unparsed) = @_;
