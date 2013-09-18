@@ -22,6 +22,7 @@ use LaTeXML::Package qw(pathname_is_literaldata);
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::WWW;
 use LaTeXML::Util::ObjectDB;
+use LaTeXML::Util::Config;
 use LaTeXML::Post::Scan;
 
 #**********************************************************************
@@ -33,7 +34,7 @@ our %DAEMON_DB = () unless keys %DAEMON_DB;
 
 sub new {
   my ($class,$config) = @_;
-  $config = $LaTeXML::Util::Config->new() unless (defined $config);
+  $config = LaTeXML::Util::Config->new() unless (defined $config);
   # The daemon should be setting the identity:
   $config->check;
   bless {opts=>$config->options,ready=>0,log=>q{},runtime=>{},
@@ -86,7 +87,7 @@ sub initialize_session {
     print STDERR "$@\n";
     print STDERR "\nInitialization complete: ".$latexml->getStatusMessage.". Aborting.\n" if defined $latexml;
     # Close and restore STDERR to original condition.
-    $self->{log} = $self->flush_log;
+    $self->{log} .= $self->flush_log;
     $self->{ready}=0;
     return;
   } else {
@@ -94,14 +95,14 @@ sub initialize_session {
     my $init_status = $latexml->getStatusMessage;
     if ($init_status =~ /error/i) {
       print STDERR "\nInitialization complete: ".$init_status.". Aborting.\n";
-      $self->{log} = $self->flush_log; 
+      $self->{log} .= $self->flush_log; 
       $self->{ready}=0;
       return;
     }
   }
 
   # Save latexml in object:
-  $self->{log} = $self->flush_log;
+  $self->{log} .= $self->flush_log;
   $self->{latexml} = $latexml;
   $self->{ready}=1;
   return;
@@ -187,7 +188,7 @@ sub convert {
     print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
     print STDERR "Status:conversion:".($runtime->{status_code}||'0')."\n";
     # Close and restore STDERR to original condition.
-    my $log=$self->flush_log;
+    my $log .= $self->flush_log;
     # Hope to clear some memory:
     $self->sanitize($log) if ($runtime->{status_code} == 3);
     return {result=>undef,log=>$log,status=>$runtime->{status},status_code=>$runtime->{status_code}};
@@ -196,7 +197,7 @@ sub convert {
     # Terminate on Fatal errors
     print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
     print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
-    my $log = $self->flush_log;
+    my $log .= $self->flush_log;
     $serialized = $dom if ($opts->{format} eq 'dom');
     $serialized = $dom->toString unless defined $serialized;
     $self->sanitize($log) if ($runtime->{status_code} == 3);
@@ -204,7 +205,7 @@ sub convert {
   }
   if ($serialized) {
       # If serialized has been set, we are done with the job
-      my $log = $self->flush_log;
+      my $log .= $self->flush_log;
       # Hope to clear some memory:
       $digested=undef;
       $dom=undef;
@@ -268,7 +269,7 @@ sub convert {
     }
   }
   print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
-  my $log = $self->flush_log;
+  my $log .= $self->flush_log;
   # Hope to clear some memory:
   $digested=undef;
   $dom=undef;
@@ -331,7 +332,15 @@ sub convert_post {
                                                 split=>$opts->{splitindex}, scanner=>$scanner,
                                                 %PostOPS)); }
     if (@{$opts->{bibliographies}}) {
-      @{$opts->{bibliographies}} = map {/\.bib$/ ? convert($_) : $_ } @{$opts->{bibliographies}};      
+      if (grep {/$LaTeXML::Util::Config::is_bibtex/} @{$opts->{bibliographies}}) {
+        my $bib_converter = 
+          $self->get_converter(LaTeXML::Util::Config->new(
+            type=>"BibTeX",post=>0,format=>'dom',whatsout=>'document',whatsin=>'document'));
+        $self->{log} .= $self->flush_log;
+        @{$opts->{bibliographies}} = map {/$LaTeXML::Util::Config::is_bibtex/ ?
+          $bib_converter->convert($_)->{result} : $_ } @{$opts->{bibliographies}};
+        $self->bind_log;
+      }
       require LaTeXML::Post::MakeBibliography;
       push(@procs,LaTeXML::Post::MakeBibliography->new(db=>$DB, bibliographies=>$opts->{bibliographies},
                    split=>$opts->{splitbibliography}, scanner=>$scanner,

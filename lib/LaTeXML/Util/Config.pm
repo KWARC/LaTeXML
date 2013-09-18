@@ -23,6 +23,7 @@ use LaTeXML::Util::Pathname;
 use LaTeXML::Global;
 use Data::Dumper;
 our $PROFILES_DB={}; # Class-wide, caches all profiles that get used while the server is alive
+our $is_bibtex = qr/(^literal\:\s*\@)|(\.bib$)/;
 
 sub new {
   my ($class,%opts) = @_;
@@ -196,7 +197,7 @@ sub read {
 
   $opts->{source} = $ARGV[0] unless $opts->{source};
   if (!$opts->{type} || ($opts->{type} eq 'auto')) {
-    $opts->{type} = 'BibTeX' if ($opts->{source} && ($opts->{source} =~ /\.bib$/));
+    $opts->{type} = 'BibTeX' if ($opts->{source} && ($opts->{source} =~ /$is_bibtex/));
   }
   return;
 }
