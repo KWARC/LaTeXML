@@ -434,6 +434,10 @@ sub pmml_internal {
     $result; }
   elsif($tag eq 'ltx:XMText'){
     pmml_row(map(pmml_text_aux($_), $node->childNodes)); }
+  elsif($tag eq 'ltx:ERROR'){
+    my $cl = $node->getAttribute('class');
+      ['m:merror',{class=>join(' ',grep($_,'ltx_ERROR',$cl))},
+       ['m:mtext',{},$node->textContent]]; }
   else {
     my $text = $node->textContent; #  Spaces are significant here
     $text =~ s/^\s+/$NBSP/;

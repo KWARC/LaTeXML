@@ -50,7 +50,7 @@ our @EXPORT = (qw(&DefExpandable
 		  &DefLigature &DefMathLigature),
 
 	       # Mid-level support for writing definitions.
-	       qw(&Expand &Invocation &Digest &DigestIf
+	       qw(&Expand &Invocation &Digest &DigestIf &DigestLiteral
 		  &RawTeX &Let),
 
 	       # Font encoding
@@ -181,7 +181,7 @@ sub Let {
   return; }
 
 sub Digest {
-  $STATE->getStomach->digest(map((ref $_ ? $_ : Tokenize($_)),@_)); }
+  $STATE->getStomach->digest(map((ref $_ ? $_ : TokenizeInternal($_)),@_)); }
 
 # probably need to export this, as well?
 sub DigestLiteral {
