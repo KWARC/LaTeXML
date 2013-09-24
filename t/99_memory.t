@@ -12,6 +12,8 @@ use Test::More tests=>2;
 eval {require Test::LeakTrace; 1;};
 if ($@) {
   plan(skip_all=>"Test::LeakTrace not installed."); }
+if ($XML::LibXML::VERSION < 2.0106) {
+  plan(skip_all=>"Leaky XML::LibXML, please update to 2.0106 or newer."); }
 else {
   use Test::LeakTrace;
   # New API
