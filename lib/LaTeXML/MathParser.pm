@@ -211,7 +211,7 @@ sub parse_rec {
    if($tag eq 'ltx:XMath'){	# Replace the content of XMath with parsed result
      NoteProgress('['.++$$self{n_parsed}.']');
      map($document->unRecordNodeIDs($_),element_nodes($node));
-     $node->removeChildNodes;
+     map {$_->unbindNode()} @{$node->childNodes} ;
      $document->appendTree($node,$result);
      $result = [element_nodes($node)]->[0]; }
     else {			# Replace the whole node for XMArg, XMWrap; preserve some attributes
@@ -350,7 +350,7 @@ sub parse_kludge {
 #### SEGFAULT TEST (uncomment out next line & comment the following 2)
 ####  map($document->removeNode($_),@nodes);
   map($document->unRecordNodeIDs($_),element_nodes($mathnode));
-  $mathnode->removeChildNodes;
+  map {$_->unbindNode()} @{$mathnode->childNodes};
   # We're hoping for a single list on the stack,
   # But extra CLOSEs will leave extra junk behind, so process all the stacked lists.
   my @replacements=();

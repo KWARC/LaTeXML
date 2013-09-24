@@ -4615,7 +4615,7 @@ DefRewrite(select=>["descendant-or-self::ltx:XMTok[text()='\x{FF0F}' and \@meani
 			$doc->closeElement('ltx:XMApp'); }
 		      else {
 			# For simple tokens, we'll modify the relevant content & attributes
-			$thing->removeChildNodes;
+			map {$_->unbindNode()} @{$thing->childNodes};
 			my $new = defined $NOTS{$text} ? $NOTS{$text} : $text."\x{0338}";
 			$thing->appendText($new);
 			if(my $meaning = $thing->getAttribute('meaning')){
