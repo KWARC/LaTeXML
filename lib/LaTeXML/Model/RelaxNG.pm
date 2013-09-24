@@ -15,7 +15,9 @@ use strict;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Common::XML;
 use LaTeXML::Global;
+
 use base qw(LaTeXML::Model::Schema);
+use Scalar::Util qw/weaken/;
 
 our $XMLPARSER = LaTeXML::Common::XML::Parser->new();
 
@@ -36,6 +38,7 @@ sub new {
   my($class,$model,$name)=@_;
   my $self = {name=>$name, model=>$model,
 	      modules=>[],elementdefs=>{},defs=>{}, elements=>{}};
+  weaken($self->{model});
   bless $self,$class;
   $self; }
 
