@@ -558,6 +558,7 @@ sub flush_log {
   # Close and restore STDERR to original condition.
   if (! $LaTeXML::Converter::DEBUG) {
     close $self->{log_handle};
+    delete $self->{log_handle};
     *STDERR=*STDERR_SAVED;
   }
   my $log = $self->{log};
