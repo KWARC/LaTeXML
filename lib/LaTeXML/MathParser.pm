@@ -991,13 +991,14 @@ sub LeftRec {
   else {
     $arg1; }}
 
-# Like apply($op,$arg1,$arg2), but if $op is 'same' as the operator in $arg1,
+# Like apply($op,$arg1,$arg2), but if $op is 'same' as the operator in $arg1 (or $arg2!),
 # then combine as an nary apply of $op to $arg1's arguments and $arg2.
 sub ApplyNary {
   my($op,$arg1,$arg2)=@_;
   my $opname    = p_getTokenMeaning($op) ||'__undef_meaning__';
   my $opcontent = p_getValue($op)  ||'__undef_content__';
   my @args = ();
+  # Left-assoc
   if(p_getQName($arg1) eq 'ltx:XMApp'){
     my($op1,@args1)=p_element_nodes($arg1);
     if(((p_getTokenMeaning($op1)||'__undef_meaning__') eq $opname) # Same operator?
@@ -1007,12 +1008,23 @@ sub ApplyNary {
 		qw(mathstyle))	# Check ops are used in similar way
        # Check that arg1 isn't wrapped, fenced or enclosed in some restrictive way
        && !grep(p_getAttribute($arg1,$_), qw(open close enclose)) ) {
-      push(@args,@args1); }
-    else {
-      push(@args,$arg1); }}
-  else {
-    push(@args,$arg1); }
-  Apply($op,@args,$arg2); }
+      return Apply($op,@args1,$arg2); }
+  }
+  # Right-assoc
+  if(p_getQName($arg2) eq 'ltx:XMApp'){
+    my($op2,@args2)=p_element_nodes($arg2);
+    if(((p_getTokenMeaning($op2)||'__undef_meaning__') eq $opname) # Same operator?
+       && ((p_getValue($op2) || '__undef_content__') eq $opcontent)
+       # Check that ops are used in same way.
+       && !grep((p_getAttribute($op,$_)||'<none>') ne (p_getAttribute($op2,$_)||'<none>'),
+    qw(mathstyle))  # Check ops are used in similar way
+       # Check that arg2 isn't wrapped, fenced or enclosed in some restrictive way
+       && !grep(p_getAttribute($arg2,$_), qw(open close enclose)) ) {
+      return Apply($op,$arg1,@args2); }
+  }
+  # Default apply
+  return Apply($op,$arg1,$arg2);
+}
 
 # ================================================================================
 # Construct an appropriate application of sub/superscripts
