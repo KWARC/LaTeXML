@@ -496,21 +496,22 @@ sub parse_internal {
   local $LaTeXML::MathParser::MAX_ABS_DEPTH = 1;
   my $unparsed = $lexemes;
   my $result = &{$self->{invoke}}($rule,\$unparsed);
-  if(((! defined $result) || $unparsed) # If parsing Failed
-     && $LaTeXML::MathParser::SEEN_NOTATIONS{QM}){ # & Saw some QM stuff.
-    $LaTeXML::MathParser::DISALLOWED_NOTATIONS{QM} = 1; # Retry w/o QM notations
-    $unparsed = $lexemes;
-    $result = &{$self->{invoke}}($rule,\$unparsed); }
-  while(((! defined $result) || $unparsed) # If parsing Failed
-	&& ($LaTeXML::MathParser::SEEN_NOTATIONS{AbsFail}) # & Attempted deeper abs nesting?
-	&& ($LaTeXML::MathParser::MAX_ABS_DEPTH < 3)){	   # & Not ridiculously deep
-      delete $LaTeXML::MathParser::SEEN_NOTATIONS{AbsFail};
-      ++$LaTeXML::MathParser::MAX_ABS_DEPTH; # Try deeper.
+  if ((lc($self->{type}) ne 'marpa') && ($self->{type} ne 'LaTeXML::MathSyntax')) {
+    if(((! defined $result) || $unparsed) # If parsing Failed
+       && $LaTeXML::MathParser::SEEN_NOTATIONS{QM}){ # & Saw some QM stuff.
+      $LaTeXML::MathParser::DISALLOWED_NOTATIONS{QM} = 1; # Retry w/o QM notations
       $unparsed = $lexemes;
       $result = &{$self->{invoke}}($rule,\$unparsed); }
+    while(((! defined $result) || $unparsed) # If parsing Failed
+  	&& ($LaTeXML::MathParser::SEEN_NOTATIONS{AbsFail}) # & Attempted deeper abs nesting?
+  	&& ($LaTeXML::MathParser::MAX_ABS_DEPTH < 3)){	   # & Not ridiculously deep
+        delete $LaTeXML::MathParser::SEEN_NOTATIONS{AbsFail};
+        ++$LaTeXML::MathParser::MAX_ABS_DEPTH; # Try deeper.
+        $unparsed = $lexemes;
+        $result = &{$self->{invoke}}($rule,\$unparsed); }
 
-  # If still failed, try other strategies?
-
+    # If still failed, try other strategies?
+  }
   ($result,$unparsed); }
 
 sub getGrammaticalRole {
