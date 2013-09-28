@@ -741,9 +741,9 @@ sub p_getTokenMeaning {
 
 sub p_getAttribute {
   my($item,$key)=@_;
-  if(! defined $item){ undef; }
-  elsif(ref $item eq 'ARRAY'){                $$item[1]{$key}; }
-  elsif(ref $item eq 'XML::LibXML::Element'){ $item->getAttribute($key); }}
+  if(! defined $item){ '' }
+  elsif(ref $item eq 'ARRAY'){ $$item[1]{$key}||''; }
+  elsif(ref $item eq 'XML::LibXML::Element'){ $item->getAttribute($key)||''; }}
 
 sub p_element_nodes {
   my($item)=@_;
@@ -753,9 +753,9 @@ sub p_element_nodes {
 
 sub p_getQName {
   my($item)=@_;
-  if(! defined $item){ undef; }
-  elsif(ref $item eq 'ARRAY'){ $$item[0]; }
-  elsif(ref $item eq 'XML::LibXML::Element'){ getQName($item); }}
+  if(! defined $item){ ''; }
+  elsif(ref $item eq 'ARRAY'){ $$item[0]||''; }
+  elsif(ref $item eq 'XML::LibXML::Element'){ getQName($item)||''; }}
 
 
 # Make a new Token node with given name, content, and attributes.
