@@ -60,7 +60,7 @@ sub new {
   $self; }
 
 sub DESTROY {
-  my ($self) = @_;
+  my($self)=@_;
   $self->finish; }
 
 sub status {

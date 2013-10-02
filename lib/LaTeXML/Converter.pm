@@ -143,7 +143,7 @@ sub convert {
     $opts->{'postamble_wrapper'} = $opts->{postamble}||'standard_postamble.tex';
   }
   # First read and digest whatever we're given.
-  my ($digested,$dom,$serialized);
+  my ($digested,$dom,$serialized) = (undef,undef,undef);
   # Digest source:
   my $convert_eval_return = eval {
     local $SIG{'ALRM'} = sub { die "Fatal:conversion:timeout Conversion timed out after ".$opts->{timeout}." seconds!\n"; };
@@ -271,9 +271,9 @@ sub convert {
   print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
   my $log .= $self->flush_log;
   # Hope to clear some memory:
-  $digested=undef;
-  $dom=undef;
-  $result=undef;
+  # $digested=undef;
+  # $dom=undef;
+  # $result=undef;
   $self->sanitize($log) if ($runtime->{status_code} == 3);
   return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
 }
