@@ -497,22 +497,22 @@ sub compileConstructor {
   my $floats = ($replacement =~ s/^\^\s*//);	# Grab float marker.
   my $body = translate_constructor($replacement,$floats);
   # Compile the constructor pattern into an anonymous sub that will construct the requested XML.
-  my $code =
-    " sub $name {\n"
-    ."my(".join(', ','$document', map("\$arg$_",1..$nargs),'%prop').")=\@_;\n"
-      # Put the body in the Pool package, so that functions defined there can be used with &foo(..)
-      ."package LaTeXML::Package::Pool;\n"
-      .($floats ? "my \$savenode;\n" :'')
-	. $body
-	  . ($floats ? "\$document->setNode(\$savenode) if defined \$savenode;\n" : '')
-	    . "}\n" ;
-###print STDERR "Compilation of \"$replacement\" => \n$code\n";
+  my $sub = eval{
+    sub {
+    my ($document) = splice(@_,0,1);
+    my @args; @args = (undef,splice(@_,0,$nargs)) if $nargs;
+    my %prop = @_;
+    my $savenode;
+    # Put the body in the Pool package, so that functions defined there can be used with &foo(..)
+    package LaTeXML::Package::Pool;
+	  eval $body;
+	  $document->setNode($savenode) if defined $savenode;
+  }};
 
-  eval $code;
   Fatal('misdefined',$name,$constructor,
 	"Compilation of constructor code for '$name' failed",
-	"\"$replacement\" => $code",$@) if $@;
-  \&$name; }
+	"\"$replacement\"",$@) if $@;
+  $sub; }
 
 sub translate_constructor {
   my($constructor,$float)=@_;
@@ -607,7 +607,7 @@ sub translate_value {
 	    ."$LaTeXML::Constructor::NAME which takes $LaTeXML::Constructor::NARGS args");
       $value = "\"Missing\""; }
     else {
-      $value = "\$arg$n" }}
+      $value = "\$args[$n]" }}
   elsif(s/^\#([\w\-_]+)//){ $value = "\$prop{'$1'}"; } # Recognize #prop for whatsit properties
   elsif(s/$TEXT_RE//so    ){ $value = "'".slashify($1)."'"; }
   $value; }
