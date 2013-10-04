@@ -13,7 +13,6 @@
 package LaTeXML::State;
 use strict;
 use LaTeXML::Global;
-
 # Naming scheme for keys (such as it is)
 #    binding:<cs>  : the definition associated with <cs>
 #    value:<name>  : some data stored under <name>
@@ -309,6 +308,8 @@ sub pushDaemonFrame {
 	  unshift(@{$$hash{$key}},daemon_copy($value)); }}}} # And push new binding.
   # Record the contents of LaTeXML::Package::Pool as preloaded
   my $pool_sub_hash = { map {$_ => 1} keys %LaTeXML::Package::Pool:: };
+  foreach my $constructor(grep {/^constructor_/} keys %LaTeXML::Definition::) {
+    $pool_sub_hash->{$constructor} = 1; }
   $self->assignValue('_PRELOADED_POOL_',$pool_sub_hash,'global');
   # Now mark the top frame as LOCKED!!!
   $$self{undo}[0]{_FRAME_LOCK_} = 1; }
@@ -335,9 +336,13 @@ sub popDaemonFrame {
     $self->assignValue('_PRELOADED_POOL_',undef,'global');
     foreach my $subname (keys %LaTeXML::Package::Pool::) {
       unless (exists $pool_preloaded_hash->{$subname}) {
-	delete $LaTeXML::Package::Pool::{$subname};
+        delete $LaTeXML::Package::Pool::{$subname};  
       }
     }
+    foreach my $constructor (grep {/^constructor_/} (keys %LaTeXML::Definition::)) {
+      unless (exists $pool_preloaded_hash->{$constructor}) {
+        delete $LaTeXML::Definition::{$constructor};
+    }}
     # Finally, pop the frame
     $self->popFrame; }
   else {
