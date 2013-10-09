@@ -5,4 +5,3 @@ pmml =
 cmml =
 nodefaultresources = 
 preload = [ids]latexml.sty
-path = $LATEXMLINPUTS

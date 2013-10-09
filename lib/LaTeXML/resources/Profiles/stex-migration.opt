@@ -6,7 +6,6 @@ post =
 xmath =
 openmath =
 pmml =
-path = $LATEXMLINPUTS
 path = $STEXSTYDIR/modules
 path = $STEXSTYDIR/statements
 path = $STEXSTYDIR/sproof

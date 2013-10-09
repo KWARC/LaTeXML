@@ -7,7 +7,6 @@ nopost =
 xmath =
 openmath =
 pmml =
-path = $LATEXMLINPUTS
 path = $STEXSTYDIR
 path = $STEXSTYDIR/modules
 path = $STEXSTYDIR/statements

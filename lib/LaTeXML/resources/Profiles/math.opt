@@ -18,4 +18,3 @@ preload = url.sty
 preload = hyperref.sty
 preload = mws.sty 
 preload = [ids]latexml.sty
-path = $LATEXMLINPUTS
