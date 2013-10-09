@@ -366,12 +366,6 @@ sub _prepare_options {
       $opts->{format}='xml';
   }}
 
-  # Unset destinations unless local conversion has been requested:
-  if (!$opts->{local} && ($opts->{destination} || $opts->{log} || $opts->{postdest} || $opts->{postlog})) 
-    {carp "I/O from filesystem not allowed for non-local conversion jobs!\n".
-       " Will revert to sockets!\n";
-     undef $opts->{destination}; undef $opts->{log};
-     undef $opts->{postdest}; undef $opts->{postlog};}
   #======================================================================
   # II. Sanity check and Completion of Post options.
   #======================================================================
