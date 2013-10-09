@@ -1184,10 +1184,11 @@ sub FindFile_aux {
   # (4) depending on switches we may EXCLUDE .ltxml OR raw tex OR allow both.
   my $paths    = LookupValue('SEARCHPATHS');
   my $urlbase = LookupValue('URLBASE');
-
+  my $nopaths = LookupValue('REMOTE_REQUEST');
+  my $ltxml_paths =  $nopaths ? [] : $paths;
   # If we're looking for ltxml, look within our paths & installation first (faster than kpse)
   if(!$options{noltxml}
-     && ($path=pathname_find("$file.ltxml",paths=>$paths,installation_subdir=>'Package'))){
+     && ($path=pathname_find("$file.ltxml",paths=>$ltxml_paths,installation_subdir=>'Package'))){
     return $path; }
   # If we're EXCLUDING ltxml, then FIRST use pathname_find to search for file (faster, blahblah)
   if($options{noltxml} && ($path=pathname_find($file,paths=>$paths,urlbase=>$urlbase))){
@@ -1200,7 +1201,7 @@ sub FindFile_aux {
   my $kpsewhich = $ENV{LATEXML_KPSEWHICH} || 'kpsewhich';
   local $ENV{TEXINPUTS} = join(':',@$paths, $ENV{TEXINPUTS}||':');
   my $candidates = join(' ',
-			(!$options{noltxml} ? ("$file.ltxml"):()),
+			((!$options{noltxml} && !$nopaths) ? ("$file.ltxml"):()),
 			(!$options{notex}   ? ($file):()));
   if(my $result = `$kpsewhich $candidates`){
     if($result =~ /^\s*(.+?)\s*\n/s){

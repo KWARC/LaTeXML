@@ -133,9 +133,11 @@ sub convert {
   # Prepare daemon frame
   my $latexml = $self->{latexml};
   $latexml->withState(sub {
-                        my($state)=@_; # Sandbox state
-                        $state->assignValue('_authlist',$opts->{authlist},'global');
-                        $state->pushDaemonFrame; });
+    my($state)=@_; # Sandbox state
+    $state->pushDaemonFrame;
+    $state->assignValue('_authlist',$opts->{authlist},'global');
+    $state->assignValue('REMOTE_REQUEST',(!$opts->{local}),'global');
+  });
 
   # Check on the wrappers:
   if ($opts->{whatsin} eq 'fragment') {
