@@ -216,6 +216,7 @@ sub convert {
   } # Else, continue with the regular XML workflow...
   my $result = $dom;
 
+  print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
   if ($opts->{post} && $dom) {
     my $post_eval_return = eval {
       local $SIG{'ALRM'} = sub { die "alarm\n" };
@@ -239,7 +240,6 @@ sub convert {
     $result = undef;
     }
   } else {
-    print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
     print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
   }
 
@@ -497,7 +497,7 @@ sub convert_post {
   $runtime->{status} = getStatusMessage($runtime->{status_data});
   $runtime->{status_code} = getStatusCode($runtime->{status_data});
 
-  print STDERR "\nConversion complete: ".$latexmlpost->getStatusMessage."\n";
+  print STDERR "\nPost-processing complete: ".$latexmlpost->getStatusMessage."\n";
   print STDERR "processing finished ".localtime()."\n" if $verbosity >= 0;
   return $postdoc;
 }
