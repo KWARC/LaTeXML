@@ -294,7 +294,7 @@ sub _obey_profile {
       $profile_opts = $conf_tmp->options;
     } else {
       # Throw an error, fallback to custom
-      croak ("Error:unexpected:$profile Profile $profile was not recognized, reverting to 'custom'");
+      carp("Warning:unexpected:$profile Profile $profile was not recognized, reverting to 'custom'\n");
       $opts->{profile} = 'custom';
       $profile='custom';
     }

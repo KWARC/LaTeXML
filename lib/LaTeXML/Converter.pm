@@ -36,22 +36,28 @@ sub new {
   my ($class,$config) = @_;
   $config = LaTeXML::Util::Config->new() unless (defined $config);
   # The daemon should be setting the identity:
-  $config->check;
-  bless {opts=>$config->options,ready=>0,log=>q{},runtime=>{},
+  my $self = bless {opts=>$config->options,ready=>0,log=>q{},runtime=>{},
          latexml=>undef}, $class;
+  $self->bind_log;
+  eval { $config->check; };
+  $self->{log} .= $self->flush_log;
+  return $self;
 }
 
 sub prepare_session {
-  my ($self,$opts) = @_;
+  my ($self,$config) = @_;
   # TODO: The defaults feature was never used, do we really want it??
   #0. Ensure all default keys are present:
   # (always, as users can specify partial options that build on the defaults)
   #foreach (keys %{$self->{defaults}}) {
-  #  $opts->{$_} = $self->{defaults}->{$_} unless exists $opts->{$_};
+  #  $config->{$_} = $self->{defaults}->{$_} unless exists $config->{$_};
   #}
   # 1. Ensure option "sanity"
-  $opts->check;
-  $opts = $opts->options;
+  $self->bind_log;
+  eval { $config->check; };
+  $self->{log} .= $self->flush_log;
+
+  my $opts = $config->options;
   my $opts_comparable = { map { $_ => $opts->{$_} } @COMPARABLE };
   my $self_opts_comparable = { map { $_ => $self->{opts}->{$_} } @COMPARABLE };
   #TODO: Some options like paths and includes are additive, we need special treatment there
@@ -284,17 +290,14 @@ sub convert {
 ####       Converter Management       #####
 ###########################################
 sub get_converter {
-  my ($self,$conf) = @_;
-  $conf->check; # Options are fully expanded
+  my ($self,$config) = @_;
   # TODO: Make this more flexible via an admin interface later
-  my $key = $conf->get('cache_key');
+  my $key = $config->get('cache_key') || $config->get('profile') || 'custom';
   my $d = $DAEMON_DB{$key};
   if (! defined $d) {
-    $d = LaTeXML::Converter->new($conf->clone);
-    $DAEMON_DB{$key}=$d;
-  }
-  return $d;
-}
+    $d = LaTeXML::Converter->new($config->clone);
+    $DAEMON_DB{$key}=$d; }
+  return $d; }
 
 ###########################################
 ####       Helper routines            #####
@@ -546,7 +549,7 @@ sub bind_log {
   if (! $LaTeXML::Converter::DEBUG) { # Debug will use STDERR for logs
     # Tie STDERR to log:
     my $log_handle;
-    open($log_handle,">",\$self->{log}) or croak "Can't redirect STDERR to log! Dying...";
+    open($log_handle,">>",\$self->{log}) or croak "Can't redirect STDERR to log! Dying...";
     *STDERR_SAVED=*STDERR;
     *STDERR = *$log_handle;
     binmode(STDERR,':encoding(UTF-8)');
