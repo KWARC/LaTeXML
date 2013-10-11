@@ -124,7 +124,7 @@ if ($log) {
     my $clog = $opts->get('log');
     my $log_handle;
     if (! open($log_handle,">",$clog)) {
-      print STDERR "Fatal:IO:forbidden Couldn't open log file $clog : $!\n";
+      print STDERR "Fatal:I/O:forbidden Couldn't open log file $clog : $!\n";
       exit 1;
     }
     print $log_handle $log;
@@ -136,7 +136,7 @@ if ($result) {
   if ($opts->get('destination')) {
     my $output_handle;
     if ( ! open($output_handle,">",$opts->get('destination')) ) {
-      print STDERR "Fatal:IO:forbidden Couldn't open output file ".$opts->get('destination').": $!";
+      print STDERR "Fatal:I/O:forbidden Couldn't open output file ".$opts->get('destination').": $!";
       exit 1;
     }
     print $output_handle $result;
