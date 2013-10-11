@@ -358,8 +358,13 @@ sub _prepare_options {
   if ((!defined $opts->{format}) && (defined $opts->{destination})){
     if ($opts->{destination}=~/\.([^.]+)$/) {
       $opts->{format}=$1; }}
+  if ($opts->{format} eq 'zip') {
+    # Not encouraged! But try to produce something sensible anyway...
+    $opts->{format} = 'html5';
+    $opts->{whatsout} = 'archive';
+  }
   $opts->{is_html} = $opts->{format} && ($opts->{format}=~/html|epub/i);
-
+  $opts->{whatsout} = 'archive' if (($opts->{format} eq 'epub') || ($opts->{format} eq 'mobi'));
   #======================================================================
   # II. Sanity check and Completion of Post options.
   #======================================================================

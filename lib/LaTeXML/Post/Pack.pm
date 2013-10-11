@@ -45,11 +45,11 @@ sub process {
   elsif ($whatsout eq 'math') {
     # Math output - least common ancestor of all math in the document
     $doc = GetMath($doc); }
-  elsif (($whatsout eq 'archive') || ($whatsout eq 'zip')) {
+  elsif ($whatsout eq 'archive') {
     # First, write down the $doc, make sure it has a nice extension if .zip requested
     my $destination = $doc->getDestination;
     print STDERR "Destination: $destination\n";
-    if ($destination =~ /^(.+)\.zip$/) {
+    if ($destination =~ /^(.+)\.(zip|epub|mobi)$/) {
       my $ext = _format_to_extension($self->{format});
       $doc->setDestination("$1.$ext"); }
     $self->{writer}->process($doc,$root);
@@ -66,7 +66,7 @@ sub GetArchive {
   # Zip and send back
   my $archive = Archive::Zip->new();
   my $payload='';
-  $archive->addTree($directory,'',sub{!/(^\.)|(\.(zip|gz)$)|(\~$)/});
+  $archive->addTree($directory,'',sub{/^[^.]/ && (!/zip|gz|epub|tex|mobi|~$/)});
   my $content_handle = IO::String->new($payload);
   undef $payload unless ($archive->writeToFileHandle( $content_handle ) == AZ_OK);
   return $payload; }
