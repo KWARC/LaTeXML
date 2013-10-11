@@ -356,15 +356,8 @@ sub _prepare_options {
 
   # Destination extension might indicate the format:
   if ((!defined $opts->{format}) && (defined $opts->{destination})){
-    if ($opts->{destination}=~/\.xhtml$/) {
-      $opts->{format}='xhtml';
-    } elsif ($opts->{destination}=~/\.html$/) {
-      $opts->{format}='html';
-    } elsif ($opts->{destination}=~/\.html5$/) {
-      $opts->{format}='html5';
-    } elsif ($opts->{destination}=~/\.xml$/) {
-      $opts->{format}='xml';
-  }}
+    if ($opts->{destination}=~/\.([^.]+)$/) {
+      $opts->{format}=$1; }}
   $opts->{is_html} = $opts->{format} && ($opts->{format}=~/html|epub/i);
 
   #======================================================================
