@@ -15,8 +15,11 @@ use warnings;
 use LaTeXML::Post;
 use base qw(LaTeXML::Post::Processor);
 
+use LaTeXML::Post::Writer;
 use Archive::Zip qw(:CONSTANTS :ERROR_CODES);
 use IO::String;
+
+use Data::Dumper;
 
 # Options:
 #   whatsout: determine what shape and size we want to pack into
@@ -27,6 +30,8 @@ sub new {
   my $self = $class->SUPER::new(%options);
   $$self{siteDirectory}  = $options{siteDirectory};
   $$self{whatsout} = $options{whatsout};
+  $$self{format} = $options{format};
+  $$self{writer} =  LaTeXML::Post::Writer->new(%options);
   $self; }
 
 sub process {
@@ -41,23 +46,30 @@ sub process {
     # Math output - least common ancestor of all math in the document
     $doc = GetMath($doc); }
   elsif (($whatsout eq 'archive') || ($whatsout eq 'zip')) {
+    # First, write down the $doc, make sure it has a nice extension if .zip requested
+    my $destination = $doc->getDestination;
+    print STDERR "Destination: $destination\n";
+    if ($destination =~ /^(.+)\.zip$/) {
+      my $ext = _format_to_extension($self->{format});
+      $doc->setDestination("$1.$ext"); }
+    $self->{writer}->process($doc,$root);
+    # Then archive the site directory
     my $directory = $self->{siteDirectory};
     $doc = GetArchive($directory);
+    # Should we empty the site directory???
     Fatal("I/O",$self,$doc,"Writing archive to IO::String handle failed") unless defined $doc; 
   }
-  return $doc;
-}
+  return $doc; }
 
 sub GetArchive {
-  my ($self,$directory) = @_;
+  my ($directory) = @_;
   # Zip and send back
   my $archive = Archive::Zip->new();
   my $payload='';
-  $archive->addTree($directory);
+  $archive->addTree($directory,'',sub{!/(^\.)|(\.(zip|gz)$)|(\~$)/});
   my $content_handle = IO::String->new($payload);
   undef $payload unless ($archive->writeToFileHandle( $content_handle ) == AZ_OK);
-  return $payload;  
-}
+  return $payload; }
 
 sub GetMath {
   my ($source) = @_;
@@ -74,13 +86,11 @@ sub GetMath {
       $math = $math->parentNode if ($math_found != $math_count);
     }
     $math = $math->parentNode while ($math->nodeName =~ '^t[rd]$');
-    $math;
-  } elsif ($math_count == 0) {
-    GetEmbeddable($source);
-  } else {
-    $math;
-  }
-}
+    $math; }
+  elsif ($math_count == 0) {
+    GetEmbeddable($source); }
+  else {
+    $math; }}
 
 sub GetEmbeddable {
   my ($doc) = @_;
@@ -92,16 +102,14 @@ sub GetEmbeddable {
      ($embeddable->getAttribute('class') =~ /^ltx_(page_(main|content)|document|para|header)$/) && 
      (! defined $embeddable->getAttribute('style'))) {
       if (defined $embeddable->firstChild) {
-  $embeddable=$embeddable->firstChild;
-      } else {
-  last;
-      }
+        $embeddable=$embeddable->firstChild; }
+      else {
+        last; }
     }
     # Is the root a <p>? Make it a span then, if it has only math/text/spans - it should be inline
     # For MathJax-like inline conversion mode
     # TODO: Make sure we are schema-complete wrt nestable inline elements, and maybe find a smarter way to do this?
-    if (($embeddable->nodeName eq 'p') &&
-  ((@{$embeddable->childNodes}) == (grep {$_->nodeName =~ /math|text|span/} $embeddable->childNodes))) {
+    if (($embeddable->nodeName eq 'p') && ((@{$embeddable->childNodes}) == (grep {$_->nodeName =~ /math|text|span/} $embeddable->childNodes))) {
       $embeddable->setNodeName('span');
       $embeddable->setAttribute('class','text');
     }
@@ -114,9 +122,13 @@ sub GetEmbeddable {
     my $prefix = $doc->getDocumentElement->getAttribute('prefix');
     $embeddable->setAttribute('prefix',$prefix) if ($prefix);
   }
-  return $embeddable||$doc;
-}
+  return $embeddable||$doc; }
 
+sub _format_to_extension {
+  my $format = shift;
+  my $extension = lc($format);
+  $extension =~ s/\d//g;
+  return $extension; }
 
 1;
 

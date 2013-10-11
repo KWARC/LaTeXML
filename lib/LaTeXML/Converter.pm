@@ -289,10 +289,15 @@ sub convert_post {
   my ($self,$dom) = @_;
   my $opts = $self->{opts};
   my $runtime = $self->{runtime};
-  my ($xslt,$parallel,$math_formats,$format,$verbosity,$defaultresources,$embed,$whatsout) = 
-    map {$opts->{$_}} qw(stylesheet parallelmath math_formats format verbosity defaultresources embed whatsout);
+  my ($xslt,$parallel,$math_formats,$format,$verbosity,$defaultresources,$embed) = 
+    map {$opts->{$_}} qw(stylesheet parallelmath math_formats format verbosity defaultresources embed);
   $verbosity = $verbosity||0;
-  my %PostOPS = (verbosity=>$verbosity,sourceDirectory=>$opts->{sourcedirectory}||'.',siteDirectory=>$opts->{sitedirectory}||".",nocache=>1,destination=>$opts->{destination});
+  my %PostOPS = (verbosity=>$verbosity,
+    sourceDirectory=>$opts->{sourcedirectory},
+    siteDirectory=>$opts->{sitedirectory},
+    nocache=>1,
+    destination=>$opts->{destination},
+    is_html=>$opts->{is_html});
   #Postprocess
   $parallel = $parallel||0;
   
@@ -467,7 +472,7 @@ sub convert_post {
 
   # Handle the output packaging
   require LaTeXML::Post::Pack;
-  push(@procs,LaTeXML::Post::Pack->new(%PostOPS,whatsout=>$whatsout));
+  push(@procs,LaTeXML::Post::Pack->new(whatsout=>$opts->{whatsout},format=>$opts->{format},%PostOPS));
 
   # Do the actual post-processing:
   my $postdoc;
