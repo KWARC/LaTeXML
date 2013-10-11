@@ -365,6 +365,7 @@ sub _prepare_options {
     } elsif ($opts->{destination}=~/\.xml$/) {
       $opts->{format}='xml';
   }}
+  $opts->{is_html} = $opts->{format} && ($opts->{format}=~/html|epub/i);
 
   #======================================================================
   # II. Sanity check and Completion of Post options.
@@ -374,7 +375,7 @@ sub _prepare_options {
   $opts->{post}=1 if ( (! defined $opts->{post}) &&
     (scalar(@{$opts->{math_formats}}) )
     || ($opts->{stylesheet})
-    || ($opts->{format} && ($opts->{format}=~/html|epub/i))
+    || $opts->{is_html}
     || ($opts->{whatsout} && ($opts->{whatsout} ne 'document'))
   );
                        # || ... || ... || ...
@@ -449,7 +450,7 @@ sub _prepare_options {
     $opts->{svg} = 1 unless defined $opts->{svg};
     # PMML default if we're HTMLy and all else fails and no mathimages:
     if  (((! defined $opts->{math_formats}) || (!scalar(@{$opts->{math_formats}}))) &&
-      (!$opts->{mathimages}) && ($opts->{format} =~ /html|epub/i))
+      (!$opts->{mathimages}) && $opts->{is_html})
     {
       push @{$opts->{math_formats}}, 'pmml';
     }
