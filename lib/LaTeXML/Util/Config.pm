@@ -371,10 +371,14 @@ sub _prepare_options {
   #======================================================================
   # Any post switch implies post (TODO: whew, lots of those, add them all!):
   $opts->{math_formats} = [] unless defined $opts->{math_formats};
-  $opts->{post}=1 if ( (! defined $opts->{post}) && (scalar(@{$opts->{math_formats}}) ) ||
-    ($opts->{stylesheet}) || ($opts->{format} && ($opts->{format}=~/html/i)));
+  $opts->{post}=1 if ( (! defined $opts->{post}) &&
+    (scalar(@{$opts->{math_formats}}) )
+    || ($opts->{stylesheet})
+    || ($opts->{format} && ($opts->{format}=~/html|epub/i))
+    || ($opts->{whatsout} && ($opts->{whatsout} ne 'document'))
+  );
                        # || ... || ... || ...
-  $opts->{post}=0 if (defined $opts->{mathparse} && (! $opts->{mathparse})); # No-parse overrides post-processing
+  # $opts->{post}=0 if (defined $opts->{mathparse} && (! $opts->{mathparse})); # No-parse overrides post-processing
   if ($opts->{post}) { # No need to bother if we're not post-processing
 
     # Default: scan and crossref on, other advanced off
@@ -435,7 +439,7 @@ sub _prepare_options {
     if ($opts->{format} eq 'html') {
       $opts->{svg}=0 unless defined $opts->{svg}; # No SVG by default.
       croak("Default html stylesheet only supports math images, not ".join(', ',@{$opts->{math_formats}}))
-	if scalar(@{$opts->{math_formats}});
+        if scalar(@{$opts->{math_formats}});
       croak("Default html stylesheet does not support svg") if $opts->{svg};
       $opts->{mathimages} = 1;
       $opts->{math_formats} = [];
@@ -443,15 +447,9 @@ sub _prepare_options {
     $opts->{dographics} = 1 unless defined $opts->{dographics};
     $opts->{picimages}  = 1 unless defined $opts->{picimages};
     $opts->{svg} = 1 unless defined $opts->{svg};
-    # Math Format fallbacks:
-    # TODO: Reintroduce defaults?
-    # $opts->{math_formats}=[@{$self->{defaults}->{math_formats}}] if (defined $self && (! 
-    #                                                                    ( (defined $opts->{math_formats}) &&
-    #                                                                      scalar(@{$opts->{math_formats}})
-    #                                                                    )));
-    # PMML default if all else fails and no mathimages:
+    # PMML default if we're HTMLy and all else fails and no mathimages:
     if  (((! defined $opts->{math_formats}) || (!scalar(@{$opts->{math_formats}}))) &&
-      (!$opts->{mathimages}))
+      (!$opts->{mathimages}) && ($opts->{format} =~ /html|epub/i))
     {
       push @{$opts->{math_formats}}, 'pmml';
     }

@@ -212,16 +212,16 @@ sub convert {
     return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
   }
   if ($serialized) {
-      # If serialized has been set, we are done with the job
-      my $log .= $self->flush_log;
-      # Hope to clear some memory:
-      $digested=undef;
-      $dom=undef;
-      $self->sanitize($log) if ($runtime->{status_code} == 3);
-      return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
-  } # Else, continue with the regular XML workflow...
+    # If serialized has been set, we are done with the job
+    my $log .= $self->flush_log;
+    # Hope to clear some memory:
+    $digested=undef;
+    $dom=undef;
+    $self->sanitize($log) if ($runtime->{status_code} == 3);
+    return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
+  }
+  # Else, continue with the regular XML workflow...
   my $result = $dom;
-
   print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
   if ($opts->{post} && $dom) {
     my $post_eval_return = eval {
@@ -237,51 +237,34 @@ sub convert {
       $runtime->{status_code} = 3;
       if ($@ =~ "Fatal:perl:die alarm") { #Alarm handler: (treat timeouts as fatals)
         print STDERR "Fatal:post:timeout Postprocessing timeout after "
-        . $opts->{timeout} . " seconds!\n";
-      } else {
-        print STDERR "Fatal:post:generic Post-processor crashed! $@\n";
-      }
+        . $opts->{timeout} . " seconds!\n"; }
+      else {
+        print STDERR "Fatal:post:generic Post-processor crashed! $@\n"; }
       #Since this is postprocessing, we don't need to do anything
       #   just avoid crashing...
-    $result = undef;
-    }
-  } else {
-    print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
-  }
+    $result = undef; }}
+  else {
+    print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n"; }
 
-  # Handle What's OUT?
-  # 1. If we want an embedable snippet, unwrap to body's "main" div
-  if ($opts->{whatsout} eq 'fragment') {
-    $result = GetEmbeddable($result);
-  } elsif ($opts->{whatsout} eq 'math') {
-    # 2. Fetch math out:
-    $result = GetMath($result);
-} else { # 3. No need to do anything for document whatsout (it's default)
-  }
   # Serialize result for direct use:
   undef $serialized;
-  if (defined $result) {
+  if ((defined $result) && (ref $result)) {
     if ($opts->{format} =~ 'x(ht)?ml') {
-      $serialized = $result->toString(1);
-    } elsif ($opts->{format} =~ /^html/) {
+      $serialized = $result->toString(1); }
+    elsif ($opts->{format} =~ /^html/) {
       if ($result =~ /LaTeXML/) { # Special for documents
-        $serialized = $result->getDocument->toStringHTML;
-      } else { # Regular for fragments
+        $serialized = $result->getDocument->toStringHTML; }
+      else { # Regular for fragments
         do {
           local $XML::LibXML::setTagCompression = 1;
           $serialized = $result->toString(1);
-        }
-      }
-    } elsif ($opts->{format} eq 'dom') {
-      $serialized = $result;
-    }
-  }
+        }}}
+    elsif ($opts->{format} eq 'dom') {
+      $serialized = $result; }}
+  else { $serialized = $result; } # Compressed case
+
   print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
   my $log .= $self->flush_log;
-  # Hope to clear some memory:
-  # $digested=undef;
-  # $dom=undef;
-  # $result=undef;
   $self->sanitize($log) if ($runtime->{status_code} == 3);
   return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
 }
@@ -306,8 +289,8 @@ sub convert_post {
   my ($self,$dom) = @_;
   my $opts = $self->{opts};
   my $runtime = $self->{runtime};
-  my ($xslt,$parallel,$math_formats,$format,$verbosity,$defaultresources,$embed) = 
-    map {$opts->{$_}} qw(stylesheet parallelmath math_formats format verbosity defaultresources embed);
+  my ($xslt,$parallel,$math_formats,$format,$verbosity,$defaultresources,$embed,$whatsout) = 
+    map {$opts->{$_}} qw(stylesheet parallelmath math_formats format verbosity defaultresources embed whatsout);
   $verbosity = $verbosity||0;
   my %PostOPS = (verbosity=>$verbosity,sourceDirectory=>$opts->{sourcedirectory}||'.',siteDirectory=>$opts->{sitedirectory}||".",nocache=>1,destination=>$opts->{destination});
   #Postprocess
@@ -319,9 +302,7 @@ sub convert_post {
   my $dbfile = $opts->{dbfile};
   if (defined $dbfile && !-f $dbfile) {
     if (my $dbdir = pathname_directory($dbfile)) {
-      pathname_mkdir($dbdir);
-    }
-  }
+      pathname_mkdir($dbdir); }}
   my $DB = LaTeXML::Util::ObjectDB->new(dbfile=>$dbfile,%PostOPS);
   ### Advanced Processors:
   if ($opts->{split}) {
@@ -377,43 +358,43 @@ sub convert_post {
       my @mprocs=();
       ###    # If XMath is not first, it must be at END!  Or... ???
       foreach my $fmt (@$math_formats) {
-  if($fmt eq 'xmath'){
-    require LaTeXML::Post::XMath;
-    push(@mprocs,LaTeXML::Post::XMath->new(%PostOPS)); }
-  elsif($fmt eq 'pmml'){
-    require LaTeXML::Post::MathML;
-    if(defined $opts->{linelength}){
-      push(@mprocs,LaTeXML::Post::MathML::PresentationLineBreak->new(
+        if($fmt eq 'xmath'){
+          require LaTeXML::Post::XMath;
+          push(@mprocs,LaTeXML::Post::XMath->new(%PostOPS)); }
+        elsif($fmt eq 'pmml'){
+          require LaTeXML::Post::MathML;
+          if(defined $opts->{linelength}){
+            push(@mprocs,LaTeXML::Post::MathML::PresentationLineBreak->new(
                     linelength=>$opts->{linelength},
                     (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
                     ($opts->{hackplane1} ? (hackplane1=>1):()),
                     %PostOPS)); }
-    else {
-      push(@mprocs,LaTeXML::Post::MathML::Presentation->new(
+          else {
+            push(@mprocs,LaTeXML::Post::MathML::Presentation->new(
                     (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
                     ($opts->{hackplane1} ? (hackplane1=>1):()),
                     %PostOPS)); }}
-  elsif($fmt eq 'cmml'){
-    require LaTeXML::Post::MathML;
-    push(@mprocs,LaTeXML::Post::MathML::Content->new(
-            (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
-            ($opts->{hackplane1} ? (hackplane1=>1):()),
-            %PostOPS)); }
-  elsif($fmt eq 'om'){
-    require LaTeXML::Post::OpenMath;
-    push(@mprocs,LaTeXML::Post::OpenMath->new(
-            (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
-            ($opts->{hackplane1} ? (hackplane1=>1):()),
-            %PostOPS)); }
+        elsif($fmt eq 'cmml'){
+          require LaTeXML::Post::MathML;
+          push(@mprocs,LaTeXML::Post::MathML::Content->new(
+                    (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
+                    ($opts->{hackplane1} ? (hackplane1=>1):()),
+                    %PostOPS)); }
+        elsif($fmt eq 'om'){
+          require LaTeXML::Post::OpenMath;
+          push(@mprocs,LaTeXML::Post::OpenMath->new(
+                    (defined $opts->{plane1} ? (plane1=>$opts->{plane1}):(plane1=>1)),
+                    ($opts->{hackplane1} ? (hackplane1=>1):()),
+                    %PostOPS)); }
       }
       ###    $keepXMath  = 0 unless defined $keepXMath;
       ### OR is $parallelmath ALWAYS on whenever there's more than one math processor?
       if($parallel) {
-  my $main = shift(@mprocs);
-  $main->setParallel(@mprocs);
-  push(@procs,$main); }
+        my $main = shift(@mprocs);
+        $main->setParallel(@mprocs);
+        push(@procs,$main); }
       else {
-  push(@procs,@mprocs); }
+        push(@procs,@mprocs); }
     }
     if ($opts->{mathimages}) {
       require LaTeXML::Post::MathImages;
@@ -424,68 +405,70 @@ sub convert_post {
       my $parameters={LATEXML_VERSION=>"'$LaTeXML::VERSION'"};
       my @searchpaths = ('.',$DOCUMENT->getSearchPaths);
       foreach my $css (@{$opts->{css}}) {
-  if(pathname_is_url($css)){ # external url ? no need to copy
-    print STDERR "Using CSS=$css\n" if $verbosity > 0;
-    push(@{$parameters->{CSS}}, $css); }
-  elsif(my $csssource = pathname_find($css, types=>['css'],paths=>[@searchpaths],
-               installation_subdir=>'style')){
-    print STDERR "Using CSS=$csssource\n" if $verbosity > 0;
-    my $cssdest = pathname_absolute($css,pathname_directory($opts->{destination}));
-    $cssdest .= '.css' unless $cssdest =~ /\.css$/;
-    warn "CSS source $csssource is same as destination!" if $csssource eq $cssdest;
-    pathname_copy($csssource,$cssdest) if $opts->{local}; # TODO: Look into local copying carefully
-    push(@{$$parameters{CSS}}, $cssdest); }
-  else {
-    warn "Couldn't find CSS file $css in paths ".join(',',@searchpaths)."\n";
-    push(@{$$parameters{CSS}}, $css); }} # but still put the link in!
+        if(pathname_is_url($css)){ # external url ? no need to copy
+          print STDERR "Using CSS=$css\n" if $verbosity > 0;
+          push(@{$parameters->{CSS}}, $css); }
+        elsif(my $csssource = pathname_find($css, types=>['css'],paths=>[@searchpaths],
+                     installation_subdir=>'style')){
+          print STDERR "Using CSS=$csssource\n" if $verbosity > 0;
+          my $cssdest = pathname_absolute($css,pathname_directory($opts->{destination}));
+          $cssdest .= '.css' unless $cssdest =~ /\.css$/;
+          warn "CSS source $csssource is same as destination!" if $csssource eq $cssdest;
+          pathname_copy($csssource,$cssdest) if $opts->{local}; # TODO: Look into local copying carefully
+          push(@{$$parameters{CSS}}, $cssdest); }
+        else {
+          warn "Couldn't find CSS file $css in paths ".join(',',@searchpaths)."\n";
+          push(@{$$parameters{CSS}}, $css); }} # but still put the link in!
+
       foreach my $js (@{$opts->{javascript}}) {
-  if (pathname_is_url($js)) { # external url ? no need to copy
-    print STDERR "Using JAVASCRIPT=$js\n" if $verbosity > 0;
-    push(@{$$parameters{JAVASCRIPT}}, $js);
-  } elsif (my $jssource = pathname_find($js, types=>['js'],paths=>[@searchpaths],
+        if (pathname_is_url($js)) { # external url ? no need to copy
+          print STDERR "Using JAVASCRIPT=$js\n" if $verbosity > 0;
+          push(@{$$parameters{JAVASCRIPT}}, $js); }
+        elsif (my $jssource = pathname_find($js, types=>['js'],paths=>[@searchpaths],
                 installation_subdir=>'style')) {
-    print STDERR "Using JAVASCRIPT=$jssource\n" if $verbosity > 0;
-    my $jsdest = pathname_absolute($js,pathname_directory($opts->{destination}));
-    $jsdest .= '.js' unless $jsdest =~ /\.js$/;
-    warn "Javascript source $jssource is same as destination!" if $jssource eq $jsdest;
-    pathname_copy($jssource,$jsdest) if $opts->{local}; #TODO: Local handling
-    push(@{$$parameters{JAVASCRIPT}}, $jsdest);
-  } else {
-    warn "Couldn't find Javascript file $js in paths ".join(',',@searchpaths)."\n";
-    push(@{$$parameters{JAVASCRIPT}}, $js);
-  }
-      }       # but still put the link in!
+          print STDERR "Using JAVASCRIPT=$jssource\n" if $verbosity > 0;
+          my $jsdest = pathname_absolute($js,pathname_directory($opts->{destination}));
+          $jsdest .= '.js' unless $jsdest =~ /\.js$/;
+          warn "Javascript source $jssource is same as destination!" if $jssource eq $jsdest;
+          pathname_copy($jssource,$jsdest) if $opts->{local}; #TODO: Local handling
+          push(@{$$parameters{JAVASCRIPT}}, $jsdest); }
+        else {
+          warn "Couldn't find Javascript file $js in paths ".join(',',@searchpaths)."\n";
+          push(@{$$parameters{JAVASCRIPT}}, $js);
+        }
+      } # but still put the link in!
       if ($opts->{icon}) {
-  if (my $iconsrc = pathname_find($opts->{icon},paths=>[$DOCUMENT->getSearchPaths])) {
-    print STDERR "Using icon=$iconsrc\n" if $verbosity > 0;
-    my $icondest = pathname_absolute($opts->{icon},pathname_directory($opts->{destination}));
-    pathname_copy($iconsrc,$icondest) if $opts->{local};
-    $$parameters{ICON}=$icondest;
-  } else {
-    warn "Couldn't find ICON ".$opts->{icon}." in paths ".join(',',@searchpaths)."\n";
-    $$parameters{ICON}=$opts->{icon};
-  }
+        if (my $iconsrc = pathname_find($opts->{icon},paths=>[$DOCUMENT->getSearchPaths])) {
+          print STDERR "Using icon=$iconsrc\n" if $verbosity > 0;
+          my $icondest = pathname_absolute($opts->{icon},pathname_directory($opts->{destination}));
+          pathname_copy($iconsrc,$icondest) if $opts->{local};
+          $$parameters{ICON}=$icondest; }
+        else {
+          warn "Couldn't find ICON ".$opts->{icon}." in paths ".join(',',@searchpaths)."\n";
+          $$parameters{ICON}=$opts->{icon};
+        }
       }
-      if (! defined $opts->{timestamp}) {
-  $opts->{timestamp} = localtime();
-      }
-      if ($opts->{timestamp}) {
-  $$parameters{TIMESTAMP}="'".$opts->{timestamp}."'";
-      }
+      if (! defined $opts->{timestamp}) { $opts->{timestamp} = localtime(); }
+      if ($opts->{timestamp}) { $$parameters{TIMESTAMP}="'".$opts->{timestamp}."'";  }
       # Now add in the explicitly given XSLT parameters
       foreach my $parm (@{$opts->{xsltparameters}}) {
-  if ($parm =~ /^\s*(\w+)\s*:\s*(.*)$/) {
-    $$parameters{$1}="'".$2."'";
-  } else {
-    warn "xsltparameter not in recognized format: 'name:value' got: '$parm'\n";
-  }
+        if ($parm =~ /^\s*(\w+)\s*:\s*(.*)$/) {
+          $$parameters{$1}="'".$2."'"; }
+        else {
+          warn "xsltparameter not in recognized format: 'name:value' got: '$parm'\n"; }
       }
 
       push(@procs,LaTeXML::Post::XSLT->new(stylesheet=>$xslt,
        parameters=>$parameters,
        noresources=>(defined $opts->{defaultresources}) && !$opts->{defaultresources},
-       %PostOPS)); }
+       %PostOPS));
+    }
   }
+
+  # Handle the output packaging
+  require LaTeXML::Post::Pack;
+  push(@procs,LaTeXML::Post::Pack->new(%PostOPS,whatsout=>$whatsout));
+
   # Do the actual post-processing:
   my $postdoc;
   my $latexmlpost = LaTeXML::Post->new(verbosity=>$verbosity||0);
@@ -638,64 +621,6 @@ $tex
 \\end{document}
 EODOC
 return $texdoc;
-}
-
-sub GetMath {
-  my ($source) = @_;
-  my $math_xpath = '//*[local-name()="math" or local-name()="Math"]';
-  return unless defined $source;
-  my @mnodes = $source->findnodes($math_xpath);
-  my $math_count = scalar(@mnodes);
-  my $math = $mnodes[0] if $math_count;
-  if ($math_count > 1) {
-    my $math_found = 0;
-    while ($math_found != $math_count) {
-      $math_found = $math->findnodes('.'.$math_xpath)->size;
-      $math_found++ if ($math->localname =~ /^math$/i);
-      $math = $math->parentNode if ($math_found != $math_count);
-    }
-    $math = $math->parentNode while ($math->nodeName =~ '^t[rd]$');
-    $math;
-  } elsif ($math_count == 0) {
-    GetEmbeddable($source);
-  } else {
-    $math;
-  }
-}
-
-sub GetEmbeddable {
-  my ($doc) = @_;
-  return unless defined $doc;
-  my ($embeddable) = $doc->findnodes('//*[@class="ltx_document"]');
-  if ($embeddable) {
-    # Only one child? Then get it, must be a inline-compatible one!
-    while (($embeddable->nodeName eq 'div') && (scalar(@{$embeddable->childNodes}) == 1) &&
-     ($embeddable->getAttribute('class') =~ /^ltx_(page_(main|content)|document|para|header)$/) && 
-     (! defined $embeddable->getAttribute('style'))) {
-      if (defined $embeddable->firstChild) {
-  $embeddable=$embeddable->firstChild;
-      } else {
-  last;
-      }
-    }
-    # Is the root a <p>? Make it a span then, if it has only math/text/spans - it should be inline
-    # For MathJax-like inline conversion mode
-    # TODO: Make sure we are schema-complete wrt nestable inline elements, and maybe find a smarter way to do this?
-    if (($embeddable->nodeName eq 'p') &&
-  ((@{$embeddable->childNodes}) == (grep {$_->nodeName =~ /math|text|span/} $embeddable->childNodes))) {
-      $embeddable->setNodeName('span');
-      $embeddable->setAttribute('class','text');
-    }
-
-    # Copy over document namespace declarations:
-    foreach ($doc->getDocumentElement->getNamespaces) {
-      $embeddable->setNamespace( $_->getData , $_->getLocalName, 0 );
-    }
-    # Also, copy the prefix attribute, for RDFa:
-    my $prefix = $doc->getDocumentElement->getAttribute('prefix');
-    $embeddable->setAttribute('prefix',$prefix) if ($prefix);
-  }
-  return $embeddable||$doc;
 }
 
 1;
