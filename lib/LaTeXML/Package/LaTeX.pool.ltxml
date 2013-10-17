@@ -1356,6 +1356,27 @@ DefMacro('\@ensuremath{}', sub {
   if(LookupValue('IN_MATH')){ $stuff->unlist; }
   else { (T_MATH,$stuff->unlist,T_MATH); }});
 
+# Magic check that math-mode trigger follows
+our $MATHENVS = 'math|displaymath|equation*?|eqnarray*?'
+  .'|multline*?|align*?|falign*?|alignat*?|xalignat*?|xxalignat*?|gather*?';
+DefMacro('\ensuremathfollows', sub {
+  my($gullet) = @_;
+  if(my $tok=$gullet->readXToken()){
+    my $csname = $tok->getCSName;
+    $gullet->unread($tok);
+    # We need to determine whether the TeX we're given needs to be wrapped in \(...\)
+    # Does it have $'s around it? Does it have a display math environment?
+    if ($csname !~ /^Math|\\\(|\\\[|\\begin\{($MATHENVS)\}/o) {
+      AssignValue('automath_triggered'=>1,'global');
+      return T_CS('\\('); }}
+  return;
+});
+
+DefMacro('\ensuremathpreceeds', sub {
+  return LookupValue('automath_triggered') ? T_CS('\\)') : ();
+});
+
+
 # Since the arXMLiv folks keep wanting ids on all math, let's try this!
 Tag('ltx:Math',afterOpen=>sub { GenerateID(@_,'m'); });
 
