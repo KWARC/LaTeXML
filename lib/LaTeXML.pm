@@ -109,7 +109,8 @@ sub digestFile {
       $request = $pathname;
       ($dir,$name,$ext)=pathname_split($request);  }
     else {
-      Fatal('missing_file',$request,undef,"Can't find $mode file $request"); }}
+      $self->withState(sub {
+        Fatal('missing_file',$request,undef,"Can't find $mode file $request"); }); }}
   return
   $self->withState(sub {
      my($state)=@_;
