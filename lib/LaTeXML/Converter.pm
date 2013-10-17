@@ -131,10 +131,16 @@ sub convert {
   print STDERR "\n$LaTeXML::Version::IDENTITY\n" if $opts->{verbosity} >= 0;
   print STDERR "processing started ".localtime()."\n" if $opts->{verbosity} >= 0;
   # Handle What's IN?
-  # 1. Math should get a mathdoc() wrapper
+  # We use a new temporary variable to avoid confusion with daemon caching
+  my ($current_preamble,$current_postamble);
+  # 1. Math needs to magically trigger math mode if needed
   if ($opts->{whatsin} eq "math") {
-    $source = "literal:".MathDoc($source);
-  }
+    $current_preamble = 'literal:\begin{document}\ensuremathfollows';
+    $current_postamble = 'literal:\ensuremathpreceeds\end{document}'; }
+  # 2. Fragments need to have a default pre- and postamble, if none provided
+  elsif ($opts->{whatsin} eq 'fragment') {   
+    $current_preamble = $opts->{preamble}||'standard_preamble.tex';
+    $current_postamble = $opts->{postamble}||'standard_postamble.tex'; }
 
   # Prepare daemon frame
   my $latexml = $self->{latexml};
@@ -145,11 +151,6 @@ sub convert {
     $state->assignValue('REMOTE_REQUEST',(!$opts->{local}),'global');
   });
 
-  # Check on the wrappers:
-  if ($opts->{whatsin} eq 'fragment') {
-    $opts->{'preamble_wrapper'} = $opts->{preamble}||'standard_preamble.tex';
-    $opts->{'postamble_wrapper'} = $opts->{postamble}||'standard_postamble.tex';
-  }
   # First read and digest whatever we're given.
   my ($digested,$dom,$serialized) = (undef,undef,undef);
   # Digest source:
@@ -157,13 +158,10 @@ sub convert {
     local $SIG{'ALRM'} = sub { die "Fatal:conversion:timeout Conversion timed out after ".$opts->{timeout}." seconds!\n"; };
     alarm($opts->{timeout});
     my $mode = ($opts->{type} eq 'auto') ? 'TeX' : $opts->{type};
-    $digested = $latexml->digestFile($source,preamble=>$opts->{'preamble_wrapper'},
-                                            postamble=>$opts->{'postamble_wrapper'},
+    $digested = $latexml->digestFile($source,preamble=>$current_preamble,
+                                            postamble=>$current_postamble,
                                             mode=>$mode,
                                             noinitialize=>1);
-    # Clean up:
-    delete $opts->{'preamble_wrapper'};
-    delete $opts->{'postamble_wrapper'};
     # Now, convert to DOM and output, if desired.
     if ($digested) {
       require LaTeXML::Global;
@@ -190,39 +188,32 @@ sub convert {
     $state->popDaemonFrame;
     $state->{status} = {};
   });
-  if ($eval_report) {#Fatal occured!
+  if ($eval_report || ($runtime->{status_code} == 3)) {
+    # Terminate immediately on Fatal errors
     $runtime->{status_code} = 3;
-    print STDERR $eval_report."\n";
+    print STDERR $eval_report."\n" if $eval_report;
     print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
     print STDERR "Status:conversion:".($runtime->{status_code}||'0')."\n";
     # Close and restore STDERR to original condition.
     my $log .= $self->flush_log;
     # Hope to clear some memory:
-    $self->sanitize($log) if ($runtime->{status_code} == 3);
-    return {result=>undef,log=>$log,status=>$runtime->{status},status_code=>$runtime->{status_code}};
-  }
-  if ($runtime->{status_code} == 3) {
-    # Terminate on Fatal errors
-    print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
-    print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n";
-    my $log .= $self->flush_log;
+    $self->sanitize($log);
     $serialized = $dom if ($opts->{format} eq 'dom');
-    $serialized = $dom->toString unless defined $serialized;
-    $self->sanitize($log) if ($runtime->{status_code} == 3);
-    return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
-  }
+    $serialized = $dom->toString if ($dom && (!defined $serialized));
+    $self->sanitize($log);
+
+    return {result=>$serialized,log=>$log,status=>$runtime->{status},status_code=>$runtime->{status_code}}; }
+  else {
+    # Standard report, if we're not in a Fatal case
+    print STDERR "\nConversion complete: ".$runtime->{status}.".\n"; }
+  
   if ($serialized) {
     # If serialized has been set, we are done with the job
     my $log .= $self->flush_log;
-    # Hope to clear some memory:
-    $digested=undef;
-    $dom=undef;
-    $self->sanitize($log) if ($runtime->{status_code} == 3);
-    return {result=>$serialized,log=>$log,status=>$runtime->{status},'status_code'=>$runtime->{status_code}};
+    return {result=>$serialized,log=>$log,status=>$runtime->{status},status_code=>$runtime->{status_code}};
   }
-  # Else, continue with the regular XML workflow...
+  # Continue with the regular XML workflow...
   my $result = $dom;
-  print STDERR "\nConversion complete: ".$runtime->{status}.".\n";
   if ($opts->{post} && $dom) {
     my $post_eval_return = eval {
       local $SIG{'ALRM'} = sub { die "alarm\n" };
@@ -592,41 +583,6 @@ sub getStatusCode {
     $code=0;
   }
   $code; }
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Utilities for wrapping and unwrapping math & document fragments
-# Possibly misplaced....
-
-sub MathDoc {
-#======================================================================
-# TeX Source
-#======================================================================
-# First read and digest whatever we're given.
-    my ($tex) = @_;
-# We need to determine whether the TeX we're given needs to be wrapped in \[...\]
-# Does it have $'s around it? Does it have a display math environment?
-# The most elegant way would be to notice as soon as we start adding to the doc
-# and switch to math mode if necessary, but that's tricky.
-# Let's just try a manual hack, looking for known switches...
-our $MATHENVS = 'math|displaymath|equation*?|eqnarray*?'
-  .'|multline*?|align*?|falign*?|alignat*?|xalignat*?|xxalignat*?|gather*?';
-$tex =~ s/\A\s+//m; #as usual, strip leading ...
-$tex =~ s/\s+\z//m; # ... and trailing space
-$tex =~ s/literal://; # Strip leading literal as well.
-if(($tex =~ /\A\$/m) && ($tex =~ /\$\z/m)){} # Wrapped in $'s
-elsif(($tex =~ /\A\\\(/m) && ($tex =~ /\\\)\z/m)){} # Wrapped in \(...\)
-elsif(($tex =~ /\A\\\[/m) && ($tex =~ /\\\]\z/m)){} # Wrapped in \[...\]
-elsif(($tex =~ /\A\\begin\{($MATHENVS)\}/m) && ($tex =~ /\\end\{$1\}\z/m)){}
-else {
-  $tex = '\\( '.$tex.' \\)'; }
-
-my $texdoc = <<"EODOC";
-\\begin{document}
-$tex
-\\end{document}
-EODOC
-return $texdoc;
-}
 
 1;
 
