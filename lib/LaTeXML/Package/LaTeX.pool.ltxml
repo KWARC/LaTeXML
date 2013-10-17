@@ -1361,12 +1361,18 @@ our $MATHENVS = 'math|displaymath|equation*?|eqnarray*?'
   .'|multline*?|align*?|falign*?|alignat*?|xalignat*?|xxalignat*?|gather*?';
 DefMacro('\ensuremathfollows', sub {
   my($gullet) = @_;
-  if(my $tok=$gullet->readXToken()){
+  $gullet->closeMouth unless ($gullet->getMouth->hasMoreInput);
+  if(my $tok=$gullet->readToken()){
     my $csname = $tok->getCSName;
+    if ($csname eq '\begin') {
+      my $arg = $gullet->readArg();
+      $csname = $arg->toString;
+      $gullet->unread(T_BEGIN, $arg->unlist, T_END);
+    }
     $gullet->unread($tok);
     # We need to determine whether the TeX we're given needs to be wrapped in \(...\)
     # Does it have $'s around it? Does it have a display math environment?
-    if ($csname !~ /^Math|\\\(|\\\[|\\begin\{($MATHENVS)\}/o) {
+    if ($csname !~ /^Math|\\\(|\\\[|($MATHENVS)/o) {
       AssignValue('automath_triggered'=>1,'global');
       return T_CS('\\('); }}
   return;
