@@ -234,8 +234,6 @@ sub convert {
       #Since this is postprocessing, we don't need to do anything
       #   just avoid crashing...
     $result = undef; }}
-  else {
-    print STDERR "Status:conversion:".($runtime->{status_code}||'0')." \n"; }
 
   # Serialize result for direct use:
   undef $serialized;
