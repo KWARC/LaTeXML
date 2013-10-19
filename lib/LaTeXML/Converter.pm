@@ -19,6 +19,7 @@ use Encode;
 use Data::Dumper;
 use File::Temp qw(tempdir);
 use File::Path qw(remove_tree);
+use File::Spec;
 
 use LaTeXML::Package qw(pathname_is_literaldata);
 use LaTeXML::Util::Pathname;
@@ -153,7 +154,11 @@ sub convert {
     $extension =~ s/^epub|mobi$/xhtml/;
     my $sandbox_destination = "$destination_name.$extension";
     $opts->{sitedirectory} = $sandbox_directory;
-    $opts->{destination} = pathname_concat($sandbox_directory,$sandbox_destination);    
+    if ($opts->{format} eq 'epub') {
+      $opts->{resource_directory} = File::Spec->catdir($sandbox_directory,'OEBPS','Styles');
+      $opts->{destination} = pathname_concat(File::Spec->catdir($sandbox_directory,'OEBPS','Text'),$sandbox_destination); }
+    else {
+      $opts->{destination} = pathname_concat($sandbox_directory,$sandbox_destination); }    
   }
 
   # Prepare daemon frame
@@ -305,6 +310,7 @@ sub convert_post {
   my %PostOPS = (verbosity=>$verbosity,
     sourceDirectory=>$opts->{sourcedirectory},
     siteDirectory=>$opts->{sitedirectory},
+    resource_directory=>$opts->{resource_directory},
     nocache=>1,
     destination=>$opts->{destination},
     is_html=>$opts->{is_html});
