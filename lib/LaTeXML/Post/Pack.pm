@@ -32,11 +32,16 @@ sub new {
   $$self{whatsout} = $options{whatsout};
   $$self{format} = $options{format};
   $$self{writer} =  LaTeXML::Post::Writer->new(%options);
+  $$self{finished} = 0;
   $self; }
 
 sub process {
   my($self,$doc,$root)=@_;
   return unless defined $doc;
+  return $doc if $self->{finished};
+  # Run a single time, even if there are multiple document fragments
+  $self->{finished} = 1;
+  
   my $whatsout = $self->{whatsout};
   if ((! $whatsout) || ($whatsout eq 'document')) {} # Document is no-op
   elsif ($whatsout eq 'fragment') {
@@ -48,7 +53,6 @@ sub process {
   elsif ($whatsout eq 'archive') {
     # First, write down the $doc, make sure it has a nice extension if .zip requested
     my $destination = $doc->getDestination;
-    print STDERR "Destination: $destination\n";
     if ($destination =~ /^(.+)\.(zip|epub|mobi)$/) {
       my $ext = _format_to_extension($self->{format});
       $doc->setDestination("$1.$ext"); }
@@ -128,6 +132,7 @@ sub _format_to_extension {
   my $format = shift;
   my $extension = lc($format);
   $extension =~ s/\d//g;
+  $extension =~ s/^epub|mobi$/xhtml/;
   return $extension; }
 
 1;
