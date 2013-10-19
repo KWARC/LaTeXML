@@ -46,8 +46,8 @@ sub process {
   close $container_fh;
 
   # 3. Create OEBPS content container
-  my $OEBPS_dir = catdir($directory,'OEBPS');
-  mkdir $OEBPS_dir;
+  # my $OEBPS_dir = catdir($directory,'OEBPS');
+  # mkdir $OEBPS_dir;
   # 3.1 OEBPS/content.opf XML Spine
   # 3.2 OEBPS/toc.ncx XML ToC
   # 3.3 OEBPS/Text - XHTML files
