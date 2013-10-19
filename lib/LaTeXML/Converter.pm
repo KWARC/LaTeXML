@@ -17,6 +17,8 @@ use warnings;
 use Carp;
 use Encode;
 use Data::Dumper;
+use File::Temp qw(tempdir);
+use File::Path qw(remove_tree);
 
 use LaTeXML::Package qw(pathname_is_literaldata);
 use LaTeXML::Util::Pathname;
@@ -130,7 +132,7 @@ sub convert {
   ($runtime->{status},$runtime->{status_code})=(undef,undef);
   print STDERR "\n$LaTeXML::Version::IDENTITY\n" if $opts->{verbosity} >= 0;
   print STDERR "processing started ".localtime()."\n" if $opts->{verbosity} >= 0;
-  # Handle What's IN?
+  # Handle What's IN:
   # We use a new temporary variable to avoid confusion with daemon caching
   my ($current_preamble,$current_postamble);
   # 1. Math needs to magically trigger math mode if needed
@@ -141,6 +143,18 @@ sub convert {
   elsif ($opts->{whatsin} eq 'fragment') {   
     $current_preamble = $opts->{preamble}||'standard_preamble.tex';
     $current_postamble = $opts->{postamble}||'standard_postamble.tex'; }
+  # Handle Whats OUT (if we need a sandbox)
+  if ($opts->{whatsout} eq 'archive') {
+    $opts->{archive_sitedirectory} = $opts->{sitedirectory};
+    $opts->{archive_destination} = $opts->{destination};
+    my $destination_name = pathname_name($opts->{destination});
+    my $sandbox_directory = tempdir();
+    my $extension = $opts->{format};
+    $extension =~ s/^epub|mobi$/xhtml/;
+    my $sandbox_destination = "$destination_name.$extension";
+    $opts->{sitedirectory} = $sandbox_directory;
+    $opts->{destination} = pathname_concat($sandbox_directory,$sandbox_destination);    
+  }
 
   # Prepare daemon frame
   my $latexml = $self->{latexml};
@@ -235,13 +249,20 @@ sub convert {
       #   just avoid crashing...
     $result = undef; }}
 
+  # Clean-up anything we sandboxed
+  if ($opts->{whatsout} eq 'archive') {
+    remove_tree($opts->{sitedirectory});
+    $opts->{sitedirectory} = $opts->{archive_sitedirectory};
+    $opts->{destination} = $opts->{archive_destination};
+  }
+
   # Serialize result for direct use:
   undef $serialized;
   if ((defined $result) && (ref $result)) {
     if ($opts->{format} =~ 'x(ht)?ml') {
       $serialized = $result->toString(1); }
     elsif ($opts->{format} =~ /^html/) {
-      if ($result =~ /LaTeXML/) { # Special for documents
+      if (ref($result) =~ '^LaTeXML::(Post::)?Document$') { # Special for documents
         $serialized = $result->getDocument->toStringHTML; }
       else { # Regular for fragments
         do {
@@ -408,7 +429,7 @@ sub convert_post {
           my $cssdest = pathname_absolute($css,pathname_directory($opts->{destination}));
           $cssdest .= '.css' unless $cssdest =~ /\.css$/;
           warn "CSS source $csssource is same as destination!" if $csssource eq $cssdest;
-          pathname_copy($csssource,$cssdest) if $opts->{local}; # TODO: Look into local copying carefully
+          pathname_copy($csssource,$cssdest) if ($opts->{local} || ($opts->{whatsout} eq 'archive')); # TODO: Look into local copying carefully
           push(@{$$parameters{CSS}}, $cssdest); }
         else {
           warn "Couldn't find CSS file $css in paths ".join(',',@searchpaths)."\n";
@@ -424,7 +445,7 @@ sub convert_post {
           my $jsdest = pathname_absolute($js,pathname_directory($opts->{destination}));
           $jsdest .= '.js' unless $jsdest =~ /\.js$/;
           warn "Javascript source $jssource is same as destination!" if $jssource eq $jsdest;
-          pathname_copy($jssource,$jsdest) if $opts->{local}; #TODO: Local handling
+          pathname_copy($jssource,$jsdest) if ($opts->{local} || ($opts->{whatsout} eq 'archive')); #TODO: Local handling
           push(@{$$parameters{JAVASCRIPT}}, $jsdest); }
         else {
           warn "Couldn't find Javascript file $js in paths ".join(',',@searchpaths)."\n";
@@ -435,7 +456,7 @@ sub convert_post {
         if (my $iconsrc = pathname_find($opts->{icon},paths=>[$DOCUMENT->getSearchPaths])) {
           print STDERR "Using icon=$iconsrc\n" if $verbosity > 0;
           my $icondest = pathname_absolute($opts->{icon},pathname_directory($opts->{destination}));
-          pathname_copy($iconsrc,$icondest) if $opts->{local};
+          pathname_copy($iconsrc,$icondest) if ($opts->{local} || ($opts->{whatsout} eq 'archive'));
           $$parameters{ICON}=$icondest; }
         else {
           warn "Couldn't find ICON ".$opts->{icon}." in paths ".join(',',@searchpaths)."\n";
@@ -459,9 +480,14 @@ sub convert_post {
     }
   }
 
+  # If our format requires a manifest, create one
+  if (($opts->{whatsout} eq 'archive') && ($format !~/^x?html|xml/)) {
+    require LaTeXML::Post::Manifest;
+    push(@procs,LaTeXML::Post::Manifest->new(format=>$format,%PostOPS));
+  }
   # Handle the output packaging
   require LaTeXML::Post::Pack;
-  push(@procs,LaTeXML::Post::Pack->new(whatsout=>$opts->{whatsout},format=>$opts->{format},%PostOPS));
+  push(@procs,LaTeXML::Post::Pack->new(whatsout=>$opts->{whatsout},format=>$format,%PostOPS));
 
   # Do the actual post-processing:
   my $postdoc;
@@ -511,7 +537,6 @@ sub new_latexml {
   $latexml->withState(sub {
       my($state)=@_;
       $latexml->initializeState('TeX.pool', @{$latexml->{preload} || []});
-      $state->assignValue(FORBIDDEN_IO=>(!$opts->{local}));
   });
 
   # TODO: Do again, need to do this in a GOOD way as well:
