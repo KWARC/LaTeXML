@@ -359,12 +359,14 @@ sub _prepare_options {
     if ($opts->{destination}=~/\.([^.]+)$/) {
       $opts->{format}=$1; }}
   if ($opts->{format}) {
+    # Lower-case for sanity's sake
+    $opts->{format} = lc($opts->{format});
     if ($opts->{format} eq 'zip') {
       # Not encouraged! But try to produce something sensible anyway...
       $opts->{format} = 'html5';
       $opts->{whatsout} = 'archive';
     }
-    $opts->{is_html} = ($opts->{format}=~/html|epub/i);
+    $opts->{is_html} = ($opts->{format}=~/html|epub|mobi/);
     $opts->{whatsout} = 'archive' if (($opts->{format} eq 'epub') || ($opts->{format} eq 'mobi'));
   }
   #======================================================================
@@ -400,9 +402,9 @@ sub _prepare_options {
     delete $opts->{navtoc} if ($opts->{navtoc} && ($opts->{navtoc} eq 'none'));
     if($opts->{navtoc}){
       if(!$opts->{navtocstyles}->{$opts->{navtoc}}){
-	croak($opts->{navtoc}." is not a recognized style of navigation TOC"); }
+        croak($opts->{navtoc}." is not a recognized style of navigation TOC"); }
       if(!$opts->{crossref}){
-	croak("Cannot use option \"navigationtoc\" (".$opts->{navtoc}.") without \"crossref\""); }}
+        croak("Cannot use option \"navigationtoc\" (".$opts->{navtoc}.") without \"crossref\""); }}
     $opts->{urlstyle}='server' unless defined $opts->{urlstyle};
     $opts->{bibliographies} = [] unless defined $opts->{bibliographies};
 
@@ -430,7 +432,7 @@ sub _prepare_options {
     $opts->{format}="xml" if ($opts->{stylesheet}) && (!defined $opts->{format});
     $opts->{format}="xhtml" unless defined $opts->{format};
     if (!$opts->{stylesheet}) {
-      if ($opts->{format} eq "xhtml") {$opts->{stylesheet} = "LaTeXML-xhtml.xsl";}
+      if ($opts->{format} =~ /^xhtml|epub|mobi$/) {$opts->{stylesheet} = "LaTeXML-xhtml.xsl";}
       elsif ($opts->{format} eq "html") {$opts->{stylesheet} = "LaTeXML-html.xsl";}
       elsif ($opts->{format} eq "html5") {$opts->{stylesheet} = "LaTeXML-html5.xsl";}
       elsif ($opts->{format} eq "xml") {delete $opts->{stylesheet};}
