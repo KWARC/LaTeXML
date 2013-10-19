@@ -16,6 +16,7 @@ use LaTeXML::Post;
 use base qw(LaTeXML::Post::Processor);
 
 use LaTeXML::Post::Writer;
+use LaTeXML::Util::Pathname;
 use Archive::Zip qw(:CONSTANTS :ERROR_CODES);
 use IO::String;
 
@@ -70,7 +71,23 @@ sub GetArchive {
   # Zip and send back
   my $archive = Archive::Zip->new();
   my $payload='';
-  $archive->addTree($directory,'',sub{/^[^.]/ && (!/zip|gz|epub|tex|mobi|~$/)});
+  opendir(my $dirhandle, $directory);
+  my @entries = grep {/^[^.]/} readdir($dirhandle);
+  closedir $dirhandle;
+  my @files = grep { (!/zip|gz|epub|tex|mobi|~$/) && -f pathname_concat($directory,$_) } @entries;
+  my @subdirs = grep {-d File::Spec->catdir($directory,$_)} @entries;
+  # We want to first add the files instead of simply invoking ->addTree on the top level
+  # without ANY file attributes at all,
+  # since EPUB is VERY picky about the first entry in the archive starting at byte 38 (file 'mimetype')
+  foreach my $file(sort @files) {
+    local $/ = undef;
+    open my $fh_zip, "<", pathname_concat($directory,$file);
+    my $file_contents = <$fh_zip>;
+    $archive->addString($file_contents,$file); }
+  foreach my $subdir(sort @subdirs) {
+    my $current_dir = File::Spec->catdir($directory,$subdir);
+    $archive->addTree($current_dir,$subdir,sub{/^[^.]/ && (!/zip|gz|epub|tex|mobi|~$/)}); }
+
   my $content_handle = IO::String->new($payload);
   undef $payload unless ($archive->writeToFileHandle( $content_handle ) == AZ_OK);
   return $payload; }
