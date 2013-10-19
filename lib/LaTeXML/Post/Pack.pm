@@ -37,11 +37,7 @@ sub new {
 
 sub process {
   my($self,$doc,$root)=@_;
-  return unless defined $doc;
-  return $doc if $self->{finished};
-  # Run a single time, even if there are multiple document fragments
-  $self->{finished} = 1;
-  
+  return unless defined $doc;  
   my $whatsout = $self->{whatsout};
   if ((! $whatsout) || ($whatsout eq 'document')) {} # Document is no-op
   elsif ($whatsout eq 'fragment') {
@@ -51,6 +47,10 @@ sub process {
     # Math output - least common ancestor of all math in the document
     $doc = GetMath($doc); }
   elsif ($whatsout eq 'archive') {
+    return $doc if $self->{finished};
+    # Run a single time, even if there are multiple document fragments
+    $self->{finished} = 1;
+
     # First, write down the $doc, make sure it has a nice extension if .zip requested
     my $destination = $doc->getDestination;
     if ($destination =~ /^(.+)\.(zip|epub|mobi)$/) {
@@ -76,10 +76,10 @@ sub GetArchive {
   return $payload; }
 
 sub GetMath {
-  my ($source) = @_;
+  my ($doc) = @_;
   my $math_xpath = '//*[local-name()="math" or local-name()="Math"]';
-  return unless defined $source;
-  my @mnodes = $source->findnodes($math_xpath);
+  return unless defined $doc;
+  my @mnodes = $doc->findnodes($math_xpath);
   my $math_count = scalar(@mnodes);
   my $math = $mnodes[0] if $math_count;
   if ($math_count > 1) {
@@ -92,14 +92,14 @@ sub GetMath {
     $math = $math->parentNode while ($math->nodeName =~ '^t[rd]$');
     $math; }
   elsif ($math_count == 0) {
-    GetEmbeddable($source); }
+    GetEmbeddable($doc); }
   else {
     $math; }}
 
 sub GetEmbeddable {
   my ($doc) = @_;
   return unless defined $doc;
-  my ($embeddable) = $doc->findnodes('//*[@class="ltx_document"]');
+  my ($embeddable) = $doc->findnodes('//*[contains(@class,"ltx_document")]');
   if ($embeddable) {
     # Only one child? Then get it, must be a inline-compatible one!
     while (($embeddable->nodeName eq 'div') && (scalar(@{$embeddable->childNodes}) == 1) &&
