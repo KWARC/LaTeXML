@@ -366,7 +366,7 @@ sub _prepare_options {
       $opts->{format} = 'html5';
       $opts->{whatsout} = 'archive';
     }
-    $opts->{is_html} = ($opts->{format}=~/html|epub|mobi/);
+    $opts->{is_html} = ($opts->{format}=~/^html5?$/);
     $opts->{whatsout} = 'archive' if (($opts->{format} eq 'epub') || ($opts->{format} eq 'mobi'));
   }
   #======================================================================
