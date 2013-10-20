@@ -41,13 +41,14 @@ sub ProcessChain {
     foreach my $doc (@docs){
       local $LaTeXML::Post::DOCUMENT = $doc;
       if(my @nodes = grep($_,$processor->toProcess($doc))){ # If there are nodes to process
-	my $n = scalar(@nodes);
-	my $msg = ($n > 1 ? "$n to process" : 'processing');
-	NoteBegin($msg);
-	push(@newdocs, $processor->process($doc,@nodes));
-	NoteEnd($msg); }
+      	my $n = scalar(@nodes);
+      	my $msg = ($n > 1 ? "$n to process" : 'processing');
+      	NoteBegin($msg);
+      	push(@newdocs, $processor->process($doc,@nodes));
+      	NoteEnd($msg); }
       else {
-	push(@newdocs,$doc); }}
+      	push(@newdocs,$doc); }}
+    push(@newdocs,$processor->finalize());
     @docs = @newdocs; }
   NoteEnd("post-processing");
   @docs; }
@@ -215,6 +216,11 @@ sub process {
   my($self,$doc,@toprocess)=@_;
   Fatal("misdefined",$self,$doc,"This post-processor is abstract; does not implement ->process");
   $doc; }
+
+# Hook for singleton processors/wrapp-up operations
+sub finalize {
+  my($self)=@_;
+  return (); }
 
 #======================================================================
 # Some postprocessors will want to create a bunch of "resource"s,
