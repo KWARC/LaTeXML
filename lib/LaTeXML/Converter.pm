@@ -486,6 +486,17 @@ sub convert_post {
     }
   }
 
+  # If we are doing a local conversion OR
+  # we are going to package into an archive
+  # write all the files to disk during post-processing
+  if ($opts->{destination} && 
+    (($opts->{local} && ($opts->{whatsout} eq 'document'))
+    || ($opts->{whatsout} eq 'archive'))) {
+    require LaTeXML::Post::Writer;
+    push(@procs,LaTeXML::Post::Writer->new(
+        format=>$format,omit_doctype=>$opts->{omit_doctype},is_html=>$opts->{is_html},
+        %PostOPS));
+  }
   # If our format requires a manifest, create one
   if (($opts->{whatsout} eq 'archive') && ($format !~/^x?html|xml/)) {
     require LaTeXML::Post::Manifest;

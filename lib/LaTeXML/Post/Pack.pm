@@ -15,7 +15,6 @@ use warnings;
 use LaTeXML::Post;
 use base qw(LaTeXML::Post::Processor);
 
-use LaTeXML::Post::Writer;
 use LaTeXML::Util::Pathname;
 use Archive::Zip qw(:CONSTANTS :ERROR_CODES);
 use IO::String;
@@ -32,7 +31,6 @@ sub new {
   $$self{siteDirectory}  = $options{siteDirectory};
   $$self{whatsout} = $options{whatsout};
   $$self{format} = $options{format};
-  $$self{writer} =  LaTeXML::Post::Writer->new(%options);
   $$self{finished} = 0;
   $self; }
 
@@ -48,17 +46,10 @@ sub process {
     # Math output - least common ancestor of all math in the document
     $doc = GetMath($doc); }
   elsif ($whatsout eq 'archive') {
-    return $doc if $self->{finished};
+    return () if $self->{finished};
     # Run a single time, even if there are multiple document fragments
     $self->{finished} = 1;
-
-    # First, write down the $doc, make sure it has a nice extension if .zip requested
-    my $destination = $doc->getDestination;
-    if ($destination =~ /^(.+)\.(zip|epub|mobi)$/) {
-      my $ext = _format_to_extension($self->{format});
-      $doc->setDestination("$1.$ext"); }
-    $self->{writer}->process($doc,$root);
-    # Then archive the site directory
+    # Archive the site directory
     my $directory = $self->{siteDirectory};
     $doc = GetArchive($directory);
     # Should we empty the site directory???
