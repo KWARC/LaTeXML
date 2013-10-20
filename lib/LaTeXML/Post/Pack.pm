@@ -136,12 +136,5 @@ sub GetEmbeddable {
   }
   return $embeddable||$doc; }
 
-sub _format_to_extension {
-  my $format = shift;
-  my $extension = lc($format);
-  $extension =~ s/\d//g;
-  $extension =~ s/^epub|mobi$/xhtml/;
-  return $extension; }
-
 1;
 
