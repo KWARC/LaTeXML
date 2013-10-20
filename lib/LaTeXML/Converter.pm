@@ -151,6 +151,7 @@ sub convert {
     my $destination_name = pathname_name($opts->{destination});
     my $sandbox_directory = tempdir();
     my $extension = $opts->{format};
+    $extension =~ s/\d//g;
     $extension =~ s/^epub|mobi$/xhtml/;
     my $sandbox_destination = "$destination_name.$extension";
     $opts->{sitedirectory} = $sandbox_directory;
