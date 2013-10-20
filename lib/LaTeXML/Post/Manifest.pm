@@ -43,9 +43,5 @@ sub new {
 
   return $self; }
 
-sub process {
-  my ($self,$doc)=@_;
-  return $doc; }
-
 1;
 
