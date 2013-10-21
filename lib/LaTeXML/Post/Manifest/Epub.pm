@@ -36,7 +36,9 @@ sub new {
 sub initialize {
   my ($self) = @_;
   my $directory = $self->{siteDirectory};
-
+  # TODO: Fish out any existing unique identifier for the book
+  #       the UUID is the fallback default
+  $self->{'unique-identifier'} = create_uuid_as_string();
   # 1. Create mimetype declaration
   open my $epub_fh, ">", pathname_concat($directory,'mimetype');
   print $epub_fh 'application/epub+zip';
@@ -64,28 +66,47 @@ sub initialize {
   my $identifier = $metadata->addNewChild("http://purl.org/dc/elements/1.1/","identifier");
   $identifier->setAttribute('id','BookID');
   $identifier->setAttribute('opf:scheme','UUID');
-  $identifier->appendText(create_uuid_as_string());
+  $identifier->appendText($self->{'unique-identifier'});
   # Manifest
   my $manifest = $package->addNewChild(undef,'manifest');
   my $ncx_item = $manifest->addNewChild(undef,'item');
   $ncx_item->setAttribute('id','ncx');
   $ncx_item->setAttribute('href','toc.ncx');
   $ncx_item->setAttribute('media-type','application/x-dtbncx+xml');
-  #TODO: Index all CSS files (written already)
-  # <item id="stylesheet.css" href="Styles/stylesheet.css" media-type="text/css"/>
   # Spine
   my $spine = $package->addNewChild(undef,'spine');
   $spine->setAttribute('toc','ncx');
-  my $OEBPS_text = catdir($OEBPS_directory,'Text');
 
   # 3.2 OEBPS/toc.ncx XML ToC
-  # 3.3 OEBPS/Text - XHTML files
-# 3.4. Images??? Others?
-
+  my $ncx = XML::LibXML::Document->new( '1.0', 'UTF-8' );
+  my $dtd = $ncx->createInternalSubset( "ncx", "-//NISO//DTD ncx 2005-1//EN", "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd" );
+  my $ncx_element = $ncx->createElementNS("http://www.daisy.org/z3986/2005/ncx/","ncx");
+  $ncx_element->setAttribute('version','2005-1');
+  $ncx->setDocumentElement($ncx_element);
+  # 3.2.1. Head
+  my $ncx_head = $ncx_element->addNewChild(undef,'head');
+  my $ncx_uuid = $ncx_head->addNewChild(undef,'meta');
+  $ncx_uuid->setAttribute('name','dtb:uid');
+  $ncx_uuid->setAttribute('content',$self->{'unique-identifier'});
+  my $ncx_depth = $ncx_head->addNewChild(undef,'meta');
+  $ncx_depth->setAttribute('name','dtb:depth');
+  $ncx_depth->setAttribute('content','1');
+  my $ncx_pages = $ncx_head->addNewChild(undef,'meta');
+  $ncx_pages->setAttribute('name','dtb:totalPageCount');
+  $ncx_pages->setAttribute('content','0');
+  my $ncx_maxpage = $ncx_head->addNewChild(undef,'meta');
+  $ncx_maxpage->setAttribute('name','dtb:maxPageNumber');
+  $ncx_maxpage->setAttribute('content','0');
+  # TODO: 3.2.2. docTitle ???
+  # 3.2.3 navMap
+  my $ncx_navmap = $ncx_element->addNewChild(undef,'navMap');
   $self->{OEBPS_directory} = $OEBPS_directory;
   $self->{opf} = $opf;
   $self->{opf_spine} = $spine;
   $self->{opf_manifest} = $manifest;
+  $self->{ncx} = $ncx;
+  $self->{ncx_navmap} = $ncx_navmap;
+  $self->{ncx_navorder} = 0;
   return; }
 
 sub process {
@@ -96,25 +117,59 @@ sub process {
     my $file = "$name.$ext";
     my $relative_destination = pathname_relative($destination,$self->{OEBPS_directory});
 
+    # Add to manifest
     my $manifest = $self->{opf_manifest};
     my $item = $manifest->addNewChild(undef,'item');
     $item->setAttribute('id',$file);
     $item->setAttribute('href',$relative_destination);
     $item->setAttribute('media-type',"application/xhtml+xml");
+    # Add to spine
     my $spine = $self->{opf_spine};
     my $itemref = $spine->addNewChild(undef,'itemref');
-    $itemref->setAttribute('idref',$file); }
+    $itemref->setAttribute('idref',$file); 
 
+    # Add to navMap
+    my $navmap = $self->{ncx_navmap};
+    my $navpoint = $navmap->addNewChild(undef,'navPoint');
+    my $order = $self->{ncx_navorder} + 1;
+    $self->{ncx_navorder} = $order;
+    $navpoint->setAttribute('id',"navPoint-$order");
+    $navpoint->setAttribute('playOrder',"$order");
+    my $navlabel = $navpoint->addNewChild(undef,'navLabel');
+    # TODO: Better labels for the different chapters/parts
+    $navlabel->addNewChild(undef,'text')->appendText($file);
+  }
   return $doc; }
 
 sub finalize {
   my ($self) = @_;
-  # Write the .opf file to disk
+  #Index all CSS files (written already)
+  my $OEBPS_directory = $self->{OEBPS_directory};
+  my $OEBPS_styles = catdir($OEBPS_directory,'Styles');
+  opendir(my $styles_handle, $OEBPS_styles);
+  my @styles = grep {-f pathname_concat($OEBPS_styles,$_)} readdir($styles_handle);
+  closedir $styles_handle;
+  my $manifest = $self->{opf_manifest};
+  foreach my $style(@styles) {
+    my $style_item = $manifest->addNewChild(undef,'item');
+    $style_item->setAttribute('id',$style);
+    $style_item->setAttribute('href',
+      pathname_relative(pathname_concat($OEBPS_styles,$style),$OEBPS_directory));
+    # TODO: Any non-CSS externals are future work
+    $style_item->setAttribute('media-type','text/css');
+  }
+
+  # Write the content.opf file to disk
   my $directory = $self->{siteDirectory};
-  my $OEBPS_dir = catdir($directory,'OEBPS');
-  open my $opf_fh, ">", pathname_concat($OEBPS_dir,'content.opf');
+  open my $opf_fh, ">", pathname_concat($OEBPS_directory,'content.opf');
   print $opf_fh $self->{opf}->toString(1);
   close $opf_fh; 
+
+  # Write toc.ncx file to disk
+  open my $ncx_fh, ">", pathname_concat($OEBPS_directory,'toc.ncx');
+  print $ncx_fh $self->{ncx}->toString(1);
+  close $ncx_fh; 
+
   return (); }
 
 1;
