@@ -1,0 +1,21 @@
+# -*- CPERL -*-
+# /=====================================================================\ #
+# |  pmath.sty - Implementation for LaTeXML                             | #
+# |                                                                     | #
+# |=====================================================================| #
+# | NOT Part of LaTeXML:                                                | #
+# |  Public domain software, produced as part of work done by the       | #
+# |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | Deyan Ginev <d.ginev@jacobs-university.de>                          | #
+# | http://dlmf.nist.gov/LaTeXML/                                       | #
+# \=====================================================================/ #
+
+package LaTeXML::Package::Pool;
+use strict;
+use LaTeXML::Package;
+
+# Merged with planetmath-specials
+RequirePackage('planetmath-specials');
+
+1;

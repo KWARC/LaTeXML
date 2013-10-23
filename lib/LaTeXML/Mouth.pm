@@ -37,6 +37,7 @@ sub create {
 
 sub new {
   my($class,$string)=@_;
+  $string = q{} unless defined $string;
   my $self =  bless {source=>"Anonymous String",shortsource=>"String"}, $class;
   $self->openString($string);
   $self->initialize;
@@ -144,22 +145,33 @@ sub stringify {
 #**********************************************************************
 sub getLocator {
   my($self,$length)=@_;
-  my($l,$c)=($$self{lineno},$$self{colno});
-  if($length && ($length < 0)){
-    "at $$self{shortsource}; line $l col $c"; }
-  elsif($length && (defined $l || defined $c)){
-    my $msg =  "at $$self{source}; line $l col $c";
-    my $chars=$$self{chars};
-    if(my $n = $$self{nchars}){
-      $c=$n-1 if $c >=$n;
-      my $c0 = ($c > 50 ? $c-40 : 0);
-      my $cm = ($c < 1 ? 0 : $c-1);
-      my $cn = ($n-$c > 50 ? $c+40 : $n-1);
-      my $p1 = ($c0 <= $cm ? join('',@$chars[$c0..$cm]) : ''); chomp($p1);
-      my $p2 = ($c  <= $cn ? join('',@$chars[$c..$cn])  : ''); chomp($p2);
-      $msg .="\n  ".$p1."\n  ".(' ' x ($c-$c0)).'^'.' '.$p2; }}
-  else {
-    "at $$self{source}; line $l col $c"; }}
+  my($l,$c,$lstart,$cstart)=($$self{lineno},$$self{colno});
+  #my $msg =  "at $$self{source}; line $l col $c";
+  #Deyan: Upgrade message to XPointer style
+  my $nc = $$self{nchars}-1; #There is always a weird (end of line?) char that gets counted
+  if ((defined $c) && ($c>=$nc)) {
+    $lstart = $l;
+    $cstart = $c - $nc;
+  } else {
+    #Very rough and dirty approximation, not to be relied on.
+    #One would need to keep all line lengths to properly establish the start and end
+    # or just remember the initial char of the token's position
+    $lstart = $l-1;
+    $cstart = $nc - $c;
+  }
+  "$$self{source}#textrange(from=$lstart;$cstart,to=$l;$c)";
+  # if($length && (defined $l || defined $c)){
+  #   my $chars=$$self{chars};
+  #   my $n = $$self{nchars}; 
+  #   $c=$n-1 if $c >=$n;
+  #   my $c0 = ($c > 50 ? $c-40 : 0);
+  #   my $cn = ($n-$c > 50 ? $c+40 : $n-1);
+  #   my $p1 = (@$chars && join('',@$chars[$c0..$c-1]))||''; chomp($p1);
+  #   my $p2 = (@$chars && join('',@$chars[$c..$cn]))||''; chomp($p2);
+  #   $msg .="\n  ".$p1."\n  ".(' ' x ($c-$c0)).'^'.' '.$p2; }
+  # else {
+  #   "at $$self{source}; line $l col $c"; }
+}
 
 sub getSource {
   my($self)=@_;
@@ -518,6 +530,28 @@ sub new {
   $self; }
 
 #**********************************************************************
+package LaTeXML::Mouth::http;
+use base qw(LaTeXML::Mouth);
+use LaTeXML::Util::WWW;
+use LaTeXML::Global;
+
+sub new {
+  my($class,$url,%options)=@_;
+  my($urlbase,$name,$ext)=url_split($url);
+  $STATE->assignValue(URLBASE=>$urlbase) if defined $urlbase;
+  my $self =  bless {source=>$url, shortsource=>$name}, $class;
+  $$self{fordefinitions}=1 if $options{fordefinitions};
+  $$self{notes}=1          if $options{notes};
+  my $content = auth_get($url);
+  $self->openString($content);
+  $self->initialize;
+  $self; }
+
+#**********************************************************************
+package LaTeXML::Mouth::https;
+use base qw(LaTeXML::Mouth::http);
+
+#**********************************************************************
 # A fake mouth provides a hook for getting the Locator of anything
 # defined in a perl module (*.pm, *.ltxml, *.latexml...)
 package LaTeXML::PerlMouth;
@@ -644,7 +678,7 @@ Returns the next L<LaTeXML::Token> from the source.
 
 Returns whether there is more data to read.
 
-=item C<< $string = $mouth->getLocator($long); >>
+=item C<< $string = $mouth->getLocator($length); >>
 
 Return a description of current position in the source, for reporting errors.
 

@@ -1,0 +1,15 @@
+# -*- CPERL -*-
+package LaTeXML::Package::Pool;
+use strict;
+use LaTeXML::Package;
+
+# NOTE: how's the best way to get verbatim material through?
+LoadClass('article');
+RequirePackage('graphicx');
+DefEnvironment('{frame}', "<ltx:slide>#body</ltx:slide>");
+DefConstructor('\setbeamercovered {}','');
+DefConstructor('\setbeamertemplate {}','');
+DefConstructor('\usetheme {}','');
+DefConstructor('\usecolortheme {}','');
+DefConstructor('\useoutertheme {}','');
+1;

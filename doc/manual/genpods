@@ -22,13 +22,15 @@ GetOptions("force!"    => \$force,
 pod2usage(-message=>$identity, -exitval=>1, -verbose=>2, -output=>\*STDOUT) if $help;
 
 #======================================================================
-my @exes = (qw(latexml latexmlpost latexmlmath));
+my @exes = (qw(latexml latexmlpost latexmlmath latexmls latexmlc));
+my @apps = (qw(ltxmojo));
 # would be nice to automatically discover documentable modules
 # Actually, we Can, by looking in ../blib/man1 and ../blib/man3
 # However, we'd still need to manually add them to the appropriate Appendx!
 my @modules = (
 	       # Core modules
 	       qw(LaTeXML
+                  LaTeXML::Daemon
 		  LaTeXML::Object
 		  LaTeXML::Definition
 		  LaTeXML::Global
@@ -56,6 +58,8 @@ my @modules = (
 	       # Utility
 	       qw(LaTeXML::Util::Pathname
 		  LaTeXML::Util::KeyVal
+		  LaTeXML::Util::Extras
+		  LaTeXML::Util::Startup
 		),
 		  # Postprocessing
 	       qw(LaTeXML::Post
@@ -73,6 +77,15 @@ foreach my $name (@exes){
     print "Converting POD for $name to LaTeX\n";
     my $podconverter = MyPodConverter->new();
     $podconverter->parse_from_file($src,$dest); }}
+
+foreach my $name (@apps) {
+ my $src  = "$SRCDIR/webapp/$name";
+  my $dest = "$GENDIR/$name.tex";
+  if($force || (!-f $dest) || (-M $src < -M $dest)){
+    print "Converting POD for $name to LaTeX\n";
+    my $podconverter = MyPodConverter->new();
+    $podconverter->parse_from_file($src,$dest); }
+}
 
 foreach my $name (@modules){
   my $src = $name;

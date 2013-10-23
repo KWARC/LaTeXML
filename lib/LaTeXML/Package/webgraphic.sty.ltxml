@@ -1,0 +1,15 @@
+package LaTeXML::Package::Pool;
+use strict;
+use LaTeXML::Package;
+DefKeyVal('webgraphic','width','Semiverbatim');
+DefKeyVal('webgraphic','height','Semiverbatim');
+DefKeyVal('webgraphic','local','Semiverbatim');
+DefKeyVal('webgraphic','alt','Semiverbatim');
+DefConstructor('\webgraphic OptionalKeyVals:webgraphic {}',
+       "<ltx:graphics imagesrc='#2' "
+       . "?#1("
+       . "?&KeyVal(#1,'width')(imagewidth='&KeyVal(#1,'width')' )()"
+       . "?&KeyVal(#1,'height')(imageheight='&KeyVal(#1,'height')' )()"
+       . "?&KeyVal(#1,'alt')(description='&KeyVal(#1,'alt')' )()"
+       . ")() />");
+1;

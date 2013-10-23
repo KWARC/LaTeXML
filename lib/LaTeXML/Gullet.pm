@@ -16,6 +16,8 @@ use LaTeXML::Global;
 use LaTeXML::Mouth;
 use LaTeXML::Number;
 use LaTeXML::Util::Pathname;
+use LaTeXML::Util::WWW;
+
 use base qw(LaTeXML::Object);
 #**********************************************************************
 sub new {
@@ -73,7 +75,8 @@ sub flushMouth {
 sub flush {
   my($self)=@_;
   $$self{mouth}->finish;
-  foreach my $entry (@{$$self{mouthstack}}){
+  while (@{$$self{mouthstack}}) {
+    my $entry = shift @{$$self{mouthstack}};
     $entry->[0]->finish; }
   $$self{pushback}=[];
 ##  $$self{mouth}=Tokens();

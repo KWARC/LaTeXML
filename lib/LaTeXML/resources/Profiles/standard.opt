@@ -1,4 +1,3 @@
 comments =
 xml =
 preload = [ids]latexml.sty
-path = $LATEXMLINPUTS

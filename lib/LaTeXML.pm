@@ -24,7 +24,7 @@ use LaTeXML::Object;
 use LaTeXML::MathParser;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Bib;
-use LaTeXML::Package;
+use LaTeXML::Package qw(pathname_is_literaldata);
 use LaTeXML::Version;
 use Encode;
 use vars qw($VERSION);
@@ -37,6 +37,7 @@ sub new {
   my($class,%options)=@_;
   my $state     = LaTeXML::State->new(catcodes=>'standard',
 				      stomach=>LaTeXML::Stomach->new(),
+              mathparser=>LaTeXML::MathParser->new(),
 				      model  => $options{model} || LaTeXML::Model->new());
   $state->assignValue(VERBOSITY=>(defined $options{verbosity} ? $options{verbosity} : 0),
 		      'global');
@@ -54,9 +55,9 @@ sub new {
   $state->assignValue(INCLUDE_STYLES=>$options{includeStyles}|| 0,'global');
   $state->assignValue(PERL_INPUT_ENCODING=>$options{inputencoding}) if $options{inputencoding};
   return bless {state   => $state, 
-		nomathparse=>$options{nomathparse}||0,
-		preload=>$options{preload},
-	       }, $class; }
+	 mathparse=>((defined $options{mathparse}) ? $options{mathparse} : 'RecDescent'),
+	 preload=>$options{preload},
+	}, $class; }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # High-level API.
@@ -77,6 +78,9 @@ sub convertFile {
 sub getStatusMessage {
   my($self)=@_;
   return $$self{state}->getStatusMessage; }
+sub getStatusCode {
+  my($self)=@_;
+  $$self{state}->getStatusCode; }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Mid-level API.
@@ -92,22 +96,27 @@ sub digestFile {
   my($self,$request,%options)=@_;
   my($dir,$name,$ext);
   my $mode = $options{mode} || 'TeX';
-  if(LaTeXML::Package::pathname_is_literaldata($request)){
+  if(pathname_is_literaldata($request)){
     $dir = undef; $ext = $MODE_EXTENSION{$mode};
     $name = "Anonymous String"; }
+  elsif (pathname_is_url($request)) {
+    $dir = undef;  $ext = $MODE_EXTENSION{$mode};
+    $name = $request;
+  }
   else {
     $request =~ s/\.\Q$MODE_EXTENSION{$mode}\E$//;
     if(my $pathname = pathname_find($request,types=>[$MODE_EXTENSION{$mode},''])){
       $request = $pathname;
       ($dir,$name,$ext)=pathname_split($request);  }
     else {
-      Fatal('missing_file',$request,undef,"Can't find $mode file $request"); }}
+      $self->withState(sub {
+        Fatal('missing_file',$request,undef,"Can't find $mode file $request"); }); }}
   return
   $self->withState(sub {
      my($state)=@_;
      NoteBegin("Digesting $mode $name");
      $self->initializeState($mode.".pool", @{$$self{preload} || []}) unless $options{noinitialize};
-     $state->assignValue(SOURCEFILE=>$request)  if defined $dir;
+     $state->assignValue(SOURCEFILE=>$request)  if (!pathname_is_literaldata($request));
      $state->assignValue(SOURCEDIRECTORY=>$dir) if defined $dir;
      $state->unshiftValue(SEARCHPATHS=>$dir)
        if defined $dir && !grep {$_ eq $dir} @{$state->lookupValue('SEARCHPATHS')};
@@ -162,6 +171,7 @@ sub convertDocument {
   $self->withState(sub {
      my($state)=@_;
      my $model    = $state->getModel;   # The document model.
+     my $math_parser = $state->getMathParser;
      my $document  = LaTeXML::Document->new($model);
      local $LaTeXML::DOCUMENT = $document;
      NoteBegin("Building");
@@ -184,9 +194,9 @@ sub convertDocument {
      $model->applyRewrites($document,$document->getDocument->documentElement);
      NoteEnd("Rewriting");
 
-     LaTeXML::MathParser->new()->parseMath($document) unless $$self{nomathparse};
+     $math_parser->parseMath($document,parser=>$self->{mathparse}) if ($self->{mathparse} && ($self->{mathparse} ne 'no'));
      NoteBegin("Finalizing");
-     my $xmldoc = $document->finalize(); 
+     my $xmldoc = $document->finalize();
      NoteEnd("Finalizing");
      return $xmldoc; }); }
 
@@ -204,10 +214,11 @@ sub withState {
 
 sub initializeState {
   my($self,@files)=@_;
-  my $stomach  = $STATE->getStomach; # The current Stomach;
+  my $state = $$self{state};
+  my $stomach  = $state->getStomach; # The current Stomach;
   my $gullet = $stomach->getGullet;
   $stomach->initialize;
-  my $paths = $STATE->lookupValue('SEARCHPATHS');
+  my $paths = $state->lookupValue('SEARCHPATHS');
   foreach my $preload (@files){
     my($options,$type);
     $options = $1 if $preload =~ s/^\[([^\]]*)\]//;
@@ -220,8 +231,13 @@ sub initializeState {
 	Warn('unexpected','options',
 	     "Attempting to pass options to $preload.$type (not style or class)",
 	     "The options were  [$options]"); }}
-    LaTeXML::Package::InputDefinitions($preload,type=>$type,
-				       handleoptions=>$handleoptions, options=>$options); }
+  # Attach extension back if HTTP protocol:
+  if (pathname_is_url($preload)) {
+    $preload.='.'.$type;
+  }
+  LaTeXML::Package::InputDefinitions($preload,type=>$type,
+	        handleoptions=>$handleoptions, options=>$options); 
+  }
   return; }
 
 sub writeDOM {

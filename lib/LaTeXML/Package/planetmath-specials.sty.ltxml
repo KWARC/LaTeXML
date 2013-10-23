@@ -1,0 +1,149 @@
+# -*- CPERL -*-
+# /=====================================================================\ #
+# |  planetmath-specials.sty - Implementation for LaTeXML               | #
+# |                                                                     | #
+# |=====================================================================| #
+# | NOT Part of LaTeXML:                                                | #
+# |  Public domain software, produced as part of work done by the       | #
+# |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | Deyan Ginev <d.ginev@jacobs-university.de>                          | #
+# | http://dlmf.nist.gov/LaTeXML/                                       | #
+# \=====================================================================/ #
+
+package LaTeXML::Package::Pool;
+use strict;
+use LaTeXML::Package;
+
+RequirePackage('lxRDFa');
+RequirePackage('webgraphic');
+RequirePackage('html');
+RequirePackage('url');
+RequirePackage('hyperref');
+RequirePackage('graphicx');
+
+# Metadata namespaces:
+my $pmbaseURI = "http://planetmath.org"; # Careful: Get the URI right before we publish LOD
+AssignMapping('RDFa_prefixes','dct'=>'http://purl.org/dc/terms/');
+AssignMapping('RDFa_prefixes','msc'=>"http://msc2010.org/resources/MSC/2010/");
+AssignMapping('RDFa_prefixes','xsd'=>'http://www.w3.org/2001/XMLSchema#');
+AssignMapping('RDFa_prefixes','pm'=>"$pmbaseURI/ns/");
+AssignMapping('RDFa_prefixes','pmarticle'=>"$pmbaseURI/");
+AssignMapping('RDFa_prefixes','pmuser'=>"$pmbaseURI/");
+AssignMapping('RDFa_prefixes','pmconcept'=>"$pmbaseURI/concept/");
+
+# URIs for Metadata Resources:
+DefMacro('\articleURI{}','pmarticle:#1');
+DefMacro('\userURI{}','pmuser:#1');
+DefMacro('\conceptURI{}','pmconcept:#1');
+
+# Metadata commands
+# Generic metadata constructors (use to define your own metadata):
+DefMacro('\lxRDFProperty[][]{}{}{}','\lxRDF{datatype={#1},about={#2},property={#3:#4},content={#5}}');
+DefMacro('\lxRDFResource[]{}{}{}','\lxRDF{about={#1},property={#2:#3},resource={#4}}');
+
+DefMacro('\pmmeta@literal@adhoc[][]{}{}','\lxRDFProperty[#1][#2]{pm}{#3}{#4}');
+DefMacro('\pmmeta@uri@adhoc[]{}{}','\lxRDFResource[#1]{pm}{#2}{#3}');
+DefMacro('\pmmeta@literal@dct[][]{}{}','\lxRDFProperty[#1][#2]{dct}{#3}{#4}');
+DefMacro('\pmmeta@uri@dct[]{}{}','\lxRDFResource[#1]{dct}{#2}{#3}');
+# PlanetMath Metadata:
+
+DefMacro('\pmselfproof{}','\pmmeta@literal@adhoc{selfproof}{#1}');
+DefMacro('\pmcomment Semiverbatim','\pmmeta@literal@adhoc{comment}{#1}');
+DefMacro('\pmdefines{}','\pmmeta@literal@adhoc{defines}{\conceptURI{#1}}'); #We need to figure out both defines and its argument (a concept)
+DefMacro('\pmkeyword{}','\pmmeta@literal@adhoc{keyword}{#1}');
+
+DefMacro('\pmparent[]{}','\pmmeta@uri@adhoc{parent}{\articleURI{#2}}'); # Ignore optional argument, the mandatory is a cannonical name
+DefMacro('\pmrelated{}','\pmmeta@uri@adhoc{related}{\articleURI{#1}}');
+DefMacro('\pmsynonym{}{}','\pmmeta@literal@adhoc[][\conceptURI{#2}]{synonym}{#1}'); # Consider DCT alternative for the alias
+DefMacro('\pmowner{}{}','\pmmeta@uri@adhoc{owner}{\userURI{#1}}');
+DefMacro('\pmmodifier{}{}','\pmmeta@uri@adhoc{modifier}{\userURI{#1}}'); # Note : we should use usernames (maybe), but keep in mind they have SPACES in them.
+
+DefMacro('\pmrecord{}{}','\pmmeta@literal@dct{hasVersion}{#1}'); # The second argument of the \pmrecord is the Noosphere ID, which we can ignore
+DefMacro('\pmcanonicalname{}','\pmmeta@literal@dct{identifier}{#1}');
+DefMacro('\pmcreated Semiverbatim','\pmmeta@literal@dct[xsd:date]{created}{#1}');
+DefMacro('\pmmodified Semiverbatim','\pmmeta@literal@dct[xsd:date]{modified}{#1}');
+DefMacro('\pmtitle{}','\title{#1}\pmmeta@literal@dct{title}{#1}');
+DefMacro('\pmtype{}','\pmmeta@literal@dct{type}{#1}'); # Maybe types are resources?
+DefMacro('\pmauthor{}{}','\pmmeta@uri@dct{creator}{\userURI{#1}}'); # First argument is a username, second DB id (ignore second).
+DefMacro('\pmclassification{}{}','\pmmeta@uri@dct{subject}{#1:#2}'); #Arbitrary metadata, simply register the #1 argument as a namespace (e.g. msc)
+DefMacro('\pmprivacy{}','\pmmeta@literal@adhoc[xsd:integer]{privacy}{#1}');
+#FUTURE: add, as much as you have information, additional triples:
+#<some-URI-you-made-up-from-the-authors-ID> rdf:type foaf:Person ;
+#  foaf:name "Name" ;
+#  foaf:firstname "Firstname" ;
+#  foaf:lastname "...";
+#  foaf:mbox "email@addre.ss"
+#etc.
+
+# TODO: Make this robust and relativize paths when we have Drupal rewriting!
+# Basically, we're transforming the graphics options into graphicx format.
+my $graphicURL = 'http://planetmath.org/sites/default/files/pictures/';
+DefKeyVal('webgraphic','width','Dimension');
+DefKeyVal('webgraphic','height','Dimension');
+DefKeyVal('webgraphic','alt','Semiverbatim');
+DefKeyVal('webgraphic','keepaspectratio','','true');
+DefKeyVal('webgraphic','clip','','true');
+DefKeyVal('webgraphic','magnifiable','','true');
+use Data::Dumper;
+DefMacro('\includegraphics','\webgraphic'); # Handy alias
+our $pt_to_px = 1.25; # 90/72, Bruce's suggestion to approximate dpi
+DefConstructor('\webgraphic OptionalMatch:* OptionalKeyVals:webgraphic Semiverbatim',
+       "<ltx:graphics imagesrc='#url' "
+       . "?#2("
+       . "?#imagewidth(imagewidth='#imagewidth' )()"
+       . "?#imageheight(imageheight='#imageheight' )()"
+       . "?&KeyVal(#1,'alt')(description='&KeyVal(#1,'alt')' )()"
+       . ")() />",
+  alias=>'\includegraphics',
+  properties=> sub {
+    my $src = $graphicURL.ToString($_[3]);
+    $src .= '.png' unless ($src =~ /\.(\w{3})$/);
+    my $imagewidth = KeyVal($_[2],'width');
+    $imagewidth = ($imagewidth->ptValue * $pt_to_px) if $imagewidth;
+    my $imageheight = KeyVal($_[2],'height');
+    $imageheight = ($imageheight->ptValue * $pt_to_px) if $imageheight;
+    (url=>$src, imagewidth=>$imagewidth, imageheight=>$imageheight); },
+  beforeConstruct=> sub {
+    my($document,$whatsit) = @_;
+    #TODO: This should be floating to 'ltx:rdf' once the figure bug is fixed.
+    if(my $savenode = $document->floatToElement('ltx:section')){
+      my $rdf = $document->openElement('ltx:rdf');
+      # a bit of trouble to add empty elements!
+      $rdf->setAttribute('about'=>'');
+      $rdf->setAttribute('property'=>'pm:containsGraphic');
+      $rdf->setAttribute('resource'=>$whatsit->getProperty('url'));
+      $document->closeElement('ltx:rdf');
+      $document->setNode($savenode);
+      return;
+    }});
+
+### Originally in pmath.sty.ltxml ###
+# This is a package for rendering PlanetMath entries at home
+#
+# In order for this package to render hyperlinks to PlanetMath
+# one of the following packages has to be loaded _before_
+# this package: html, hyperref, url.
+DefMacro('\PMURI','http://planetmath.org/');
+DefMacro('\PMEXT',''); # Do we need an extension at all here?
+DefMacro('\pmathhref{}{}','\htmladdnormallink{#2}{#1}');
+DefMacro('\PMlinkexternal{}{}','\pmathhref{#2}{#1}');
+
+# Links and RDFa:
+DefMacro('\PMlinkname{}{}',
+  '\pmathhref{\PMURI#2\PMEXT}{#1\lxRDFa{about=,property={pm:linksTo},resource={pmarticle:#2}}}');
+DefMacro('\PMlinkid{}{}',
+  '\pmathhref{\PMURI#2\PMEXT}{#1\lxRDFa{about=,property={pm:linksTo},resource={pmarticle:#2}}}');
+DefConstructor('\nolink{}','<ltx:text class="nolink">#1</ltx:text>');
+DefMacro('\PMnolink','\nolink'); #Just in case
+
+# NNexus macros:
+DefConstructor('\nolink{}','<ltx:ref>#1</ltx:ref>');
+
+# No-ops for now:
+DefMacro('\PMlinkescapetext','');
+DefMacro('\PMlinkescapeword{}','');
+DefMacro('\PMlinkescapephrase{}','');
+DefMacro('\PMlinktofile{}{}','#1'); # not implemented
+
+1;

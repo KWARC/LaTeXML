@@ -46,17 +46,34 @@ our $DEFAULT_FONT = LaTeXML::MathFont->new(family=>'serif', series=>'medium',
 
 # ================================================================================
 sub new {
-  my($class,%options)=@_;
-  require LaTeXML::MathGrammar;
-
-  my $internalparser = LaTeXML::MathGrammar->new();
-  die("Math Parser grammar failed") unless $internalparser;
-
-  my $self = bless {internalparser => $internalparser},$class;
+  my($class)=@_;
+  my $self = bless {type=>'undef'},$class;
   $self; }
 
 sub parseMath {
   my($self,$document,%options)=@_;
+  if ($options{parser}) {
+    if (lc($options{parser}) ne $self->{type}) {
+      my $parse;
+      if ($options{parser} =~ /^LaTeXML::(\w+)$/) {
+        my $loadable = eval "require $options{parser}";
+        # TODO: Fatal if not loadable
+        my $internalparser = $options{parser}->new();
+        $parse = sub { $internalparser->parse(@_); }}
+      elsif ($options{parser} =~ /^marpa/i) {
+        require LaTeXML::MarpaGrammar;
+        my $internalparser = LaTeXML::MarpaGrammar->new();
+        $parse = sub { $internalparser->parse(@_); }}
+      else {
+        require LaTeXML::MathGrammar;
+        my $internalparser = LaTeXML::MathGrammar->new();
+        $parse = sub { my ($rule,$unparsed) = @_;
+                    $internalparser->$rule($unparsed); }
+      }
+      $self->{invoke} = $parse;
+      $self->{type} = lc($options{parser});
+    }
+  }
   local $LaTeXML::MathParser::DOCUMENT = $document;
   $self->clear;			# Not reentrant!
   if(my @math =  $document->findnodes('descendant-or-self::ltx:XMath[not(ancestor::ltx:XMath)]')){
@@ -466,6 +483,7 @@ sub parse_internal {
     my $lexeme      = $role.":".$text.":".++$i;
     $lexeme =~ s/\s//g;
     $$LaTeXML::MathParser::LEXEMES{$lexeme} = $node;
+    $$LaTeXML::MathParser::LEXEMES{$i} = $node;
     $lexemes .= ' '.$lexeme; }
 
   #------------
@@ -475,22 +493,23 @@ sub parse_internal {
   local %LaTeXML::MathParser::DISALLOWED_NOTATIONS = ();
   local $LaTeXML::MathParser::MAX_ABS_DEPTH = 1;
   my $unparsed = $lexemes;
-  my $result = $$self{internalparser}->$rule(\$unparsed);
-  if(((! defined $result) || $unparsed) # If parsing Failed
-     && $LaTeXML::MathParser::SEEN_NOTATIONS{QM}){ # & Saw some QM stuff.
-    $LaTeXML::MathParser::DISALLOWED_NOTATIONS{QM} = 1; # Retry w/o QM notations
-    $unparsed = $lexemes;
-    $result = $$self{internalparser}->$rule(\$unparsed); }
-  while(((! defined $result) || $unparsed) # If parsing Failed
-	&& ($LaTeXML::MathParser::SEEN_NOTATIONS{AbsFail}) # & Attempted deeper abs nesting?
-	&& ($LaTeXML::MathParser::MAX_ABS_DEPTH < 3)){	   # & Not ridiculously deep
-      delete $LaTeXML::MathParser::SEEN_NOTATIONS{AbsFail};
-      ++$LaTeXML::MathParser::MAX_ABS_DEPTH; # Try deeper.
+  my $result = &{$self->{invoke}}($rule,\$unparsed);
+  if ((lc($self->{type}) ne 'marpa') && ($self->{type} ne 'LaTeXML::MathSyntax')) {
+    if(((! defined $result) || $unparsed) # If parsing Failed
+       && $LaTeXML::MathParser::SEEN_NOTATIONS{QM}){ # & Saw some QM stuff.
+      $LaTeXML::MathParser::DISALLOWED_NOTATIONS{QM} = 1; # Retry w/o QM notations
       $unparsed = $lexemes;
-      $result = $$self{internalparser}->$rule(\$unparsed); }
+      $result = &{$self->{invoke}}($rule,\$unparsed); }
+    while(((! defined $result) || $unparsed) # If parsing Failed
+  	&& ($LaTeXML::MathParser::SEEN_NOTATIONS{AbsFail}) # & Attempted deeper abs nesting?
+  	&& ($LaTeXML::MathParser::MAX_ABS_DEPTH < 3)){	   # & Not ridiculously deep
+        delete $LaTeXML::MathParser::SEEN_NOTATIONS{AbsFail};
+        ++$LaTeXML::MathParser::MAX_ABS_DEPTH; # Try deeper.
+        $unparsed = $lexemes;
+        $result = &{$self->{invoke}}($rule,\$unparsed); }
 
-  # If still failed, try other strategies?
-
+    # If still failed, try other strategies?
+  }
   ($result,$unparsed); }
 
 sub getGrammaticalRole {
@@ -720,9 +739,9 @@ sub p_getTokenMeaning {
 
 sub p_getAttribute {
   my($item,$key)=@_;
-  if(! defined $item){ undef; }
-  elsif(ref $item eq 'ARRAY'){                $$item[1]{$key}; }
-  elsif(ref $item eq 'XML::LibXML::Element'){ $item->getAttribute($key); }}
+  if(! defined $item){ '' }
+  elsif(ref $item eq 'ARRAY'){ $$item[1]{$key}||''; }
+  elsif(ref $item eq 'XML::LibXML::Element'){ $item->getAttribute($key)||''; }}
 
 sub p_element_nodes {
   my($item)=@_;
@@ -732,9 +751,9 @@ sub p_element_nodes {
 
 sub p_getQName {
   my($item)=@_;
-  if(! defined $item){ undef; }
-  elsif(ref $item eq 'ARRAY'){ $$item[0]; }
-  elsif(ref $item eq 'XML::LibXML::Element'){ getQName($item); }}
+  if(! defined $item){ ''; }
+  elsif(ref $item eq 'ARRAY'){ $$item[0]||''; }
+  elsif(ref $item eq 'XML::LibXML::Element'){ getQName($item)||''; }}
 
 
 # Make a new Token node with given name, content, and attributes.
@@ -971,13 +990,14 @@ sub LeftRec {
   else {
     $arg1; }}
 
-# Like apply($op,$arg1,$arg2), but if $op is 'same' as the operator in $arg1,
+# Like apply($op,$arg1,$arg2), but if $op is 'same' as the operator in $arg1 (or $arg2!),
 # then combine as an nary apply of $op to $arg1's arguments and $arg2.
 sub ApplyNary {
   my($op,$arg1,$arg2)=@_;
   my $opname    = p_getTokenMeaning($op) ||'__undef_meaning__';
   my $opcontent = p_getValue($op)  ||'__undef_content__';
   my @args = ();
+  # Left-assoc
   if(p_getQName($arg1) eq 'ltx:XMApp'){
     my($op1,@args1)=p_element_nodes($arg1);
     if(((p_getTokenMeaning($op1)||'__undef_meaning__') eq $opname) # Same operator?
@@ -987,12 +1007,23 @@ sub ApplyNary {
 		qw(mathstyle))	# Check ops are used in similar way
        # Check that arg1 isn't wrapped, fenced or enclosed in some restrictive way
        && !grep(p_getAttribute($arg1,$_), qw(open close enclose)) ) {
-      push(@args,@args1); }
-    else {
-      push(@args,$arg1); }}
-  else {
-    push(@args,$arg1); }
-  Apply($op,@args,$arg2); }
+      return Apply($op,@args1,$arg2); }
+  }
+  # Right-assoc
+  if(p_getQName($arg2) eq 'ltx:XMApp'){
+    my($op2,@args2)=p_element_nodes($arg2);
+    if(((p_getTokenMeaning($op2)||'__undef_meaning__') eq $opname) # Same operator?
+       && ((p_getValue($op2) || '__undef_content__') eq $opcontent)
+       # Check that ops are used in same way.
+       && !grep((p_getAttribute($op,$_)||'<none>') ne (p_getAttribute($op2,$_)||'<none>'),
+    qw(mathstyle))  # Check ops are used in similar way
+       # Check that arg2 isn't wrapped, fenced or enclosed in some restrictive way
+       && !grep(p_getAttribute($arg2,$_), qw(open close enclose)) ) {
+      return Apply($op,$arg1,@args2); }
+  }
+  # Default apply
+  return Apply($op,$arg1,$arg2);
+}
 
 # ================================================================================
 # Construct an appropriate application of sub/superscripts

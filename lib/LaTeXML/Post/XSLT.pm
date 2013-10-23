@@ -26,6 +26,7 @@ use base qw(LaTeXML::Post::Processor);
 #         CSS   is a '|' separated list of paths
 #         ICON  a favicon
 #         resource_directory a directory under top-level to put resources (css, js, etc)
+our %STYLE_CACHE=(); # Class-level cache for stylesheets.
 sub new {
   my($class,%options)=@_;
   my $self = $class->SUPER::new(%options);
@@ -37,7 +38,13 @@ sub new {
     Error('missing-file',$stylesheet,undef,"No stylesheet '$stylesheet' found!")
       unless $pathname && -f $pathname;
     $stylesheet = $pathname; }
-  $stylesheet = LaTeXML::Common::XML::XSLT->new($stylesheet);
+  if (my $cached = $STYLE_CACHE{$stylesheet}) {
+    $stylesheet = $cached;
+  } else {
+    my $cached = LaTeXML::Common::XML::XSLT->new($stylesheet);
+    $STYLE_CACHE{$stylesheet} = $cached; 
+    $stylesheet = $cached;
+  }
   if((!ref $stylesheet) || !($stylesheet->can('transform'))){
     Error('expected','stylesheet',undef,"Stylesheet '$stylesheet' is not a usable stylesheet!"); }
   $$self{stylesheet}=$stylesheet;

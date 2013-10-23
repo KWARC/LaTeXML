@@ -18,9 +18,11 @@ use LaTeXML::Global;
 use LaTeXML::Definition;
 use LaTeXML::Parameters;
 use LaTeXML::Util::Pathname;
+use LaTeXML::Util::WWW;
 use Unicode::Normalize;
 use Text::Balanced;
 use base qw(Exporter);
+our @EXPORT_OK = qw(pathname_is_literaldata pathname_is_specialprotocol);
 our @EXPORT = (qw(&DefExpandable
 		  &DefMacro &DefMacroI
 		  &DefConditional &DefConditionalI
@@ -32,7 +34,7 @@ our @EXPORT = (qw(&DefExpandable
 		  &convertLaTeXArgs),
 
 	       # Class, Package and File loading.
-	       qw(&Input &InputContent &InputDefinitions &RequirePackage &LoadClass &LoadPool &FindFile
+	       qw(&Input &InputContent &InputDefinitions &RequirePackage &LoadClass &LoadedPool &LoadPool &FindFile
 		  &DeclareOption &PassOptions &ProcessOptions &ExecuteOptions
 		  &AddToMacro &AtBeginDocument &AtEndDocument),
 
@@ -1182,12 +1184,15 @@ sub FindFile_aux {
   # (3) BUT we want to avoid kpsewhich if we can, since it's slower
   # (4) depending on switches we may EXCLUDE .ltxml OR raw tex OR allow both.
   my $paths    = LookupValue('SEARCHPATHS');
+  my $urlbase = LookupValue('URLBASE');
+  my $nopaths = LookupValue('REMOTE_REQUEST');
+  my $ltxml_paths =  $nopaths ? [] : $paths;
   # If we're looking for ltxml, look within our paths & installation first (faster than kpse)
   if(!$options{noltxml}
-     && ($path=pathname_find("$file.ltxml",paths=>$paths,installation_subdir=>'Package'))){
+     && ($path=pathname_find("$file.ltxml",paths=>$ltxml_paths,installation_subdir=>'Package'))){
     return $path; }
   # If we're EXCLUDING ltxml, then FIRST use pathname_find to search for file (faster, blahblah)
-  if($options{noltxml} && ($path=pathname_find($file,paths=>$paths))){
+  if($options{noltxml} && ($path=pathname_find($file,paths=>$paths,urlbase=>$urlbase))){
     return $path; }
   # Otherwise, pass on to kpsewhich
   # Depending on flags, maybe search for ltxml in texmf or for plain tex in ours!
@@ -1197,11 +1202,15 @@ sub FindFile_aux {
   my $kpsewhich = $ENV{LATEXML_KPSEWHICH} || 'kpsewhich';
   local $ENV{TEXINPUTS} = join(':',@$paths, $ENV{TEXINPUTS}||':');
   my $candidates = join(' ',
-			(!$options{noltxml} ? ("$file.ltxml"):()),
+			((!$options{noltxml} && !$nopaths) ? ("$file.ltxml"):()),
 			(!$options{notex}   ? ($file):()));
   if(my $result = `$kpsewhich $candidates`){
     if($result =~ /^\s*(.+?)\s*\n/s){
       return $1; }}
+  if ($urlbase && ($path=url_find($file,urlbase=>$urlbase))) {
+    return $path;
+  }
+  return;
  }
 
 sub pathname_is_nasty {
@@ -1592,6 +1601,15 @@ sub LoadPool {
 	  "Can't find binding for pool $pool (installation error)",
 	  maybeReportSearchPaths());
     return; }}
+
+#DG: Check if loaded
+sub LoadedPool {
+  my($mode)=@_;
+  $mode = ToString($mode) if ref $mode;
+  $mode =~ s/^\s*//;  $mode =~ s/\s*$//;
+  if(my $poolfile = FindFile($mode.".pool")){
+    $STATE->lookupValue($poolfile.'_loaded'); }
+  else {0;}}
 
 sub AtBeginDocument {
   my(@operations)=@_;

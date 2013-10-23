@@ -56,6 +56,8 @@ sub outerWrapper {
     $wrapped = $self->associateID($wrapped,$id); }
   ($wrapped); }
 
+sub find_math_nodes {  $_[1]->findnodes('//ltx:Math'); }
+
 # This works for either pmml or cmml.
 sub combineParallel {
   my($self,$doc,$math,$xmath,$primary,@secondaries)=@_;
@@ -387,6 +389,48 @@ sub pmml_internal {
     my $result = ['m:mtable',{rowspacing=>"0.2ex", columnspacing=>"0.4em",align=>$vattach},@rows];
     $result = ['m:mstyle',{@$styleattr},$result] if $styleattr;
     $result; }
+  #Experimental XMRow and XMCell support.
+  #DG: We should accommodate XMRow and XMCell elements appearing out of Arrays (sTeX notations)
+  elsif($tag eq 'ltx:XMRow'){
+    my $style = $node->getAttribute('style');
+    my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
+    local $LaTeXML::MathML::STYLE 
+      = ($style && $stylestep{$style} ? $style : $LaTeXML::MathML::STYLE);
+    my @cols = ();
+    foreach my $col (element_nodes($node)){
+    my $a = $col->getAttribute('align');
+    my $b = $col->getAttribute('border');
+    my $h = (($col->getAttribute('thead')||'') eq 'true') && 'thead';
+    my $c = ($b ? ($h ? "$b $h" : $b) : $h);
+    my $cs = $col->getAttribute('colspan');
+    my $rs = $col->getAttribute('rowspan');
+    push(@cols,['m:mtd',{($a ? (columnalign=>$a):()),
+                        ($c ? (class=>$c):()),
+                        ($cs ? (columnspan=>$cs):()),
+                        ($rs ? (rowspan=>$rs):())},
+                      map(pmml($_),element_nodes($col))]); }
+    my $result = ['m:mtr',{},@cols];
+    $result = ['m:mstyle',{@$styleattr},$result] if $styleattr;
+    $result; }
+  elsif($tag eq 'ltx:XMCell'){
+    my $style = $node->getAttribute('style');
+    my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
+    local $LaTeXML::MathML::STYLE 
+      = ($style && $stylestep{$style} ? $style : $LaTeXML::MathML::STYLE);
+    my $col = $node;
+    my $a = $col->getAttribute('align');
+    my $b = $col->getAttribute('border');
+    my $h = (($col->getAttribute('thead')||'') eq 'true') && 'thead';
+    my $c = ($b ? ($h ? "$b $h" : $b) : $h);
+    my $cs = $col->getAttribute('colspan');
+    my $rs = $col->getAttribute('rowspan');
+    my $result = ['m:mtd',{($a ? (columnalign=>$a):()),
+                        ($c ? (class=>$c):()),
+                        ($cs ? (columnspan=>$cs):()),
+                        ($rs ? (rowspan=>$rs):())},
+                      map(pmml($_),element_nodes($col))];
+    $result = ['m:mstyle',{@$styleattr},$result] if $styleattr;
+    $result; }
   elsif($tag eq 'ltx:XMText'){
     pmml_row(map(pmml_text_aux($_), $node->childNodes)); }
   elsif($tag eq 'ltx:ERROR'){
@@ -521,6 +565,7 @@ our %plane1hack = (script=>$plane1map{script},  'bold-script'=>$plane1map{script
 sub stylizeContent {
   my($item,$mihack,%attr)=@_;
   my $iselement = (ref $item) eq 'XML::LibXML::Element';
+  my $href = ($iselement ? $item->getAttribute('href') : $attr{href});
   my $font  = ($iselement ? $item->getAttribute('font') : $attr{font})
     || $LaTeXML::MathML::FONT;
   my $size  = ($iselement ? $item->getAttribute('fontsize') : $attr{fontsize})
@@ -568,6 +613,7 @@ sub stylizeContent {
       $variant = ($plane1hack && ($variant =~ /^bold/) ? 'bold' : undef);  }}
 ###  ($text,$variant,$size && $sizes{$size},$color); }
   ($text,
+   ($href ? (href=>$href):()),
    ($variant  ? (mathvariant=>$variant):()),
    ($size     ? (mathsize=>$sizes{$size})  :()),
    ($color    ? (mathcolor=>$color):()),
@@ -917,6 +963,31 @@ sub cmml_decoratedSymbol {
   my($item)=@_;
   ['m:ci',{},pmml($item)]; }
 
+
+# Experimental; for an XMApp with role=CROSSREFOP, we treat it as a mo
+# and we format its contents as pmml
+# Note that we need to transfer the cr attribute of the XMApp to the m:mo
+sub pmml_decoratedOperator {
+  my($head,@args)=@_;
+  return undef if (!($head->getAttribute('role') eq "CROSSREFOP"));
+  my $doc=$LaTeXML::Post::DOCUMENT;
+  my $cr  = (ref $head ? $head->getAttribute("cr") : "fun");
+  $head->setAttribute("role","SKIP");
+  my $operator=pmml(@args);
+  return undef unless $operator; #bootstrap
+  if ($$operator[0] =~ /^m:m[io]$/) { #Unwrap if only a mi or mo
+    $operator=$$operator[2];
+    ['m:mo',{'cr'=>$cr},
+     $operator]; }
+  else {
+    #If structure is present, add cr attribute to top level element
+    $$operator[1]{'cr'} = $cr;
+    $operator;
+  }}
+#Experiment: CROSSREFOP
+DefMathML("Apply:CROSSREFOP:?",       \&pmml_decoratedOperator, undef);
+DefMathML("Token:SKIP:?", sub {undef;}, sub{undef;});
+
 # Return the NOT of the argument.
 sub cmml_not {
   ['m:apply',{},['m:not',{}],cmml($_[0])]; }
@@ -1090,6 +1161,10 @@ DefMathML('Apply:SUBSCRIPTOP:?',   \&pmml_script, undef);
 DefMathML('Token:SUPERSCRIPTOP:?', undef, sub{['m:csymbol',{cd=>'ambiguous'},'superscript'];});
 DefMathML('Token:SUBSCRIPTOP:?',   undef, sub{['m:csymbol',{cd=>'ambiguous'},'subscript'];});
 
+#DG Experimental: qvars for MWS
+DefMathML('Token:?:qvar', undef, sub{['m:csymbol',{cd=>'mws',name=>'qvar'}, $_[0]->textContent];});
+
+
 DefMathML('Apply:POSTFIX:?', sub {
   ['m:mrow',{},pmml($_[1]),pmml($_[0])]; });
 
@@ -1152,6 +1227,14 @@ DefMathML("Token:?:factor-of",            undef, sub{['m:factorof'];});
 DefMathML("Token:METARELOP:?",     \&pmml_mo);
 DefMathML('Apply:RELOP:?',         \&pmml_infix);
 DefMathML('Apply:METARELOP:?',     \&pmml_infix);
+
+#DG: Experimental CDLF enhancements:
+DefMathML("Token:?:empty", sub{['m:mi',{mathcolor=>"gray"},"\x{2062}"]}, sub{['m:csymbol',{cd=>'underspecified'},"concatenation"];});
+DefMathML("Token:?:concatenation", sub{['m:mo',{mathcolor=>"gray"},"\x{2062}"]}, sub{['m:csymbol',{cd=>'underspecified'},"concatenation"];});
+DefMathML('Apply:?:cdlf-set',
+    sub { pmml($_[1]); },
+    sub { my($op,@args)=@_;
+          ['m:apply',{},cmml($op), map(cmml($_),@args)]; });
 
 # Top level relations
 DefMathML('Apply:?:formulae',sub { 
@@ -1247,6 +1330,31 @@ DefMathML("Token:?:set-minus",        undef, sub{['m:setdiff'];});
 DefMathML("Token:?:cardinality",      undef, sub{['m:card'];});
 DefMathML("Token:?:cartesian-product",undef, sub{['m:cartesianproduct'];});
 
+# The following macros work on simple relations. Fail on multirelations.
+DefMathML("Apply:?:superset-of", \&pmml_infix,
+sub{
+  my($op,@elements)=@_;
+  my(@rev)=reverse(@elements);
+  ['m:apply',{},['m:prsubset',{}],map(cmml($_),@rev)];});
+
+DefMathML("Apply:?:superset-of-or-equals", \&pmml_infix,
+sub{
+  my($op,@elements)=@_;
+  my(@rev)=reverse(@elements);
+  ['m:apply',{},['m:subset',{}],map(cmml($_),@rev)];});
+
+DefMathML("Apply:?:not-superset-of", \&pmml_infix,
+sub{
+  my($op,@elements)=@_;
+  my(@rev)=reverse(@elements);
+  ['m:apply',{},['m:notprsubset',{}],map(cmml($_),@rev)];});
+
+DefMathML("Apply:?:not-superset-of-or-equals", \&pmml_infix,
+sub{
+  my($op,@elements)=@_;
+  my(@rev)=reverse(@elements);
+  ['m:apply',{},['m:notsubset',{}],map(cmml($_),@rev)];});
+
 #======================================================================
 # Sequences and Series:
 #   sum, product, limit, tendsto
@@ -1339,7 +1447,8 @@ DefMathML("Token:?:moment",             undef, sub{['m:moment'];});
 #   vector, matrix, matrixrow, determinant, transpose, selector, 
 #   vectorproduct, scalarproduct, outerproduct.
 
-DefMathML("Token:?:vector",         undef, sub{['m:vector'];});
+DefMathML("Token:?:vector",         sub{}, sub{['m:vector'];});
+DefMathML("Token:?:sequence",       sub{}, sub{['m:csymbol',{cd=>'underspecified'},'sequence']});
 DefMathML("Token:?:matrix",         undef, sub{['m:matrix'];});
 DefMathML("Token:?:determinant",    undef, sub{['m:determinant'];});
 DefMathML("Token:?:transpose",      undef, sub{['m:transpose'];});
