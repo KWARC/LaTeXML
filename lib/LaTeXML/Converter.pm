@@ -21,7 +21,6 @@ use File::Temp qw(tempdir);
 use File::Path qw(remove_tree);
 use File::Spec;
 
-use LaTeXML::Package qw(pathname_is_literaldata);
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::WWW;
 use LaTeXML::Util::ObjectDB;
