@@ -85,14 +85,14 @@ sub getBibEntries {
 
   # First, scan the bib files for all ltx:bibentry's, (hash key is bibkey)
   # Also, record the citations from each bibentry to others.
-  my %entries=();
-  foreach my $bibfile (@{$$self{bibliographies}}){
+  my %entries = ();
+  foreach my $bibfile (@{ $$self{bibliographies} }) {
     my $bibdoc;
-    if (! ref($bibfile)) {
+    if (!ref($bibfile)) {
       $bibdoc = $doc->newFromFile($bibfile); }
     else {
       $bibdoc = $doc->new($bibfile, sourceDirectory => '.'); }
-    foreach my $bibentry ($bibdoc->findnodes('//ltx:bibentry')){
+    foreach my $bibentry ($bibdoc->findnodes('//ltx:bibentry')) {
       my $bibkey = $bibentry->getAttribute('key');
       my $bibid  = $bibentry->getAttribute('xml:id');
       $entries{$bibkey}{bibkey}    = $bibkey;

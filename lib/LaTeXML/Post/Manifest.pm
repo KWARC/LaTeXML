@@ -20,26 +20,26 @@ use base qw(LaTeXML::Post::Processor);
 #   format: which specification we're creating a manifest for
 #   siteDirectory: the directory we're analyzing
 sub new {
-  my($class,%options)=@_;
-  my $self; 
+  my ($class, %options) = @_;
+  my $self;
 
   if ($options{format}) {
     # Abstract class constructor, we need to instantiate a specific manifest processor
     my $format = ucfirst(lc(delete $options{format}));
     local $@ = '';
-    my $eval_return = eval {require "LaTeXML/Post/Manifest/$format.pm"; 1;};
+    my $eval_return = eval { require "LaTeXML/Post/Manifest/$format.pm"; 1; };
     if ($eval_return && (!$@)) {
       $self = eval {
         "LaTeXML::Post::Manifest::$format"->new(%options);
       }; }
     else {
-      Warn('missing','Manifest',undef,"No Manifest post-processor found for format $format. Skipping post-processor.",$@);
-      $self = $class->SUPER::new(%options); }}
+      Warn('missing', 'Manifest', undef, "No Manifest post-processor found for format $format. Skipping post-processor.", $@);
+      $self = $class->SUPER::new(%options); } }
   else {
     # Called from a concrete manifest class
-    $self = $class->SUPER::new(%options);
-    $$self{siteDirectory}  = $options{siteDirectory};
-    $$self{finished} = 0; }
+    $self                 = $class->SUPER::new(%options);
+    $$self{siteDirectory} = $options{siteDirectory};
+    $$self{finished}      = 0; }
 
   return $self; }
 

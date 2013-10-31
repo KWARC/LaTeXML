@@ -144,25 +144,25 @@ sub stringify {
 
 #**********************************************************************
 sub getLocator {
-  my($self,$length)=@_;
-  my($l,$c,$lstart,$cstart)=($$self{lineno},$$self{colno});
+  my ($self, $length) = @_;
+  my ($l, $c, $lstart, $cstart) = ($$self{lineno}, $$self{colno});
   #my $msg =  "at $$self{source}; line $l col $c";
   #Deyan: Upgrade message to XPointer style
-  my $nc = $$self{nchars}-1; #There is always a weird (end of line?) char that gets counted
-  if ((defined $c) && ($c>=$nc)) {
+  my $nc = $$self{nchars} - 1;    #There is always a weird (end of line?) char that gets counted
+  if ((defined $c) && ($c >= $nc)) {
     $lstart = $l;
     $cstart = $c - $nc;
   } else {
     #Very rough and dirty approximation, not to be relied on.
     #One would need to keep all line lengths to properly establish the start and end
     # or just remember the initial char of the token's position
-    $lstart = $l-1;
+    $lstart = $l - 1;
     $cstart = $nc - $c;
   }
   "$$self{source}#textrange(from=$lstart;$cstart,to=$l;$c)";
   # if($length && (defined $l || defined $c)){
   #   my $chars=$$self{chars};
-  #   my $n = $$self{nchars}; 
+  #   my $n = $$self{nchars};
   #   $c=$n-1 if $c >=$n;
   #   my $c0 = ($c > 50 ? $c-40 : 0);
   #   my $cn = ($n-$c > 50 ? $c+40 : $n-1);

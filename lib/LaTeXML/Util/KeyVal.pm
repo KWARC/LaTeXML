@@ -33,17 +33,17 @@ sub ReadRequiredKeyVals {
     (LaTeXML::KeyVals->new($keyset, T_BEGIN, T_END,)); } }
 
 sub ReadOptionalKeyVals {
-  my($gullet,$keyset)=@_;
-  my $kv = ($gullet->ifNext(T_OTHER('[')) ? (readKeyVals($gullet,$keyset,T_OTHER(']'))) : undef); 
+  my ($gullet, $keyset) = @_;
+  my $kv = ($gullet->ifNext(T_OTHER('[')) ? (readKeyVals($gullet, $keyset, T_OTHER(']'))) : undef);
   # DG: Experimental metadata keyval treatment
   my $meta_statements = LookupValue('metadata_keyval_hook');
   if (defined $meta_statements) {
     foreach (@$meta_statements) {
       $gullet->unread($_);
     }
-    AssignValue('metadata_keyval_hook',undef);
+    AssignValue('metadata_keyval_hook', undef);
   }
-  $kv;}
+  $kv; }
 
 #======================================================================
 # This new declaration allows you to define the type associated with
@@ -92,45 +92,45 @@ sub readKeyVals {
       "Fell off end expecting " . Stringify($close) . " while reading KeyVal key",
       "key started at $startloc")
       unless $delim;
-    my $key= ToString($ktoks); $key=~s/\s//g;
-    if($key){
-      my $keydef=LookupValue('KEYVAL@'.$keyset.'@'.$key);
-      my ($value,$meta);
-      if($delim->equals($T_EQ)){	# Got =, so read the value
-	# WHOA!!! Secret knowledge!!!
-	my $type = ($keydef && (scalar(@$keydef)==1) && $keydef->[0]->{type}) || 'Plain';
-        if ($type eq 'Metakey') { #DG: Experimental metadata treatment
+    my $key = ToString($ktoks); $key =~ s/\s//g;
+    if ($key) {
+      my $keydef = LookupValue('KEYVAL@' . $keyset . '@' . $key);
+      my ($value, $meta);
+      if ($delim->equals($T_EQ)) {    # Got =, so read the value
+                                      # WHOA!!! Secret knowledge!!!
+        my $type = ($keydef && (scalar(@$keydef) == 1) && $keydef->[0]->{type}) || 'Plain';
+        if ($type eq 'Metakey') {     #DG: Experimental metadata treatment
           $type = 'Semiverbatim';
-          $meta=1;
+          $meta = 1;
         }
-	my $typedef = $LaTeXML::Parameters::PARAMETER_TABLE{$type};
-	StartSemiverbatim() if $typedef && $$typedef{semiverbatim};
+        my $typedef = $LaTeXML::Parameters::PARAMETER_TABLE{$type};
+        StartSemiverbatim() if $typedef && $$typedef{semiverbatim};
 
-	## ($value,$delim)=$gullet->readUntil($T_COMMA,$close);
-	# This is the core of $gullet->readUntil, but preserves braces needed by rare key types
-	my($tok,@toks)=();
-	while((!defined ($delim=$gullet->readMatch($T_COMMA,$close)))
-	     && (defined ($tok=$gullet->readToken()))){ # Copy next token to args
-	  push(@toks,$tok,
-	       ($tok->getCatcode == CC_BEGIN ? ($gullet->readBalanced->unlist,T_END) : ())); }
-	$value = Tokens(@toks);
-	if(($type eq 'Plain') || ($typedef && $$typedef{undigested})){}	# Fine as is.
-	elsif($type eq 'Semiverbatim'){ # Needs neutralization
-	  $value = $value->neutralize; }
-	else {
-	  ($value) = $keydef->reparseArgument($gullet,$value) }
-	EndSemiverbatim() if $typedef && $$typedef{semiverbatim};
+        ## ($value,$delim)=$gullet->readUntil($T_COMMA,$close);
+        # This is the core of $gullet->readUntil, but preserves braces needed by rare key types
+        my ($tok, @toks) = ();
+        while ((!defined($delim = $gullet->readMatch($T_COMMA, $close)))
+          && (defined($tok = $gullet->readToken()))) {    # Copy next token to args
+          push(@toks, $tok,
+            ($tok->getCatcode == CC_BEGIN ? ($gullet->readBalanced->unlist, T_END) : ())); }
+        $value = Tokens(@toks);
+        if (($type eq 'Plain') || ($typedef && $$typedef{undigested})) { }    # Fine as is.
+        elsif ($type eq 'Semiverbatim') {                                     # Needs neutralization
+          $value = $value->neutralize; }
+        else {
+          ($value) = $keydef->reparseArgument($gullet, $value) }
+        EndSemiverbatim() if $typedef && $$typedef{semiverbatim};
       }
-      else {			# Else, get default value.
-	$value = LookupValue('KEYVAL@'.$keyset.'@'.$key.'@default'); }
-      if ($meta) { #DG: Experimental metadata treatment
-        PushValue('metadata_keyval_hook','\thisrel{'.ToString($key).'}{'.ToString($value).'}');
+      else {                                                                  # Else, get default value.
+        $value = LookupValue('KEYVAL@' . $keyset . '@' . $key . '@default'); }
+      if ($meta) {    #DG: Experimental metadata treatment
+        PushValue('metadata_keyval_hook', '\thisrel{' . ToString($key) . '}{' . ToString($value) . '}');
       }
-      push(@kv,$key);
-      push(@kv,$value); }
-    Error('expected',$close,$gullet,
-	  "Fell off end expecting ".Stringify($close)." while reading KeyVal value",
-	  "key started at $startloc")
+      push(@kv, $key);
+      push(@kv, $value); }
+    Error('expected', $close, $gullet,
+      "Fell off end expecting " . Stringify($close) . " while reading KeyVal value",
+      "key started at $startloc")
       unless $delim;
     last if $delim->equals($close); }
   LaTeXML::KeyVals->new($keyset, $open, $close, @kv); }

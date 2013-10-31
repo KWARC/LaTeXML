@@ -23,70 +23,70 @@ use Unicode::Normalize;
 use Text::Balanced;
 use base qw(Exporter);
 our @EXPORT_OK = qw(pathname_is_literaldata pathname_is_specialprotocol);
-our @EXPORT = (qw(&DefExpandable
-		  &DefMacro &DefMacroI
-		  &DefConditional &DefConditionalI
-		  &DefPrimitive  &DefPrimitiveI
-		  &DefRegister &DefRegisterI
-		  &DefConstructor &DefConstructorI
-		  &dualize_arglist
-		  &DefMath &DefMathI &DefEnvironment &DefEnvironmentI
-		  &convertLaTeXArgs),
+our @EXPORT    = (qw(&DefExpandable
+    &DefMacro &DefMacroI
+    &DefConditional &DefConditionalI
+    &DefPrimitive  &DefPrimitiveI
+    &DefRegister &DefRegisterI
+    &DefConstructor &DefConstructorI
+    &dualize_arglist
+    &DefMath &DefMathI &DefEnvironment &DefEnvironmentI
+    &convertLaTeXArgs),
 
-	       # Class, Package and File loading.
-	       qw(&Input &InputContent &InputDefinitions &RequirePackage &LoadClass &LoadedPool &LoadPool &FindFile
-		  &DeclareOption &PassOptions &ProcessOptions &ExecuteOptions
-		  &AddToMacro &AtBeginDocument &AtEndDocument),
+  # Class, Package and File loading.
+  qw(&Input &InputContent &InputDefinitions &RequirePackage &LoadClass &LoadedPool &LoadPool &FindFile
+    &DeclareOption &PassOptions &ProcessOptions &ExecuteOptions
+    &AddToMacro &AtBeginDocument &AtEndDocument),
 
-	       # Counter support
-	       qw(&NewCounter &CounterValue &SetCounter &AddToCounter &StepCounter &RefStepCounter &RefStepID &ResetCounter
-		  &GenerateID),
+  # Counter support
+  qw(&NewCounter &CounterValue &SetCounter &AddToCounter &StepCounter &RefStepCounter &RefStepID &ResetCounter
+    &GenerateID),
 
-	       # Document Model
-	       qw(&Tag &DocType &RelaxNGSchema &RegisterNamespace &RegisterDocumentNamespace),
+  # Document Model
+  qw(&Tag &DocType &RelaxNGSchema &RegisterNamespace &RegisterDocumentNamespace),
 
-	       # Document Rewriting
-	       qw(&DefRewrite &DefMathRewrite
-		  &DefLigature &DefMathLigature),
+  # Document Rewriting
+  qw(&DefRewrite &DefMathRewrite
+    &DefLigature &DefMathLigature),
 
-	       # Mid-level support for writing definitions.
-	       qw(&Expand &Invocation &Digest &DigestIf &DigestLiteral
-		  &RawTeX &Let),
+  # Mid-level support for writing definitions.
+  qw(&Expand &Invocation &Digest &DigestIf &DigestLiteral
+    &RawTeX &Let),
 
-	       # Font encoding
-	       qw(&DeclareFontMap &FontDecode &FontDecodeString &LoadFontMap),
+  # Font encoding
+  qw(&DeclareFontMap &FontDecode &FontDecodeString &LoadFontMap),
 
-	       # Color
-	       qw(&DefColor &DefColorModel &LookupColor),
+  # Color
+  qw(&DefColor &DefColorModel &LookupColor),
 
-	       # Support for structured/argument readers
-	       qw(&ReadParameters &DefParameterType  &DefColumnType),
+  # Support for structured/argument readers
+  qw(&ReadParameters &DefParameterType  &DefColumnType),
 
-	       # Access to State
-	       qw(&LookupValue &AssignValue
-		  &PushValue &PopValue &UnshiftValue &ShiftValue
-		  &LookupMapping &AssignMapping &LookupMappingKeys
-		  &LookupCatcode &AssignCatcode
-		  &LookupMeaning &LookupDefinition &InstallDefinition
-                  &LookupMathcode &AssignMathcode
-                  &LookupSFcode &AssignSFcode
-                  &LookupLCcode &AssignLCcode
-                  &LookupUCcode &AssignUCcode
-                  &LookupDelcode &AssignDelcode
-                ),
+  # Access to State
+  qw(&LookupValue &AssignValue
+    &PushValue &PopValue &UnshiftValue &ShiftValue
+    &LookupMapping &AssignMapping &LookupMappingKeys
+    &LookupCatcode &AssignCatcode
+    &LookupMeaning &LookupDefinition &InstallDefinition
+    &LookupMathcode &AssignMathcode
+    &LookupSFcode &AssignSFcode
+    &LookupLCcode &AssignLCcode
+    &LookupUCcode &AssignUCcode
+    &LookupDelcode &AssignDelcode
+    ),
 
-	       # Random low-level token or string operations.
-	       qw(&CleanID &CleanLabel &CleanIndexKey &CleanBibKey &CleanURL
-		  &UTF
-		  &roman &Roman),
-	       # Math & font state.
-	       qw(&MergeFont),
+  # Random low-level token or string operations.
+  qw(&CleanID &CleanLabel &CleanIndexKey &CleanBibKey &CleanURL
+    &UTF
+    &roman &Roman),
+  # Math & font state.
+  qw(&MergeFont),
 
-	       qw(&CheckOptions),
-	       # Resources
-	       qw(&RequireResource &ProcessPendingResources),
+  qw(&CheckOptions),
+  # Resources
+  qw(&RequireResource &ProcessPendingResources),
 
-	       @LaTeXML::Global::EXPORT);
+  @LaTeXML::Global::EXPORT);
 
 #**********************************************************************
 #   Initially, I thought LaTeXML Packages should try to be like perl modules:
@@ -823,9 +823,9 @@ sub dualize_arglist {
   my (@cargs, @pargs);
   foreach my $arg (@args) {
     if ((defined $arg) && $arg->unlist) {    # defined and non-empty args get an ID.
-      #      my $id = next_id();
-      #      push(@cargs, Invocation(T_CS('\@XMArg'),T_OTHER($id),$arg));
-      #      push(@pargs, Invocation(T_CS('\@XMRef'),T_OTHER($id))); }
+          #      my $id = next_id();
+          #      push(@cargs, Invocation(T_CS('\@XMArg'),T_OTHER($id),$arg));
+          #      push(@pargs, Invocation(T_CS('\@XMRef'),T_OTHER($id))); }
 
       StepCounter('@XMARG');
       DefMacroI(T_CS('\@@XMARG@ID'), undef, Tokens(Explode(LookupValue('\c@@XMARG')->valueOf)),
@@ -1197,16 +1197,16 @@ sub FindFile_aux {
   # (2) those MAY be present in kpsewhich's DB (although our searchpaths take precedence!)
   # (3) BUT we want to avoid kpsewhich if we can, since it's slower
   # (4) depending on switches we may EXCLUDE .ltxml OR raw tex OR allow both.
-  my $paths    = LookupValue('SEARCHPATHS');
-  my $urlbase = LookupValue('URLBASE');
-  my $nopaths = LookupValue('REMOTE_REQUEST');
-  my $ltxml_paths =  $nopaths ? [] : $paths;
+  my $paths       = LookupValue('SEARCHPATHS');
+  my $urlbase     = LookupValue('URLBASE');
+  my $nopaths     = LookupValue('REMOTE_REQUEST');
+  my $ltxml_paths = $nopaths ? [] : $paths;
   # If we're looking for ltxml, look within our paths & installation first (faster than kpse)
-  if(!$options{noltxml}
-     && ($path=pathname_find("$file.ltxml",paths=>$ltxml_paths,installation_subdir=>'Package'))){
+  if (!$options{noltxml}
+    && ($path = pathname_find("$file.ltxml", paths => $ltxml_paths, installation_subdir => 'Package'))) {
     return $path; }
   # If we're EXCLUDING ltxml, then FIRST use pathname_find to search for file (faster, blahblah)
-  if($options{noltxml} && ($path=pathname_find($file,paths=>$paths,urlbase=>$urlbase))){
+  if ($options{noltxml} && ($path = pathname_find($file, paths => $paths, urlbase => $urlbase))) {
     return $path; }
   # Otherwise, pass on to kpsewhich
   # Depending on flags, maybe search for ltxml in texmf or for plain tex in ours!
@@ -1216,16 +1216,16 @@ sub FindFile_aux {
   my $kpsewhich = $ENV{LATEXML_KPSEWHICH} || 'kpsewhich';
   local $ENV{TEXINPUTS} = join(':', @$paths, $ENV{TEXINPUTS} || ':');
   my $candidates = join(' ',
-			((!$options{noltxml} && !$nopaths) ? ("$file.ltxml"):()),
-			(!$options{notex}   ? ($file):()));
-  if(my $result = `$kpsewhich $candidates`){
-    if($result =~ /^\s*(.+?)\s*\n/s){
-      return $1; }}
-  if ($urlbase && ($path=url_find($file,urlbase=>$urlbase))) {
+    ((!$options{noltxml} && !$nopaths) ? ("$file.ltxml") : ()),
+    (!$options{notex} ? ($file) : ()));
+  if (my $result = `$kpsewhich $candidates`) {
+    if ($result =~ /^\s*(.+?)\s*\n/s) {
+      return $1; } }
+  if ($urlbase && ($path = url_find($file, urlbase => $urlbase))) {
     return $path;
   }
   return;
- }
+}
 
 sub pathname_is_nasty {
   my ($pathname) = @_;
@@ -1621,12 +1621,12 @@ sub LoadPool {
 
 #DG: Check if loaded
 sub LoadedPool {
-  my($mode)=@_;
+  my ($mode) = @_;
   $mode = ToString($mode) if ref $mode;
-  $mode =~ s/^\s*//;  $mode =~ s/\s*$//;
-  if(my $poolfile = FindFile($mode.".pool")){
-    $STATE->lookupValue($poolfile.'_loaded'); }
-  else {0;}}
+  $mode =~ s/^\s*//; $mode =~ s/\s*$//;
+  if (my $poolfile = FindFile($mode . ".pool")) {
+    $STATE->lookupValue($poolfile . '_loaded'); }
+  else { 0; } }
 
 sub AtBeginDocument {
   my (@operations) = @_;
