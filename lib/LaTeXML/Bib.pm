@@ -11,7 +11,6 @@
 # \=========================================================ooo==U==ooo=/ #
 
 package LaTeXML::Bib;
-use LaTeXML;
 use LaTeXML::Global;
 use LaTeXML::Util::Pathname;
 use Text::Balanced qw(extract_delimited extract_bracketed);
