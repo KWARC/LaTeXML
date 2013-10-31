@@ -29,7 +29,7 @@ use LaTeXML::Version;
 use Encode;
 use vars qw($VERSION);
 our @ISA = (qw(LaTeXML::Object));
-$VERSION = $LaTeXML::Version::VERSION; # for backward compatibility
+$VERSION = $LaTeXML::Version::VERSION;    # for backward compatibility
 
 #**********************************************************************
 
@@ -63,20 +63,20 @@ sub new {
 # High-level API.
 
 sub convertAndWriteFile {
-  my($self,$file)=@_;
+  my ($self, $file) = @_;
   $file =~ s/\.tex$//;
   my $dom = $self->convertFile($file);
-  $dom->toFile("$file.xml",1) if $dom;
+  $dom->toFile("$file.xml", 1) if $dom;
   return $dom; }
 
 sub convertFile {
-  my($self,$file)=@_;
+  my ($self, $file) = @_;
   my $digested = $self->digestFile($file);
   return unless $digested;
   return $self->convertDocument($digested); }
 
 sub getStatusMessage {
-  my($self)=@_;
+  my ($self) = @_;
   return $$self{state}->getStatusMessage; }
 sub getStatusCode {
   my($self)=@_;
@@ -91,10 +91,11 @@ sub getStatusCode {
 #    preamble = names a tex file (or standard_preamble.tex)
 #    postamble = names a tex file (or standard_postamble.tex)
 
-our %MODE_EXTENSION = (TeX=>'tex', LaTeX=>'tex', AmSTeX=>'tex', BibTeX=>'bib');
+our %MODE_EXTENSION = (TeX => 'tex', LaTeX => 'tex', AmSTeX => 'tex', BibTeX => 'bib');
+
 sub digestFile {
-  my($self,$request,%options)=@_;
-  my($dir,$name,$ext);
+  my ($self, $request, %options) = @_;
+  my ($dir, $name, $ext);
   my $mode = $options{mode} || 'TeX';
   if(pathname_is_literaldata($request)){
     $dir = undef; $ext = $MODE_EXTENSION{$mode};
@@ -105,9 +106,9 @@ sub digestFile {
   }
   else {
     $request =~ s/\.\Q$MODE_EXTENSION{$mode}\E$//;
-    if(my $pathname = pathname_find($request,types=>[$MODE_EXTENSION{$mode},''])){
+    if (my $pathname = pathname_find($request, types => [$MODE_EXTENSION{$mode}, ''])) {
       $request = $pathname;
-      ($dir,$name,$ext)=pathname_split($request);  }
+      ($dir, $name, $ext) = pathname_split($request); }
     else {
       $self->withState(sub {
         Fatal('missing_file',$request,undef,"Can't find $mode file $request"); }); }}
@@ -140,33 +141,33 @@ sub digestFile {
 }
 
 sub finishDigestion {
-  my($self)=@_;
-  my $state = $$self{state};
+  my ($self)  = @_;
+  my $state   = $$self{state};
   my $stomach = $state->getStomach;
-  my @stuff=();
-  while($stomach->getGullet->getMouth->hasMoreInput){
-      push(@stuff,$stomach->digestNextBody); }
-  if(my $env = $state->lookupValue('current_environment')){
-    Error('expected',"\\end{$env}",$stomach,"Input ended while environment $env was open"); } 
+  my @stuff   = ();
+  while ($stomach->getGullet->getMouth->hasMoreInput) {
+    push(@stuff, $stomach->digestNextBody); }
+  if (my $env = $state->lookupValue('current_environment')) {
+    Error('expected', "\\end{$env}", $stomach, "Input ended while environment $env was open"); }
   $stomach->getGullet->flush;
   return LaTeXML::List->new(@stuff); }
 
 sub loadPreamble {
-  my($self,$preamble)=@_;
-  my $gullet  = $$self{state}->getStomach->getGullet;
-  if($preamble eq 'standard_preamble.tex'){
+  my ($self, $preamble) = @_;
+  my $gullet = $$self{state}->getStomach->getGullet;
+  if ($preamble eq 'standard_preamble.tex') {
     $preamble = 'literal:\documentclass{article}\begin{document}'; }
   return LaTeXML::Package::InputContent($preamble); }
 
 sub loadPostamble {
-  my($self,$postamble)=@_;
-  my $gullet  = $$self{state}->getStomach->getGullet;
-  if($postamble eq 'standard_postamble.tex'){
+  my ($self, $postamble) = @_;
+  my $gullet = $$self{state}->getStomach->getGullet;
+  if ($postamble eq 'standard_postamble.tex') {
     $postamble = 'literal:\end{document}'; }
   return LaTeXML::Package::InputContent($postamble); }
 
 sub convertDocument {
-  my($self,$digested)=@_;
+  my ($self, $digested) = @_;
   return
   $self->withState(sub {
      my($state)=@_;
@@ -201,14 +202,14 @@ sub convertDocument {
      return $xmldoc; }); }
 
 sub withState {
-  my($self,$closure)=@_;
-  local $STATE    = $$self{state};
+  my ($self, $closure) = @_;
+  local $STATE = $$self{state};
   # And, set fancy error handler for ANY die!
   # Could be useful to distill the more common messages so they provide useful build statistics?
-  local $SIG{__DIE__}  = sub { LaTeXML::Error::perl_die_handler(@_); };
-  local $SIG{INT}      = sub { LaTeXML::Error::Fatal('perl','interrupt',undef,"LaTeXML was interrupted",@_); };
+  local $SIG{__DIE__} = sub { LaTeXML::Error::perl_die_handler(@_); };
+  local $SIG{INT} = sub { LaTeXML::Error::Fatal('perl', 'interrupt', undef, "LaTeXML was interrupted", @_); };
   local $SIG{__WARN__} = sub { LaTeXML::Error::perl_warn_handler(@_); };
-  local $LaTeXML::DUAL_BRANCH= '';
+  local $LaTeXML::DUAL_BRANCH = '';
 
   return &$closure($STATE); }
 
@@ -222,11 +223,11 @@ sub initializeState {
   foreach my $preload (@files){
     my($options,$type);
     $options = $1 if $preload =~ s/^\[([^\]]*)\]//;
-    $type    = ($preload =~ s/\.(\w+)$// ? $1 : 'sty');
-    my $handleoptions = ($type eq 'sty')||($type eq 'cls');
-    if($options){
-      if($handleoptions){
-	$options = [split(/,/,$options)]; }
+    $type = ($preload =~ s/\.(\w+)$// ? $1 : 'sty');
+    my $handleoptions = ($type eq 'sty') || ($type eq 'cls');
+    if ($options) {
+      if ($handleoptions) {
+        $options = [split(/,/, $options)]; }
       else {
 	Warn('unexpected','options',
 	     "Attempting to pass options to $preload.$type (not style or class)",
@@ -241,8 +242,8 @@ sub initializeState {
   return; }
 
 sub writeDOM {
-  my($self,$dom,$name)=@_;
-  $dom->toFile("$name.xml",1);
+  my ($self, $dom, $name) = @_;
+  $dom->toFile("$name.xml", 1);
   return 1; }
 
 #**********************************************************************

@@ -13,18 +13,10 @@ Makefile
 Makefile.old
 MANIFEST.bak
 META.yml
+MYMETA.json
 MYMETA.yml
 nytprof.out
 pm_to_blib
-
-# Compiled source #
-###################
-*.com
-*.class
-*.dll
-*.exe
-*.o
-*.so
 
 # Packages #
 ############
@@ -57,4 +49,5 @@ ehthumbs.db
 Thumbs.db
 
 # Git merge leftovers #
+######################
 *.orig

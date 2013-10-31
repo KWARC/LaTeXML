@@ -14,10 +14,10 @@ package LaTeXML::Util::KeyVal;
 use strict;
 use LaTeXML::Package;
 
-our @ISA = qw(Exporter);
-our @EXPORT= (qw(&ReadRequiredKeyVals &ReadOptionalKeyVals
-		 &DefKeyVal
-		 &KeyVal &KeyVals));
+our @ISA    = qw(Exporter);
+our @EXPORT = (qw(&ReadRequiredKeyVals &ReadOptionalKeyVals
+    &DefKeyVal
+    &KeyVal &KeyVals));
 
 #======================================================================
 # New Readers for required and optional KeyVal sets.
@@ -25,12 +25,12 @@ our @EXPORT= (qw(&ReadRequiredKeyVals &ReadOptionalKeyVals
 # They create a new data KeyVals object
 
 sub ReadRequiredKeyVals {
-  my($gullet,$keyset)=@_;
-  if($gullet->ifNext(T_BEGIN)){
-    (readKeyVals($gullet,$keyset,T_END)); }
+  my ($gullet, $keyset) = @_;
+  if ($gullet->ifNext(T_BEGIN)) {
+    (readKeyVals($gullet, $keyset, T_END)); }
   else {
-    Error('expected','{',$gullet,"Missing keyval arguments");
-    (LaTeXML::KeyVals->new($keyset,T_BEGIN,T_END,)); }}
+    Error('expected', '{', $gullet, "Missing keyval arguments");
+    (LaTeXML::KeyVals->new($keyset, T_BEGIN, T_END,)); } }
 
 sub ReadOptionalKeyVals {
   my($gullet,$keyset)=@_;
@@ -49,11 +49,11 @@ sub ReadOptionalKeyVals {
 # This new declaration allows you to define the type associated with
 # the value for specific keys.
 sub DefKeyVal {
-  my($keyset,$key,$type,$default)=@_;
-  my $paramlist=LaTeXML::Package::parseParameters($type,"KeyVal $key in set $keyset");
-  AssignValue('KEYVAL@'.$keyset.'@'.$key => $paramlist); 
-  AssignValue('KEYVAL@'.$keyset.'@'.$key.'@default' => Tokenize($default)) 
-    if defined $default; 
+  my ($keyset, $key, $type, $default) = @_;
+  my $paramlist = LaTeXML::Package::parseParameters($type, "KeyVal $key in set $keyset");
+  AssignValue('KEYVAL@' . $keyset . '@' . $key              => $paramlist);
+  AssignValue('KEYVAL@' . $keyset . '@' . $key . '@default' => Tokenize($default))
+    if defined $default;
   return; }
 
 #======================================================================
@@ -62,35 +62,35 @@ sub DefKeyVal {
 # Access the value associated with a given key.
 # Can use in constructor: eg. <foo attrib='&KeyVal(#1,'key')'>
 sub KeyVal {
-  my($keyval,$key)=@_;
+  my ($keyval, $key) = @_;
   (defined $keyval) && $keyval->getValue($key); }
 
 # Access the entire hash.
 # Can use in constructor: <foo %&KeyVals(#1)/>
 sub KeyVals {
-  my($keyval)=@_;
+  my ($keyval) = @_;
   (defined $keyval ? $keyval->getKeyVals : {}); }
 
 #======================================================================
 # A KeyVal argument MUST be delimited by either braces or brackets (if optional)
 # This method reads the keyval pairs INCLUDING the delimiters, (rather than parsing
 # after the fact), since some values may have special catcode needs.
-our $T_EQ = T_OTHER('=');
+our $T_EQ    = T_OTHER('=');
 our $T_COMMA = T_OTHER(',');
 
 sub readKeyVals {
-  my($gullet,$keyset,$close)=@_;
+  my ($gullet, $keyset, $close) = @_;
   my $startloc = $gullet->getLocator();
-  my $open = $gullet->readToken;
+  my $open     = $gullet->readToken;
   $keyset = ($keyset ? ToString($keyset) : '_anonymous_');
-  my @kv=();
-  while(1) {
-    $gullet->skipSpaces; 
+  my @kv = ();
+  while (1) {
+    $gullet->skipSpaces;
     # Read the keyword.
-    my($ktoks,$delim)=$gullet->readUntil($T_EQ,$T_COMMA,$close);
-    Error('expected',$close,$gullet,
-	  "Fell off end expecting ".Stringify($close)." while reading KeyVal key",
-	  "key started at $startloc")
+    my ($ktoks, $delim) = $gullet->readUntil($T_EQ, $T_COMMA, $close);
+    Error('expected', $close, $gullet,
+      "Fell off end expecting " . Stringify($close) . " while reading KeyVal key",
+      "key started at $startloc")
       unless $delim;
     my $key= ToString($ktoks); $key=~s/\s//g;
     if($key){
@@ -133,7 +133,7 @@ sub readKeyVals {
 	  "key started at $startloc")
       unless $delim;
     last if $delim->equals($close); }
-  LaTeXML::KeyVals->new($keyset,$open,$close,@kv); }
+  LaTeXML::KeyVals->new($keyset, $open, $close, @kv); }
 
 #**********************************************************************
 # This defines the KeyVal data object that can appear in the datastream
@@ -159,86 +159,86 @@ use base qw(LaTeXML::Object);
 
 # Spec??
 sub new {
-  my($class,$keyset,$open,$close,@pairs)=@_;
+  my ($class, $keyset, $open, $close, @pairs) = @_;
   my %hash = ();
-  my @pp=@pairs;
-  while(@pp){
-    my($k,$v) = (shift(@pp),shift(@pp));
-    if(!defined $hash{$k}){ $hash{$k}=$v; }
+  my @pp   = @pairs;
+  while (@pp) {
+    my ($k, $v) = (shift(@pp), shift(@pp));
+    if (!defined $hash{$k}) { $hash{$k} = $v; }
     # Hmm, accumulate an ARRAY if multiple values for given key.
     # This is unlikely to be what the caller expects!! But what?
-    elsif(ref $hash{$k} eq 'ARRAY'){ push(@{$hash{$k}},$v); }
-    else { $hash{$k}=[$hash{$k},$v]; }}
-  bless {keyset=>$keyset, open=>$open, close=>$close, keyvals=>[@pairs], hash=>{%hash}},$class; }
+    elsif (ref $hash{$k} eq 'ARRAY') { push(@{ $hash{$k} }, $v); }
+    else { $hash{$k} = [$hash{$k}, $v]; } }
+  bless { keyset => $keyset, open => $open, close => $close, keyvals => [@pairs], hash => {%hash} }, $class; }
 
 sub getValue {
-  my($self,$key)=@_;
+  my ($self, $key) = @_;
   $$self{hash}{$key}; }
 
 sub setValue {
-  my($self,$key,$value)=@_;
-  if(defined $value){
-    $$self{hash}{$key}=$value; }
+  my ($self, $key, $value) = @_;
+  if (defined $value) {
+    $$self{hash}{$key} = $value; }
   else {
-    delete $$self{hash}{$key}; }}
+    delete $$self{hash}{$key}; } }
 
 sub getPairs {
-  my($self)=@_;
-  @{$$self{keyvals}}; }
+  my ($self) = @_;
+  @{ $$self{keyvals} }; }
 
 sub getKeyVals {
-  my($self)=@_;
+  my ($self) = @_;
   $$self{hash}; }
 
 sub getHash {
-  my($self)=@_;
-  map( ($_ => ToString($$self{hash}{$_})), keys %{$$self{hash}}); }
+  my ($self) = @_;
+  map(($_ => ToString($$self{hash}{$_})), keys %{ $$self{hash} }); }
 
-sub beDigested { 
-  my($self,$stomach)=@_;
+sub beDigested {
+  my ($self, $stomach) = @_;
   my $keyset = $$self{keyset};
-  my @kv=@{$$self{keyvals}};
-  my @dkv=();
-  while(@kv){
-    my($key,$value)=(shift(@kv),shift(@kv));
-    my $keydef=LookupValue('KEYVAL@'.$keyset.'@'.$key);
+  my @kv     = @{ $$self{keyvals} };
+  my @dkv    = ();
+  while (@kv) {
+    my ($key, $value) = (shift(@kv), shift(@kv));
+    my $keydef = LookupValue('KEYVAL@' . $keyset . '@' . $key);
     my $dodigest = (ref $value) && (!$keydef || !$$keydef[0]{undigested});
     # Yuck
-    my $type = ($keydef && (scalar(@$keydef)==1) && $keydef->[0]->{type}) || 'Plain';
-    my $typedef = $LaTeXML::Parameters::PARAMETER_TABLE{$type};
+    my $type     = ($keydef && (scalar(@$keydef) == 1) && $keydef->[0]->{type}) || 'Plain';
+    my $typedef  = $LaTeXML::Parameters::PARAMETER_TABLE{$type};
     my $semiverb = $dodigest && $typedef && $$typedef{semiverbatim};
     StartSemiverbatim() if $semiverb;
-    push(@dkv,$key, ($dodigest ? $value->beDigested($stomach) : $value)); 
-    EndSemiverbatim() if $semiverb; 
+    push(@dkv, $key, ($dodigest ? $value->beDigested($stomach) : $value));
+    EndSemiverbatim() if $semiverb;
   }
-  (ref $self)->new($$self{keyset},$$self{open},$$self{close},@dkv); }
+  (ref $self)->new($$self{keyset}, $$self{open}, $$self{close}, @dkv); }
 
 sub revert {
-  my($self)=@_;
+  my ($self) = @_;
   my $keyset = $$self{keyset};
-  my @tokens=();
-  my @kv=@{$$self{keyvals}};
-  while(@kv){
-    my($key,$value)=(shift(@kv),shift(@kv));
-    my $keydef=LookupValue('KEYVAL@'.$keyset.'@'.$key);
-    push(@tokens,T_OTHER(','),T_SPACE) if @tokens;
-    push(@tokens,Explode($key));
-    push(@tokens,T_OTHER('='),
-	 ($keydef ? $keydef->revertArguments($value) : Revert($value))) if $value; }
-  unshift(@tokens,$$self{open} ) if $$self{open};
-  push(   @tokens,$$self{close}) if $$self{close};
+  my @tokens = ();
+  my @kv     = @{ $$self{keyvals} };
+  while (@kv) {
+    my ($key, $value) = (shift(@kv), shift(@kv));
+    my $keydef = LookupValue('KEYVAL@' . $keyset . '@' . $key);
+    push(@tokens, T_OTHER(','), T_SPACE) if @tokens;
+    push(@tokens, Explode($key));
+    push(@tokens, T_OTHER('='),
+      ($keydef ? $keydef->revertArguments($value) : Revert($value))) if $value; }
+  unshift(@tokens, $$self{open}) if $$self{open};
+  push(@tokens, $$self{close}) if $$self{close};
   @tokens; }
 
-sub unlist { $_[0]; }		# ????
+sub unlist { $_[0]; }    # ????
 
 sub toString {
-  my($self)=@_;
-  my $string='';
-  my @kv=@{$$self{keyvals}};
-  while(@kv){
-    my($key,$value)=(shift(@kv),shift(@kv));
+  my ($self) = @_;
+  my $string = '';
+  my @kv     = @{ $$self{keyvals} };
+  while (@kv) {
+    my ($key, $value) = (shift(@kv), shift(@kv));
     $string .= ', ' if $string;
-    $string .= $key.'='.ToString($value); }
+    $string .= $key . '=' . ToString($value); }
   $string; }
 
 #======================================================================
