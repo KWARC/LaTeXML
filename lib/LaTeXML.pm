@@ -24,6 +24,7 @@ use LaTeXML::Object;
 use LaTeXML::MathParser;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Bib;
+use LaTeXML::Package;
 use LaTeXML::Version;
 use Encode;
 use vars qw($VERSION);
