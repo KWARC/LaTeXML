@@ -143,9 +143,13 @@ sub assign_internal {
   return; }
 
 #======================================================================
-sub getStomach    { $_[0]->{stomach}; }
-sub getModel      { $_[0]->{model}; }
-sub getMathParser { $_[0]->{mathparser}; }
+sub getStomach {
+  my ($self) = @_;
+  return $$self{stomach}; }
+
+sub getModel {
+  my ($self) = @_;
+  return $$self{model}; }
 
 #======================================================================
 
@@ -373,8 +377,9 @@ sub pushDaemonFrame {
   foreach my $constructor (grep { /^constructor_/ } keys %LaTeXML::Definition::) {
     $pool_sub_hash->{$constructor} = 1; }
   $self->assignValue('_PRELOADED_POOL_', $pool_sub_hash, 'global');
-  # Now mark the top frame as LOCKED!!!
-  $$self{undo}[0]{_FRAME_LOCK_} = 1; }
+      # Now mark the top frame as LOCKED!!!
+  $$self{undo}[0]{_FRAME_LOCK_} = 1;
+  return; }
 
 sub daemon_copy {
   my ($ob) = @_;
