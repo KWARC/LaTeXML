@@ -151,6 +151,10 @@ sub getModel {
   my ($self) = @_;
   return $$self{model}; }
 
+sub getMathParser {
+  my ($self) = @_;
+  return $$self{mathparser}; }
+
 #======================================================================
 
 # Lookup & assign a general Value
