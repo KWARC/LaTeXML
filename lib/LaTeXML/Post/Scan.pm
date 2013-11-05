@@ -169,6 +169,8 @@ sub section_handler {
       rrefnum  => $node->getAttribute('rrefnum'),
       title    => $self->cleanNode($doc, $doc->findnode('ltx:title',    $node)),
       toctitle => $self->cleanNode($doc, $doc->findnode('ltx:toctitle', $node)),
+      authors => [ map {$self->cleanNode($doc,$_)}
+       $doc->findnodes('ltx:creator[@role="author"]/ltx:personname', $node)],
       children => [],
       stub     => $node->getAttribute('stub'));
     $self->addAsChild($id, $parent_id); }
