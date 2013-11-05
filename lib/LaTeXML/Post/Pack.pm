@@ -43,7 +43,7 @@ sub process {
   if ($whatsout eq 'archive') {
     my $archive = GetArchive($self->{siteDirectory});
     Fatal("I/O", $self, $docs[0], "Writing archive to IO::String handle failed") unless defined $archive;
-    return $archive; }
+    return ($archive); }
   # Otherwise pack each document passed
   foreach my $doc (@docs) {
     next unless defined $doc;

@@ -147,18 +147,23 @@ sub finalize {
   my ($self) = @_;
   #Index all CSS files (written already)
   my $OPS_directory = $self->{OPS_directory};
-  opendir(my $styles_handle, $OPS_directory);
-  my @styles = grep { /\.css$/ && -f pathname_concat($OPS_directory, $_) } readdir($styles_handle);
-  closedir $styles_handle;
+  opendir(my $ops_handle, $OPS_directory);
+  my @files = readdir($ops_handle);
+  closedir $ops_handle;
+  my @styles = grep { /\.css$/ && -f pathname_concat($OPS_directory, $_) } @files;
+  my @images = grep { /\.png$/ && -f pathname_concat($OPS_directory, $_) } @files;
   my $manifest = $self->{opf_manifest};
+  # TODO: Other externals are future work
   foreach my $style (@styles) {
     my $style_item = $manifest->addNewChild(undef, 'item');
-    $style_item->setAttribute('id', $style);
-    $style_item->setAttribute('href',
-      pathname_relative(pathname_concat($OPS_directory, $style), $OPS_directory));
-    # TODO: Any non-CSS externals are future work
-    $style_item->setAttribute('media-type', 'text/css');
-  }
+    $style_item->setAttribute('id',         $style);
+    $style_item->setAttribute('href',       "./$style");
+    $style_item->setAttribute('media-type', 'text/css'); }
+  foreach my $image (@images) {
+    my $image_item = $manifest->addNewChild(undef, 'item');
+    $image_item->setAttribute('id',         $image);
+    $image_item->setAttribute('href',       "./$image");
+    $image_item->setAttribute('media-type', 'image/png'); }
 
   # Write the content.opf file to disk
   my $directory = $self->{siteDirectory};
