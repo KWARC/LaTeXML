@@ -372,6 +372,7 @@ sub _prepare_options {
       $opts->{whatsout} = 'archive';
     }
     $opts->{is_html} = ($opts->{format} =~ /^html5?$/);
+    $opts->{is_xhtml} = ($opts->{format} =~ /^(xhtml|epub|mobi)$/);
     $opts->{whatsout} = 'archive' if (($opts->{format} eq 'epub') || ($opts->{format} eq 'mobi'));
   }
   #======================================================================
@@ -383,6 +384,7 @@ sub _prepare_options {
     (scalar(@{ $opts->{math_formats} }))
     || ($opts->{stylesheet})
     || $opts->{is_html}
+    || $opts->{is_xhtml}
     || ($opts->{whatsout} && ($opts->{whatsout} ne 'document'))
   );
 # || ... || ... || ...
@@ -457,7 +459,7 @@ sub _prepare_options {
     $opts->{svg}        = 1 unless defined $opts->{svg};
     # PMML default if we're HTMLy and all else fails and no mathimages:
     if (((!defined $opts->{math_formats}) || (!scalar(@{ $opts->{math_formats} }))) &&
-      (!$opts->{mathimages}) && $opts->{is_html})
+      (!$opts->{mathimages}) && ($opts->{is_html} || $opts->{is_xhtml}))
     {
       push @{ $opts->{math_formats} }, 'pmml';
     }
