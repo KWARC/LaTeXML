@@ -509,7 +509,7 @@ sub convert_post {
   # If our format requires a manifest, create one
   if (($opts->{whatsout} eq 'archive') && ($format !~ /^x?html|xml/)) {
     require LaTeXML::Post::Manifest;
-    my $manifest_maker = LaTeXML::Post::Manifest->new(format => $format, %PostOPS);
+    my $manifest_maker = LaTeXML::Post::Manifest->new(db=>$DB, format => $format, %PostOPS);
     $manifest_maker->process(@postdocs); }
   # Handle the output packaging
   require LaTeXML::Post::Pack;

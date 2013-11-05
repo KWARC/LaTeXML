@@ -39,7 +39,7 @@ sub new {
     # Called from a concrete manifest class
     $self                 = $class->SUPER::new(%options);
     $$self{siteDirectory} = $options{siteDirectory};
-    $$self{finished}      = 0; }
+    $$self{db}      = $options{db}; }
 
   return $self; }
 

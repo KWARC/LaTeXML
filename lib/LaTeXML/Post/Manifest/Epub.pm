@@ -60,12 +60,30 @@ sub initialize {
   $package->setAttribute('version',           '3.0');
 
   # Metadata
+  my $document_metadata = $self->{db}->lookup("ID:Document");
+  my $document_title = $document_metadata->getValue('title');
+  $document_title = $document_title->textContent if $document_title;
+  my $document_authors = $document_metadata->getValue('authors')||[];
+  $document_authors = [ map {$_->textContent} @$document_authors ];
+  my $document_language = $document_metadata->getValue('language') || 'en';
+
   my $metadata = $package->addNewChild(undef, 'metadata');
   $metadata->setNamespace("http://purl.org/dc/elements/1.1/", "dc",  0);
   $metadata->setNamespace("http://www.idpf.org/2007/opf",     'opf', 0);
+  my $title = $metadata->addNewChild("http://purl.org/dc/elements/1.1/", "title");
+  $title->appendText($document_title);
+  foreach my $document_author (@$document_authors) {
+    my $author = $metadata->addNewChild("http://purl.org/dc/elements/1.1/", "creator");
+    $author->appendText($document_author); }
+  my $language = $metadata->addNewChild("http://purl.org/dc/elements/1.1/", "language");
+  $language->appendText($document_language);
+  # TODO: Continue...
+  #my $modified = $metadata->addNewChild(undef, "meta");
+  #$modified->setAttribute('property','dcterms:modified');
+  #my $now_string = strftime ""; # CCYY-MM-DDThh:mm:ssZ
+  #$modified->appendText($now_string);
   my $identifier = $metadata->addNewChild("http://purl.org/dc/elements/1.1/", "identifier");
   $identifier->setAttribute('id',         'pub-id');
-  $identifier->setAttribute('opf:scheme', 'UUID');
   $identifier->appendText($self->{'unique-identifier'});
   # Manifest
   my $manifest = $package->addNewChild(undef, 'manifest');
