@@ -496,7 +496,7 @@ sub convert_post {
       || ($opts->{whatsout} eq 'archive'))) {
     require LaTeXML::Post::Writer;
     push(@procs, LaTeXML::Post::Writer->new(
-        format => $format, omit_doctype => $opts->{omit_doctype}, is_html => $opts->{is_html},
+        format => $format, omit_doctype => $opts->{omit_doctype},
         %PostOPS));
   }
 
