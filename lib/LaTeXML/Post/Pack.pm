@@ -35,27 +35,28 @@ sub new {
   $self; }
 
 sub process {
-  my ($self, $doc, $root) = @_;
-  return unless defined $doc;
+  my ($self, @docs) = @_;
+  my @packed_docs;
   my $whatsout = $self->{whatsout};
-  if ((!$whatsout) || ($whatsout eq 'document')) { }    # Document is no-op
-  elsif ($whatsout eq 'fragment') {
-    # If we want an embedable snippet, unwrap to body's "main" div
-    $doc = GetEmbeddable($doc); }
-  elsif ($whatsout eq 'math') {
-    # Math output - least common ancestor of all math in the document
-    $doc = GetMath($doc); }
-  elsif ($whatsout eq 'archive') {
-    return () if $self->{finished};
-    # Run a single time, even if there are multiple document fragments
-    $self->{finished} = 1;
-    # Archive the site directory
-    my $directory = $self->{siteDirectory};
-    $doc = GetArchive($directory);
-    # Should we empty the site directory???
-    Fatal("I/O", $self, $doc, "Writing archive to IO::String handle failed") unless defined $doc;
-  }
-  return $doc; }
+
+  # Archive once if requested
+  if ($whatsout eq 'archive') {
+    my $archive = GetArchive($self->{siteDirectory});
+    Fatal("I/O", $self, $docs[0], "Writing archive to IO::String handle failed") unless defined $archive;
+    return $archive; }
+  # Otherwise pack each document passed
+  foreach my $doc (@docs) {
+    next unless defined $doc;
+    if ((!$whatsout) || ($whatsout eq 'document')) {
+      push @packed_docs, $doc; }    # Document is no-op
+    elsif ($whatsout eq 'fragment') {
+      # If we want an embedable snippet, unwrap to body's "main" div
+      push @packed_docs, GetEmbeddable($doc); }
+    elsif ($whatsout eq 'math') {
+      # Math output - least common ancestor of all math in the document
+      push @packed_docs, GetMath($doc); }
+    else { push @packed_docs, $doc; } }
+  return @packed_docs; }
 
 sub GetArchive {
   my ($directory) = @_;

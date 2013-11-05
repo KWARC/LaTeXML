@@ -22,7 +22,7 @@ our $container_content = <<'EOL';
 <?xml version="1.0"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
     <rootfiles>
-        <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+        <rootfile full-path="OPS/content.opf" media-type="application/oebps-package+xml"/>
    </rootfiles>
 </container>
 EOL
@@ -30,7 +30,6 @@ EOL
 sub new {
   my ($class, %options) = @_;
   my $self = $class->SUPER::new(%options);
-  $self->initialize;
   return $self; }
 
 sub initialize {
@@ -51,20 +50,21 @@ sub initialize {
   print $container_fh $container_content;
   close $container_fh;
 
-  # 3. Create OEBPS content container
-  my $OEBPS_directory = catdir($directory, 'OEBPS');
-  # 3.1 OEBPS/content.opf XML Spine
+  # 3. Create OPS content container
+  my $OPS_directory = catdir($directory, 'OPS');
+  # 3.1 OPS/content.opf XML Spine
   my $opf = XML::LibXML::Document->new('1.0', 'UTF-8');
   my $package = $opf->createElementNS("http://www.idpf.org/2007/opf", 'package');
   $opf->setDocumentElement($package);
-  $package->setAttribute('unique-identifier', 'BookID');
-  $package->setAttribute('version',           '2.0');
+  $package->setAttribute('unique-identifier', 'pub-id');
+  $package->setAttribute('version',           '3.0');
+
   # Metadata
   my $metadata = $package->addNewChild(undef, 'metadata');
   $metadata->setNamespace("http://purl.org/dc/elements/1.1/", "dc",  0);
   $metadata->setNamespace("http://www.idpf.org/2007/opf",     'opf', 0);
   my $identifier = $metadata->addNewChild("http://purl.org/dc/elements/1.1/", "identifier");
-  $identifier->setAttribute('id',         'BookID');
+  $identifier->setAttribute('id',         'pub-id');
   $identifier->setAttribute('opf:scheme', 'UUID');
   $identifier->appendText($self->{'unique-identifier'});
   # Manifest
@@ -77,7 +77,7 @@ sub initialize {
   my $spine = $package->addNewChild(undef, 'spine');
   $spine->setAttribute('toc', 'ncx');
 
-  # 3.2 OEBPS/toc.ncx XML ToC
+  # 3.2 OPS/toc.ncx XML ToC
   my $ncx = XML::LibXML::Document->new('1.0', 'UTF-8');
   my $dtd = $ncx->createInternalSubset("ncx", "-//NISO//DTD ncx 2005-1//EN", "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd");
   my $ncx_element = $ncx->createElementNS("http://www.daisy.org/z3986/2005/ncx/", "ncx");
@@ -100,73 +100,74 @@ sub initialize {
   # TODO: 3.2.2. docTitle ???
   # 3.2.3 navMap
   my $ncx_navmap = $ncx_element->addNewChild(undef, 'navMap');
-  $self->{OEBPS_directory} = $OEBPS_directory;
-  $self->{opf}             = $opf;
-  $self->{opf_spine}       = $spine;
-  $self->{opf_manifest}    = $manifest;
-  $self->{ncx}             = $ncx;
-  $self->{ncx_navmap}      = $ncx_navmap;
-  $self->{ncx_navorder}    = 0;
+  $self->{OPS_directory} = $OPS_directory;
+  $self->{opf}           = $opf;
+  $self->{opf_spine}     = $spine;
+  $self->{opf_manifest}  = $manifest;
+  $self->{ncx}           = $ncx;
+  $self->{ncx_navmap}    = $ncx_navmap;
+  $self->{ncx_navorder}  = 0;
   return; }
 
 sub process {
-  my ($self, $doc, $root) = @_;
-  # Add each document to the spine manifest
-  if (my $destination = $doc->getDestination) {
-    my (undef, $name, $ext) = pathname_split($destination);
-    my $file = "$name.$ext";
-    my $relative_destination = pathname_relative($destination, $self->{OEBPS_directory});
+  my ($self, @docs) = @_;
+  $self->initialize;
+  foreach my $doc (@docs) {
+    # Add each document to the spine manifest
+    if (my $destination = $doc->getDestination) {
+      my (undef, $name, $ext) = pathname_split($destination);
+      my $file = "$name.$ext";
+      my $relative_destination = pathname_relative($destination, $self->{OPS_directory});
 
-    # Add to manifest
-    my $manifest = $self->{opf_manifest};
-    my $item = $manifest->addNewChild(undef, 'item');
-    $item->setAttribute('id',         $file);
-    $item->setAttribute('href',       $relative_destination);
-    $item->setAttribute('media-type', "application/xhtml+xml");
-    # Add to spine
-    my $spine = $self->{opf_spine};
-    my $itemref = $spine->addNewChild(undef, 'itemref');
-    $itemref->setAttribute('idref', $file);
+      # Add to manifest
+      my $manifest = $self->{opf_manifest};
+      my $item = $manifest->addNewChild(undef, 'item');
+      $item->setAttribute('id',         $file);
+      $item->setAttribute('href',       $relative_destination);
+      $item->setAttribute('media-type', "application/xhtml+xml");
+      # Add to spine
+      my $spine = $self->{opf_spine};
+      my $itemref = $spine->addNewChild(undef, 'itemref');
+      $itemref->setAttribute('idref', $file);
 
-    # Add to navMap
-    my $navmap   = $self->{ncx_navmap};
-    my $navpoint = $navmap->addNewChild(undef, 'navPoint');
-    my $order    = $self->{ncx_navorder} + 1;
-    $self->{ncx_navorder} = $order;
-    $navpoint->setAttribute('id',        "navPoint-$order");
-    $navpoint->setAttribute('playOrder', "$order");
-    my $navlabel = $navpoint->addNewChild(undef, 'navLabel');
-    # TODO: Better labels for the different chapters/parts
-    $navlabel->addNewChild(undef, 'text')->appendText($file);
-  }
-  return $doc; }
+      # Add to navMap
+      my $navmap   = $self->{ncx_navmap};
+      my $navpoint = $navmap->addNewChild(undef, 'navPoint');
+      my $order    = $self->{ncx_navorder} + 1;
+      $self->{ncx_navorder} = $order;
+      $navpoint->setAttribute('id',        "navPoint-$order");
+      $navpoint->setAttribute('playOrder', "$order");
+      my $navlabel = $navpoint->addNewChild(undef, 'navLabel');
+      # TODO: Better labels for the different chapters/parts
+      $navlabel->addNewChild(undef, 'text')->appendText($file); } }
+  $self->finalize;
+}
 
 sub finalize {
   my ($self) = @_;
   #Index all CSS files (written already)
-  my $OEBPS_directory = $self->{OEBPS_directory};
-  my $OEBPS_styles = catdir($OEBPS_directory, 'Styles');
-  opendir(my $styles_handle, $OEBPS_styles);
-  my @styles = grep { -f pathname_concat($OEBPS_styles, $_) } readdir($styles_handle);
+  my $OPS_directory = $self->{OPS_directory};
+  opendir(my $styles_handle, $OPS_directory);
+  my @styles = grep { /\.css$/ && -f pathname_concat($OPS_directory, $_) } readdir($styles_handle);
   closedir $styles_handle;
   my $manifest = $self->{opf_manifest};
   foreach my $style (@styles) {
     my $style_item = $manifest->addNewChild(undef, 'item');
     $style_item->setAttribute('id', $style);
     $style_item->setAttribute('href',
-      pathname_relative(pathname_concat($OEBPS_styles, $style), $OEBPS_directory));
+      pathname_relative(pathname_concat($OPS_directory, $style), $OPS_directory));
     # TODO: Any non-CSS externals are future work
     $style_item->setAttribute('media-type', 'text/css');
   }
 
   # Write the content.opf file to disk
   my $directory = $self->{siteDirectory};
-  open my $opf_fh, ">", pathname_concat($OEBPS_directory, 'content.opf');
+  open my $opf_fh, ">", pathname_concat($OPS_directory, 'content.opf');
   print $opf_fh $self->{opf}->toString(1);
   close $opf_fh;
 
   # Write toc.ncx file to disk
-  open my $ncx_fh, ">", pathname_concat($OEBPS_directory, 'toc.ncx');
+  open my $ncx_fh, ">", pathname_concat($OPS_directory, 'toc.ncx');
   print $ncx_fh $self->{ncx}->toString(1);
   close $ncx_fh;
 

@@ -156,8 +156,8 @@ sub convert {
     $opts->{sitedirectory} = $sandbox_directory;
 
     if ($opts->{format} eq 'epub') {
-      $opts->{resource_directory} = File::Spec->catdir($sandbox_directory, 'OEBPS', 'Styles');
-      $opts->{destination} = pathname_concat(File::Spec->catdir($sandbox_directory, 'OEBPS', 'Text'), $sandbox_destination); }
+      $opts->{resource_directory} = File::Spec->catdir($sandbox_directory, 'OPS');
+      $opts->{destination} = pathname_concat(File::Spec->catdir($sandbox_directory, 'OPS'), $sandbox_destination); }
     else {
       $opts->{destination} = pathname_concat($sandbox_directory, $sandbox_destination); }
   }
@@ -499,19 +499,23 @@ sub convert_post {
         format => $format, omit_doctype => $opts->{omit_doctype}, is_html => $opts->{is_html},
         %PostOPS));
   }
+
+  # Do the actual post-processing:
+  my @postdocs;
+  my $latexmlpost = LaTeXML::Post->new(verbosity => $verbosity || 0);
+  @postdocs = $latexmlpost->ProcessChain($DOCUMENT, @procs);
+
+  # Finalize by arranging any manifests and packaging the output.
   # If our format requires a manifest, create one
   if (($opts->{whatsout} eq 'archive') && ($format !~ /^x?html|xml/)) {
     require LaTeXML::Post::Manifest;
-    push(@procs, LaTeXML::Post::Manifest->new(format => $format, %PostOPS));
-  }
+    my $manifest_maker = LaTeXML::Post::Manifest->new(format => $format, %PostOPS);
+    $manifest_maker->process(@postdocs); }
   # Handle the output packaging
   require LaTeXML::Post::Pack;
-  push(@procs, LaTeXML::Post::Pack->new(whatsout => $opts->{whatsout}, format => $format, %PostOPS));
+  my $packer = LaTeXML::Post::Pack->new(whatsout => $opts->{whatsout}, format => $format, %PostOPS);
+  my ($postdoc) = $packer->process(@postdocs);
 
-  # Do the actual post-processing:
-  my $postdoc;
-  my $latexmlpost = LaTeXML::Post->new(verbosity => $verbosity || 0);
-  ($postdoc) = $latexmlpost->ProcessChain($DOCUMENT, @procs);
   $DB->finish;
 
   # TODO: Refactor once we know how to merge the core and post State objects
