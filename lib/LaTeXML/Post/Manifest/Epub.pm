@@ -88,44 +88,33 @@ sub initialize {
   $identifier->appendText($self->{'unique-identifier'});
   # Manifest
   my $manifest = $package->addNewChild(undef, 'manifest');
-  my $ncx_item = $manifest->addNewChild(undef, 'item');
-  $ncx_item->setAttribute('id',         'ncx');
-  $ncx_item->setAttribute('href',       'toc.ncx');
-  $ncx_item->setAttribute('media-type', 'application/x-dtbncx+xml');
+  my $nav_item = $manifest->addNewChild(undef, 'item');
+  $nav_item->setAttribute('id',         'nav');
+  $nav_item->setAttribute('href',       'nav.xhtml');
+  $nav_item->setAttribute('properties',       'nav');
+  $nav_item->setAttribute('media-type', 'application/xhtml+xml');
   # Spine
   my $spine = $package->addNewChild(undef, 'spine');
-  $spine->setAttribute('toc', 'ncx');
+  # 3.2 OPS/nav.xhtml
+  my $nav = XML::LibXML::Document->new('1.0', 'UTF-8');
+  my $nav_html = $opf->createElementNS("http://www.w3.org/1999/xhtml", 'html');
+  $nav->setDocumentElement($nav_html);
+  $nav_html->setNamespace("http://www.idpf.org/2007/ops", "epub",  0);
+  my $nav_head = $nav_html->addNewChild(undef,'head');
+  my $nav_title = $nav_head->addNewChild(undef,'title');
+  $nav_title->appendText($document_title);
+  my $nav_body = $nav_html->addNewChild(undef,'body');
+  my $nav_nav = $nav_body->addNewChild(undef,'nav');
+  $nav_nav->setAttribute('epub:type','toc');
+  $nav_nav->setAttribute('id','toc');
+  my $nav_map = $nav_nav->addNewChild(undef,'ol');
 
-  # 3.2 OPS/toc.ncx XML ToC
-  my $ncx = XML::LibXML::Document->new('1.0', 'UTF-8');
-  my $dtd = $ncx->createInternalSubset("ncx", "-//NISO//DTD ncx 2005-1//EN", "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd");
-  my $ncx_element = $ncx->createElementNS("http://www.daisy.org/z3986/2005/ncx/", "ncx");
-  $ncx_element->setAttribute('version', '2005-1');
-  $ncx->setDocumentElement($ncx_element);
-  # 3.2.1. Head
-  my $ncx_head = $ncx_element->addNewChild(undef, 'head');
-  my $ncx_uuid = $ncx_head->addNewChild(undef, 'meta');
-  $ncx_uuid->setAttribute('name',    'dtb:uid');
-  $ncx_uuid->setAttribute('content', $self->{'unique-identifier'});
-  my $ncx_depth = $ncx_head->addNewChild(undef, 'meta');
-  $ncx_depth->setAttribute('name',    'dtb:depth');
-  $ncx_depth->setAttribute('content', '1');
-  my $ncx_pages = $ncx_head->addNewChild(undef, 'meta');
-  $ncx_pages->setAttribute('name',    'dtb:totalPageCount');
-  $ncx_pages->setAttribute('content', '0');
-  my $ncx_maxpage = $ncx_head->addNewChild(undef, 'meta');
-  $ncx_maxpage->setAttribute('name',    'dtb:maxPageNumber');
-  $ncx_maxpage->setAttribute('content', '0');
-  # TODO: 3.2.2. docTitle ???
-  # 3.2.3 navMap
-  my $ncx_navmap = $ncx_element->addNewChild(undef, 'navMap');
   $self->{OPS_directory} = $OPS_directory;
   $self->{opf}           = $opf;
   $self->{opf_spine}     = $spine;
   $self->{opf_manifest}  = $manifest;
-  $self->{ncx}           = $ncx;
-  $self->{ncx_navmap}    = $ncx_navmap;
-  $self->{ncx_navorder}  = 0;
+  $self->{nav}           = $nav;
+  $self->{nav_map} = $nav_map;
   return; }
 
 sub process {
@@ -149,16 +138,12 @@ sub process {
       my $itemref = $spine->addNewChild(undef, 'itemref');
       $itemref->setAttribute('idref', $file);
 
-      # Add to navMap
-      my $navmap   = $self->{ncx_navmap};
-      my $navpoint = $navmap->addNewChild(undef, 'navPoint');
-      my $order    = $self->{ncx_navorder} + 1;
-      $self->{ncx_navorder} = $order;
-      $navpoint->setAttribute('id',        "navPoint-$order");
-      $navpoint->setAttribute('playOrder', "$order");
-      my $navlabel = $navpoint->addNewChild(undef, 'navLabel');
-      # TODO: Better labels for the different chapters/parts
-      $navlabel->addNewChild(undef, 'text')->appendText($file); } }
+      # Add to navigation
+      my $nav_map = $self->{nav_map};
+      my $nav_li = $nav_map->addNewChild(undef,'li');
+      my $nav_a = $nav_li->addNewChild(undef,'a');
+      $nav_a->setAttribute('href',$file);
+      $nav_a->appendText($file); } }
   $self->finalize;
 }
 
@@ -191,9 +176,9 @@ sub finalize {
   close $opf_fh;
 
   # Write toc.ncx file to disk
-  open my $ncx_fh, ">", pathname_concat($OPS_directory, 'toc.ncx');
-  print $ncx_fh $self->{ncx}->toString(1);
-  close $ncx_fh;
+  open my $nav_fh, ">", pathname_concat($OPS_directory, 'nav.xhtml');
+  print $nav_fh $self->{nav}->toString(1);
+  close $nav_fh;
 
   return (); }
 
