@@ -81,6 +81,7 @@ sub process {
               . "but there's an apparent conflict with location '$loc' and previous '$prevloc'"); } } }
     $root->setAttribute('xml:id' => $id); }
 
+  $$self{db}->{document_id} = $id;
   $self->scan($doc, $root, $$doc{parent_id});
   NoteProgressDetailed(" [DBStatus: " . $$self{db}->status . "]");
   $doc; }

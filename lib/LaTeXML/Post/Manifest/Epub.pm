@@ -17,6 +17,7 @@ use base qw(LaTeXML::Post::Manifest);
 use LaTeXML::Util::Pathname;
 use File::Spec::Functions qw(catdir);
 use UUID::Tiny ':std';
+use POSIX qw(strftime);
 
 our $container_content = <<'EOL';
 <?xml version="1.0"?>
@@ -32,8 +33,9 @@ sub new {
   my $self = $class->SUPER::new(%options);
   return $self; }
 
+use Data::Dumper;
 sub initialize {
-  my ($self) = @_;
+  my ($self,$doc) = @_;
   my $directory = $self->{siteDirectory};
   # TODO: Fish out any existing unique identifier for the book
   #       the UUID is the fallback default
@@ -60,7 +62,7 @@ sub initialize {
   $package->setAttribute('version',           '3.0');
 
   # Metadata
-  my $document_metadata = $self->{db}->lookup("ID:Document");
+  my $document_metadata = $self->{db}->lookup("ID:".$self->{db}->{document_id});
   my $document_title = $document_metadata->getValue('title');
   $document_title = $document_title->textContent if $document_title;
   my $document_authors = $document_metadata->getValue('authors')||[];
@@ -77,11 +79,10 @@ sub initialize {
     $author->appendText($document_author); }
   my $language = $metadata->addNewChild("http://purl.org/dc/elements/1.1/", "language");
   $language->appendText($document_language);
-  # TODO: Continue...
-  #my $modified = $metadata->addNewChild(undef, "meta");
-  #$modified->setAttribute('property','dcterms:modified');
-  #my $now_string = strftime ""; # CCYY-MM-DDThh:mm:ssZ
-  #$modified->appendText($now_string);
+  my $modified = $metadata->addNewChild(undef, "meta");
+  $modified->setAttribute('property','dcterms:modified');
+  my $now_string = strftime "%Y-%m-%dT%H:%M:%SZ", localtime; # CCYY-MM-DDThh:mm:ssZ
+  $modified->appendText($now_string);
   my $identifier = $metadata->addNewChild("http://purl.org/dc/elements/1.1/", "identifier");
   $identifier->setAttribute('id',         'pub-id');
   $identifier->appendText($self->{'unique-identifier'});
@@ -129,7 +130,7 @@ sub initialize {
 
 sub process {
   my ($self, @docs) = @_;
-  $self->initialize;
+  $self->initialize($docs[0]);
   foreach my $doc (@docs) {
     # Add each document to the spine manifest
     if (my $destination = $doc->getDestination) {
