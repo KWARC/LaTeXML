@@ -133,6 +133,12 @@ sub process {
       $item->setAttribute('id',         $file);
       $item->setAttribute('href',       $relative_destination);
       $item->setAttribute('media-type', "application/xhtml+xml");
+      my @properties;
+      push @properties, 'mathml' if $doc->findnode('//*[local-name() = "math"]');
+      push @properties, 'svg' if $doc->findnode('//*[local-name() = "svg"]');
+      my $properties = join(" ",@properties);
+      $item->setAttribute('properties',$properties) if $properties;
+
       # Add to spine
       my $spine = $self->{opf_spine};
       my $itemref = $spine->addNewChild(undef, 'itemref');
@@ -161,12 +167,12 @@ sub finalize {
   foreach my $style (@styles) {
     my $style_item = $manifest->addNewChild(undef, 'item');
     $style_item->setAttribute('id',         $style);
-    $style_item->setAttribute('href',       "./$style");
+    $style_item->setAttribute('href',       "$style");
     $style_item->setAttribute('media-type', 'text/css'); }
   foreach my $image (@images) {
     my $image_item = $manifest->addNewChild(undef, 'item');
     $image_item->setAttribute('id',         $image);
-    $image_item->setAttribute('href',       "./$image");
+    $image_item->setAttribute('href',       "$image");
     $image_item->setAttribute('media-type', 'image/png'); }
 
   # Write the content.opf file to disk
