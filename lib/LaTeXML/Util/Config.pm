@@ -372,7 +372,7 @@ sub _prepare_options {
       $opts->{whatsout} = 'archive';
     }
     $opts->{is_html} = ($opts->{format} =~ /^html5?$/);
-    $opts->{is_xhtml} = ($opts->{format} =~ /^(xhtml|epub|mobi)$/);
+    $opts->{is_xhtml} = ($opts->{format} =~ /^(xhtml5?|epub|mobi)$/);
     $opts->{whatsout} = 'archive' if (($opts->{format} eq 'epub') || ($opts->{format} eq 'mobi'));
   }
   #======================================================================
@@ -439,8 +439,9 @@ sub _prepare_options {
     $opts->{format} = "xml" if ($opts->{stylesheet}) && (!defined $opts->{format});
     $opts->{format} = "xhtml" unless defined $opts->{format};
     if (!$opts->{stylesheet}) {
-      if    ($opts->{format} =~ /^xhtml|epub|mobi$/) { $opts->{stylesheet} = "LaTeXML-xhtml.xsl"; }
+      if    ($opts->{format} eq 'xhtml') { $opts->{stylesheet} = "LaTeXML-xhtml.xsl"; }
       elsif ($opts->{format} eq "html")              { $opts->{stylesheet} = "LaTeXML-html.xsl"; }
+      elsif ($opts->{format} =~ /^xhtml5|epub|mobi$/)  { $opts->{stylesheet} = "LaTeXML-xhtml5.xsl"; }
       elsif ($opts->{format} eq "html5")             { $opts->{stylesheet} = "LaTeXML-html5.xsl"; }
       elsif ($opts->{format} eq "xml") { delete $opts->{stylesheet}; }
       else                             { croak("Unrecognized target format: " . $opts->{format}); }
