@@ -422,18 +422,44 @@ sub _prepare_options {
     $opts->{mathimages}   = undef unless defined $opts->{mathimages};
     $opts->{mathimagemag} = 1.75  unless defined $opts->{mathimagemag};
     $opts->{picimages}    = 1     unless defined $opts->{picimages};
-    # Split:
-    $opts->{split}       = undef     unless defined $opts->{split};
-    $opts->{splitat}     = 'section' unless defined $opts->{splitat};
-    $opts->{splitpath}   = undef     unless defined $opts->{splitpath};
-    $opts->{splitnaming} = 'id'      unless defined $opts->{splitnaming};
-    $opts->{splitback} = "//ltx:bibliography | //ltx:appendix | //ltx:index" unless defined $opts->{splitback};
-    $opts->{splitpaths} =
-      { chapter => "//ltx:chapter | " . $opts->{splitback},
-      section    => "//ltx:chapter | //ltx:section | " . $opts->{splitback},
-      subsection => "//ltx:chapter | //ltx:section | //ltx:subsection | " . $opts->{splitback},
-      subsubsection => "//ltx:chapter | //ltx:section | //ltx:subsection | //ltx:subsubsection | " . $opts->{splitback} }
-      unless defined $opts->{splitpaths};
+    # Split sanity:
+    if($opts->{split}){
+      $opts->{splitat}     = 'section' unless defined $opts->{splitat};
+      $opts->{splitnaming} = 'id'      unless defined $opts->{splitnaming};
+      $opts->{splitback} = "//ltx:bibliography | //ltx:appendix | //ltx:index" unless defined $opts->{splitback};
+      $opts->{splitpaths} =
+        { chapter => "//ltx:chapter | " . $opts->{splitback},
+        section    => "//ltx:chapter | //ltx:section | " . $opts->{splitback},
+        subsection => "//ltx:chapter | //ltx:section | //ltx:subsection | " . $opts->{splitback},
+        subsubsection => "//ltx:chapter | //ltx:section | //ltx:subsection | //ltx:subsubsection | " . $opts->{splitback} }
+        unless defined $opts->{splitpaths};
+
+      $opts->{splitnaming} = _checkOptionValue('--splitnaming',$opts->{splitnaming},
+                     qw(id idrelative label labelrelative));
+      $opts->{splitat} = _checkOptionValue('--splitat',$opts->{splitat},CORE::keys %{$opts->{splitpaths}});
+      $opts->{splitpath} = $opts->{splitpaths}->{$opts->{splitat}} unless defined $opts->{splitpath}; }
+
+    # Check for appropriate combination of split, scan, prescan, dbfile, crossref
+    if($opts->{split} && !defined $opts->{destination}){
+      croak("Must supply --destination when using --split"); }
+    if($opts->{prescan} && !$opts->{scan}){
+      croak("Makes no sense to --prescan with scanning disabled (--noscan)"); }
+    if($opts->{prescan} && (!defined $opts->{dbfile})){
+      croak("Cannot prescan documents (--prescan) without specifying --dbfile"); }
+    if(!$opts->{prescan} && $opts->{crossref} && ! ($opts->{scan} || (defined $opts->{dbfile}))){
+      croak("Cannot cross-reference (--crossref) without --scan or --dbfile "); }
+    if($opts->{crossref}){
+      $opts->{urlstyle} = _checkOptionValue('--urlstyle',$opts->{urlstyle},qw(server negotiated file)); }
+    if(($opts->{permutedindex} || $opts->{splitindex}) && (! defined $opts->{index})){
+      $opts->{index}=1; }
+    if(!$opts->{prescan} && $opts->{index} && ! ($opts->{scan} || defined $opts->{crossref})){
+      croak("Cannot generate index (--index) without --scan or --dbfile"); }
+    if(!$opts->{prescan} && @{$opts->{bibliographies}} && ! ($opts->{scan} || defined $opts->{crossref})){
+      croak("Cannot generate bibliography (--bibliography) without --scan or --dbfile"); }
+    if((!defined $opts->{destination}) && ($opts->{mathimages} || $opts->{dographics} || $opts->{picimages})){
+      croak("Must supply --destination unless all auxilliary file writing is disabled"
+           ."(--nomathimages --nographicimages --nopictureimages --nodefaultcss)"); }
+
     # Format:
     #Default is XHTML, XML otherwise (TODO: Expand)
     $opts->{format} = "xml" if ($opts->{stylesheet}) && (!defined $opts->{format});
@@ -476,35 +502,6 @@ sub _prepare_options {
   $self->{dirty} = 0;
 }
 
-# TODO: All of the below
-# Check for appropriate combination of split, scan, prescan, dbfile, crossref
-# if($split && !defined $destination){
-#   Error("Must supply --destination when using --split"); }
-# if($split){
-#   $splitnaming = checkOptionValue('--splitnaming',$splitnaming,
-#                  qw(id idrelative label labelrelative));
-#   $splitat = checkOptionValue('--splitat',$splitat,keys %splitpaths);
-#   $splitpath = $splitpaths{$splitat} unless defined $splitpath;
-# }
-# if($prescan && !$scan){
-#   Error("Makes no sense to --prescan with scanning disabled (--noscan)"); }
-# if($prescan && (!defined $dbfile)){
-#   Error("Cannot prescan documents (--prescan) without specifying --dbfile"); }
-# if(!$prescan && $crossref && ! ($scan || (defined $dbfile))){
-#   Error("Cannot cross-reference (--crossref) without --scan or --dbfile "); }
-# if($crossref){
-#   $urlstyle = checkOptionValue('--urlstyle',$urlstyle,qw(server negotiated file)); }
-# if(($permutedindex || $splitindex) && (! defined $index)){
-#   $index=1; }
-# if(!$prescan && $index && ! ($scan || defined $crossref)){
-#   Error("Cannot generate index (--index) without --scan or --dbfile"); }
-# if(!$prescan && @bibliographies && ! ($scan || defined $crossref)){
-#   Error("Cannot generate bibliography (--bibliography) without --scan or --dbfile"); }
-#if((!defined $destination) && ($mathimages || $dographics || $picimages)){
-#  Error("Must supply --destination unless all auxilliary file writing is disabled"
-#          ."(--nomathimages --nographicimages --nopictureimages --nodefaultcss)"); }
-#}
-
 ## Utilities:
 
 sub _addMathFormat {
@@ -517,6 +514,13 @@ sub _removeMathFormat {
   my ($opts, $fmt) = @_;
   @{ $opts->{math_formats} } = grep($_ ne $fmt, @{ $opts->{math_formats} });
   $opts->{removed_math_formats}->{$fmt} = 1; }
+
+sub _checkOptionValue {
+  my ($option, $value, @choices) = @_;
+  if ($value) {
+    foreach my $choice (@choices) {
+      return $choice if substr($choice, 0, length($value)) eq $value; } }
+  croak("Value for $option, $value, doesn't match " . join(', ', @choices)); }
 
 ### This is from t/lib/TestDaemon.pm and ideally belongs in Util::Pathname
 sub _read_options_file {
