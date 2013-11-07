@@ -310,6 +310,7 @@ sub convert_post {
     map { $opts->{$_} } qw(stylesheet parallelmath math_formats format verbosity defaultresources embed);
   $verbosity = $verbosity || 0;
   my %PostOPS = (verbosity => $verbosity,
+    validate => $opts->{validate},
     sourceDirectory    => $opts->{sourcedirectory},
     siteDirectory      => $opts->{sitedirectory},
     resource_directory => $opts->{resource_directory},
