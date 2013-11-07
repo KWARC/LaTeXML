@@ -30,4 +30,15 @@
   <!-- No namespaces; DO use HTML5 elements (include MathML & SVG) -->
   <xsl:param name="USE_NAMESPACES"  >true</xsl:param>
   <xsl:param name="USE_HTML5"       >true</xsl:param>
+
+  <!-- Generate a meta -->
+  <xsl:template match="/" mode="head-content-type">
+    <xsl:text>&#x0A;</xsl:text>
+    <xsl:element name="meta" namespace="{$html_ns}">
+      <xsl:attribute name="charset">
+        <xsl:text>utf-8</xsl:text>
+      </xsl:attribute>
+    </xsl:element>
+  </xsl:template>
+
 </xsl:stylesheet>
