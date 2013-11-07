@@ -441,7 +441,7 @@ sub _prepare_options {
     if (!$opts->{stylesheet}) {
       if    ($opts->{format} eq 'xhtml') { $opts->{stylesheet} = "LaTeXML-xhtml.xsl"; }
       elsif ($opts->{format} eq "html")              { $opts->{stylesheet} = "LaTeXML-html.xsl"; }
-      elsif ($opts->{format} =~ /^xhtml5|epub|mobi$/)  { $opts->{stylesheet} = "LaTeXML-xhtml5.xsl"; }
+      elsif ($opts->{format} =~ /^epub|mobi$/)  { $opts->{stylesheet} = "LaTeXML-epub3.xsl"; }
       elsif ($opts->{format} eq "html5")             { $opts->{stylesheet} = "LaTeXML-html5.xsl"; }
       elsif ($opts->{format} eq "xml") { delete $opts->{stylesheet}; }
       else                             { croak("Unrecognized target format: " . $opts->{format}); }
