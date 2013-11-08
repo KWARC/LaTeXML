@@ -375,56 +375,28 @@ sub pmml_internal {
     &{ lookupPresenter('Token', $role, $node->getAttribute('meaning')) }($node); }
   elsif ($tag eq 'ltx:XMHint') {
     &{ lookupPresenter('Hint', $role, $node->getAttribute('meaning')) }($node); }
+  #Experimental XMArray, XMRow and XMCell support (refactoring).
+  #DG: We should accommodate XMRow and XMCell elements appearing out of Arrays (sTeX notations)
   elsif ($tag eq 'ltx:XMArray') {
     my $style     = $node->getAttribute('mathstyle');
     my $vattach   = $node->getAttribute('vattach');
     my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
     local $LaTeXML::MathML::STYLE
       = ($style && $stylestep{$style} ? $style : $LaTeXML::MathML::STYLE);
-    my @rows = ();
-    foreach my $row (element_nodes($node)) {
-      my @cols = ();
-      foreach my $col (element_nodes($row)) {
-        my $a  = $col->getAttribute('align');
-        my $b  = $col->getAttribute('border');
-        my $h  = (($col->getAttribute('thead') || '') eq 'true') && 'thead';
-        my $cl = $col->getAttribute('class');
-        my $c  = ($b ? ($h ? "$b $h" : $b) : $h);
-        my $cs = $col->getAttribute('colspan');
-        my $rs = $col->getAttribute('rowspan');
-        push(@cols, ['m:mtd', { ($a ? (columnalign => $a) : ()),
-              ($c || $cl ? (class => ($c && $cl ? "$c $cl" : $c || $cl)) : ()),
-              ($cs ? (columnspan => $cs) : ()),
-              ($rs ? (rowspan    => $rs) : ()) },
-            map(pmml($_), element_nodes($col))]); }
-      push(@rows, ['m:mtr', {}, @cols]); }
+    my @rows = map {pmml($_)} element_nodes($node);
     my $result = ['m:mtable', { rowspacing => "0.2ex", columnspacing => "0.4em", align => $vattach }, @rows];
     $result = ['m:mstyle', {@$styleattr}, $result] if $styleattr;
     $result; }
-  #Experimental XMRow and XMCell support.
-  #DG: We should accommodate XMRow and XMCell elements appearing out of Arrays (sTeX notations)
   elsif ($tag eq 'ltx:XMRow') {
     my $style = $node->getAttribute('style');
     my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
     local $LaTeXML::MathML::STYLE
       = ($style && $stylestep{$style} ? $style : $LaTeXML::MathML::STYLE);
-    my @cols = ();
-    foreach my $col (element_nodes($node)) {
-      my $a  = $col->getAttribute('align');
-      my $b  = $col->getAttribute('border');
-      my $h  = (($col->getAttribute('thead') || '') eq 'true') && 'thead';
-      my $c  = ($b ? ($h ? "$b $h" : $b) : $h);
-      my $cs = $col->getAttribute('colspan');
-      my $rs = $col->getAttribute('rowspan');
-      push(@cols, ['m:mtd', { ($a ? (columnalign => $a) : ()),
-            ($c  ? (class      => $c)  : ()),
-            ($cs ? (columnspan => $cs) : ()),
-            ($rs ? (rowspan    => $rs) : ()) },
-          map(pmml($_), element_nodes($col))]); }
+    my @cols = map {pmml($_)} element_nodes($node);
     my $result = ['m:mtr', {}, @cols];
     $result = ['m:mstyle', {@$styleattr}, $result] if $styleattr;
     $result; }
-  elsif ($tag eq 'ltx:XMCell') {
+  elsif ($tag eq 'ltx:XMCell') { 
     my $style = $node->getAttribute('style');
     my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
     local $LaTeXML::MathML::STYLE
@@ -433,16 +405,18 @@ sub pmml_internal {
     my $a      = $col->getAttribute('align');
     my $b      = $col->getAttribute('border');
     my $h      = (($col->getAttribute('thead') || '') eq 'true') && 'thead';
+    my $cl = $col->getAttribute('class');
     my $c      = ($b ? ($h ? "$b $h" : $b) : $h);
     my $cs     = $col->getAttribute('colspan');
     my $rs     = $col->getAttribute('rowspan');
     my $result = ['m:mtd', { ($a ? (columnalign => $a) : ()),
-        ($c  ? (class      => $c)  : ()),
+        ($c || $cl ? (class => ($c && $cl ? "$c $cl" : $c || $cl)) : ()),
         ($cs ? (columnspan => $cs) : ()),
         ($rs ? (rowspan    => $rs) : ()) },
       map(pmml($_), element_nodes($col))];
     $result = ['m:mstyle', {@$styleattr}, $result] if $styleattr;
     $result; }
+  # DG: End of experimental table code
   elsif ($tag eq 'ltx:XMText') {
     pmml_row(map(pmml_text_aux($_), $node->childNodes)); }
   elsif ($tag eq 'ltx:ERROR') {
