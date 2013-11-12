@@ -81,7 +81,7 @@ sub initialize {
   $language->appendText($document_language);
   my $modified = $metadata->addNewChild(undef, "meta");
   $modified->setAttribute('property','dcterms:modified');
-  my $now_string = strftime "%Y-%m-%dT%H:%M:%SZ", localtime; # CCYY-MM-DDThh:mm:ssZ
+  my $now_string = strftime "%Y-%m-%dT%H:%M:%SZ", gmtime; # CCYY-MM-DDThh:mm:ssZ
   $modified->appendText($now_string);
   my $identifier = $metadata->addNewChild("http://purl.org/dc/elements/1.1/", "identifier");
   $identifier->setAttribute('id',         'pub-id');
