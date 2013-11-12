@@ -31,6 +31,18 @@
   <xsl:param name="USE_NAMESPACES"  >true</xsl:param>
   <xsl:param name="USE_HTML5"       >true</xsl:param>
 
+  <!-- Do not copy the RDFa prefix, but proceed as usual -->
+  <xsl:template match="/">
+    <xsl:apply-templates select="." mode="doctype"/>
+    <xsl:element name="html" namespace="{$html_ns}">
+      <xsl:apply-templates select="." mode="begin"/>
+      <xsl:apply-templates select="." mode="head"/>
+      <xsl:apply-templates select="." mode="body"/>
+      <xsl:apply-templates select="." mode="end"/>
+      <xsl:text>&#x0A;</xsl:text>
+    </xsl:element>
+  </xsl:template>
+
   <!-- Generate a meta -->
   <xsl:template match="/" mode="head-content-type">
     <xsl:text>&#x0A;</xsl:text>
@@ -39,6 +51,10 @@
         <xsl:text>utf-8</xsl:text>
       </xsl:attribute>
     </xsl:element>
+  </xsl:template>
+
+  <!-- RDFa is invalid in EPUB3, so just skip over it -->
+  <xsl:template match="ltx:rdf">
   </xsl:template>
 
 </xsl:stylesheet>

@@ -37,9 +37,6 @@ use Data::Dumper;
 sub initialize {
   my ($self,$doc) = @_;
   my $directory = $self->{siteDirectory};
-  # TODO: Fish out any existing unique identifier for the book
-  #       the UUID is the fallback default
-  $self->{'unique-identifier'} = create_uuid_as_string();
   # 1. Create mimetype declaration
   open my $epub_fh, ">", pathname_concat($directory, 'mimetype');
   print $epub_fh 'application/epub+zip';
@@ -68,6 +65,20 @@ sub initialize {
   my $document_authors = $document_metadata->getValue('authors')||[];
   $document_authors = [ map {$_->textContent} @$document_authors ];
   my $document_language = $document_metadata->getValue('language') || 'en';
+
+  # Fish out any existing unique identifier for the book
+  #       the UUID is the fallback default
+  my $uid = $document_metadata->getValue('dc:identifier') ||
+    "urn:uuid:".create_uuid_as_string();
+  unless (($uid =~ /^urn:/) || pathname_is_url($uid)) { # Already qualified
+    my $type = 'uuid';
+    if ($uid =~ /^[\d\- ]+$/) {# ISBN
+      $type = 'isbn'; }
+    elsif ($uid =~ /^[\d\-._\/ ]+$/) {
+      $type = 'doi'; }
+    $uid = "urn:$type:$uid"; } # Set the guessed qualified name
+  # Save the identifier
+  $self->{'unique-identifier'} = $uid;
 
   my $metadata = $package->addNewChild(undef, 'metadata');
   $metadata->setNamespace("http://purl.org/dc/elements/1.1/", "dc",  0);

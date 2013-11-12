@@ -55,6 +55,8 @@ sub new {
 
   $self->registerHandler('ltx:navigation' => \&navigation_handler);
 
+  $self->registerHandler('ltx:rdf'      => \&rdf_handler);
+
   $self->registerHandler('ltx:rawhtml' => \&rawhtml_handler);
 
   $self; }
@@ -342,6 +344,17 @@ sub bibentry_handler {
 sub navigation_handler {
   my ($self, $doc, $node, $tag, $parent_id) = @_;
 }
+
+# RDF should be recorded with its "about" designation, or its immediate parent
+sub rdf_handler {
+  my ($self, $doc, $node, $tag, $parent_id) = @_;
+  my $id = $node->getAttribute('about');
+  if (! ($id && ($id =~ s/^#//))) {
+    $id = $parent_id; }
+  my $property = $node->getAttribute('property');
+  my $value = $node->getAttribute('resource') || $node->getAttribute('content');
+  return unless ($property && $value);
+  $$self{db}->register("ID:$id", $property => $value); }
 
 # I'm thinking we shouldn't acknowledge rawhtml data at all?
 sub rawhtml_handler {
