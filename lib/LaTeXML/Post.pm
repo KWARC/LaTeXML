@@ -231,6 +231,8 @@ sub desiredResourcePathname {
   my ($self, $doc, $node, $source, $type) = @_;
   undef; }
 
+# Ideally this would return a pathname relative to the document
+# but I think we've accommodated absolute ones.
 sub generateResourcePathname {
   my ($self, $doc, $node, $source, $type) = @_;
   my $subdir = $$self{resource_directory} || '';
@@ -591,8 +593,8 @@ sub getDestinationExtension {
 
 sub checkDestination {
   my ($self, $reldest) = @_;
-  my $dest = (pathname_absolute($reldest) && $reldest)
-    || pathname_concat($self->getDestinationDirectory, $reldest);
+  # make absolute (if not already absolute), hopefully in destination directory.
+  my $dest = pathname_absolute($reldest,$self->getDestinationDirectory);
   if (my $destdir = pathname_directory($dest)) {
     pathname_mkdir($destdir)
       or return Fatal("I/O", $destdir, undef,
