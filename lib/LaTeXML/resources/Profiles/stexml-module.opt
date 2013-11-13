@@ -11,6 +11,7 @@ path = $STEXSTYDIR
 path = $STEXSTYDIR/modules
 path = $STEXSTYDIR/statements
 path = $STEXSTYDIR/sproof
+path = $STEXSTYDIR/smglo
 path = $STEXSTYDIR/omtext
 path = $STEXSTYDIR/omdoc
 path = $STEXSTYDIR/sref
