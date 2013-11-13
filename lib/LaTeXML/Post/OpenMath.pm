@@ -41,7 +41,12 @@ sub preprocess {
 
 sub outerWrapper {
   my ($self, $doc, $math, $xmath, @conversion) = @_;
-  my $wrapped = ['om:OMOBJ', {}, @conversion];
+  # Using the prefix to determine foreign attributes
+  my @foreign_attributes = grep { my $prefix = $_->prefix; $prefix && ($prefix !~ /^xml|ltx$/); } $math->attributes;
+  my %foreign_copies = ();
+  %foreign_copies = (map {$_->nodeName() => $_->getValue()} @foreign_attributes) if @foreign_attributes;
+
+  my $wrapped = ['om:OMOBJ', \%foreign_copies, @conversion];
   if (my $id = $xmath->getAttribute('fragid')) {
     $wrapped = $self->associateID($wrapped, $id); }
   ($wrapped); }
