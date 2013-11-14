@@ -341,7 +341,6 @@ sub _prepare_options {
   eval "\$LaTeXML::" . $_ . "::DEBUG=1; " foreach @{ $opts->{debug} };
   $opts->{timeout} = 600 if ((!defined $opts->{timeout}) || ($opts->{timeout} !~ /\d+/)); # 10 minute timeout default
   $opts->{expire} = 600 if ((!defined $opts->{expire}) || ($opts->{expire} !~ /\d+/)); # 10 minute timeout default
-  $opts->{dographics} = 1            unless defined $opts->{dographics}; #TODO: Careful, POST overlap!
   $opts->{mathparse}  = 'RecDescent' unless defined $opts->{mathparse};
   if ($opts->{mathparse} eq 'no') {
     $opts->{mathparse}   = 0;
@@ -418,10 +417,12 @@ sub _prepare_options {
     # Validation:
     $opts->{validate} = 1 unless defined $opts->{validate};
     # Graphics:
-    $opts->{dographics}   = 1     unless defined $opts->{dographics};
-    $opts->{mathimages}   = undef unless defined $opts->{mathimages};
     $opts->{mathimagemag} = 1.75  unless defined $opts->{mathimagemag};
-    $opts->{picimages}    = 1     unless defined $opts->{picimages};
+    if (defined $opts->{destination}) {
+      # We want the graphics enabled by default, but only when we have a destination
+      $opts->{dographics}   = 1     unless defined $opts->{dographics};
+      $opts->{picimages}    = 1     unless defined $opts->{picimages};
+      $opts->{svg}    = 1     unless defined $opts->{svg}; }
     # Split sanity:
     if($opts->{split}){
       $opts->{splitat}     = 'section' unless defined $opts->{splitat};
@@ -481,9 +482,6 @@ sub _prepare_options {
       $opts->{mathimages}   = 1;
       $opts->{math_formats} = [];
     }
-    $opts->{dographics} = 1 unless defined $opts->{dographics};
-    $opts->{picimages}  = 1 unless defined $opts->{picimages};
-    $opts->{svg}        = 1 unless defined $opts->{svg};
     # PMML default if we're HTMLy and all else fails and no mathimages:
     if (((!defined $opts->{math_formats}) || (!scalar(@{ $opts->{math_formats} }))) &&
       (!$opts->{mathimages}) && ($opts->{is_html} || $opts->{is_xhtml}))
@@ -495,10 +493,6 @@ sub _prepare_options {
   }
   # If really nothing hints to define format, then default it to XML
   $opts->{format} = 'xml' unless defined $opts->{format};
-
-  #TODO: HACK: Disable for now, causes problems...
-  $opts->{picimages} = 0;
-
   $self->{dirty} = 0;
 }
 
