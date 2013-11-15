@@ -377,10 +377,8 @@ sub pushDaemonFrame {
           $$self{undo}[0]{$subtable}{$key}++;   # Note that this many values -- ie. one more -- must be undone
           unshift(@{ $$hash{$key} }, daemon_copy($value)); } } } }    # And push new binding.
       # Record the contents of LaTeXML::Package::Pool as preloaded
-  my $pool_sub_hash = { map { $_ => 1 } keys %LaTeXML::Package::Pool:: };
-  foreach my $constructor (grep { /^constructor_/ } keys %LaTeXML::ConstructorCompiler::) {
-    $pool_sub_hash->{$constructor} = 1; }
-  $self->assignValue('_PRELOADED_POOL_', $pool_sub_hash, 'global');
+  my $pool_preloaded_hash = { map { $_ => 1 } keys %LaTeXML::Package::Pool:: };
+  $self->assignValue('_PRELOADED_POOL_', $pool_preloaded_hash, 'global');
   # Now mark the top frame as LOCKED!!!
   $$self{undo}[0]{_FRAME_LOCK_} = 1;
   return; }
@@ -409,11 +407,6 @@ sub popDaemonFrame {
       unless (exists $pool_preloaded_hash->{$subname}) {
         undef $LaTeXML::Package::Pool::{$subname};
         delete $LaTeXML::Package::Pool::{$subname};
-      } }
-    foreach my $constructor (grep { /^constructor_/ } (keys %LaTeXML::ConstructorCompiler::)) {
-      unless (exists $pool_preloaded_hash->{$constructor}) {
-        undef $LaTeXML::ConstructorCompiler::{$constructor};
-        delete $LaTeXML::ConstructorCompiler::{$constructor};
       } }
     # Finally, pop the frame
     $self->popFrame; }
@@ -551,17 +544,14 @@ sub getStatusCode {
   my $status = $$self{status};
   my $code;
   if ($$status{fatal} && $$status{fatal} > 0) {
-    $code = 3;
-  } elsif ($$status{error} && $$status{error} > 0) {
-    $code = 2;
-  } elsif ($$status{warning} && $$status{warning} > 0) {
-    $code = 1;
-  } else {
-    $code = 0;
-  }
-  $code;
-}
-
+    $code = 3; }
+  elsif ($$status{error} && $$status{error} > 0) {
+    $code = 2; }
+  elsif ($$status{warning} && $$status{warning} > 0) {
+    $code = 1; }
+  else {
+    $code = 0; }
+  return $code; }
 #======================================================================
 1;
 
