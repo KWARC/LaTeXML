@@ -25,7 +25,7 @@ else {
     my $config = LaTeXML::Util::Config->new(profile=>'math');
     my $converter = LaTeXML::Converter->get_converter($config);
     $converter->prepare_session($config);
-    my $response = $converter->convert("a+b=i");
+    my $response = $converter->convert("literal:a+b=i");
   };
 }
 1;
