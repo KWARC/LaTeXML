@@ -78,7 +78,7 @@ sub GetArchive {
     $archive->addString($file_contents, $file); }
   foreach my $subdir (sort @subdirs) {
     my $current_dir = File::Spec->catdir($directory, $subdir);
-    $archive->addTree($current_dir, $subdir, sub { /^[^.]/ && (!/(zip|gz|epub|tex|mobi|~)$/) }); }
+    $archive->addTree($current_dir, $subdir, sub { /^[^.]/ && (!/\.(zip|gz|epub|mobi|~)$/) }); }
 
   my $content_handle = IO::String->new($payload);
   undef $payload unless ($archive->writeToFileHandle($content_handle) == AZ_OK);
