@@ -741,18 +741,16 @@ latexmls/latexmlc [options]
                     package
  --help             shows this help message.
 
-In I<math> C<profile>, latexmls accepts one TeX formula on input.
-    In I<standard> and I<fragment> C<profile>, latexmls accepts one I<texfile>
-    filename per line on input, but only when the job is local.
-    If I<texfile> has an explicit extension of C<.bib>, it is processed
-    as a BibTeX bibliography.
-
     Note that the profiles come with a variety of preset options. To customize your
     own conversion setup, use --whatsin=math|fragment|document instead, respectively,
     as well as --whatsout=math|fragment|document.
 
+    If you want to provide a TeX snippet directly on input, rather than supply a filename,
+    use the C<literal:> protocol to prefix your snippet.
+
     For reliable communication and a stable conversion experience, invoke latexmls
-    only through the latexmlc client.
+    only through the latexmlc client (you need to set --expire to a positive value,
+    in order to request auto-spawning of a dedicated conversion server).
 
 =head2 DETAILS
 
