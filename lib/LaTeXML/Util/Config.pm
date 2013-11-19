@@ -421,8 +421,7 @@ sub _prepare_options {
     if (defined $opts->{destination}) {
       # We want the graphics enabled by default, but only when we have a destination
       $opts->{dographics}   = 1     unless defined $opts->{dographics};
-      $opts->{picimages}    = 1     unless defined $opts->{picimages};
-      $opts->{svg}    = 1     unless defined $opts->{svg}; }
+      $opts->{picimages}    = 1     unless defined $opts->{picimages}; }
     # Split sanity:
     if($opts->{split}){
       $opts->{splitat}     = 'section' unless defined $opts->{splitat};
@@ -475,13 +474,14 @@ sub _prepare_options {
     }
     # Check format and complete math and image options
     if ($opts->{format} eq 'html') {
-      $opts->{svg} = 0 unless defined $opts->{svg};    # No SVG by default.
+      $opts->{svg} = 0 unless defined $opts->{svg};    # No SVG by default in HTML.
       croak("Default html stylesheet only supports math images, not " . join(', ', @{ $opts->{math_formats} }))
         if scalar(@{ $opts->{math_formats} });
       croak("Default html stylesheet does not support svg") if $opts->{svg};
       $opts->{mathimages}   = 1;
       $opts->{math_formats} = [];
     }
+    $opts->{svg} = 1 unless defined $opts->{svg}; # If we're not making HTML, SVG is on by default
     # PMML default if we're HTMLy and all else fails and no mathimages:
     if (((!defined $opts->{math_formats}) || (!scalar(@{ $opts->{math_formats} }))) &&
       (!$opts->{mathimages}) && ($opts->{is_html} || $opts->{is_xhtml}))
