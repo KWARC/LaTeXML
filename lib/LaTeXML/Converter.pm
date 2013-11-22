@@ -130,7 +130,7 @@ sub convert {
   my $opts    = $self->{opts};
   my $runtime = $self->{runtime};
   ($runtime->{status}, $runtime->{status_code}) = (undef, undef);
-  print STDERR "\n$LaTeXML::Version::IDENTITY\n" if $opts->{verbosity} >= 0;
+  print STDERR "\n$LaTeXML::IDENTITY\n" if $opts->{verbosity} >= 0;
   print STDERR "processing started " . localtime() . "\n" if $opts->{verbosity} >= 0;
   # Handle What's IN:
   # We use a new temporary variable to avoid confusion with daemon caching
@@ -556,7 +556,7 @@ sub new_latexml {
     documentid      => $opts->{documentid},
     mathparse       => $opts->{mathparse});
   if (my @baddirs = grep { !-d $_ } @{ $opts->{paths} }) {
-    warn "\n$LaTeXML::Version::IDENTITY : these path directories do not exist: " . join(', ', @baddirs) . "\n"; }
+    warn "\n$LaTeXML::IDENTITY : these path directories do not exist: " . join(', ', @baddirs) . "\n"; }
 
   $latexml->withState(sub {
       my ($state) = @_;
