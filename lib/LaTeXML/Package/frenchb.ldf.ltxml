@@ -13,6 +13,9 @@ use LaTeXML::Package;
 # \=========================================================ooo==U==ooo=/ #
 use strict;
 
+# frenchb doesn't normally require this package,
+# but behaves better if it's loaded
+RequirePackage('textcomp');
 InputDefinitions('frenchb', type => 'ldf', noltxml => 1);
 
 DefConstructor('\fup{}',        "<ltx:sup>#1</ltx:sup>");
@@ -21,6 +24,10 @@ DefConstructor('\FB@up@fake{}', "<ltx:sup>#1</ltx:sup>");
 # Attempt to make it work with older & newer versions.
 Let('\ltx@orig@nombre', '\nombre');
 DefMacro('\nombre{}', '\@ifpackageloaded{numprint}{\numprint{#1}}{\ltx@orig@nombre{#1}}');
-Let('\degre','\textdegree');
+AtBeginDocument(sub {
+  Let('\degre','\textdegree');
+  DefMacro('\degres','\hbox to 0.3em{\degre}');
+});
+
 1;
 
