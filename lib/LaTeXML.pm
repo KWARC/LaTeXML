@@ -88,7 +88,7 @@ sub getStatusMessage {
 
 sub getStatusCode {
   my ($self) = @_;
-  $$self{state}->getStatusCode; }
+  return $$self{state}->getStatusCode; }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Mid-level API.

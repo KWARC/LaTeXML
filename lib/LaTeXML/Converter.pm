@@ -554,6 +554,7 @@ sub new_latexml {
     inputencoding   => $opts->{inputencoding},
     includeStyles   => $opts->{includestyles},
     documentid      => $opts->{documentid},
+    nomathparse     => $opts->{nomathparse}, # Backwards compatibility
     mathparse       => $opts->{mathparse});
   if (my @baddirs = grep { !-d $_ } @{ $opts->{paths} }) {
     warn "\n$LaTeXML::IDENTITY : these path directories do not exist: " . join(', ', @baddirs) . "\n"; }
