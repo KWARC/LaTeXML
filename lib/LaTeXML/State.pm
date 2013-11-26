@@ -514,11 +514,6 @@ sub getStatus {
   my ($self, $type) = @_;
   return $$self{status}{$type}; }
 
-sub setStatus {
-  my ($self, $type, $value) = @_;
-  if (($type ne "missing") && ($type ne "undefined")) {
-    $$self{status}{$type} = $value; } }
-
 sub getStatusMessage {
   my ($self) = @_;
   my $status = $$self{status};
