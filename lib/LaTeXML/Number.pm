@@ -122,11 +122,20 @@ sub new {
 
 sub toString {
   my ($self) = @_;
-  return LaTeXML::Float::floatformat($$self[0] / 65536) . 'pt'; }
+  return pointformat($$self[0]); }
 
 sub stringify {
   my ($self) = @_;
   return "Dimension[" . $$self[0] . "]"; }
+
+# Utility for formatting scaled points sanely.
+sub pointformat {
+  my ($sp) = @_;
+  my $s = sprintf("%2f", int($sp * 100 / 65536 + ($sp > 0 ? 0.5 : -0.5)) / 100);
+  $s =~ s/0+$// if $s =~ /\./;
+  #  $s =~ s/\.$//;
+  $s =~ s/\.$/.0/;    # Seems TeX prints .0 which in odd corner cases, people use?
+  return $s . 'pt'; }
 
 #**********************************************************************
 package LaTeXML::MuDimension;
@@ -153,7 +162,7 @@ my %fillcode = (fil => 1, fill => 2, filll => 3);    # [CONSTANT]
 my @FILL = ('', 'fil', 'fill', 'filll');             # [CONSTANT]
 
 my $num_re   = qr/\d*\.?\d*/;                        # [CONSTANT]
-my $unit_re  = qr/\w\w/;                             # [CONSTANT]
+my $unit_re  = qr/[a-zA-Z][a-zA-Z]/;                 # [CONSTANT]
 my $fill_re  = qr/fil|fill|filll|[a-zA-Z][a-zA-Z]/;  # [CONSTANT]
 my $plus_re  = qr/\s+plus\s*($num_re)($fill_re)/;    # [CONSTANT]
 my $minus_re = qr/\s+minus\s*($num_re)($fill_re)/;   # [CONSTANT]
@@ -181,9 +190,11 @@ sub new {
 sub toString {
   my ($self) = @_;
   my ($sp, $plus, $pfill, $minus, $mfill) = @$self;
-  my $string = LaTeXML::Float::floatformat($sp / 65536) . 'pt';
-  $string .= ' plus ' . ($pfill ? $plus . $FILL[$pfill] : LaTeXML::Float::floatformat($plus / 65536) . 'pt') if $plus != 0;
-  $string .= ' minus ' . ($mfill ? $minus . $FILL[$mfill] : LaTeXML::Float::floatformat($minus / 65536) . 'pt') if $minus != 0;
+  my $string = LaTeXML::Dimension::pointformat($sp);
+  $string .= ' plus ' . ($pfill ? $plus . $FILL[$pfill] : LaTeXML::Dimension::pointformat($plus))
+    if $plus != 0;
+  $string .= ' minus ' . ($mfill ? $minus . $FILL[$mfill] : LaTeXML::Dimension::pointformat($minus))
+    if $minus != 0;
   return $string; }
 
 sub negate {
