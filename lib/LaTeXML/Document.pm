@@ -344,7 +344,7 @@ sub finalize_rec {
       && ($node->hasChildNodes || $node->getAttribute('_force_font'))
       && scalar(keys %pending_declaration)) {
       foreach my $attr (keys %pending_declaration) {
-        $node->setAttribute($attr => $pending_declaration{$attr})
+        $self->setAttribute($node, $attr => $pending_declaration{$attr})
           if $model->canHaveAttribute($qname, $attr); }
       $declared_font       = $desired_font;
       %pending_declaration = (); } }
@@ -371,7 +371,7 @@ sub finalize_rec {
         # Too late to do wrapNodes?
         my $text = $self->wrapNodes($FONT_ELEMENT_NAME, $child);
         foreach my $attr (keys %pending_declaration) {
-          $text->setAttribute($attr => $pending_declaration{$attr}); }
+          $self->setAttribute($text, $attr => $pending_declaration{$attr}); }
         $self->finalize_rec($text);    # Now have to clean up the new node!
       }
     } }
@@ -921,7 +921,7 @@ sub closeText_internal {
     if (my $ligatures = $STATE->lookupValue('TEXT_LIGATURES')) {
       foreach my $ligature (@$ligatures) {
         next if ($fonttest = $$ligature{fontTest}) && !&$fonttest($font);
-        $string =~ &{ $$ligature{code} }($string); } }
+        $string = &{ $$ligature{code} }($string); } }
     $node->setData($string) unless $string eq $ostring;
     $$self{node} = $parent;                  # Now, effectively Closed
     return $parent; }
@@ -1009,7 +1009,7 @@ sub autoCollapseChildren {
 # We _could_ check whether attribute is even allowed here? NOT YET.
 sub setAttribute {
   my ($self, $node, $key, $value) = @_;
-  $value = ToString($value) if ref $value;
+  $value = $value->toAttribute if ref $value;
   if ((defined $value) && ($value ne '')) {    # Skip if `empty'; but 0 is OK!
     if ($key eq 'xml:id') {                    # If it's an ID attribute
       $value = $self->recordID($value, $node);    # Do id book keeping

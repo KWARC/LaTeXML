@@ -76,12 +76,12 @@ sub beAbsorbed {
     ? $document->openText($$self[0], $$self[1]) : undef); }
 
 sub getProperty {
-  my ($self, $property) = @_;
-  if ($property eq 'isSpace') {
+  my ($self, $key) = @_;
+  if ($key eq 'isSpace') {
     my $tex = UnTeX($$self[3]);
     return (defined $tex) && ($tex =~ /^\s*$/); }    # Check the TeX code, not (just) the string!
   else {
-    return; } }
+    return $$self[4]{$key}; } }
 
 sub getProperties {
   my ($self) = @_;
@@ -113,6 +113,10 @@ sub getDepth {
   $self->computeSize unless defined $$self[4]{depth};
   return $$self[4]{depth}; }
 
+sub getTotalHeight {
+  my ($self) = @_;
+  return $self->getHeight->add($self->getDepth); }
+
 sub setWidth {
   my ($self, $width) = @_;
   $$self[4]{width} = $width;
@@ -128,15 +132,24 @@ sub setDepth {
   $$self[4]{depth} = $depth;
   return; }
 
+sub getSize {
+  my ($self) = @_;
+  return ($self->getWidth, $self->getHeight, $self->getDepth); }
+
+# for debugging....
+sub showSize {
+  my ($self) = @_;
+  return '[' . ToString($self->getWidth) . ' x ' . ToString($self->getHeight) . ' + ' . ToString($self->getDepth) . ']'; }
+
 #omg
 # Fake computing the dimensions of strings (typically single chars).
 # Eventually, this needs to link into real font data
 sub computeSize {
   my ($self) = @_;
   my ($w, $h, $d) = ($$self[1] || LaTeXML::Font->default)->computeStringSize($$self[0]);
-  $$self[4]{width}  = $w;
-  $$self[4]{height} = $h;
-  $$self[4]{depth}  = $d;
+  $$self[4]{width}  = $w unless defined $$self[4]{width};
+  $$self[4]{height} = $h unless defined $$self[4]{height};
+  $$self[4]{depth}  = $d unless defined $$self[4]{depth};
   return; }
 
 #**********************************************************************
@@ -261,9 +274,9 @@ sub computeSize {
       Warn('expected', 'Dimension', undef,
         "Width of " . Stringify($box) . " yeilded a non-dimension: " . Stringify($d)); }
   }
-  $$self[4]{width}  = Dimension($wd);
-  $$self[4]{height} = Dimension($ht);
-  $$self[4]{depth}  = Dimension($dp);
+  $$self[4]{width}  = Dimension($wd) unless defined $$self[4]{width};
+  $$self[4]{height} = Dimension($ht) unless defined $$self[4]{height};
+  $$self[4]{depth}  = Dimension($dp) unless defined $$self[4]{depth};
   return; }
 
 #**********************************************************************
@@ -453,8 +466,15 @@ sub equals {
 
 sub beAbsorbed {
   my ($self, $document) = @_;
-  return $self->getDefinition->doAbsorbtion($document, $self); }
-####  &{$self->getDefinition->getConstructor}($document,@{$$self{args}},$$self{properties});}
+  # Significant time is consumed here, and associated with a specific CS,
+  # so we should be profiling as well!
+  # Hopefully the csname is the same that was charged in the digestioned phase!
+  my $defn = $self->getDefinition;
+  my $profiled = $STATE->lookupValue('PROFILING') && $defn->getCS;
+  LaTeXML::Definition::startProfiling($profiled) if $profiled;
+  my @result = $defn->doAbsorbtion($document, $self);
+  LaTeXML::Definition::stopProfiling($profiled) if $profiled;
+  return @result; }
 
 sub getWidth {
   my ($self) = @_;
@@ -490,17 +510,40 @@ sub computeSize {
   my ($self) = @_;
   # Use #body, if any, else ALL args !?!?!
   # Eventually, possibly options like sizeFrom, or computeSize or....
-  my @boxes = ($$self{properties}{body}
-    ? ($$self{properties}{body})
-    : (map { ((ref $_) && ($_->isaBox) ? $_->unlist : ()) } @{ $$self{args} }));
-  my ($w, $h, $d) = (0, 0, 0);
-  foreach my $b (@boxes) {
-    $w += $b->getWidth->valueOf;
-    $h = max($h, $b->getHeight->valueOf);
-    $d = max($d, $b->getDepth->valueOf); }
-  $$self{properties}{width}  = Dimension($w);
-  $$self{properties}{height} = Dimension($h);
-  $$self{properties}{depth}  = Dimension($d);
+  my $sizer = $$self{properties}{sizer};
+  my ($width, $height, $depth);
+  # If sizer is a function, call it
+  if (ref $sizer) {
+    ($width, $height, $depth) = &$sizer($self); }
+  else {
+    my @boxes = ();
+    if (!defined $sizer) {    # Nothing specified? use #body if any, else sum all box args
+      @boxes = ($$self{properties}{body}
+        ? ($$self{properties}{body})
+        : (map { ((ref $_) && ($_->isaBox) ? $_->unlist : ()) } @{ $$self{args} })); }
+    elsif ($sizer eq '0') { }    # 0 size!
+    elsif ($sizer =~ /^#(\d+)$/) {    # Else if of form '#digit', derive size from that argument
+      push(@boxes, $self->getArg($1)); }
+    elsif ($sizer =~ /^#(\w+)$/) {    # Or if of form '#word', derivce size from that property (a box?)
+      push(@boxes, $$self{properties}{$1}); }
+    else {
+      Warn('unexpected', $sizer, undef,
+        "Expected sizer to be a function, or arg or property specification, not '$sizer'"); }
+    my $font = $$self{properties}{font};
+    my ($wd, $ht, $dp) = (0, 0, 0);
+    foreach my $box (@boxes) {
+      next unless defined $box;
+      my ($w, $h, $d) = (ref $box ? $box->getSize : $font->computeStringSize($box));
+      $wd += $w->valueOf;
+      $ht = max($ht, $h->valueOf);
+      $dp = max($dp, $d->valueOf); }
+    $width  = Dimension($wd);
+    $height = Dimension($ht);
+    $depth  = Dimension($dp); }
+  # Now, only set the dimensions that weren't already set.
+  $$self{properties}{width}  = $width  unless defined $$self{properties}{width};
+  $$self{properties}{height} = $height unless defined $$self{properties}{height};
+  $$self{properties}{depth}  = $depth  unless defined $$self{properties}{depth};
   return; }
 
 #**********************************************************************

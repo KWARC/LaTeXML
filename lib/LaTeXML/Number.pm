@@ -34,6 +34,11 @@ sub ptValue {
   my $h = $$self[0] / 655.36;
   return int($h < 0 ? $h - 0.5 : $h + 0.5) / 100; }
 
+sub pxValue {
+  my ($self) = @_;
+  my $h = $$self[0] / 65536 * ($STATE->lookupValue('DPI') || 100 / 72.27);
+  return int($h < 0 ? $h - 0.5 : $h + 0.5); }
+
 sub unlist {
   my ($self) = @_;
   return $self; }
@@ -101,7 +106,7 @@ sub stringify {
 # Utility for formatting sane numbers.
 sub floatformat {
   my ($n) = @_;
-  my $s = sprintf("%5f", $n);
+  my $s = sprintf("%.5f", $n);
   $s =~ s/0+$// if $s =~ /\./;
   #  $s =~ s/\.$//;
   $s =~ s/\.$/.0/;    # Seems TeX prints .0 which in odd corner cases, people use?
@@ -124,6 +129,10 @@ sub toString {
   my ($self) = @_;
   return pointformat($$self[0]); }
 
+sub toAttribute {
+  my ($self) = @_;
+  return attributeformat($$self[0]); }
+
 sub stringify {
   my ($self) = @_;
   return "Dimension[" . $$self[0] . "]"; }
@@ -131,7 +140,22 @@ sub stringify {
 # Utility for formatting scaled points sanely.
 sub pointformat {
   my ($sp) = @_;
-  my $s = sprintf("%2f", int($sp * 100 / 65536 + ($sp > 0 ? 0.5 : -0.5)) / 100);
+  # As much as I'd like to make this more friendly & readable
+  # there's TeX code that depends on getting enough precision
+  # If you use %.5f, tikz (for example) will sometimes hang trying to do arithmetic!
+  # But see toAttribute for friendlier forms....
+  my $s = sprintf("%.6f", ($sp / 65536));
+  $s =~ s/0+$// if $s =~ /\./;
+  #  $s =~ s/\.$//;
+  $s =~ s/\.$/.0/;    # Seems TeX prints .0 which in odd corner cases, people use?
+  return $s . 'pt'; }
+
+sub attributeformat {
+  my ($sp) = @_;
+  # As much as I'd like to make this more friendly & readable
+  # there's TeX code that depends on getting enough precision
+  # But see toAttribute for friendlier forms....
+  my $s = sprintf("%.2f", ($sp / 65536));
   $s =~ s/0+$// if $s =~ /\./;
   #  $s =~ s/\.$//;
   $s =~ s/\.$/.0/;    # Seems TeX prints .0 which in odd corner cases, people use?
@@ -197,6 +221,16 @@ sub toString {
     if $minus != 0;
   return $string; }
 
+sub toAttribute {
+  my ($self) = @_;
+  my ($sp, $plus, $pfill, $minus, $mfill) = @$self;
+  my $string = LaTeXML::Dimension::attributeformat($sp);
+  $string .= ' plus ' . ($pfill ? $plus . $FILL[$pfill] : LaTeXML::Dimension::attributeformat($plus))
+    if $plus != 0;
+  $string .= ' minus ' . ($mfill ? $minus . $FILL[$mfill] : LaTeXML::Dimension::attributeformat($minus))
+    if $minus != 0;
+  return $string; }
+
 sub negate {
   my ($self) = @_;
   my ($pts, $p, $pf, $m, $mf) = @$self;
@@ -233,6 +267,14 @@ use base qw(LaTeXML::Glue);
 
 # 1 mu = 1em/18 = 10pt/18 = 5/9 pt; 1pt = 9/5mu = 1.8mu
 sub toString {
+  my ($self) = @_;
+  my ($sp, $plus, $pfill, $minus, $mfill) = @$self;
+  my $string = LaTeXML::Float::format($sp / 65536 * 1.8) . "mu";
+  $string .= ' plus ' . ($pfill ? $plus . $FILL[$pfill] : LaTeXML::Float::format($plus / 65536 * 1.8) . 'mu') if $plus != 0;
+  $string .= ' minus ' . ($mfill ? $minus . $FILL[$mfill] : LaTeXML::Float::format($minus / 65536 * 1.8) . 'mu') if $minus != 0;
+  return $string; }
+
+sub toAttribute {
   my ($self) = @_;
   my ($sp, $plus, $pfill, $minus, $mfill) = @$self;
   my $string = LaTeXML::Float::format($sp / 65536 * 1.8) . "mu";
@@ -299,9 +341,17 @@ sub ptValue {
   my ($self) = @_;
   return $$self[0]->ptValue() . ',' . $$self[1]->ptValue(); }
 
+sub pxValue {
+  my ($self) = @_;
+  return $$self[0]->pxValue() . ',' . $$self[1]->pxValue(); }
+
 sub toString {
   my ($self) = @_;
   return $$self[0]->toString() . ',' . $$self[1]->toString(); }
+
+sub toAttribute {
+  my ($self) = @_;
+  return $$self[0]->toAttribute() . ',' . $$self[1]->toAttribute(); }
 
 sub stringify {
   my ($self) = @_;
@@ -340,9 +390,17 @@ sub ptValue {
   my ($self) = @_;
   return join(' ', map { $_->ptValue } @$self); }
 
+sub pxValue {
+  my ($self) = @_;
+  return join(' ', map { $_->pxValue } @$self); }
+
 sub toString {
   my ($self) = @_;
   return join(' ', map { $_->toString } @$self); }
+
+sub toAttribute {
+  my ($self) = @_;
+  return join(' ', map { $_->toAttribute } @$self); }
 
 sub stringify {
   my ($self) = @_;
@@ -465,6 +523,10 @@ Return a string representing C<$object>.
 Return a value representing C<$object> without the measurement unit (pt) 
 with limited decimal places.
 
+=item C<< $string = $object->pxValue; >>
+
+Return an integer value representing C<$object> in pixels.
+Uses the state variable C<DPI> (dots per inch).
 =back
 
 =head2 Numerics methods

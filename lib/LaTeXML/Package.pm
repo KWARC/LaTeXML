@@ -20,6 +20,7 @@ use LaTeXML::Definition;
 use LaTeXML::Parameters;
 use LaTeXML::Util::Pathname;
 use LaTeXML::Util::WWW;
+use File::Which;
 use Unicode::Normalize;
 use Text::Balanced;
 use base qw(Exporter);
@@ -76,7 +77,7 @@ our @EXPORT    = (qw(&DefExpandable
     ),
 
   # Random low-level token or string operations.
-  qw(&CleanID &CleanLabel &CleanIndexKey &CleanBibKey &CleanURL &CleanDimension
+  qw(&CleanID &CleanLabel &CleanIndexKey &CleanBibKey &CleanURL
     &UTF
     &roman &Roman),
   # Math & font state.
@@ -367,19 +368,6 @@ sub CleanURL {
   $url =~ s/^\s+//s; $url =~ s/\s+$//s;    # Trim leading/trailing, in any case
   $url =~ s/\\~{}/~/g;
   return $url; }
-
-# pretty printer, sorta
-sub CleanDimension {
-  my ($dim) = @_;
-  if (!defined $dim) {
-    return $dim; }
-  elsif (ref $dim) {
-    $dim = $dim->ptValue; }
-  elsif ($dim =~ /\s*(.*)\s*pt\s*$/) {
-    $dim = $1; }
-  elsif ($dim) {
-    $dim = int($dim * 100); }
-  return ($dim ? $dim . "pt" : undef); }
 
 #======================================================================
 # Defining new Control-sequence Parameter types.
@@ -748,19 +736,33 @@ sub DefConditional {
 sub DefConditionalI {
   my ($cs, $paramlist, $test, %options) = @_;
   $cs = coerceCS($cs);
-  if ((!defined $test) && (!defined $options{skipper})) {
-    # define a "user defined" conditional, like with \newif
-    if (ToString($cs) =~ /^\\if(.*)$/) {
-      my $name = $1;
+  my $csname = ToString($cs);
+  # Special cases...
+  if ($csname eq '\fi') {
+    $STATE->installDefinition(LaTeXML::Conditional::fi->new($cs, %options),
+      $options{scope}); }
+  elsif ($csname eq '\else') {
+    $STATE->installDefinition(LaTeXML::Conditional::else->new($cs, %options),
+      $options{scope}); }
+  elsif ($csname eq '\or') {
+    $STATE->installDefinition(LaTeXML::Conditional::or->new($cs, %options),
+      $options{scope}); }
+  elsif ($csname =~ /^\\(?:if(.*)|unless)$/) {
+    my $name = $1;
+    if ((defined $name) && ($name ne 'case')
+      && (!defined $test)) {    # user-defined conditional, like with \newif
       $test = sub { LookupValue('Boolean:' . $name); };
-      DefPrimitiveI(T_CS('\\' . $name . 'true'),  undef, sub { AssignValue('Boolean:' . $name => 1); });
-      DefPrimitiveI(T_CS('\\' . $name . 'false'), undef, sub { AssignValue('Boolean:' . $name => 0); }); }
-    else {
-      Error('misdefined', $cs, $STATE->getStomach,
-        "The conditional " . Stringify($cs) . " is being defined but doesn't start with \\if"); } }
-  $paramlist = parseParameters($paramlist, $cs) if defined $paramlist && !ref $paramlist;
-  $STATE->installDefinition(LaTeXML::Conditional->new($cs, $paramlist, $test, %options),
-    $options{scope});
+      DefPrimitiveI(T_CS('\\' . $name . 'true'), undef, sub {
+          AssignValue('Boolean:' . $name => 1); });
+      DefPrimitiveI(T_CS('\\' . $name . 'false'), undef, sub {
+          AssignValue('Boolean:' . $name => 0); }); }
+    # For \ifcase, the parameter list better be a single Number !!
+    $paramlist = parseParameters($paramlist, $cs) if defined $paramlist && !ref $paramlist;
+    $STATE->installDefinition(LaTeXML::Conditional->new($cs, $paramlist, $test, %options),
+      $options{scope}); }
+  else {
+    Error('misdefined', $cs, $STATE->getStomach,
+      "The conditional " . Stringify($cs) . " is being defined but doesn't start with \\if"); }
   AssignValue(ToString($cs) . ":locked" => 1) if $options{locked};
   return; }
 
@@ -820,6 +822,7 @@ my %register_types = (      # [CONSTANT]
   'LaTeXML::Glue'      => 'Glue',
   'LaTeXML::MuGlue'    => 'MuGlue',
   'LaTeXML::Tokens'    => 'Tokens',
+  'LaTeXML::Token'     => 'Token',
 );
 
 sub DefRegister {
@@ -1183,7 +1186,8 @@ sub DefEnvironmentI {
         ($options{forbidMath} ? (sub { forbidMath($name); }) : ()),
         ($mode ? (sub { $_[0]->beginMode($mode); })
           : (sub { $_[0]->bgroup; })),
-        sub { AssignValue(current_environment => $name); },
+        sub { AssignValue(current_environment => $name);
+          DefMacroI('\@currenvir', undef, $name); },
         ($options{font} ? (sub { MergeFont(%{ $options{font} }); }) : ()),
         $options{beforeDigest}),
       afterDigest => flatten($options{afterDigestBegin}),
@@ -1369,21 +1373,22 @@ sub FindFile_aux {
   if (!$options{noltxml}
     && ($path = pathname_find("$file.ltxml", paths => $ltxml_paths, installation_subdir => 'Package'))) {
     return $path; }
-  # If we're EXCLUDING ltxml, then FIRST use pathname_find to search for file (faster, blahblah)
-  if ($options{noltxml} && ($path = pathname_find($file, paths => $paths, urlbase => $urlbase))) {
+  # If we're looking for TeX, look within our paths & installation first (faster than kpse)
+  if (!$options{notex}
+    && ($path = pathname_find($file, paths => $paths))) {
     return $path; }
   # Otherwise, pass on to kpsewhich
   # Depending on flags, maybe search for ltxml in texmf or for plain tex in ours!
   # The main point, though, is to we make only ONE (more) call.
   return if grep { pathname_is_nasty($_) } @$paths;    # SECURITY! No nasty paths in cmdline
         # Do we need to sanitize these environment variables?
-  my $kpsewhich = $ENV{LATEXML_KPSEWHICH} || 'kpsewhich';
+  my $kpsewhich = which($ENV{LATEXML_KPSEWHICH} || 'kpsewhich');
   local $ENV{TEXINPUTS} = join($Config::Config{'path_sep'},
     @$paths, $ENV{TEXINPUTS} || $Config::Config{'path_sep'});
   my $candidates = join(' ',
     ((!$options{noltxml} && !$nopaths) ? ("$file.ltxml") : ()),
     (!$options{notex} ? ($file) : ()));
-  if (my $result = `$kpsewhich $candidates`) {
+  if ($kpsewhich && (my $result = `"$kpsewhich" $candidates`)) {
     if ($result =~ /^\s*(.+?)\s*\n/s) {
       return $1; } }
   if ($urlbase && ($path = url_find($file, urlbase => $urlbase))) {
@@ -1520,6 +1525,11 @@ sub loadTeXDefinitions {
   # If we're reading in these definitions, probaly will accept included ones?
   # (but not forbid ltxml ?)
   AssignValue('INCLUDE_STYLES' => 1);
+  # When set, this variable allows redefinitions of locked defns.
+  # It is set in before/after methods to allow local rebinding of commands
+  # but loading of sources & bindings is typically done in before/after methods of constructors!
+  # This re-locks defns during reading of TeX packages.
+  local $LaTeXML::State::UNLOCKED = 0;
   $stomach->getGullet->readingFromMouth(
     LaTeXML::Mouth->create($pathname,
       fordefinitions => 1, notes => 1,
@@ -1966,13 +1976,12 @@ my $ligature_options = {    # [CONSTANT]
   fontTest => 1 };
 
 sub DefLigature {
-  my ($regexp, %options) = @_;
+  my ($regexp, $replacement, %options) = @_;
   CheckOptions("DefLigature", $ligature_options, %options);
-  my $code = "sub { \$_[0] =~ s${regexp}g; }";
-  my $fcn  = eval $code;
-  Error('misdefined', $regexp, undef,
-    "Failed to compile regexp pattern '$regexp' into \"$code\"", $!) if $@;
-  UnshiftValue('TEXT_LIGATURES', { regexp => $regexp, code => $fcn, %options });
+  UnshiftValue('TEXT_LIGATURES',
+    { regexp => $regexp,
+      code => sub { $_[0] =~ s/$regexp/$replacement/g; $_[0]; },
+      %options });
   return; }
 
 my $math_ligature_options = {};    # [CONSTANT]

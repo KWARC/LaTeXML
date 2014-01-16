@@ -90,6 +90,14 @@ sub getStatusCode {
   my ($self) = @_;
   return $$self{state}->getStatusCode; }
 
+# You'd typically do this after both digestion AND conversion...
+sub showProfile {
+  my ($self, $digested) = @_;
+  return
+    $self->withState(sub {
+      LaTeXML::Definition::showProfile();    # Show profile (if any)
+      }); }
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Mid-level API.
 
@@ -158,7 +166,12 @@ sub finishDigestion {
   while ($stomach->getGullet->getMouth->hasMoreInput) {
     push(@stuff, $stomach->digestNextBody); }
   if (my $env = $state->lookupValue('current_environment')) {
-    Error('expected', "\\end{$env}", $stomach, "Input ended while environment $env was open"); }
+    Error('expected', "\\end{$env}", $stomach,
+      "Input ended while environment $env was open"); }
+  my $ifstack = $state->lookupValue('if_stack');
+  if ($ifstack && $$ifstack[0]) {
+    Error('expected', '\fi', $stomach,
+      "Input ended while conditional " . ToString($$ifstack[0]{token}) . " was incomplete"); }
   $stomach->getGullet->flush;
   return LaTeXML::List->new(@stuff); }
 
@@ -193,7 +206,8 @@ sub convertDocument {
           $document->insertPI('latexml', searchpaths => join(',', @$paths)); } }
       foreach my $preload (@{ $$self{preload} }) {
         next if $preload =~ /\.pool$/;
-        my $options = ($preload =~ s/^\[([^\]]*)\]//) && $1;
+        my $options = undef;                           # Stupid perlcritic policy
+        if ($preload =~ s/^\[([^\]]*)\]//) { $options = $1; }
         if ($preload =~ s/\.cls$//) {
           $document->insertPI('latexml', class => $preload, ($options ? (options => $options) : ())); }
         else {

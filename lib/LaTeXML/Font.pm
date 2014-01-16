@@ -62,6 +62,7 @@ my %font_family = (
   # The following are actually math fonts.
   ms    => { family => 'symbol' },
   ccm   => { family => 'serif', shape => 'italic' },
+  cmm   => { family => 'italic', encoding => 'OML' },
   cmex  => { family => 'symbol', encoding => 'OMX' },       # Not really symbol, but...
   cmsy  => { family => 'symbol', encoding => 'OMS' },
   ccitt => { family => 'typewriter', shape => 'italic' },
@@ -147,6 +148,8 @@ sub decodeFontname {
     $size = $at if defined $at;
     $size *= $scaled if defined $scaled;
     $props{size} = lookupFontSize($size);
+    # Experimental Hack !?!?!?
+    $props{encoding} = 'OT1' unless defined $props{encoding};
     return %props; }
   else {
     return; } }
@@ -171,8 +174,8 @@ sub new {
   my $series   = $options{series};
   my $shape    = $options{shape};
   my $size     = $options{size};
-  my $color    = $options{color}; $color = $color->toHex if ref $color;
-  my $bg       = $options{background}; $bg = $bg->toHex if ref $bg;
+  my $color    = $options{color};
+  my $bg       = $options{background};
   my $opacity  = $options{opacity};
   my $encoding = $options{encoding};
   return $class->new_internal($family, $series, $shape, $size, $color, $bg, $opacity, $encoding); }
@@ -243,8 +246,6 @@ sub merge {
   my $bg       = $options{background} // $$self[5];
   my $opacity  = $options{opacity}    // $$self[6];
   my $encoding = $options{encoding}   // $$self[7];
-  $color = $color->toHex if ref $color;
-  $bg    = $bg->toHex    if ref $bg;
   return (ref $self)->new_internal($family, $series, $shape, $size, $color, $bg, $opacity, $encoding); }
 
 # Really only applies to Math Fonts, but that should be handled elsewhere; We punt here.
@@ -346,7 +347,14 @@ sub computeStringSize {
   my $u    = (defined $string
     ? ($font_size{ $self->getSize || $DEFSIZE } || 10) * 65535 * length($string)
     : 0);
-  return (Dimension(0.5 * $u), Dimension(1.0 * $u), Dimension(0.2 * $u)); }
+  return (Dimension(0.75 * $u), Dimension(0.7 * $u), Dimension(0.2 * $u)); }
+
+# Get nominal width, height base ?
+sub getNominalSize {
+  my ($self) = @_;
+  my $size = $self->getSize;
+  my $u = ($font_size{ $self->getSize || $DEFSIZE } || 10) * 65535;
+  return (Dimension(0.75 * $u), Dimension(0.7 * $u), Dimension(0.2 * $u)); }
 
 #**********************************************************************
 package LaTeXML::MathFont;
@@ -368,8 +376,8 @@ sub new {
   my $series   = $options{series};
   my $shape    = $options{shape};
   my $size     = $options{size};
-  my $color    = $options{color}; $color = $color->toHex if ref $color;
-  my $bg       = $options{background}; $bg = $bg->toHex if ref $bg;
+  my $color    = $options{color};
+  my $bg       = $options{background};
   my $opacity  = $options{opacity};
   my $encoding = $options{encoding};
 ##  my $forcebold  = $options{forcebold} || 0;
@@ -403,8 +411,6 @@ sub merge {
   my $encoding   = $options{encoding}   // $$self[7];
   my $forcebold  = $options{forcebold}  // $$self[8];
   my $forceshape = $options{forceshape} // $$self[9];
-  $color = $color->toHex if ref $color;
-  $bg    = $bg->toHex    if ref $bg;
   # In math, setting any one of these, resets the others to default.
   $family = $MDEFFAMILY if !$options{family} && ($options{series} || $options{shape});
   $series = $MDEFSERIES if !$options{series} && ($options{family} || $options{shape});

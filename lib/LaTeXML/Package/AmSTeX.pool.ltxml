@@ -7,13 +7,16 @@
 # |  Public domain software, produced as part of work done by the       | #
 # |  United States Government & not subject to copyright in the US.     | #
 # |---------------------------------------------------------------------| #
-# / Thanks to the arXMLiv group for
+# | Thanks to the arXMLiv group for initial implementation              | #
+# |    http://arxmliv.kwarc.info/                                       | #
+# | Released to the Public Domain                                       | #
 # |---------------------------------------------------------------------| #
 # | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
 # | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
 # \=========================================================ooo==U==ooo=/ #
 package LaTeXML::Package::Pool;
 use strict;
+use warnings;
 use LaTeXML::Package;
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -144,7 +147,11 @@ DefMacro('\abstract Until:\endabstract', '\@add@frontmatter{ltx:abstract}{#1}');
 DefMacro('\nofrills', '');
 
 DefPrimitive('\comment', sub {
-    $_[0]->getGullet->getMouth->readRawLines('\endcomment');    # read & ignore the contents
+    my ($stomach, $line);
+    my $gullet = $stomach->getGullet;
+    $gullet->readRawLine;    # IGNORE 1st line (after the \begin{$name} !!!
+    while (defined($line = $gullet->readRawLine) && ($line ne '\endcomment')) {
+    }
     return; });
 
 Let('\plainproclaim', '\proclaim');
@@ -299,11 +306,11 @@ DefMacro('\multlinegap Dimension', '');
 DefMacro('\nomultlinegap',         '');
 
 DefMacro('\innerhdotsfor Number Match:\after {}', sub {
-    (map('\hdots', 1 .. $_[1]->valueOf)); });
+    (map { '\hdots' } 1 .. $_[1]->valueOf); });
 DefMacro('\spacehdots Number Match:\for Number', sub {
-    (map('\hdots', 1 .. $_[1]->valueOf)); });
+    (map { '\hdots' } 1 .. $_[1]->valueOf); });
 DefMacro('\spaceinnerhdots Number Match:\for Number Match:\after {}', sub {
-    (map('\hdots', 1 .. $_[1]->valueOf)); });
+    (map { '\hdots' } 1 .. $_[1]->valueOf); });
 
 DefMacro('\foldedtext', sub {
     my ($gullet) = @_;
@@ -354,7 +361,7 @@ DefConstructorI('\@cfrac', undef,
       Revert($whatsit->getProperty('bottom'))); });
 
 DefMacro('\endcfrac', sub {
-    (map(T_CS('\egroup'), 1 .. LookupValue('\cfraccount@')->valueOf), T_CS('\@endcfrac')); });
+    ((map { T_CS('\egroup') } 1 .. LookupValue('\cfraccount@')->valueOf), T_CS('\@endcfrac')); });
 DefConstructor('\@endcfrac', '', reversion => '\endcfrac');
 
 #======================================================================

@@ -183,7 +183,7 @@ sub generateMessage {
     push(@lines, $where->showUnexpected); }    # Or better?
   elsif ($wheretype =~ 'LaTeXML::Stomach') {
     push(@lines,
-      "Recently digested: " . join(' ', map(Stringify($_), @LaTeXML::LIST)))
+      "Recently digested: " . join(' ', map { Stringify($_) } @LaTeXML::LIST))
       if $verbosity > 1; }
 
   my $nstack = ($long > 1 ? undef : ($long ? 4 : 1));
@@ -244,7 +244,7 @@ my $MAXLEN  = 40;    # Or more? [CONSTANT]
 sub trim {
   my ($string) = @_;
   return $string unless defined $string;
-  substr($string, $MAXLEN - 3) = "..." if (length($string) > $MAXLEN);
+  $string = substr($string, 0, $MAXLEN - 3) . "..." if (length($string) > $MAXLEN);
   $string =~ s/\n/\x{240D}/gs;    # symbol for CR
   return $string; }
 

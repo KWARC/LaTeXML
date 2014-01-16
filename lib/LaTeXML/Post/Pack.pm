@@ -32,7 +32,7 @@ sub new {
   $$self{whatsout}      = $options{whatsout};
   $$self{format}        = $options{format};
   $$self{finished}      = 0;
-  $self; }
+  return $self; }
 
 sub process {
   my ($self, @docs) = @_;
@@ -63,22 +63,33 @@ sub GetArchive {
   # Zip and send back
   my $archive = Archive::Zip->new();
   my $payload = '';
-  opendir(my $dirhandle, $directory);
+  opendir(my $dirhandle, $directory)
+    or Fatal('expected', 'directory', undef,
+    "Expected a directory to archive '$directory':", $@);
   my @entries = grep { /^[^.]/ } readdir($dirhandle);
   closedir $dirhandle;
-  my @files = grep { (!/zip|gz|epub|tex|mobi|~$/) && -f pathname_concat($directory, $_) } @entries;
+  my @files = grep { (!/zip|gz|epub|tex|bib|mobi|~$/) && -f pathname_concat($directory, $_) } @entries;
   my @subdirs = grep { -d File::Spec->catdir($directory, $_) } @entries;
  # We want to first add the files instead of simply invoking ->addTree on the top level
  # without ANY file attributes at all,
  # since EPUB is VERY picky about the first entry in the archive starting at byte 38 (file 'mimetype')
   foreach my $file (sort @files) {
     local $/ = undef;
-    open my $fh_zip, "<", pathname_concat($directory, $file);
-    my $file_contents = <$fh_zip>;
-    $archive->addString($file_contents, $file); }
+    my $FH;
+    my $pathname = pathname_concat($directory, $file);
+    open $FH, "<", $pathname
+      or Fatal('I/O', $pathname, undef, "File $pathname is not readable.");
+    my $file_contents = <$FH>;
+    close($FH);
+    # Only compress the textual files
+    my $compression_level = ($file =~ /css|js|xml|html$/) ?
+      COMPRESSION_DEFLATED
+      : COMPRESSION_STORED;
+    $archive->addString($file_contents, $file, )->desiredCompressionMethod( $compression_level ); }
+
   foreach my $subdir (sort @subdirs) {
     my $current_dir = File::Spec->catdir($directory, $subdir);
-    $archive->addTree($current_dir, $subdir, sub { /^[^.]/ && (!/\.(zip|gz|epub|mobi|~)$/) }); }
+    $archive->addTree($current_dir, $subdir, sub { /^[^.]/ && (!/\.(?:zip|gz|epub|mobi|~)$/) }, COMPRESSION_STORED); }
 
   my $content_handle = IO::String->new($payload);
   undef $payload unless ($archive->writeToFileHandle($content_handle) == AZ_OK);
@@ -90,8 +101,12 @@ sub GetMath {
   return unless defined $doc;
   my @mnodes     = $doc->findnodes($math_xpath);
   my $math_count = scalar(@mnodes);
-  my $math       = $mnodes[0] if $math_count;
-  if ($math_count > 1) {
+  if (!$math_count) {
+    return GetEmbeddable($doc); }
+  elsif ($math_count == 1) {
+    return $mnodes[0]; }
+  elsif ($math_count > 1) {
+    my $math       = $mnodes[0];
     my $math_found = 0;
     while ($math_found != $math_count) {
       $math_found = $math->findnodes('.' . $math_xpath)->size;
@@ -99,11 +114,7 @@ sub GetMath {
       $math = $math->parentNode if ($math_found != $math_count);
     }
     $math = $math->parentNode while ($math->nodeName =~ '^t[rd]$');
-    $math; }
-  elsif ($math_count == 0) {
-    GetEmbeddable($doc); }
-  else {
-    $math; } }
+    return $math; } }
 
 sub GetEmbeddable {
   my ($doc) = @_;

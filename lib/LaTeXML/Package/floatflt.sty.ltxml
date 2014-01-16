@@ -8,13 +8,15 @@
 # |  United States Government & not subject to copyright in the US.     | #
 # |---------------------------------------------------------------------| #
 # | Thanks to the arXMLiv group for initial implementation              | #
+# |    http://arxmliv.kwarc.info/                                       | #
+# | Released to the Public Domain                                       | #
 # |---------------------------------------------------------------------| #
 # | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
 # | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
 # \=========================================================ooo==U==ooo=/ #
-
 package LaTeXML::Package::Pool;
 use strict;
+use warnings;
 use LaTeXML::Package;
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -29,28 +31,28 @@ DeclareOption('pflt', sub { AssignValue(floatfltpos => 'p'); });
 DeclareOption('vflt', sub { AssignValue(floatfltpos => 'v'); });
 
 DefEnvironment('{floatingfigure}[]{Dimension}',
-"<ltx:figure refnum='#refnum' frefnum='#frefnum' rrefnum='#rrefnum' xml:id='#id' float='#float' width='#width'>"
+"<ltx:figure refnum='#refnum' frefnum='#frefnum' rrefnum='#rrefnum' xml:id='#id' float='#float' width='#pctwidth'>"
     . "#body"
     . "</ltx:figure>",
   beforeDigest => sub { DefMacroI('\@captype', undef, 'figure'); },
   afterDigest => sub { RescueCaptionCounters('figure', $_[1]); },
   properties => sub {
     (float => (ToString($_[1] || LookupValue('floatfltpos')) =~ /^(v|r)/ ? 'right' : 'left'),
-      width => toPercent($_[2])); });
+      pctwidth => toPercent($_[2])); });
 
 DefEnvironment('{floatingtable}[]{Dimension}',
-"<ltx:table refnum='#refnum' frefnum='#frefnum' rrefnum='#rrefnum' xml:id='#id' float='#float' width='#width'>"
+"<ltx:table refnum='#refnum' frefnum='#frefnum' rrefnum='#rrefnum' xml:id='#id' float='#float' width='#pctwidth'>"
     . "#body"
     . "</ltx:table>",
   beforeDigest => sub { DefMacroI('\@captype', undef, 'table'); },
   afterDigest => sub { RescueCaptionCounters('table', $_[1]); },
   properties => sub {
     (float => (ToString($_[1] || LookupValue('floatfltpos')) =~ /^(v|r)/ ? 'right' : 'left'),
-      width => toPercent($_[2])); });
+      pctwidth => toPercent($_[2])); });
 
 sub toPercent {
   my ($dimen) = @_;
-  int(100 * $dimen->valueOf / LookupValue('\textwidth')->valueOf) . '%'; }
+  return int(100 * $dimen->valueOf / LookupValue('\textwidth')->valueOf) . '%'; }
 
 DefMacro('\fltitem[]{}',    '\item {#2}');
 DefMacro('\fltditem[]{}{}', '\item[#2] {#3}');
@@ -90,7 +92,7 @@ DefRegister('\floatfltwidth' => Dimension('0pt'));
 DefRegister('\fltitemwidth'  => Dimension('0pt'));
 DefRegister('\outputpretest' => Tokens());
 
-RawTeX('
+RawTeX(<<'EoTeX');
 \newif\iftryingfig     \tryingfigfalse
 \newif\iftryingtab     \tryingtabfalse
 \newif\ifdoingfig      \doingfigfalse
@@ -101,6 +103,6 @@ RawTeX('
 \newif\ifpageaftertab  \pageaftertabfalse
 \newif\ifoddpages
 \newif\ifoutput
-');
+EoTeX
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 1;

@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+#======================================================================
+# pre-commit hook for LaTeXML development
+# do
+#    ln -s ../../tools/pre-commit .git/hooks
+#======================================================================
+use warnings;
+use strict;
+use File::Spec::Functions;
+use Term::ANSIColor;
+
+my $changes = `git status --porcelain`;
+if (my @modified_files =
+  map  { $_->[1] }                # select the filename
+  grep { $_->[0] =~ /^[AM]$/ }    # take only Modified or Added
+  map  { [split(/\s+/, $_)] }     # [status, name]
+  split("\n", $changes)) {        # from all files
+  my $status = system(catfile('tools', 'latexmllint'), "--precommit", @modified_files);
+  my $code = $status >> 8;
+
+  print STDERR "Some files had issues; To correct these, run:\n   tools/latexmllint <files>."
+    . colored("COMMIT ABORTED", 'red') . "\n" if $code;
+  exit $code; }

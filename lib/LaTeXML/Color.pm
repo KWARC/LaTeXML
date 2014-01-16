@@ -23,20 +23,6 @@ use base qw(LaTeXML::Object);
 # directly with built-in code, but support derived models that possibly
 # are defined in terms of macros defined as part of a style file.
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Publicly exported interface?
-
-# This should go away...
-# Convert a Color this to LaTeXML's usable final color.
-# This could evolve into the "standard" method for converting colors
-# to the target, and might allow XML with an alternate color encoding
-# besides the hex form.  Perhaps also could deal with svg, better?
-sub UseColor {
-  my ($color) = @_;
-  # Apply color mask, if any. (a bit too xcolor specific)
-  if ($STATE->lookupValue('Boolean:maskcolors')) {
-    if (my $mask = $STATE->lookupValue('color_mask')) {
-      $color = $color->convert($mask->model)->multiply($mask->components); } }
-  return $color->rgb->toHex; }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Color Objects
@@ -90,7 +76,16 @@ sub toCore {
     Error('unexpected', $self->model, undef, "Color is not in valid model '$model'");
     return Black; } }
 
+sub toString {
+  my ($self) = @_;
+  my ($model, @comp) = @$self;
+  return $model . "(" . join(',', @comp) . ")"; }
+
 sub toHex {
+  my ($self) = @_;
+  return $self->rgb->toHex; }
+
+sub toAttribute {
   my ($self) = @_;
   return $self->rgb->toHex; }
 
@@ -135,11 +130,6 @@ sub multiply {
     return $self; }
   else {
     return $self->new(map { $c[$_] * $m[$_] } 0 .. $#c); } }
-
-sub toString {
-  my ($self) = @_;
-  my ($model, @comp) = @$self;
-  return $model . "(" . join(',', @comp) . ")"; }
 
 #======================================================================
 package LaTeXML::Color::CoreColor;
