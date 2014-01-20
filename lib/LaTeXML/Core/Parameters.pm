@@ -1,5 +1,5 @@
 # /=====================================================================\ #
-# |  LaTeXML::Parameters                                                | #
+# |  LaTeXML::Core::Parameters                                          | #
 # | Representation of Parameters for Control Sequences                  | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
@@ -9,11 +9,11 @@
 # | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
 # | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
 # \=========================================================ooo==U==ooo=/ #
-
-package LaTeXML::Parameters;
+package LaTeXML::Core::Parameters;
 use strict;
 use warnings;
 use LaTeXML::Global;
+use LaTeXML::Core::Parameter;
 use base qw(Exporter LaTeXML::Object);
 our @EXPORT = qw(parseParameters);
 
@@ -37,38 +37,6 @@ sub new {
 # In all cases, there is the provision to supply an additional parameter to the reader:
 #    "Foo:stuff"   effectively invokes ReadFoo(Tokenize('stuff'))
 # similarly for the other variants. What the 'stuff" means depends on the type.
-
-%LaTeXML::Parameters::PARAMETER_TABLE
-  = (Plain => { reader => sub {
-      my ($gullet, $inner) = @_;
-      my $value = $gullet->readArg;
-      if ($inner) {
-        ($value) = $inner->reparseArgument($gullet, $value); }
-      $value; },
-    reversion => sub { my ($arg, $inner) = @_;
-      (T_BEGIN,
-        ($inner ? $inner->revertArguments($arg) : Revert($arg)),
-        T_END); } },
-  Optional => { reader => sub {
-      my ($gullet, $default, $inner) = @_;
-      my $value = $gullet->readOptional;
-      if (!$value && $default) {
-        $value = $default; }
-      elsif ($inner) {
-        ($value) = $inner->reparseArgument($gullet, $value); }
-      $value; },
-    optional => 1,
-    reversion => sub { my ($arg, $default, $inner) = @_;
-      if ($arg) {
-        (T_OTHER('['),
-          ($inner ? $inner->revertArguments($arg) : Revert($arg)),
-          T_OTHER(']')); }
-      else { (); } } },
-  Until => { reader => sub { my ($gullet, $until) = @_;
-      $gullet->readUntil($until); },
-    reversion => sub { my ($arg, $until) = @_;
-      (Revert($arg), Revert($until)); } },
-  );
 
 # Parsing a parameter list spec.
 sub parseParameters {
@@ -95,24 +63,24 @@ sub parseParameters {
       push(@params, newParameter($type, $spec, extra => [@extra])); }
     else {
       Fatal('misdefined', $for, undef, "Unrecognized parameter specification at \"$proto\""); } }
-  return (@params ? LaTeXML::Parameters->new(@params) : undef); }
+  return (@params ? LaTeXML::Core::Parameters->new(@params) : undef); }
 
 # Create a parameter reading object for a specific type.
 # If either a declared entry or a function Read<Type> accessible from LaTeXML::Package::Pool
 # is defined.
 sub newParameter {
   my ($type, $spec, %options) = @_;
-  my $descriptor = $LaTeXML::Parameters::PARAMETER_TABLE{$type};
+  my $descriptor = $STATE->lookupMapping('PARAMETER_TYPES', $type);
   if (!defined $descriptor) {
     if ($type =~ /^Optional(.+)$/) {
       my $basetype = $1;
-      if ($descriptor = $LaTeXML::Parameters::PARAMETER_TABLE{$basetype}) { }
+      if ($descriptor = $STATE->lookupMapping('PARAMETER_TYPES', $basetype)) { }
       elsif (my $reader = checkReaderFunction("Read$type") || checkReaderFunction("Read$basetype")) {
         $descriptor = { reader => $reader }; }
       $descriptor = { %$descriptor, optional => 1 } if $descriptor; }
     elsif ($type =~ /^Skip(.+)$/) {
       my $basetype = $1;
-      if ($descriptor = $LaTeXML::Parameters::PARAMETER_TABLE{$basetype}) { }
+      if ($descriptor = $STATE->lookupMapping('PARAMETER_TYPES', $basetype)) { }
       elsif (my $reader = checkReaderFunction($type) || checkReaderFunction("Read$basetype")) {
         $descriptor = { reader => $reader }; }
       $descriptor = { %$descriptor, novalue => 1, optional => 1 } if $descriptor; }
@@ -120,7 +88,7 @@ sub newParameter {
       my $reader = checkReaderFunction("Read$type");
       $descriptor = { reader => $reader } if $reader; } }
   Fatal('misdefined', $type, undef, "Unrecognized parameter type in \"$spec\"") unless $descriptor;
-  return LaTeXML::Parameter->new($spec, type => $type, %{$descriptor}, %options); }
+  return LaTeXML::Core::Parameter->new($spec, type => $type, %{$descriptor}, %options); }
 
 # Check whether a reader function is accessible within LaTeXML::Package::Pool
 sub checkReaderFunction {
@@ -203,46 +171,14 @@ sub readArgumentsAndDigest {
 sub reparseArgument {
   my ($self, $gullet, $tokens) = @_;
   if (defined $tokens) {
-    return $gullet->readingFromMouth(LaTeXML::Mouth->new(), sub {    # start with empty mouth
+    return $gullet->readingFromMouth(LaTeXML::Core::Mouth->new(), sub {    # start with empty mouth
         my ($gulletx) = @_;
-        $gulletx->unread($tokens);                                   # but put back tokens to be read
+        $gulletx->unread($tokens);                                         # but put back tokens to be read
         my @values = $self->readArguments($gulletx);
         $gulletx->skipSpaces;
         return @values; }); }
   else {
     return (); } }
-
-#======================================================================
-package LaTeXML::Parameter;
-use strict;
-use LaTeXML::Global;
-use base qw(LaTeXML::Object);
-
-sub new {
-  my ($class, $spec, %options) = @_;
-  return bless { spec => $spec, %options }, $class; }
-
-sub stringify {
-  my ($self) = @_;
-  return $$self{spec}; }
-
-sub read {
-  my ($self, $gullet) = @_;
-  # For semiverbatim, I had messed with catcodes, but there are cases
-  # (eg. \caption(...\label{badchars}}) where you really need to
-  # cleanup after the fact!
-  # Hmmm, seem to still need it...
-  if ($$self{semiverbatim}) {
-    # Nasty Hack: If immediately followed by %, should discard the comment
-    # EVEN if semiverbatim makes % into other!
-    if (my $peek = $gullet->readToken) { $gullet->unread($peek); }
-    StartSemiverbatim(); }
-  my $value = &{ $$self{reader} }($gullet, @{ $$self{extra} || [] });
-  $value = $value->neutralize if $$self{semiverbatim} && (ref $value)
-    && $value->can('neutralize');
-  if ($$self{semiverbatim}) {
-    EndSemiverbatim(); }
-  return $value; }
 
 #======================================================================
 1;
@@ -253,28 +189,15 @@ __END__
 
 =head1 NAME
 
-C<LaTeXML::Parameters> - formal parameters,
-including C<LaTeXML::Parameter>.
+C<LaTeXML::Core::Parameters> - formal parameters.
 
 =head1 DESCRIPTION
 
-Provides a representation for the formal parameters of L<LaTeXML::Definition>s:
+Provides a representation for the formal parameters of L<LaTeXML::Core::Definition>s:
 
 =over 4
 
-=item C<LaTeXML::Parameter>
-
-=begin latex
-
-\label{LaTeXML::Parameter}
-
-=end latex
-
-represents an individual parameter.
-
-=back
-
-=head2 Parameters Methods
+=head2 METHODS
 
 =over 4
 
@@ -305,11 +228,11 @@ Each specification should be of the form
 
 =item C<< @parameters = $parameters->getParameters; >>
 
-Return the list of C<LaTeXML::Parameter> contained in C<$parameters>.
+Return the list of C<LaTeXML::Core::Parameter> contained in C<$parameters>.
 
 =item C<< @tokens = $parameters->revertArguments(@args); >>
 
-Return a list of L<LaTeXML::Token> that would represent the arguments
+Return a list of L<LaTeXML::Core::Token> that would represent the arguments
 such that they can be parsed by the Gullet.
 
 =item C<< @args = $parameters->readArguments($gullet,$fordefn); >>

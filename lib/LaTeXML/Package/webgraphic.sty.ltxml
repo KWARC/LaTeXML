@@ -8,8 +8,8 @@ DefKeyVal('webgraphic','alt','Semiverbatim');
 DefConstructor('\webgraphic OptionalKeyVals:webgraphic {}',
        "<ltx:graphics imagesrc='#2' "
        . "?#1("
-       . "?&KeyVal(#1,'width')(imagewidth='&KeyVal(#1,'width')' )()"
-       . "?&KeyVal(#1,'height')(imageheight='&KeyVal(#1,'height')' )()"
-       . "?&KeyVal(#1,'alt')(description='&KeyVal(#1,'alt')' )()"
+       . "?&GetKeyVal(#1,'width')(imagewidth='&GetKeyVal(#1,'width')' )()"
+       . "?&GetKeyVal(#1,'height')(imageheight='&GetKeyVal(#1,'height')' )()"
+       . "?&GetKeyVal(#1,'alt')(description='&GetKeyVal(#1,'alt')' )()"
        . ")() />");
 1;

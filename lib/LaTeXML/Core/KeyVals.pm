@@ -1,6 +1,6 @@
 # -*- CPERL -*-
 # /=====================================================================\ #
-# |  KeyVal                                                             | #
+# |  LaTeXML::Core::KeyVals                                             | #
 # | Support for key-value pairs for LaTeXML                             | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
@@ -10,93 +10,41 @@
 # | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
 # | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
 # \=========================================================ooo==U==ooo=/ #
-package LaTeXML::Util::KeyVal;
+package LaTeXML::Core::KeyVals;
 use strict;
 use warnings;
-use LaTeXML::Package;
-use base qw(Exporter);
-our @EXPORT = (qw(&ReadRequiredKeyVals &ReadOptionalKeyVals
-    &DefKeyVal
-    &KeyVal &KeyVals));
-
-#======================================================================
-# New Readers for required and optional KeyVal sets.
-# These can also be used as parameter types.
-# They create a new data KeyVals object
-
-sub ReadRequiredKeyVals {
-  my ($gullet, $keyset) = @_;
-  if ($gullet->ifNext(T_BEGIN)) {
-    return (readKeyVals($gullet, $keyset, T_END)); }
-  else {
-    Error('expected', '{', $gullet, "Missing keyval arguments");
-    return (LaTeXML::KeyVals->new($keyset, T_BEGIN, T_END,)); } }
-
-sub ReadOptionalKeyVals {
-  my ($gullet, $keyset) = @_;
-  my $kv = ($gullet->ifNext(T_OTHER('[')) ? (readKeyVals($gullet, $keyset, T_OTHER(']'))) : undef);
-  # DG: Experimental metadata keyval treatment
-  my $meta_statements = LookupValue('metadata_keyval_hook');
-  if (defined $meta_statements) {
-    foreach (@$meta_statements) {
-      $gullet->unread($_);
-    }
-    AssignValue('metadata_keyval_hook', undef);
-  }
-  return $kv; }
-
-#======================================================================
-# This new declaration allows you to define the type associated with
-# the value for specific keys.
-sub DefKeyVal {
-  my ($keyset, $key, $type, $default) = @_;
-  my $paramlist = LaTeXML::Package::parseParameters($type, "KeyVal $key in set $keyset");
-  AssignValue('KEYVAL@' . $keyset . '@' . $key              => $paramlist);
-  AssignValue('KEYVAL@' . $keyset . '@' . $key . '@default' => Tokenize($default))
-    if defined $default;
-  return; }
-
-#======================================================================
-# These functions allow convenient access to KeyVal objects within constructors.
-
-# Access the value associated with a given key.
-# Can use in constructor: eg. <foo attrib='&KeyVal(#1,'key')'>
-sub KeyVal {
-  my ($keyval, $key) = @_;
-  return (defined $keyval) && $keyval->getValue($key); }
-
-# Access the entire hash.
-# Can use in constructor: <foo %&KeyVals(#1)/>
-sub KeyVals {
-  my ($keyval) = @_;
-  return (defined $keyval ? $keyval->getKeyVals : {}); }
+use LaTeXML::Global;
+use base qw(LaTeXML::Object);
 
 #======================================================================
 # A KeyVal argument MUST be delimited by either braces or brackets (if optional)
 # This method reads the keyval pairs INCLUDING the delimiters, (rather than parsing
 # after the fact), since some values may have special catcode needs.
-my $T_EQ    = T_OTHER('=');    # [CONSTANT]
-my $T_COMMA = T_OTHER(',');    # [CONSTANT]
+##my $T_EQ    = T_OTHER('=');    # [CONSTANT]
+##my $T_COMMA = T_OTHER(',');    # [CONSTANT]
 
 sub readKeyVals {
   my ($gullet, $keyset, $close) = @_;
   my $startloc = $gullet->getLocator();
   my $open     = $gullet->readToken;
+  my $assign   = T_OTHER('=');
+  my $punct    = T_OTHER(',');
+
   $keyset = ($keyset ? ToString($keyset) : '_anonymous_');
   my @kv = ();
   while (1) {
     $gullet->skipSpaces;
     # Read the keyword.
-    my ($ktoks, $delim) = $gullet->readUntil($T_EQ, $T_COMMA, $close);
+    my ($ktoks, $delim) = $gullet->readUntil($assign, $punct, $close);
     Error('expected', $close, $gullet,
       "Fell off end expecting " . Stringify($close) . " while reading KeyVal key",
       "key started at $startloc")
       unless $delim;
     my $key = ToString($ktoks); $key =~ s/\s//g;
     if ($key) {
-      my $keydef = LookupValue('KEYVAL@' . $keyset . '@' . $key);
+      my $keydef = $STATE->lookupValue('KEYVAL@' . $keyset . '@' . $key);
       my ($value, $meta);
-      if ($delim->equals($T_EQ)) {    # Got =, so read the value
+      if ($delim->equals($assign)) {    # Got =, so read the value
                                       # WHOA!!! Secret knowledge!!!
         my $type = ($keydef && (scalar(@$keydef) == 1) && $keydef->[0]->{type}) || 'Plain';
         if ($type eq 'Metakey') {     #DG: Experimental metadata treatment
@@ -106,10 +54,10 @@ sub readKeyVals {
         my $typedef = $LaTeXML::Parameters::PARAMETER_TABLE{$type};
         StartSemiverbatim() if $typedef && $$typedef{semiverbatim};
 
-        ## ($value,$delim)=$gullet->readUntil($T_COMMA,$close);
+        ## ($value,$delim)=$gullet->readUntil($punct,$close);
         # This is the core of $gullet->readUntil, but preserves braces needed by rare key types
         my ($tok, @toks) = ();
-        while ((!defined($delim = $gullet->readMatch($T_COMMA, $close)))
+        while ((!defined($delim = $gullet->readMatch($punct, $close)))
           && (defined($tok = $gullet->readToken()))) {    # Copy next token to args
           push(@toks, $tok,
             ($tok->getCatcode == CC_BEGIN ? ($gullet->readBalanced->unlist, T_END) : ())); }
@@ -122,7 +70,7 @@ sub readKeyVals {
         EndSemiverbatim() if $typedef && $$typedef{semiverbatim};
       }
       else {                                                                  # Else, get default value.
-        $value = LookupValue('KEYVAL@' . $keyset . '@' . $key . '@default'); }
+        $value = $STATE->lookupValue('KEYVAL@' . $keyset . '@' . $key . '@default'); }
       if ($meta) {    #DG: Experimental metadata treatment
         PushValue('metadata_keyval_hook', '\thisrel{' . ToString($key) . '}{' . ToString($value) . '}');
       }
@@ -133,9 +81,13 @@ sub readKeyVals {
       "key started at $startloc")
       unless $delim;
     last if $delim->equals($close); }
-  return LaTeXML::KeyVals->new($keyset, $open, $close, @kv); }
+  return LaTeXML::Core::KeyVals->new($keyset, [@kv],
+    open  => $open,  close  => $close,
+    punct => $punct, assign => $assign); }
 
-#**********************************************************************
+#======================================================================
+# The Data object representing the KeyVals
+#======================================================================
 # This defines the KeyVal data object that can appear in the datastream
 # along with tokens, boxes, etc.
 # Thus it has to be digestible.
@@ -152,16 +104,12 @@ sub readKeyVals {
 # Should it convert to simple text? Or structure?
 # If latter, there needs to be a key => tag mapping.
 
-package LaTeXML::KeyVals;
-use LaTeXML::Global;
-use LaTeXML::Package;
-use base qw(LaTeXML::Object);
-
-# Spec??
+# Options can be tokens for open, close, punct (between pairs), assign (typically =)
 sub new {
-  my ($class, $keyset, $open, $close, @pairs) = @_;
+  my ($class, $keyset, $pairs, %options) = @_;
+  $keyset = ($keyset ? ToString($keyset) : '_anonymous_');
   my %hash = ();
-  my @pp   = @pairs;
+  my @pp   = @$pairs;
   while (@pp) {
     my ($k, $v) = (shift(@pp), shift(@pp));
     if (!defined $hash{$k}) { $hash{$k} = $v; }
@@ -170,7 +118,9 @@ sub new {
     elsif (ref $hash{$k} eq 'ARRAY') { push(@{ $hash{$k} }, $v); }
     else { $hash{$k} = [$hash{$k}, $v]; } }
   return bless {
-    keyset => $keyset, open => $open, close => $close, keyvals => [@pairs], hash => {%hash} },
+    keyset => $keyset, keyvals => $pairs, hash => {%hash},
+    open  => $options{open},  close  => $options{close},
+    punct => $options{punct}, assign => $options{assign} },
     $class; }
 
 sub getValue {
@@ -204,17 +154,19 @@ sub beDigested {
   my @dkv    = ();
   while (@kv) {
     my ($key, $value) = (shift(@kv), shift(@kv));
-    my $keydef = LookupValue('KEYVAL@' . $keyset . '@' . $key);
+    my $keydef = $STATE->lookupValue('KEYVAL@' . $keyset . '@' . $key);
     my $dodigest = (ref $value) && (!$keydef || !$$keydef[0]{undigested});
     # Yuck
-    my $type     = ($keydef && (scalar(@$keydef) == 1) && $keydef->[0]->{type}) || 'Plain';
-    my $typedef  = $LaTeXML::Parameters::PARAMETER_TABLE{$type};
+    my $type = ($keydef && (scalar(@$keydef) == 1) && $keydef->[0]->{type}) || 'Plain';
+    my $typedef = $STATE->lookupMapping('PARAMETER_TYPES', $type);
     my $semiverb = $dodigest && $typedef && $$typedef{semiverbatim};
     StartSemiverbatim() if $semiverb;
     push(@dkv, $key, ($dodigest ? $value->beDigested($stomach) : $value));
     EndSemiverbatim() if $semiverb;
   }
-  return (ref $self)->new($$self{keyset}, $$self{open}, $$self{close}, @dkv); }
+  return LaTeXML::Core::KeyVals->new($keyset, [@dkv],
+    open  => $$self{open},  close  => $$self{close},
+    punct => $$self{punct}, assign => $$self{assign}); }
 
 sub revert {
   my ($self) = @_;
@@ -223,11 +175,12 @@ sub revert {
   my @kv     = @{ $$self{keyvals} };
   while (@kv) {
     my ($key, $value) = (shift(@kv), shift(@kv));
-    my $keydef = LookupValue('KEYVAL@' . $keyset . '@' . $key);
-    push(@tokens, T_OTHER(','), T_SPACE) if @tokens;
+    my $keydef = $STATE->lookupValue('KEYVAL@' . $keyset . '@' . $key);
+    push(@tokens, $$self{punct}) if $$self{punct} && @tokens;
+    push(@tokens, T_SPACE)       if @tokens;
     push(@tokens, Explode($key));
-    push(@tokens, T_OTHER('='),
-      ($keydef ? $keydef->revertArguments($value) : Revert($value))) if $value; }
+    push(@tokens, ($$self{assign} || T_SPACE)) if $value;
+    push(@tokens, ($keydef ? $keydef->revertArguments($value) : Revert($value))) if $value; }
   unshift(@tokens, $$self{open}) if $$self{open};
   push(@tokens, $$self{close}) if $$self{close};
   return @tokens; }
@@ -242,8 +195,8 @@ sub toString {
   my @kv     = @{ $$self{keyvals} };
   while (@kv) {
     my ($key, $value) = (shift(@kv), shift(@kv));
-    $string .= ', ' if $string;
-    $string .= $key . '=' . ToString($value); }
+    $string .= ToString($$self{punct} || '') . ' ' if $string;
+    $string .= $key . ToString($$self{assign} || ' ') . ToString($value); }
   return $string; }
 
 #======================================================================
@@ -255,12 +208,12 @@ __END__
 
 =head1 NAME
 
-C<LaTeXML::Util::KeyVal> - support for keyvals
+C<LaTeXML::Core::KeyVals> - support for keyvals
 
 =head1 DESCRIPTION
 
 Provides a parser and representation of keyval pairs
-C<LaTeXML::KeyVal> represents parameters handled by LaTeX's keyval package.
+C<LaTeXML::Core::KeyVals> represents parameters handled by LaTeX's keyval package.
 
 =head2 Declarations
 
@@ -278,12 +231,12 @@ I'm still working on this.
 
 =over 4
 
-=item C<< KeyVal($arg,$key) >>
+=item C<< GetKeyVal($arg,$key) >>
 
 This is useful within constructors to access the value associated with C<$key> in
 the argument C<$arg>.
 
-=item C<< KeyVals($arg) >>
+=item C<< GetKeyVals($arg) >>
 
 This is useful within constructors to extract all keyvalue pairs to assign all attributes.
 
@@ -311,7 +264,7 @@ were repeated.
 
 =item C<< $keyval->digestValues; >>
 
-Return a new C<LaTeXML::KeyVals> object with all values digested as appropriate.
+Return a new C<LaTeXML::Core::KeyVals> object with all values digested as appropriate.
 
 =back
 
