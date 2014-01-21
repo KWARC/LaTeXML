@@ -45,7 +45,7 @@ sub new {
     latexml => undef }, $class;
   # Special check if the debug directive is on, just to neutralize the bind_log
   my $debug_directives = $self->{opts}->{debug};
-  $LaTeXML::DEBUG = 1 if (ref $debug_directives eq 'ARRAY') && (grep { /converter/i } @$debug_directives);
+  $LaTeXML::DEBUG = 1 if (ref $debug_directives eq 'ARRAY') && (grep { /latexml/i } @$debug_directives);
   $self->bind_log;
   my $rv = eval { $config->check; };
   $self->{log} .= $self->flush_log;
