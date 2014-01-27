@@ -29,6 +29,11 @@ use LaTeXML::Common::XML;
 use LaTeXML::Post::MathML;
 use LaTeXML::Post;
 use base qw(LaTeXML::Post::MathProcessor);
+use base qw(Exporter);
+our @EXPORT = (
+  qw( &DefOpenMath ),
+  qw( &om_expr ),
+);
 
 my $omURI = "http://www.openmath.org/OpenMath"; # CONSTANT
 our $pres_processor = LaTeXML::Post::MathML::Presentation->new();
@@ -59,7 +64,7 @@ sub convertNode {
   if (@rest) {    # Unparsed ???
     Warn('unexpected', 'content', undef,
       "Got extra nodes for math content:" . $xmath->toString) if @rest; }
-  return Expr($item); }
+  return om_expr($item); }
 
 sub combineParallel {
   my ($self, $doc, $math, $xmath, $primary, @secondaries) = @_;
@@ -98,9 +103,9 @@ sub DefOpenMath {
   $$OMTable{$key} = $sub;
   return; }
 
-sub Expr {
+sub om_expr {
   my ($node) = @_;
-  my $result = Expr_aux($node);
+  my $result = om_expr_aux($node);
   # map any ID here, as well, BUT, since we follow split/scan, use the fragid, not xml:id!
   print STDERR "\nOMExpr: \n", $node->toString(1), "\n\n" if ($node->isa('XML::LibXML::Text'));
   return $result if (!$node || $node->isa('XML::LibXML::Text'));
@@ -110,7 +115,7 @@ sub Expr {
 
 # Is it clear that we should just getAttribute('role'),
 # instead of the getOperatorRole like in MML?
-sub Expr_aux {
+sub om_expr_aux {
   my ($node) = @_;
   return OMError("Missing Subexpression") unless $node;
   my $tag = getQName($node) || '';    #DG: Suppress warnings if not defined
@@ -123,10 +128,10 @@ sub Expr_aux {
     my ($item, @rest) = element_nodes($node);
     Warn('unexpected', 'content', undef,
       "Got extra nodes for content: " . $node->toString) if @rest;
-    return Expr($item); }
+    return om_expr($item); }
   elsif ($tag eq 'ltx:XMDual') {
     my ($content, $presentation) = element_nodes($node);
-    return Expr($content); }
+    return om_expr($content); }
   elsif ($tag eq 'ltx:XMApp') {
     # Experiment: If XMApp has role ID, we treat it as a "Decorated Symbol"
     if (($node->getAttribute('role') || '') eq 'ID') {
@@ -143,13 +148,13 @@ sub Expr_aux {
   elsif ($tag eq 'ltx:XMHint') {
    return (); }
   elsif ($tag eq 'ltx:XMArg') {                                   # Only present if parsing failed!
-    Expr($node->firstChild); }
+    om_expr($node->firstChild); }
   #DG: Experimental support for ltx:XMText (sTeX ticket #1627)
   elsif ($tag eq 'ltx:XMText') {                                  # Text may contain math inside)
         #always an extra <ltx:text> wrapper needs to be unwrapped)
     my $qname = getQName($node->firstChild);
     $node = $node->firstChild if ($qname && ($qname eq 'ltx:text'));
-    ['om:OMSTR', {}, (grep($_, map(Expr($_), $node->childNodes)))]; }
+    ['om:OMSTR', {}, (grep($_, map(om_expr($_), $node->childNodes)))]; }
   else {
     return ['om:OMSTR', {}, $node->textContent]; } }
 
@@ -256,7 +261,7 @@ DefOpenMath("Token:?:\x{2062}", sub {
 
 # DefOpenMath('Apply:?:?', sub {
 #   my($op,@args)=@_;
-#   ['om:OMA',{},map(Expr($_),$op,@args)]; });
+#   ['om:OMA',{},map(om_expr($_),$op,@args)]; });
 
 #DG: Adding support for IC Variants (see Christine Mueller's PhD thesis)
 # TODO: Revise me!
@@ -264,7 +269,7 @@ DefOpenMath('Apply:?:?', sub {
     my ($ic, $op, @args) = @_;
     return ['om:OMA',
       ($ic ne 'variant:default') ? { ic => $ic } : {},
-      map(Expr($_), $op, @args)]; });
+      map(om_expr($_), $op, @args)]; });
 
 # NOTE: No support for OMATTR here...
 
@@ -280,13 +285,13 @@ sub findElements_internal {
 
 DefOpenMath('Apply:BINDER:?', sub {
     my ($ic, $op, $bvars, $expr) = @_;
-    my $bvarspost = Expr($bvars);
+    my $bvarspost = om_expr($bvars);
     #Recursively fish out all OMV elements:
     my @vars = findElements_internal('om:OMV', @$bvarspost);
     ['om:OMBIND', {},
-      Expr($op),
+      om_expr($op),
       ['om:OMBVAR', {}, @vars],    # Presumably, these yield OMV
-      Expr($expr)] });
+      om_expr($expr)] });
 
 # NOTE: Sketch of what OMBIND support might look like.
 # Currently, no such construct is created in LaTeXML...
@@ -294,7 +299,7 @@ DefOpenMath('Apply:LambdaBinding:?', sub {
     my ($ic, $op, $expr, @vars) = @_;
     return ['om:OMBIND', {},
       ['om:OMS', { name => "lambda", cd => 'fns1' },
-        ['om:OMBVAR', {}, map { Expr($_) } @vars],    # Presumably, these yield OMV
-        Expr($expr)]]; });
+        ['om:OMBVAR', {}, map { om_expr($_) } @vars],    # Presumably, these yield OMV
+        om_expr($expr)]]; });
 # ================================================================================
 1;

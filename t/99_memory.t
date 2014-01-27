@@ -19,11 +19,11 @@ else {
   use Test::LeakTrace;
   # New API
   no_leaks_ok {
-    use LaTeXML::Util::Config;
-    use LaTeXML::Converter;
+    use LaTeXML::Common::Config;
+    use LaTeXML;
 
-    my $config = LaTeXML::Util::Config->new(profile=>'math');
-    my $converter = LaTeXML::Converter->get_converter($config);
+    my $config = LaTeXML::Common::Config->new(profile=>'math');
+    my $converter = LaTeXML->get_converter($config);
     $converter->prepare_session($config);
     my $response = $converter->convert("literal:a+b=i");
   };
