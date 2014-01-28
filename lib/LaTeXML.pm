@@ -175,15 +175,21 @@ sub convert {
     my $extension         = $$opts{format};
     $extension =~ s/\d+$//;
     $extension =~ s/^epub|mobi$/xhtml/;
-    my $sandbox_destination = "$destination_name.$extension";
+    my $sandbox_destination;
+    if ($extension eq 'odt') {
+			$sandbox_destination = 'content.xml'; }
+		elsif ($extension eq 'docx') {
+			$sandbox_destination = 'document.xml'; }
+		else { $sandbox_destination = "$destination_name.$extension"; }
     $$opts{sitedirectory} = $sandbox_directory;
 
-    if ($$opts{format} eq 'epub') {
-      $$opts{resource_directory} = File::Spec->catdir($sandbox_directory, 'OPS');
-      $$opts{destination} = pathname_concat(File::Spec->catdir($sandbox_directory, 'OPS'), $sandbox_destination); }
+    my %format_resource_directories = ('epub' => 'OPS', 'odt'=>'Pictures', 'docx' => File::Spec->catdir('Word','Media'));
+    my $sandbox_resource_directory = $format_resource_directories{$$opts{format}};
+    if ($sandbox_resource_directory) {
+      $$opts{resource_directory} = File::Spec->catdir($sandbox_directory, $sandbox_resource_directory);
+      $$opts{destination} = pathname_concat(File::Spec->catdir($sandbox_directory, $sandbox_resource_directory), $sandbox_destination); }
     else {
-      $$opts{destination} = pathname_concat($sandbox_directory, $sandbox_destination); }
-  }
+      $$opts{destination} = pathname_concat($sandbox_directory, $sandbox_destination); }}
 
   # 1.5 Prepare a daemon frame
   my $latexml = $$self{latexml};
