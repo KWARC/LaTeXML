@@ -183,10 +183,11 @@ sub convert {
 		else { $sandbox_destination = "$destination_name.$extension"; }
     $$opts{sitedirectory} = $sandbox_directory;
 
-    my %format_resource_directories = ('epub' => 'OPS', 'odt'=>'Pictures', 'docx' => File::Spec->catdir('Word','Media'));
+    my %format_resource_directories = ('epub' => 'OPS', 'odt' => 'Pictures', 'docx' => File::Spec->catdir('Word','Media'));
     my $sandbox_resource_directory = $format_resource_directories{$$opts{format}};
     if ($sandbox_resource_directory) {
-      $$opts{resource_directory} = File::Spec->catdir($sandbox_directory, $sandbox_resource_directory);
+      $$opts{resource_directory} = File::Spec->catdir($sandbox_directory, $sandbox_resource_directory); }
+    if ($$opts{format} eq 'epub') {
       $$opts{destination} = pathname_concat(File::Spec->catdir($sandbox_directory, $sandbox_resource_directory), $sandbox_destination); }
     else {
       $$opts{destination} = pathname_concat($sandbox_directory, $sandbox_destination); }}
