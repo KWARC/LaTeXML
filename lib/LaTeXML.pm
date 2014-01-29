@@ -179,11 +179,11 @@ sub convert {
     if ($extension eq 'odt') {
 			$sandbox_destination = 'content.xml'; }
 		elsif ($extension eq 'docx') {
-			$sandbox_destination = 'document.xml'; }
+			$sandbox_destination = pathname_concat('word','document.xml'); }
 		else { $sandbox_destination = "$destination_name.$extension"; }
     $$opts{sitedirectory} = $sandbox_directory;
-
-    my %format_resource_directories = ('epub' => 'OPS', 'odt' => 'Pictures', 'docx' => File::Spec->catdir('Word','Media'));
+    # TODO: This is temporary anyway, but note that DOCX is not even correct for the moment (TODO)
+    my %format_resource_directories = ('epub' => 'OPS', 'odt' => 'Pictures', 'docx' => 'Pictures');
     my $sandbox_resource_directory = $format_resource_directories{$$opts{format}};
     if ($sandbox_resource_directory) {
       $$opts{resource_directory} = File::Spec->catdir($sandbox_directory, $sandbox_resource_directory); }
