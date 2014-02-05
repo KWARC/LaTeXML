@@ -16,7 +16,7 @@ use Carp;
 use Encode;
 use Data::Dumper;
 use File::Temp qw(tempdir);
-use File::Path qw(remove_tree);
+use File::Path qw(rmtree);
 use File::Spec;
 use LaTeXML::Common::Config;
 use LaTeXML::Core;
@@ -245,7 +245,7 @@ sub convert {
     print STDERR "Status:conversion:" . ($$runtime{status_code} || '0') . "\n";
     # If we just processed an archive, clean up sandbox directory.
     if ($$opts{whatsin} =~ /^archive/) {
-      remove_tree($$opts{sourcedirectory});
+      rmtree($$opts{sourcedirectory});
       $$opts{sourcedirectory} = $$opts{archive_sourcedirectory}; }
 
     # Close and restore STDERR to original condition.
@@ -264,7 +264,7 @@ sub convert {
     # If serialized has been set, we are done with the job
     # If we just processed an archive, clean up sandbox directory.
     if ($$opts{whatsin} =~ /^archive/) {
-      remove_tree($$opts{sourcedirectory});
+      rmtree($$opts{sourcedirectory});
       $$opts{sourcedirectory} = $$opts{archive_sourcedirectory}; }
     my $log = $self->flush_log;
     return { result => $serialized, log => $log, status => $$runtime{status}, status_code => $$runtime{status_code} };
@@ -296,10 +296,10 @@ sub convert {
 
   # 4 Clean-up: undo everything we sandboxed
   if ($$opts{whatsin} =~ /^archive/) {
-    remove_tree($$opts{sourcedirectory});
+    rmtree($$opts{sourcedirectory});
     $$opts{sourcedirectory} = $$opts{archive_sourcedirectory}; }
   if ($$opts{whatsout} =~ /^archive/) {
-    remove_tree($$opts{sitedirectory});
+    rmtree($$opts{sitedirectory});
     $$opts{sitedirectory} = $$opts{archive_sitedirectory};
     $$opts{destination}   = $$opts{archive_destination};
     if (delete $$opts{placeholder_destination}) {
@@ -704,9 +704,10 @@ C<LaTeXML> - Converter object and API for LaTeXML and LaTeXMLPost conversion.
     my $converter = LaTeXML->get_converter($config);
     my $converter = LaTeXML->new($config);
     $converter->prepare_session($opts);
-    $converter->initialize_session; # TODO: should be internal only
+    $converter->initialize_session; # SHOULD BE INTERNAL
     $hashref = $converter->convert($tex);
-    my ($result,$log,$status) = map {$hashref->{$_}} qw(result log status);
+    my ($result,$log,$status)
+         = map {$hashref->{$_}} qw(result log status);
 
 =head1 DESCRIPTION
 
@@ -741,6 +742,7 @@ Converts a TeX input string $tex into the LaTeXML::Core::Document object $result
 
 Supplies detailed information of the conversion log ($log),
          as well as a brief conversion status summary ($status).
+
 =back
 
 =head2 INTERNAL ROUTINES

@@ -358,7 +358,8 @@ sub fill_in_bibrefs {
 sub make_bibcite {
   my ($self, $doc, $bibref) = @_;
 
-  my @keys         = grep { $_ } split(/,/, $bibref->getAttribute('bibrefs'));
+  # NOTE: bibkeys are downcased when we look them up!
+  my @keys         = map { lc($_) } grep { $_ } split(/,/, $bibref->getAttribute('bibrefs'));
   my $show         = $bibref->getAttribute('show');
   my @preformatted = $bibref->childNodes();
   if ($show && ($show eq 'none') && !@preformatted) {
@@ -401,8 +402,8 @@ sub make_bibcite {
               refnum  => [$doc->trimChildNodes($refnum)],
               title   => [$doc->trimChildNodes($title || $keytag)],
               attr    => { idref => $id,
-                href => $self->generateURL($doc, $id) // undef,
-                ($title ? (title => $title->textContent // undef) : ()) } }); } } }
+                href => orNull($self->generateURL($doc, $id)),
+                ($title ? (title => orNull($title->textContent)) : ()) } }); } } }
     else {
       $self->note_missing('Entry for citation', $key); } }
   my $checkdups = ($show =~ /author/i) && ($show =~ /(year|number)/i);
@@ -685,6 +686,8 @@ sub generateGlossaryRefTitle {
       push(@stuff, $1); } }
   return ($OK ? @stuff : ()); }
 
+sub orNull {
+  return (grep { defined } @_) ? @_ : undef; }
 # ================================================================================
 1;
 

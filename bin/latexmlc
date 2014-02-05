@@ -253,4 +253,3 @@ L<latexmlc> provides a client which automatically sets up a LaTeXML local server
 L<latexmls>, L<ltxmojo>, L<LaTeXML::Common::Config>
 
 =cut
-#**********************************************************************

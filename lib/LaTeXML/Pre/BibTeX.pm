@@ -111,8 +111,9 @@ sub toTeX {
   my ($self) = @_;
   $self->parseTopLevel unless $$self{parsed};
   # Store all entries into $STATE under BIBKEY@$key.
+  # NOTE: The case in the key has been preserved, but we'll store it under the lowercase!
   foreach my $entry (@{ $$self{entries} }) {
-    $STATE->assignValue('BIBENTRY@' . $entry->getKey => $entry); }
+    $STATE->assignValue('BIBENTRY@' . lc($entry->getKey) => $entry); }
 
   return join("\n",
     @{ $$self{preamble} },
@@ -225,8 +226,8 @@ sub parseEntryType {
 sub parseEntryName {
   my ($self) = @_;
   $self->skipWhite;
-  return (
-    $$self{line} =~ s/^([\"\#\%\&\'\(\)\=\{$BIBNAME_re$BIBNOISE_re]*)//x ? lc($1) : undef); }
+  return (                                                        # Preserve case (at this point!)
+    $$self{line} =~ s/^([\"\#\%\&\'\(\)\=\{$BIBNAME_re$BIBNOISE_re]*)//x ? $1 : undef); }
 
 sub parseFieldName {
   my ($self) = @_;
@@ -336,29 +337,29 @@ __END__
 
 =head1 NAME
 
-C<LaTeXML::Bib> - implements a BibTeX parser for LaTeXML.
+C<LaTeXML::Pre::BibTeX> - implements a BibTeX parser for LaTeXML.
 
 =head1 DESCRIPTION
 
-C<LaTeXML::Bib> serves as a low-level parser of BibTeX database files.
-It parses and stores a C<LaTeXML::Bib::BibEntry> for each entry into the current STATE.
+C<LaTeXML::Pre::BibTeX> serves as a low-level parser of BibTeX database files.
+It parses and stores a C<LaTeXML::Pre::BibTeX::Entry> for each entry into the current STATE.
 BibTeX C<string> macros are substituted into the field values, but no other
 processing of the data is done.
 See C<LaTeXML::Package::BibTeX.pool.ltxml> for how further processing
 is carried out, and can be customized.
 
-=head2 Creating a Bib
+=head2 Creating a BibTeX
 
 =over 4
 
-=item C<< my $bib = LaTeXML::Bib->newFromFile($bibname); >>
+=item C<< my $bib = LaTeXML::Pre::BibTeX->newFromFile($bibname); >>
 
-Creates a C<LaTeXML::Bib> object representing a bibliography
+Creates a C<LaTeXML::Pre::BibTeX> object representing a bibliography
 from a BibTeX database file.
 
-=item C<< my $bib = LaTeXML::Bib->newFromString($string); >>
+=item C<< my $bib = LaTeXML::Pre::BibTeX->newFromString($string); >>
 
-Creates a C<LaTeXML::Bib> object representing a bibliography
+Creates a C<LaTeXML::Pre::BibTeX> object representing a bibliography
 from a string containing the BibTeX data.
 
 =back

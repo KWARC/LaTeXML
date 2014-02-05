@@ -369,16 +369,29 @@ sub isSticky {
 # You must arrange this in the calls....
 sub merge {
   my ($self, %options) = @_;
-  my $family     = $options{family}     // $$self[0];
-  my $series     = $options{series}     // $$self[1];
-  my $shape      = $options{shape}      // $$self[2];
-  my $size       = $options{size}       // $$self[3];
-  my $color      = $options{color}      // $$self[4];
-  my $bg         = $options{background} // $$self[5];
-  my $opacity    = $options{opacity}    // $$self[6];
-  my $encoding   = $options{encoding}   // $$self[7];
-  my $forcebold  = $options{forcebold}  // $$self[8];
-  my $forceshape = $options{forceshape} // $$self[9];
+  my $family     = $options{family};
+  my $series     = $options{series};
+  my $shape      = $options{shape};
+  my $size       = $options{size};
+  my $color      = $options{color};
+  my $bg         = $options{background};
+  my $opacity    = $options{opacity};
+  my $encoding   = $options{encoding};
+  my $forcebold  = $options{forcebold};
+  my $forceshape = $options{forceshape};
+
+  # Fallback to positional invocation:
+  $family     = $$self[0] unless defined $family;
+  $series     = $$self[1] unless defined $series;
+  $shape      = $$self[2] unless defined $shape;
+  $size       = $$self[3] unless defined $size;
+  $color      = $$self[4] unless defined $color;
+  $bg         = $$self[5] unless defined $bg;
+  $opacity    = $$self[6] unless defined $opacity;
+  $encoding   = $$self[7] unless defined $encoding;
+  $forcebold  = $$self[8] unless defined $forcebold;
+  $forceshape = $$self[9] unless defined $forceshape;
+
   return (ref $self)->new_internal($family, $series, $shape, $size,
     $color,    $bg,        $opacity,
     $encoding, $forcebold, $forceshape); }
@@ -436,11 +449,12 @@ C<LaTeXML::Common::Font> - representation of fonts
 
 =head1 DESCRIPTION
 
+C<LaTeXML::Common::Font> represent fonts in LaTeXML.
+It extends L<LaTeXML::Common::Object>.
+
 This module defines Font objects.
 I'm not completely happy with the arrangement, or
 maybe just the use of it, so I'm not going to document extensively at this point.
-
-C<LaTeXML::Common::Font> represent fonts in LaTeXML. 
 
 The attributes are
 
@@ -455,13 +469,20 @@ The attributes are
 They are usually merged against the current font, attempting to mimic the,
 sometimes counter-intuitive, way that TeX does it,  particularly for math
 
-For math mode, C<LaTeXML::Common::Font> supports C<$font->specialize($string);> for
-computing a font reflecting how the specific C<$string> would be printed when
+=head1 Methods
+
+=over 4
+
+=item  C<< $font->specialize($string); >>
+
+In math mode, C<LaTeXML::Common::Font> supports computing a font reflecting
+how the specific C<$string> would be printed when
 C<$font> is active; This (attempts to) handle the curious ways that lower case
 greek often doesn't get a different font.  In particular, it recognizes the
 following classes of strings: single latin letter, single uppercase greek character,
 single lowercase greek character, digits, and others.
 
+=back
 
 =head1 AUTHOR
 
