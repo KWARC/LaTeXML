@@ -1,10 +1,15 @@
+# -*- CPERL -*-
 # /=====================================================================\ #
-# |  xspace                                                             | #
+# |  ifxetex                                                            | #
 # | Implementation for LaTeXML                                          | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
 # |  Public domain software, produced as part of work done by the       | #
 # |  United States Government & not subject to copyright in the US.     | #
+# |---------------------------------------------------------------------| #
+# | Thanks to the arXMLiv group for initial implementation              | #
+# |    http://arxmliv.kwarc.info/                                       | #
+# | Released to the Public Domain                                       | #
 # |---------------------------------------------------------------------| #
 # | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
 # | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
@@ -14,23 +19,10 @@ use strict;
 use warnings;
 use LaTeXML::Package;
 
-#**********************************************************************
-# Actually, the source TeX works, too, but ...
+# Basically false, right?
+DefConditional('\ifxetex');
 
-our @XSPACES = (
-  T_BEGIN, T_END, T_CS('\/'), T_CS('\ '), T_CS('~'),
-  (map { T_OTHER($_) } '.', '!', ',', ':', ';', '?', '/', "'", ")", '-'),
-  T_CS('\@xobeysp'), T_CS('\space'), T_CS('\@sptoken'));
-
-# Signature is actually \xpace Token
-# but be more defensive if we're in an argument {...\xspace}
-# ie. LaTeXML's structured arguments are processed differently than in TeX!
-DefMacro('\xspace', sub {
-    my ($gullet) = @_;
-    if (my $token = $gullet->readToken) {
-      (grep { Equals($token, $_) } @XSPACES ? ($token) : (T_SPACE, $token)); }
-    else {
-      (); } });
-
+# and YET, in the long run, we'd like to be able to PRETEND to be XeTeX!!!!
+DefMacro('\RequireXeTeX', '');
 #======================================================================
 1;

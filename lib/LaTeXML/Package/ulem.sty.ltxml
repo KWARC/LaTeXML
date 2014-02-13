@@ -1,5 +1,5 @@
 # /=====================================================================\ #
-# |  xspace                                                             | #
+# |  ulem                                                               | #
 # | Implementation for LaTeXML                                          | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
@@ -14,23 +14,23 @@ use strict;
 use warnings;
 use LaTeXML::Package;
 
-#**********************************************************************
-# Actually, the source TeX works, too, but ...
+RequireResource('ltx-ulem.css');
 
-our @XSPACES = (
-  T_BEGIN, T_END, T_CS('\/'), T_CS('\ '), T_CS('~'),
-  (map { T_OTHER($_) } '.', '!', ',', ':', ';', '?', '/', "'", ")", '-'),
-  T_CS('\@xobeysp'), T_CS('\space'), T_CS('\@sptoken'));
-
-# Signature is actually \xpace Token
-# but be more defensive if we're in an argument {...\xspace}
-# ie. LaTeXML's structured arguments are processed differently than in TeX!
-DefMacro('\xspace', sub {
-    my ($gullet) = @_;
-    if (my $token = $gullet->readToken) {
-      (grep { Equals($token, $_) } @XSPACES ? ($token) : (T_SPACE, $token)); }
-    else {
-      (); } });
+#======================================================================
+DefConstructor('\uline{}',
+  "<ltx:text class='ltx_ulem_uline'>#1</ltx:text>");
+DefConstructor('\uuline{}',
+  "<ltx:text class='ltx_ulem_uuline'>#1</ltx:text>");
+DefConstructor('\uwave{}',
+  "<ltx:text class='ltx_ulem_uwave'>#1</ltx:text>");
+DefConstructor('\sout{}',
+  "<ltx:text class='ltx_ulem_sout'>#1</ltx:text>");
+DefConstructor('\xout{}',
+  "<ltx:text class='ltx_ulem_xout'>#1</ltx:text>");
+DefConstructor('\dashuline{}',
+  "<ltx:text class='ltx_ulem_dashuline'>#1</ltx:text>");
+DefConstructor('\dotuline{}',
+  "<ltx:text class='ltx_ulem_dotuline'>#1</ltx:text>");
 
 #======================================================================
 1;

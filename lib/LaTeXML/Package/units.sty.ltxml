@@ -1,5 +1,5 @@
 # /=====================================================================\ #
-# |  xspace                                                             | #
+# |  units                                                              | #
 # | Implementation for LaTeXML                                          | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
@@ -14,23 +14,21 @@ use strict;
 use warnings;
 use LaTeXML::Package;
 
-#**********************************************************************
-# Actually, the source TeX works, too, but ...
+# RequirePackage('ifthen');
+RequirePackage('nicefrac');
 
-our @XSPACES = (
-  T_BEGIN, T_END, T_CS('\/'), T_CS('\ '), T_CS('~'),
-  (map { T_OTHER($_) } '.', '!', ',', ':', ';', '?', '/', "'", ")", '-'),
-  T_CS('\@xobeysp'), T_CS('\space'), T_CS('\@sptoken'));
+# Would be VERY nice to force some semantics of unit-ness down to the math tokens!
+DefMacro('\unit[]{}',
+  '\ifx.#1.\else#1\ltx@units@spacing\fi\ifmmode\mathrm{#2}\else#2\fi');
 
-# Signature is actually \xpace Token
-# but be more defensive if we're in an argument {...\xspace}
-# ie. LaTeXML's structured arguments are processed differently than in TeX!
-DefMacro('\xspace', sub {
-    my ($gullet) = @_;
-    if (my $token = $gullet->readToken) {
-      (grep { Equals($token, $_) } @XSPACES ? ($token) : (T_SPACE, $token)); }
-    else {
-      (); } });
+DefMacro('\unitfrac[]{}{}',
+  '\ifx.#1.\else#1\ltx@units@spacing\fi\nicefrac[\mathrm]{#2}{#3}');
+
+DeclareOption('tight', sub { Let('\ltx@units@spacing', '\,'); });
+DeclareOption('loose', sub { Let('\ltx@units@spacing', '~'); });
+
+ExecuteOptions('tight');
+ProcessOptions();
 
 #======================================================================
 1;

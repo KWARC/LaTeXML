@@ -140,6 +140,8 @@ lib/LaTeXML/Util/ObjectDB/Entry.pm
 lib/LaTeXML/Util/Pathname.pm
 lib/LaTeXML/Util/Pack.pm
 lib/LaTeXML/Util/WWW.pm
+lib/LaTeXML/Util/Radix.pm
+lib/LaTeXML/Util/Image.pm
 lib/LaTeXML/Util/Geometry.pm
 lib/LaTeXML/Util/Transform.pm
 
@@ -282,6 +284,7 @@ lib/LaTeXML/resources/CSS/ltx-report.css
 lib/LaTeXML/resources/CSS/ltx-book.css
 lib/LaTeXML/resources/CSS/ltx-amsart.css
 lib/LaTeXML/resources/CSS/ltx-apj.css
+lib/LaTeXML/resources/CSS/ltx-ulem.css
 lib/LaTeXML/resources/javascript/LaTeXML-maybeMathjax.js
 lib/LaTeXML/resources/Profiles/fragment-html.opt
 lib/LaTeXML/resources/Profiles/fragment-xhtml.opt
@@ -341,6 +344,7 @@ lib/LaTeXML/Package/bbm.sty.ltxml
 lib/LaTeXML/Package/bm.sty.ltxml
 lib/LaTeXML/Package/book.cls.ltxml
 lib/LaTeXML/Package/bookman.sty.ltxml
+lib/LaTeXML/Package/booktabs.sty.ltxml
 lib/LaTeXML/Package/calc.sty.ltxml
 lib/LaTeXML/Package/caption.sty.ltxml
 lib/LaTeXML/Package/cancel.sty.ltxml
@@ -359,6 +363,7 @@ lib/LaTeXML/Package/cp852.def.ltxml
 lib/LaTeXML/Package/cropmark.sty.ltxml
 lib/LaTeXML/Package/dcolumn.sty.ltxml
 lib/LaTeXML/Package/doublespace.sty.ltxml
+lib/LaTeXML/Package/dsfont.sty.ltxml
 lib/LaTeXML/Package/elsart.cls.ltxml
 lib/LaTeXML/Package/elsarticle.cls.ltxml
 lib/LaTeXML/Package/elsart.sty.ltxml
@@ -393,6 +398,7 @@ lib/LaTeXML/Package/fullpage.sty.ltxml
 lib/LaTeXML/Package/gen-j-l.cls.ltxml
 lib/LaTeXML/Package/gen-m-l.cls.ltxml
 lib/LaTeXML/Package/gen-p-l.cls.ltxml
+lib/LaTeXML/Package/geometry.sty.ltxml
 lib/LaTeXML/Package/german.sty.ltxml
 lib/LaTeXML/Package/graphics.sty.ltxml
 lib/LaTeXML/Package/graphicx.sty.ltxml
@@ -403,6 +409,8 @@ lib/LaTeXML/Package/html.sty.ltxml
 lib/LaTeXML/Package/hyperref.sty.ltxml
 lib/LaTeXML/Package/hyperxmp.sty.ltxml
 lib/LaTeXML/Package/ifpdf.sty.ltxml
+lib/LaTeXML/Package/ifvtex.sty.ltxml
+lib/LaTeXML/Package/ifxetex.sty.ltxml
 lib/LaTeXML/Package/indentfirst.sty.ltxml
 lib/LaTeXML/Package/inputenc.sty.ltxml
 lib/LaTeXML/Package/inst_support.sty.ltxml
@@ -437,12 +445,14 @@ lib/LaTeXML/Package/multido.sty.ltxml
 lib/LaTeXML/Package/multirow.sty.ltxml
 lib/LaTeXML/Package/natbib.sty.ltxml
 lib/LaTeXML/Package/newcent.sty.ltxml
+lib/LaTeXML/Package/nicefrac.sty.ltxml
 lib/LaTeXML/Package/ngerman.sty.ltxml
 lib/LaTeXML/Package/ntheorem.sty.ltxml
 lib/LaTeXML/Package/numprint.sty.ltxml
 lib/LaTeXML/Package/palatino.sty.ltxml
 lib/LaTeXML/Package/paralist.sty.ltxml
 lib/LaTeXML/Package/pdfTeX.pool.ltxml
+lib/LaTeXML/Package/pdflscape.sty.ltxml
 lib/LaTeXML/Package/pgf.sty.ltxml
 lib/LaTeXML/Package/pgfkeys.code.tex.ltxml
 lib/LaTeXML/Package/pgfsys-latexml.def.ltxml
@@ -482,6 +492,7 @@ lib/LaTeXML/Package/times.sty.ltxml
 lib/LaTeXML/Package/tocbibind.sty.ltxml
 lib/LaTeXML/Package/txfonts.sty.ltxml
 lib/LaTeXML/Package/t1enc.def.ltxml
+lib/LaTeXML/Package/units.sty.ltxml
 lib/LaTeXML/Package/upgreek.sty.ltxml
 lib/LaTeXML/Package/upref.sty.ltxml
 lib/LaTeXML/Package/url.sty.ltxml
@@ -501,6 +512,7 @@ lib/LaTeXML/Package/ly1.fontmap.ltxml
 lib/LaTeXML/Package/amsa.fontmap.ltxml
 lib/LaTeXML/Package/amsb.fontmap.ltxml
 lib/LaTeXML/Package/ot4.fontmap.ltxml
+lib/LaTeXML/Package/ulem.sty.ltxml
 lib/LaTeXML/Package/utf8.def.ltxml
 lib/LaTeXML/Package/xunicode.sty.ltxml
 #==================================================
@@ -823,6 +835,9 @@ t/fonts/mathcolor.xml
 t/fonts/textsymbols.pdf
 t/fonts/textsymbols.tex
 t/fonts/textsymbols.xml
+t/fonts/ulem.pdf
+t/fonts/ulem.tex
+t/fonts/ulem.xml
 t/graphics/none.png
 t/graphics/colors.pdf
 t/graphics/colors.tex
@@ -864,6 +879,9 @@ t/math/arrows.xml
 t/math/choose.pdf
 t/math/choose.tex
 t/math/choose.xml
+t/math/niceunits.pdf
+t/math/niceunits.tex
+t/math/niceunits.xml
 t/math/not.pdf
 t/math/not.tex
 t/math/not.xml

@@ -1,5 +1,5 @@
 # /=====================================================================\ #
-# |  xspace                                                             | #
+# |  dsfont                                                             | #
 # | Implementation for LaTeXML                                          | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
@@ -14,23 +14,11 @@ use strict;
 use warnings;
 use LaTeXML::Package;
 
-#**********************************************************************
-# Actually, the source TeX works, too, but ...
+#======================================================================
+DefConstructor('\mathds{}', '#1', bounded => 1, requireMath => 1,
+  font => { family => 'blackboard', series => 'medium', shape => 'upright' });
 
-our @XSPACES = (
-  T_BEGIN, T_END, T_CS('\/'), T_CS('\ '), T_CS('~'),
-  (map { T_OTHER($_) } '.', '!', ',', ':', ';', '?', '/', "'", ")", '-'),
-  T_CS('\@xobeysp'), T_CS('\space'), T_CS('\@sptoken'));
-
-# Signature is actually \xpace Token
-# but be more defensive if we're in an argument {...\xspace}
-# ie. LaTeXML's structured arguments are processed differently than in TeX!
-DefMacro('\xspace', sub {
-    my ($gullet) = @_;
-    if (my $token = $gullet->readToken) {
-      (grep { Equals($token, $_) } @XSPACES ? ($token) : (T_SPACE, $token)); }
-    else {
-      (); } });
+# [do I need a full fontmap, like bbold?]
 
 #======================================================================
 1;
