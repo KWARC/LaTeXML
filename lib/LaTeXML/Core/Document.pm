@@ -68,9 +68,12 @@ sub setNode {
   my $type = $node->nodeType;
   if ($type == XML_DOCUMENT_FRAG_NODE) {    # Whoops
     my @n = $node->childNodes;
-    if (@n != 1) {
+    if (@n > 1) {
       Error('unexpected', 'multiple-nodes', $self,
-        "Cannot set insertion point to a DOCUMENT_FRAG_NODE", $node); }
+        "Cannot set insertion point to a DOCUMENT_FRAG_NODE", Stringify($node)); }
+    elsif (@n < 1) {
+      Error('unexpected', 'empty-nodes', $self,
+        "Cannot set insertion point to an empty DOCUMENT_FRAG_NODE"); }
     $node = $n[0]; }
   $$self{node} = $node;
   return; }
@@ -380,6 +383,7 @@ sub finalize_rec {
         $self->finalize_rec($text);    # Now have to clean up the new node!
       }
     } }
+
   # Attributes that begin with (the semi-legal) "_" are for Bookkeeping.
   # Remove them now.
   foreach my $attr ($node->attributes) {
@@ -578,7 +582,7 @@ sub openText {
         last if ($d == 0); }
       last if ($$self{model}->getNodeQName($n) ne $FONT_ELEMENT_NAME) || $n->getAttribute('_noautoclose');
       $n = $n->parentNode; }
-    $self->closeNode_internal($node) if $closeto ne $node;  # Move to best starting point for this text.
+    $self->closeToNode($closeto) if $closeto ne $node;    # Move to best starting point for this text.
     $self->openElement($FONT_ELEMENT_NAME, font => $font, _fontswitch => 1) if $bestdiff > 0; # Open if needed.
   }
   # Finally, insert the darned text.
@@ -599,7 +603,8 @@ sub openElement {
   my $newnode = $self->openElementAt($point, $qname,
     _font => $attributes{font} || $attributes{_box}->getFont,
     %attributes);
-  return $$self{node} = $newnode; }
+  $self->setNode($newnode);
+  return $newnode; }
 
 # Note: This closes the deepest open node of a given type.
 # This can cause problems with auto-opened nodes, esp. ones for fontswitches!
@@ -738,6 +743,11 @@ sub addAttribute {
 sub getInsertionContext {
   my ($self, $levels) = @_;
   my $node = $$self{node};
+  my $type = $node->nodeType;
+  if (($type != XML_TEXT_NODE) && ($type != XML_ELEMENT_NODE) && ($type != XML_DOCUMENT_NODE)) {
+    Error('internal', 'context', $self,
+      "Insertion point is not an element, document or text: ", Stringify($node));
+    return; }
   my $path = Stringify($node);
   while ($node = $node->parentNode) {
     if ((defined $levels) && (--$levels <= 0)) { $path = '...' . $path; last; }
@@ -816,7 +826,7 @@ sub floatToElement {
     shift(@candidates); }
   if (my $n = shift(@candidates)) {
     my $savenode = $$self{node};
-    $$self{node} = $n;
+    $self->setNode($n);
     print STDERR "Floating from " . Stringify($savenode) . " to " . Stringify($n) . " for $qname\n"
       if ($$savenode ne $$n) && $LaTeXML::Core::Document::DEBUG;
     return $savenode; }
@@ -834,7 +844,7 @@ sub floatToAttribute {
     shift(@candidates); }
   if (my $n = shift(@candidates)) {
     my $savenode = $$self{node};
-    $$self{node} = $n;
+    $self->setNode($n);
     return $savenode; }
   else {
     Warn('malformed', $key, $self, "No open node can get attribute '$key'",
@@ -854,7 +864,7 @@ sub openText_internal {
     print STDERR "Inserting text node for \"$text\" into " . Stringify($point) . "\n"
       if $LaTeXML::Core::Document::DEBUG;
     $point->appendChild($node);
-    $$self{node} = $node; }
+    $self->setNode($node); }
   return $$self{node}; }                                # return the text node (current)
 
 # Question: Why do I have math ligatures handled within openMathText_internal,
@@ -928,7 +938,7 @@ sub closeText_internal {
         next if ($fonttest = $$ligature{fontTest}) && !&$fonttest($font);
         $string = &{ $$ligature{code} }($string); } }
     $node->setData($string) unless $string eq $ostring;
-    $$self{node} = $parent;                  # Now, effectively Closed
+    $self->setNode($parent);                 # Now, effectively Closed
     return $parent; }
   else {
     return $node; } }
@@ -945,7 +955,7 @@ sub closeNode_internal {
     $self->autoCollapseChildren($n);
     last if $node->isSameNode($n);
     $n = $n->parentNode; }
-  $$self{node} = $closeto;
+  $self->setNode($closeto);
   #  $self->autoCollapseChildren($node);
   return $$self{node}; }
 
@@ -1130,24 +1140,26 @@ sub decodeFont {
 sub removeNode {
   my ($self, $node) = @_;
   if ($node) {
-    if ($node->nodeType == XML_ELEMENT_NODE) {    # If an element, do ID bookkeeping.
+    my $chopped = $$self{node}->isSameNode($node);    # Note if we're removing insertion point
+    if ($node->nodeType == XML_ELEMENT_NODE) {        # If an element, do ID bookkeeping.
       if (my $id = $node->getAttribute('xml:id')) {
         $self->unRecordID($id); }
-      map { $self->removeNode_aux($_) } $node->childNodes; }
+      $chopped ||= grep { $self->removeNode_aux($_) } $node->childNodes; }
     my $parent = $node->parentNode;
+    if ($chopped) {                                   # Don't remove insertion point!
+      $self->setNode($parent); }
     $parent->removeChild($node);
-    if ($$self{node}->isSameNode($node)) {        # Don't remove insertion point!
-      $$self{node} = $parent; }
   }
   return $node; }
 
 sub removeNode_aux {
   my ($self, $node) = @_;
-  if ($node->nodeType == XML_ELEMENT_NODE) {      # If an element, do ID bookkeeping.
+  my $chopped = $$self{node}->isSameNode($node);
+  if ($node->nodeType == XML_ELEMENT_NODE) {          # If an element, do ID bookkeeping.
     if (my $id = $node->getAttribute('xml:id')) {
       $self->unRecordID($id); }
-    map { $self->removeNode_aux($_) } $node->childNodes; }
-  return; }
+    $chopped ||= grep { $self->removeNode_aux($_) } $node->childNodes; }
+  return $chopped; }
 
 #**********************************************************************
 # Inserting new nodes at random points into the document,
@@ -1239,10 +1251,10 @@ sub afterOpen {
   my ($self, $node) = @_;
   # Set current point to this node, just in case the afterOpen's use it.
   my $savenode = $$self{node};
-  $$self{node} = $node;
+  $self->setNode($node);
   my $box = $self->getNodeBox($node);
   map { &$_($self, $node, $box) } $self->getTagActionList($node, 'afterOpen');
-  $$self{node} = $savenode;
+  $self->setNode($savenode);
   return $node; }
 
 sub afterClose {
@@ -1251,7 +1263,7 @@ sub afterClose {
   my $savenode = $$self{node};
   my $box      = $self->getNodeBox($node);
   map { &$_($self, $node, $box) } $self->getTagActionList($node, 'afterClose');
-  $$self{node} = $savenode;
+  $self->setNode($savenode);
   return $node; }
 
 #**********************************************************************
