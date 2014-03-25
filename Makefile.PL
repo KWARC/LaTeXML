@@ -42,6 +42,7 @@ WriteMakefile(NAME => 'LaTeXML',
   ABSTRACT     => "transforms TeX and LaTeX into XML",
   VERSION_FROM => 'lib/LaTeXML/Version.in',
   PREREQ_PM    => {
+    'DB_File'           => 0,
     'Archive::Zip'      => 0,
     'File::Which'       => 0,
     'Getopt::Long'      => 2.37,
