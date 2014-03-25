@@ -9,7 +9,7 @@ use strict;
 use Data::Dumper;
 use Test::More;
 
-eval {require Test::LeakTrace; 1;};
+eval {use Test::LeakTrace; 1;};
 if ($@) {
   plan(skip_all=>"Test::LeakTrace not installed."); }
 if ($XML::LibXML::VERSION < 2.0106) {
