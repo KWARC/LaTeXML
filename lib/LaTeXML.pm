@@ -159,6 +159,7 @@ sub convert {
     ($source, $packed_auxiliaries) = unpack_source($source, $sandbox_directory);
     my $packed_bibs = $$packed_auxiliaries{bibliographies};
     if (ref $packed_bibs eq 'ARRAY') {
+      @$packed_bibs = map { File::Spec->catfile($sandbox_directory, $_) } @$packed_bibs;
       $$opts{bibliographies} = [] unless defined $$opts{bibliographies};
       push @{ $$opts{bibliographies} }, @$packed_bibs; }
 
@@ -393,16 +394,19 @@ sub convert_post {
           %PostOPS)); }
     if (@{ $$opts{bibliographies} }) {
       if (grep { /$LaTeXML::Common::Config::is_bibtex/ } @{ $$opts{bibliographies} }) {
-        my $bib_converter =
-          $self->get_converter(LaTeXML::Common::Config->new(
-            cache_key      => 'BibTeX',
-            type           => "BibTeX",
-            post           => 0,
-            format         => 'dom',
-            whatsin        => 'document',
-            whatsout       => 'document',
-            bibliographies => []));
+        my $bib_config = LaTeXML::Common::Config->new(
+          cache_key      => 'BibTeX',
+          type           => "BibTeX",
+          post           => 0,
+          format         => 'dom',
+          paths          => ['.', $DOCUMENT->getSearchPaths],
+          whatsin        => 'document',
+          whatsout       => 'document',
+          bibliographies => []);
+        my $bib_converter = $self->get_converter($bib_config);
+
         $$self{log} .= $self->flush_log;
+        $bib_converter->prepare_session($bib_config);
         @{ $$opts{bibliographies} } = map { /$LaTeXML::Common::Config::is_bibtex/ ?
             $bib_converter->convert($_)->{result} : $_ } @{ $$opts{bibliographies} };
         $self->bind_log;
