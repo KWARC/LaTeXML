@@ -10,14 +10,18 @@
 # | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
 # | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
 # \=========================================================ooo==U==ooo=/ #
+package LaTeXML::Package::Pool;
+use strict;
+use warnings;
 use LaTeXML::Package;
 
-Let(T_CS('\@internalcite'),T_CS('\cite'));
-DefMacro('\cite','\def\citename##1{##1}\@internalcite');
-DefMacro('\shortcite','\def\citename##1{}\@internalcite');
-DefMacro('\newcite','\shortcite'); # ?
-DefMacro('\citename{}','#1');   # ?
+Let(T_CS('\@internalcite'), T_CS('\cite'));
+DefMacro('\cite',       '\def\citename##1{##1}\@internalcite');
+DefMacro('\shortcite',  '\def\citename##1{}\@internalcite');
+DefMacro('\newcite{}',  '\@@cite{\@@bibref{Authors (Year)}{#1}{}{}}');    # ?
+DefMacro('\citename{}', '#1');                                            # ?
 
-Let(T_CS('\And'),T_CS('\and'));
-Let(T_CS('\AND'),T_CS('\and'));
+Let(T_CS('\And'), T_CS('\and'));
+Let(T_CS('\AND'), T_CS('\and'));
+
 1;
