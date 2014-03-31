@@ -40,6 +40,7 @@ sub unpack_source {
     $zip_handle->extractMember($member, catfile($sandbox_directory, $member)); }
   # Set $source to point to the main TeX file in that directory
   my @TeX_file_members = map { $_->fileName() } $zip_handle->membersMatching('\.tex$');
+  my @Bib_file_members = map { $_->fileName() } $zip_handle->membersMatching('\.bib(\.xml)?$');
   if (scalar(@TeX_file_members) == 1) {
     # One file, that's the input!
     $main_source = catfile($sandbox_directory, $TeX_file_members[0]); }
@@ -118,7 +119,7 @@ sub unpack_source {
   # If failed, clean up sandbox directory.
   rmtree($sandbox_directory) unless $main_source;
   # Return the main source from the unpacked files in the sandbox directory (or undef if failed)
-  return $main_source;
+  return ($main_source, { bibliographies => \@Bib_file_members });
 }
 
 # Options:

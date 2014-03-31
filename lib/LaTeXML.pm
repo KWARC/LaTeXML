@@ -155,7 +155,13 @@ sub convert {
     my $sandbox_directory = tempdir();
     $$opts{sourcedirectory} = $sandbox_directory;
     # Extract the archive in the sandbox
-    $source = unpack_source($source, $sandbox_directory);
+    my $packed_auxiliaries;
+    ($source, $packed_auxiliaries) = unpack_source($source, $sandbox_directory);
+    my $packed_bibs = $$packed_auxiliaries{bibliographies};
+    if (ref $packed_bibs eq 'ARRAY') {
+      $$opts{bibliographies} = [] unless defined $$opts{bibliographies};
+      push @{ $$opts{bibliographies} }, @$packed_bibs; }
+
     if (!defined $source) {    # Unpacking failed to find a source
       $$opts{sourcedirectory} = $$opts{archive_sourcedirectory};
       my $log = $self->flush_log;
