@@ -1615,9 +1615,11 @@ DefConstructor('\hbox BoxSpecification HBoxContents', sub {
     return; });
 
 # This attempts to be a generalize vbox construction;
-# It tries to figure out whether an inline-block is needed,
+# It tries to figure out whether an ltx:inline-block is needed,
 # and attempts to figure out whether sequences of the inserted content
 # need to be explicitly wrapped in some kind of block element (presumably ltx:p).
+# It returns the inserted inner blocks,
+# whether or not they got wrapped by that ltx:inline-block; which it DOESN'T TELL YOU ABOUT!
 sub insertBlock {
   my ($document, $contents, %blockattr) = @_;
   # Create something like:
@@ -1626,7 +1628,8 @@ sub insertBlock {
   my $context = $document->getElement;    # Where we originally start inserting.
 
   # If we're "explicitly" asking for a vbox, or can't currently put an ltx:p in
-  # (which would be a typical block mode item), then we'd better open an inline-blokc
+  # (which would be a typical block mode item), or if the current point accepts raw text,
+  # then we'd better open an inline-block.
   # [A thought is to close any open ltx:p, or create & delete one, just to "prime" it.
   # but those seem a bad idea, because we may want a vbox inside a p, or....]
   my $newblock = undef;
@@ -2772,13 +2775,20 @@ Tag('ltx:Math', afterClose => \&add_body_TeX);
 Tag('ltx:Math', afterClose => \&cleanup_Math);
 
 # Cleanup ltx:Math elements; particularly if they aren't "really" math.
+# But note the oddity with class=ltx_markedasmath
 sub cleanup_Math {
   my ($document, $mathnode) = @_;
   # If the Math ONLY contains XMath/XMText, it apparently isn't math at all!?!
   if (!$document->findnodes('ltx:XMath/ltx:*[local-name() != "XMText"]', $mathnode)) {
-    # So pull up the contents of the XMText's.
-    my @xmtexts = map { $_->childNodes } $mathnode->childNodes;
-    $document->replaceNode($mathnode, map { $_->childNodes } @xmtexts); }
+    # So unwrap down to the contents of the XMText's.
+    my @xmtexts = map { $_->childNodes } map { $_->childNodes } $mathnode->childNodes;
+    my @texts = ();
+    foreach my $text (@xmtexts) {
+      if ($text->nodeType != XML_ELEMENT_NODE) {    # Make sure we've got an element
+        $text = $document->wrapNodes('ltx:text', $text); }
+      addClass($text, 'ltx_markedasmath');          # Now record that it originally was marked as math
+      push(@texts, $text); }
+    $document->replaceNode($mathnode, @texts); }    # and replace the whole Math with the pieces
   return; }
 
 # Here's for an inverse case: when an XMText isn't "really" just text
@@ -3201,12 +3211,12 @@ sub IsEmpty {
 # }
 
 # Remember a "safe" way to test a script Whatsit.
-# Returns (SUBSCRIPT|SUPERSCRIPT)
+# Returns [ (FLOATING|POST) , (SUBSCRIPT|SUPERSCRIPT) ] or nothing
 sub IsScript {
   my ($object) = @_;
   if ((ref $object eq 'LaTeXML::Core::Whatsit')    # careful w/alias in getCSName!
     && ($object->getDefinition->getCS->getCSName =~ /^\\@@(FLOATING|POST)(SUBSCRIPT|SUPERSCRIPT)$/)) {
-    return $2; }
+    return [$1, $2]; }
   return; }
 
 sub scriptHandler {
@@ -3229,13 +3239,13 @@ sub scriptHandler {
         next; }
       elsif (IsEmpty($prev)) {       # If empty, the script floats, can't conflict, but don't put back
         last; }
-      elsif (my $pop = IsScript($prev)) {
+      elsif (my $prevop = IsScript($prev)) {
         unshift(@putback, $prev);
-        if ($pop eq $op) {           # Whoops, duplicated; better use FLOATING
-          Error('unexpected', "double-" . lc($pop), $stomach, "Double " . lc($pop));
+        if ($$prevop[1] eq $op) {    # Whoops, duplicated; better use FLOATING
+          Error('unexpected', "double-" . lc($$prevop[1]), $stomach, "Double " . lc($$prevop[1]));
           $cs = '\@@FLOATING' . $op;
           last; }
-        else {                       # Else, is OK (so far) assume POST (or same as previous?)
+        else {                       # Else, is OK (so far) assume POST (it will stack previous script)
           $prevscript = $prev;               # we'll overlap the width of the previous.
           $cs         = '\@@POST' . $op; }
         last if ++$nscripts > 1; }
@@ -4525,7 +4535,7 @@ DefConstructorI('\@math@nbspace', undef,
   "<ltx:XMHint name='medspace' width='#width'/>",
   alias => '\ ',
   properties => { isSpace => 1,
-    width => sub { Dimension('1em'); } });
+    width => sub { Dimension('0.5em'); } });
 DefPrimitiveI('\@text@nbspace', undef, UTF(0xA0), alias => '\ ');
 
 DefMacroI("\\\t", undef, '\ifmmode\@math@tab\else\@text@tab\fi');
@@ -4652,35 +4662,82 @@ sub doScriptpos {
 sub doVariablesizeOp {
   return (LookupValue('mathstyle') eq 'display' ? 'display' : undef); }
 
-DefMathI('\sum', undef, "\x{2211}", role => 'SUMOP',
-  scriptpos => \&doScriptpos, meaning => 'sum', mathstyle => \&doVariablesizeOp);
-DefMathI('\prod', undef, "\x{220F}", role => 'SUMOP',
-  scriptpos => \&doScriptpos, meaning => 'product', mathstyle => \&doVariablesizeOp);
-DefMathI('\coprod', undef, "\x{2210}", role => 'SUMOP',
-  scriptpos => \&doScriptpos, meaning => 'coproduct', mathstyle => \&doVariablesizeOp);
-DefMathI('\int', undef, "\x{222B}", role => 'INTOP',
-  meaning => 'integral',, mathstyle => \&doVariablesizeOp);
-DefMathI('\oint', undef, "\x{222E}", role => 'INTOP',
-  meaning => 'contour-integral', mathstyle => \&doVariablesizeOp);
-DefMathI('\bigcap', undef, "\x{22C2}", role => 'SUMOP',
-  scriptpos => \&doScriptpos, meaning => 'intersection', mathstyle => \&doVariablesizeOp);
-DefMathI('\bigcup', undef, "\x{22C3}", role => 'SUMOP',
-  scriptpos => \&doScriptpos, meaning => 'union', mathstyle => \&doVariablesizeOp);
-DefMathI('\bigsqcup', undef, "\x{2294}", role => 'SUMOP',
-  scriptpos => \&doScriptpos, meaning => 'square-union', mathstyle => \&doVariablesizeOp);
-DefMathI('\bigvee', undef, "\x{22C1}", role => 'SUMOP',
-  scriptpos => \&doScriptpos, meaning => 'or', mathstyle => \&doVariablesizeOp);
-DefMathI('\bigwedge', undef, "\x{22C0}", role => 'SUMOP',
-  scriptpos => \&doScriptpos, meaning => 'and', mathstyle => \&doVariablesizeOp);
-DefMathI('\bigodot', undef, "\x{2299}", role => 'SUMOP',
-  scriptpos => \&doScriptpos, mathstyle => \&doVariablesizeOp);    #meaning=> ?
-DefMathI('\bigotimes', undef, "\x{2297}", role => 'SUMOP',
-  scriptpos => \&doScriptpos, meaning => 'tensor-product', mathstyle => \&doVariablesizeOp);
-DefMathI('\bigoplus', undef, "\x{2295}", role => 'SUMOP',
-  scriptpos => \&doScriptpos, meaning => 'direct-sum', mathstyle => \&doVariablesizeOp);
-DefMathI('\biguplus', undef, "\x{228C}", role => 'SUMOP',
-  scriptpos => \&doScriptpos, meaning => 'symmetric-difference', mathstyle => \&doVariablesizeOp);
-
+DefMathI('\sum', undef, "\x{2211}",
+  role      => 'SUMOP',
+  scriptpos => \&doScriptpos,
+  meaning   => 'sum',
+  mathstyle => \&doVariablesizeOp);
+DefMathI('\prod', undef, "\x{220F}",
+  role      => 'SUMOP',
+  scriptpos => \&doScriptpos,
+  meaning   => 'product',
+  mathstyle => \&doVariablesizeOp);
+DefMathI('\coprod', undef, "\x{2210}",
+  role      => 'SUMOP',
+  scriptpos => \&doScriptpos,
+  meaning   => 'coproduct',
+  mathstyle => \&doVariablesizeOp);
+DefMathI('\int', undef, "\x{222B}",
+  role      => 'INTOP',
+  meaning   => 'integral',
+  mathstyle => \&doVariablesizeOp);
+DefMathI('\oint', undef, "\x{222E}",
+  role      => 'INTOP',
+  meaning   => 'contour-integral',
+  mathstyle => \&doVariablesizeOp);
+DefMathI('\bigcap', undef, "\x{22C2}",
+  role      => 'SUMOP',
+  scriptpos => \&doScriptpos,
+  meaning   => 'intersection',
+  mathstyle => \&doVariablesizeOp,
+  font      => { size => 'Big' });
+DefMathI('\bigcup', undef, "\x{22C3}",
+  role      => 'SUMOP',
+  scriptpos => \&doScriptpos,
+  meaning   => 'union',
+  mathstyle => \&doVariablesizeOp,
+  font      => { size => 'Big' });
+DefMathI('\bigsqcup', undef, "\x{2294}",
+  role      => 'SUMOP',
+  scriptpos => \&doScriptpos,
+  meaning   => 'square-union',
+  mathstyle => \&doVariablesizeOp,
+  font      => { size => 'Big' });
+DefMathI('\bigvee', undef, "\x{22C1}",
+  role      => 'SUMOP',
+  scriptpos => \&doScriptpos,
+  meaning   => 'or',
+  mathstyle => \&doVariablesizeOp,
+  font      => { size => 'Big' });
+DefMathI('\bigwedge', undef, "\x{22C0}",
+  role      => 'SUMOP',
+  scriptpos => \&doScriptpos,
+  meaning   => 'and',
+  mathstyle => \&doVariablesizeOp,
+  font      => { size => 'Big' });
+DefMathI('\bigodot', undef, "\x{2299}",
+  role      => 'SUMOP',              #meaning=> ?
+  scriptpos => \&doScriptpos,
+  mathstyle => \&doVariablesizeOp,
+  font      => { size => 'Big' });
+DefMathI('\bigotimes', undef, "\x{2297}",
+  role      => 'SUMOP',
+  scriptpos => \&doScriptpos,
+  meaning   => 'tensor-product',
+  mathstyle => \&doVariablesizeOp,
+  font      => { size => 'Big' });
+DefMathI('\bigoplus', undef, "\x{2295}",
+  role      => 'SUMOP',
+  scriptpos => \&doScriptpos,
+  meaning   => 'direct-sum',
+  mathstyle => \&doVariablesizeOp,
+  font      => { size => 'Big' });
+DefMathI('\biguplus', undef, "\x{228E}",
+  role      => 'SUMOP',
+  scriptpos => \&doScriptpos,
+  meaning   => 'symmetric-difference',
+  mathstyle => \&doVariablesizeOp,
+  font      => { size => 'Big' });
 DefConstructorI('\limits', undef, sub {
     my $node = $_[0]->getElement;
     $_[0]->setAttribute($_[0]->getLastChildElement($node) || $node, scriptpos => 'mid'); });
@@ -4714,7 +4771,7 @@ DefMathI('\cdot',   undef, "\x{22C5}", role => 'MULOP');
 # Need to classify set operations more carefully....
 DefMathI('\cap', undef, "\x{2229}", role => 'ADDOP', meaning => 'intersection');
 DefMathI('\cup', undef, "\x{222A}", role => 'ADDOP', meaning => 'union');
-DefMathI('\uplus',    undef, "\x{228C}", role => 'ADDOP');
+DefMathI('\uplus',    undef, "\x{228E}", role => 'ADDOP');
 DefMathI('\sqcap',    undef, "\x{2293}", role => 'ADDOP', meaning => 'square-intersection');
 DefMathI('\sqcup',    undef, "\x{2294}", role => 'ADDOP', meaning => 'square-union');
 DefMathI('\vee',      undef, "\x{2228}", role => 'ADDOP', meaning => 'or');
@@ -5000,14 +5057,19 @@ DefMathLigature(sub { my ($document, @nodes) = @_;
 # LaTeX; Table 3.11. Math Mode Accents, p.50.
 # Are these all TeX (or LaTeX)?
 
-DefMath('\hat Digested',      UTF(0x5E),  operator_role => 'OVERACCENT');
-DefMath('\check Digested',    "\x{02C7}", operator_role => 'OVERACCENT');    # CARON
-DefMath('\breve Digested',    "\x{02D8}", operator_role => 'OVERACCENT');    # BREVE
-DefMath('\acute Digested',    UTF(0xB4),  operator_role => 'OVERACCENT');    # ACUTE ACCENT
-DefMath('\grave Digested',    UTF(0x60),  operator_role => 'OVERACCENT');    # GRAVE ACCENT
-DefMath('\tilde Digested',    UTF(0x7E),  operator_role => 'OVERACCENT');    # TILDE
-DefMath('\bar Digested',      UTF(0xAF),  operator_role => 'OVERACCENT');    # MACRON
-DefMath('\vec Digested',      "\x{2192}", operator_role => 'OVERACCENT');    # RIGHTWARDS ARROW
+DefMath('\hat Digested', UTF(0x5E),
+  operator_role => 'OVERACCENT', operator_stretchy => 'false');
+DefMath('\check Digested', "\x{02C7}",
+  operator_role => 'OVERACCENT', operator_stretchy => 'false');    # CARON
+DefMath('\breve Digested', "\x{02D8}", operator_role => 'OVERACCENT');    # BREVE
+DefMath('\acute Digested', UTF(0xB4),  operator_role => 'OVERACCENT');    # ACUTE ACCENT
+DefMath('\grave Digested', UTF(0x60),  operator_role => 'OVERACCENT');    # GRAVE ACCENT
+DefMath('\tilde Digested', UTF(0x7E),
+  operator_role => 'OVERACCENT', operator_stretchy => 'false');           # TILDE
+DefMath('\bar Digested', UTF(0xAF),
+  operator_role => 'OVERACCENT', operator_stretchy => 'false');           # MACRON
+DefMath('\vec Digested', "\x{2192}",
+  operator_role => 'OVERACCENT', operator_stretchy => 'false');           # RIGHTWARDS ARROW
 DefMath('\dot Digested',      "\x{02D9}", operator_role => 'OVERACCENT');    # DOT ABOVE
 DefMath('\ddot Digested',     UTF(0xA8),  operator_role => 'OVERACCENT');    # DIAERESIS
 DefMath('\overline Digested', UTF(0xAF),  operator_role => 'OVERACCENT');    # MACRON

@@ -282,7 +282,7 @@ Factor  :
         | OPEN factorOpen[$item[1]]
         | preScripted['bigop'] addOpArgs[$item[1]]
         | { ($forbidVertBar ? undef : 1); }
-          VERTBAR VERTBAR absExpression VERTBAR VERTBAR # || exp || ==> norm
+          SINGLEVERTBAR SINGLEVERTBAR absExpression SINGLEVERTBAR SINGLEVERTBAR # || exp || ==> norm
               addScripts[Fence('||',$item[4],'||')]
         | { ($forbidVertBar ? undef : 1); }
           VERTBAR absExpression VERTBAR                     # | exp | => absolute-value
@@ -399,11 +399,18 @@ addScripts :
 
 # ================================================================================
 # preScripted['RULE']; match a RULE possibly preceded by sub/super prescripts,
-#  possibly followed by sub/superscripts
+#  possibly followed by sub/superscripts.  The initial prescript can only be FLOAT
+#  but the following ones can be either POST (which combine) or FLOAT (which don't)
 
 preScripted :
-          FLOATSUPERSCRIPT preScripted[$arg[0]] { NewScript($item[2],$item[1]);}
-        | FLOATSUBSCRIPT   preScripted[$arg[0]] { NewScript($item[2],$item[1]);}
+          FLOATSUPERSCRIPT inpreScripted[$arg[0]] { NewScript($item[2],$item[1], 'pre');}
+        | FLOATSUBSCRIPT   inpreScripted[$arg[0]] { NewScript($item[2],$item[1], 'pre');}
+        | <matchrule:$arg[0]> addScripts[$item[1]]
+inpreScripted :
+          POSTSUPERSCRIPT inpreScripted[$arg[0]] { NewScript($item[2],$item[1], 'pre');}
+        | POSTSUBSCRIPT   inpreScripted[$arg[0]] { NewScript($item[2],$item[1], 'pre');}
+        | FLOATSUPERSCRIPT inpreScripted[$arg[0]] { NewScript($item[2],$item[1], 'pre');}
+        | FLOATSUBSCRIPT   inpreScripted[$arg[0]] { NewScript($item[2],$item[1], 'pre');}
         | <matchrule:$arg[0]> addScripts[$item[1]]
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -716,6 +723,7 @@ SCRIPTOPEN      : /OPEN:\{:\d+/                 { Lookup($item[1]); }
 CLOSE           : /CLOSE:\S*:\d+/               { Lookup($item[1]); }
 MIDDLE          : /MIDDLE:\S*:\d+/              { Lookup($item[1]); }
 VERTBAR         : /VERTBAR:\S*:\d+/             { Lookup($item[1]); }
+SINGLEVERTBAR   : /VERTBAR:\|:\d+/              { Lookup($item[1]); }
 BIGOP           : /BIGOP:\S*:\d+/               { Lookup($item[1]); }
 SUMOP           : /SUMOP:\S*:\d+/               { Lookup($item[1]); }
 INTOP           : /INTOP:\S*:\d+/               { Lookup($item[1]); }

@@ -52,12 +52,12 @@ my $DEFAULT_FONT = LaTeXML::Common::Font->new(    # [CONSTANT]
 sub new {
   my ($class) = @_;
   my $self = bless { type => 'undef' }, $class;
-  $self; }
+  return $self; }
 
 sub parseMath {
   my ($self, $document, %options) = @_;
   if ($options{parser}) {
-    if (lc($options{parser}) ne $self->{type}) {
+    if (lc($options{parser}) ne $$self{type}) {
       my $parse;
       if ($options{parser} =~ /^LaTeXML::(\w+)$/) {
         my $loadable = eval "require $options{parser}";
@@ -74,8 +74,8 @@ sub parseMath {
         $parse = sub { my ($rule, $unparsed) = @_;
           $internalparser->$rule($unparsed); }
       }
-      $self->{invoke} = $parse;
-      $self->{type}   = lc($options{parser});
+      $$self{invoke} = $parse;
+      $$self{type}   = lc($options{parser});
     }
   }
   local $LaTeXML::MathParser::DOCUMENT = $document;
@@ -138,6 +138,21 @@ sub note_unknown {
   my $name = token_prettyname($node);
   $$self{unknowns}{$name}++;
   return; }
+
+# debugging utility, should be somewhere handy.
+sub printNode {
+  my ($node) = @_;
+  if (ref $node eq 'ARRAY') {
+    my ($tag, $attr, @children) = @$node;
+    my @keys = sort keys %$attr;
+    return "<$tag"
+      . (@keys ? ' ' . join(' ', map { "$_='$$attr{$_}'" } @keys) : '')
+      . (@children
+      ? ">\n" . join('', map { printNode($_) } @children) . "</$tag>"
+      : '/>')
+      . "\n"; }
+  else {
+    return ToString($node); } }
 
 # ================================================================================
 # Some more XML utilities, but math specific (?)
@@ -501,25 +516,25 @@ sub parse_internal {
   local %LaTeXML::MathParser::DISALLOWED_NOTATIONS = ();
   local $LaTeXML::MathParser::MAX_ABS_DEPTH        = 1;
   my $unparsed = $lexemes;
-  my $result = &{ $self->{invoke} }($rule, \$unparsed);
-  if ((lc($self->{type}) ne 'marpa') && ($self->{type} ne 'LaTeXML::MathSyntax')) {
+  my $result = &{ $$self{invoke} }($rule, \$unparsed);
+  if ((lc($$self{type}) ne 'marpa') && ($$self{type} ne 'LaTeXML::MathSyntax')) {
 
     if (((!defined $result) || $unparsed)    # If parsing Failed
       && $LaTeXML::MathParser::SEEN_NOTATIONS{QM}) {    # & Saw some QM stuff.
       $LaTeXML::MathParser::DISALLOWED_NOTATIONS{QM} = 1;    # Retry w/o QM notations
       $unparsed = $lexemes;
-      $result = &{ $self->{invoke} }($rule, \$unparsed); }
+      $result = &{ $$self{invoke} }($rule, \$unparsed); }
     while (((!defined $result) || $unparsed)                 # If parsing Failed
       && ($LaTeXML::MathParser::SEEN_NOTATIONS{AbsFail})     # & Attempted deeper abs nesting?
       && ($LaTeXML::MathParser::MAX_ABS_DEPTH < 3)) {        # & Not ridiculously deep
       delete $LaTeXML::MathParser::SEEN_NOTATIONS{AbsFail};
       ++$LaTeXML::MathParser::MAX_ABS_DEPTH;                 # Try deeper.
       $unparsed = $lexemes;
-      $result = &{ $self->{invoke} }($rule, \$unparsed); }
+      $result = &{ $$self{invoke} }($rule, \$unparsed); }
 
     # If still failed, try other strategies?
   }
-  ($result, $unparsed); }
+  return ($result, $unparsed); }
 
 sub getGrammaticalRole {
   my ($self, $node) = @_;
@@ -1063,25 +1078,35 @@ sub ApplyNary {
 # or follows (normal case), along with whether sub/super.
 #   the alignment of multiple sub/superscripts derived from the binding level when created.
 # scriptpos = (pre|mod|post) number; where number is the binding-level.
+# If $pos is given (pre|mid|post), it overrides the position implied by the script
 sub NewScript {
-  my ($base, $script) = @_;
+  my ($base, $script, $pos) = @_;
   my $role;
   my ($bx, $bl) = (p_getAttribute($base,   'scriptpos') || 'post') =~ /^(pre|mid|post)?(\d+)?$/;
   my ($sx, $sl) = (p_getAttribute($script, 'scriptpos') || 'post') =~ /^(pre|mid|post)?(\d+)?$/;
-  my ($x, $y) = p_getAttribute($script, 'role') =~ /^(FLOAT|POST)?(SUB|SUPER)SCRIPT$/;
-  $x = ($x eq 'FLOAT' ? 'pre' : $bx || 'post');
+  my ($mode, $y) = p_getAttribute($script, 'role') =~ /^(FLOAT|POST)?(SUB|SUPER)SCRIPT$/;
+  my $x = ($pos ? $pos : ($mode eq 'FLOAT' ? 'pre' : $bx || 'post'));
   my $lpad = ($x eq 'pre') && p_getAttribute($script, 'lpadding');
   my $rpad = ($x ne 'pre') && p_getAttribute($script, 'rpadding');
-
   my $t;
   my $l = $sl || $bl ||
     (($t = $LaTeXML::MathParser::DOCUMENT->getNodeBox($script))
     && ($t->getProperty('level'))) || 0;
+  # If the INNER script was a floating script (ie. {}^{x})
+  # we'll NOT want this one to stack over it so bump the level.
+  my $bumped;
+  if (p_getAttribute($base, '_wasfloat')) {
+    $l++; $bumped = 1 }
+  elsif (my $innerl = p_getAttribute($base, '_bumplevel')) {
+    $l = $innerl; }
   my $app = Apply(New(undef, undef, role => $y . 'SCRIPTOP', scriptpos => "$x$l"),
     $base, Arg($script, 0));
-  $$app[1]{scriptpos} = $bx   if $bx ne 'post';
-  $$app[1]{lpadding}  = $lpad if $lpad && !$$app[1]{lpadding};    # better to add?
-  $$app[1]{rpadding}  = $rpad if $rpad && !$$app[1]{rpadding};    # better to add?
+  # Record whether this script was a floating one
+  $$app[1]{_wasfloat}  = 1   if $mode eq 'FLOAT';
+  $$app[1]{_bumplevel} = $l  if $bumped;
+  $$app[1]{scriptpos}  = $bx if $bx ne 'post';
+  $$app[1]{lpadding} = $lpad if $lpad && !$$app[1]{lpadding};    # better to add?
+  $$app[1]{rpadding} = $rpad if $rpad && !$$app[1]{rpadding};    # better to add?
   return $app; }
 
 # Basically, like NewScript, but decorates an operator with sub/superscripts
