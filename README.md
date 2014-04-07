@@ -1,7 +1,6 @@
 [![Build Status](https://secure.travis-ci.org/KWARC/LaTeXML.png?branch=master)](http://travis-ci.org/KWARC/LaTeXML)
 
-
-LaTeXML is a TeX and LaTeX to XML translator.
+LaTeXML is a TeX and LaTeX to XML/HTML/MathML converter.
 From XML it can generate various flavors of HTML,
 MathML and ePub, with other formats under development.
 See the included manual.pdf for an documentation.

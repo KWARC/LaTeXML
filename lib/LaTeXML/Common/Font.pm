@@ -13,6 +13,8 @@ package LaTeXML::Common::Font;
 use strict;
 use warnings;
 use LaTeXML::Global;
+use LaTeXML::Core::Token;
+use LaTeXML::Common::Error;
 use LaTeXML::Common::Object;
 use LaTeXML::Common::Dimension;
 use List::Util qw(min max sum);
@@ -369,9 +371,9 @@ sub getNominalSize {
 # Options _SHOULD_ include:
 #   width:  if given, pretend to simulate line breaking to that width
 #   height,depth : ?
-#   vattach : top, bottom (...?) affects how the height & depth are
+#   vattach : top, bottom, center, baseline (...?) affects how the height & depth are
 #      allocated when there are multiple lines.
-#   mode : horizontal or vertical !!!
+#   layout : horizontal or vertical !!!
 # Boxes that arent a Core Box, List, Whatsit or a string are IGNORED
 #
 # The big problem with width is to have it propogate down from where
@@ -384,9 +386,13 @@ sub getNominalSize {
 sub computeBoxesSize {
   my ($self, $boxes, %options) = @_;
   my $font = (ref $self ? $self : $STATE->lookupValue('font'));
-  my $maxwidth = $options{width} && $options{width}->valueOf;
+  my $fillwidth = $options{width};
+  if ((!defined $fillwidth) && ($fillwidth = $STATE->lookupDefinition(T_CS('\textwidth')))) {
+    $fillwidth = $fillwidth->valueOf; }    # get register
+  my $maxwidth = $fillwidth && $fillwidth->valueOf;
   my @lines = ();
   my ($wd, $ht, $dp) = (0, 0, 0);
+  my $vattach = $options{vattach} || 'baseline';
   foreach my $box (@$boxes) {
     next unless defined $box;
     next if ref $box && !$box->can('getSize');    # Care!! Since we're asking ALL args/compoments
@@ -406,51 +412,46 @@ sub computeBoxesSize {
     else {
       Warn('expected', 'Dimension', undef,
         "Depth of " . Stringify($box) . " yeilded a non-dimension: " . Stringify($d)); }
-    if ((($options{mode} || '') eq 'vertical')    # EVERY box is a row?
-                                                  # || $box is a <ltx:break> (or similar)!!!!
+    if ((($options{layout} || '') eq 'vertical')    # EVERY box is a row?
+                                                    # || $box is a <ltx:break> (or similar)!!!!
       ) {
       push(@lines, [$wd, $ht, $dp]); $wd = $ht = $dp = 0; }
-    elsif ($maxwidth && ($wd >= $maxwidth)) {     # or we've reached the requested width
+    elsif ((defined $maxwidth) && ($wd >= $maxwidth)) {    # or we've reached the requested width
           # Compounding errors with wild abandon.
           # If an underlying box is too wide, we'll split it up into multiple rows
           # [Rather than correctly break it?]
-      while ($wd >= $maxwidth) {
-        push(@lines, [$maxwidth, $ht, $dp]); $wd = $wd - $maxwidth; }
-      $ht = $h->valueOf; $dp = $d->valueOf; }    # continue with the leftover
+          # BUT How do we know if it should break at alL!?!?!?!?!
+##     while ($wd >= $maxwidth) {
+##       push(@lines, [$maxwidth, $ht, $dp]); $wd = $wd - $maxwidth; }
+##      $ht = $h->valueOf; $dp = $d->valueOf;     # continue with the leftover
+      push(@lines, [$wd, $ht, $dp]); $wd = $ht = $dp = 0;
+    }
   }
-  if ($wd) {                                     # be sure to get last line
+  if ($wd) {    # be sure to get last line
     push(@lines, [$wd, $ht, $dp]); }
   # Deal with multiple lines
   my $nlines = scalar(@lines);
   if ($nlines == 0) {
     $wd = $ht = $dp = 0; }
-  elsif ($nlines == 1) {
-    ($wd, $ht, $dp) = @{ $lines[0] }; }
-  elsif ($nlines > 1) {
+  else {
     $wd = max(map { $$_[0] } @lines);
     $ht = sum(map { $$_[1] } @lines);
     $dp = sum(map { $$_[2] } @lines);
-    if (($options{vattach} || '') eq 'bottom') {
-      my $d = $lines[-1][2];
-      $ht = $ht + $dp - $d; $dp = $d; }
-    else {
+    if ($vattach eq 'top') {    # Top of box is aligned with top(?) of current text
+      my ($w, $h, $d) = $font->getNominalSize;
+      $h = $h->valueOf;
+      $dp = $ht + $dp - $h; $ht = $h; }
+    elsif ($vattach eq 'bottom') {    # Bottom of box is aligned with bottom (?) of current text
+      $ht = $ht + $dp; $dp = 0; }
+    elsif ($vattach eq 'middle') {
+      my ($w, $h, $d) = $font->getNominalSize;
+      $h = $h->valueOf;
+      my $c = ($ht + $dp) / 2;
+      $ht = $c + $h / 2; $dp = $c - $h / 2; }
+    else {                            # default is baseline (of the 1st line)
       my $h = $lines[0][1];
       $dp = $ht + $dp - $h; $ht = $h; } }
-#  print STDERR "Lines"
-#    . (%options ? '[' . join(',', map { "$_=" . ToString($options{$_}) } grep { defined $options{$_} } sort keys %options) . ']' : '')
-#    . ": " . join(',', map { fmt(@$_) } @lines) . " => " . fmt($wd, $ht, $dp) . "\n";
-
   return (Dimension($wd), Dimension($ht), Dimension($dp)); }
-
-#sub fmt {
-#  my @pp = map { LaTeXML::Common::Dimension::pointformat($_) } @_;
-#  $pp[0] . ' x ' . $pp[1] . ' + ' . $pp[2]; }
-
-# sub default {
-#   my ($self) = @_;
-#   return $self->new_internal('math', $MDEFSERIES, 'italic', $MDEFSIZE,
-#     $MDEFCOLOR, $MDEFBACKGROUND, $MDEFOPACITY,
-#     undef, undef, undef); }
 
 sub isSticky {
   my ($self) = @_;

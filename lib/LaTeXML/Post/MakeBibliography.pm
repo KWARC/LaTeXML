@@ -81,6 +81,103 @@ sub normalizeBibKey {
   return lc($key); }
 
 # ================================================================================
+# Bibliographies can be specified either
+#  within the document (on ltx:bibliography, due to \bibliography{foo}
+#  or from an option to new (typically coming from the command line).
+# The commandline option OVERRIDES the internal list (to avoid clashes)
+#
+# In the fist case, we only get names, (no bib extension, let alone xml)
+# but we should look for pre-compiled versions of the bib anyway (pref foo.bib.xml)
+# In the latter case, we may get pathnames OR literals OR even an XML Document object.
+# literals can be bibtex (but eventually serialized XML should be allowed).
+# When XML is supplied, it is assumed to contain an ltx:bibliography containing a ltx:biblist.
+# In principle, we ought to look for named files also in the file cache (eg. from {filecontents})
+sub getBibliographies {
+  my ($self, $doc) = @_;
+  my @bibnames = ();
+  # use the commandline bibliographies, if explicitly given.
+  if ($$self{bibliographies} && scalar(@{ $$self{bibliographies} })) {
+    @bibnames = @{ $$self{bibliographies} }; }
+  else {
+    my $bibnode = $doc->findnode('//ltx:bibliography');
+    if (my $files = $bibnode->getAttribute('files')) {
+      @bibnames = map { $_ . '.bib' } split(',', $files); } }
+  my @paths = $doc->getSearchPaths;
+  my @bibs  = ();
+  foreach my $bib (@bibnames) {
+    my $ref = ref $bib;
+    my $bibdoc;
+    if ($ref && ($ref eq 'LaTeXML::Post::Document')) {    # It's already a Post::Document (somehow).
+      $bibdoc = $bib; }
+    elsif ($ref && ($ref eq 'XML::LibXML::Document')) {    # Or it's a raw XML document?
+      $bibdoc = $doc->new($bib, sourceDirectory => '.'); }
+    elsif ($ref) {
+      Error('unexpected', $ref, $self,
+        "Don't know how to convert '$bib' (a '$ref') into a Bibliography document"); }
+    elsif (pathname_is_literaldata($bib)) {
+      # Assume (for now) that the data is BibTeX text;
+      # [another possibility is serialized xml!]
+      $bibdoc = $self->convertBibliography($doc, $bib); }
+    elsif ($bib =~ /\.xml/) {
+      $bibdoc = $doc->newFromFile($bib); }    # doc will do the searching...
+    elsif ($bib =~ /\.bib/) {
+      # NOTE: We should also use kpsewhich to get the effects of $BIBINPUTS?
+      # NOTE: When better integrated with Core, should also check for cached bib documents.
+      if (my $path = pathname_find($bib, paths => [@paths], types => ['bib.xml', 'bib'])) {
+        if ($path =~ /\.xml/) {
+          $bibdoc = $doc->newFromFile($path); }    # doc will do the searching...
+        else {
+          $bibdoc = $self->convertBibliography($doc, $path); } }
+      else {
+        Error('expected', $bib, $self,
+          "Couldn't find Bibliography '$bib'",
+          "Searchpaths were " . join(',', @paths)); } }
+    if ($bibdoc) {
+      push(@bibs, $bibdoc); }
+    else {
+      Info('expected', $bib, $self,
+        "Couldn't find usable Bibliography for '$bib'"); } }
+  NoteProgress(" [using bibliographies "
+      . join(',', map { (length($_) > 100 ? substring($_, 100) . '...' : $_) } @bibnames)
+      . "]");
+  return @bibs; }
+
+# This converts a bib into the corresponding XML
+# $bib is either a filename or literal
+# Note that for multiple bibliographies it is inefficient to prepare a session for EACH.
+# However, we really shouldn't be preparing a new session anyway:
+# In general, it should use the same STATE information as the main document,
+# so IF that state is still around, we should use it!
+# That's for future enhancement!!!
+# Also, it probably doesn't make sense for the session to capture the log output;
+# it should just continue dribbling out whereever it usually would go.
+sub convertBibliography {
+  my ($self, $doc, $bib) = @_;
+  require LaTeXML;
+  require LaTeXML::Common::Config;
+  NoteProgress(" [Converting bibliography $bib ...");
+  my $bib_config = LaTeXML::Common::Config->new(
+    cache_key      => 'BibTeX',
+    type           => "BibTeX",
+    post           => 0,
+    format         => 'dom',
+    whatsin        => 'document',
+    whatsout       => 'document',
+    verbosity      => -5,
+    bibliographies => []);
+  my $bib_converter = LaTeXML->get_converter($bib_config);
+  $bib_converter->prepare_session($bib_config);
+  my $response = $bib_converter->convert($bib);
+  print STDERR $$response{log};
+  # TODO: We need to handle the logging properly, it's a bit of a mess for nested ->convert() calls
+  if (my $bibdoc = $$response{result}) {
+    NoteProgress("... converted!]");
+    return $doc->new($bibdoc, sourceDirectory => '.'); }
+  else {
+    NoteProgress("... Failed!]");
+    return; } }
+
+# ================================================================================
 # Get all cited bibentries from the requested bibliography files.
 # Sort (cited) bibentries on author+year+title, [NOT on the key!!!]
 # and then check whether author+year is unique!!!
@@ -97,12 +194,7 @@ sub getBibEntries {
   # First, scan the bib files for all ltx:bibentry's, (hash key is bibkey)
   # Also, record the citations from each bibentry to others.
   my %entries = ();
-  foreach my $bibfile (@{ $$self{bibliographies} }) {
-    my $bibdoc;
-    if (!ref($bibfile)) {
-      $bibdoc = $doc->newFromFile($bibfile); }
-    else {
-      $bibdoc = $doc->new($bibfile, sourceDirectory => '.'); }
+  foreach my $bibdoc ($self->getBibliographies($doc)) {
     foreach my $bibentry ($bibdoc->findnodes('//ltx:bibentry')) {
       my $bibkey = normalizeBibKey($bibentry->getAttribute('key'));
       my $bibid  = $bibentry->getAttribute('xml:id');
