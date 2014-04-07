@@ -9,9 +9,8 @@ use Test::More;
 BEGIN {
 my $eval_return = eval {require Test::LeakTrace; 1;};
 if (!$eval_return || $@) {
-  plan(skip_all=>"Test::LeakTrace not installed."); exit;}
-}
-elsif ($XML::LibXML::VERSION < 2.0106) {
+  plan(skip_all=>"Test::LeakTrace not installed."); exit;} }
+if ($XML::LibXML::VERSION < 2.0106) {
   plan(skip_all=>"Leaky XML::LibXML, please update to 2.0106 or newer."); }
 else {
   plan(tests=>1);
