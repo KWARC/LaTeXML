@@ -8,6 +8,7 @@ openmath =
 pmml =
 path = $STEXSTYDIR
 path = $STEXSTYDIR/modules
+path = $STEXSTYDIR/smultiling
 path = $STEXSTYDIR/statements
 path = $STEXSTYDIR/sproof
 path = $STEXSTYDIR/smglom
