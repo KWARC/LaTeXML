@@ -8,6 +8,7 @@
 \usepackage{makeidx}
 \usepackage{listings}
 \usepackage{tocbibind}
+\usepackage{wrapfig}
 % Should the additional keywords be indexed?
 \lstdefinestyle{shell}{language=bash,escapechar=@,basicstyle=\ttfamily\small,%
    morekeywords={latexml,latexmlpost,latexmlmath,latexmls,latexmlc},
@@ -45,7 +46,7 @@
 \makeindex
 
 \title{\LaTeXML\ \emph{The Manual}}
-\subtitle{A \LaTeX\ to \XML/\HTML/\MathML\ Converter;\\ \emph{\CurrentVersion}}
+\subtitle{A \LaTeX\ to \XML/\HTML/\MathML\ Converter;\\ Version \emph{\CurrentVersion}}
 \author{Bruce R.~Miller}
 \lxKeywords{LaTeXML, LaTeX to XML, LaTeX to HTML, LaTeX to MathML, LaTeX to ePub, converter}
 %============================================================
@@ -57,7 +58,38 @@
 %============================================================
 \begin{document}\label{top}
 \frontmatter
+\iflatexml
 \maketitle
+\else
+\begin{titlepage}
+\parindent=0em
+\makeatletter
+\null\vfil
+\hbox to \textwidth{%
+  \hfill
+  \hbox to 0.5in {
+  \includegraphics{../graphics/mascot.png} }
+%  \kern -2in
+%  \hskip -1.5in
+ \vbox{
+   \null
+    \centering
+    {\LARGE \@title \par}%
+    \vskip 1.0em%
+    {\large \@subtitle \par}%
+    \vskip 3em%
+    {\large \@author \par}
+    \vskip 1.5em%
+    {\large \@date \par}%       % Set date in \large size.
+    \vskip 3em%
+   \null
+   }
+  \hfill
+}
+\par\vfil\null
+\makeatother
+\end{titlepage}
+\fi
 \tableofcontents
 \listoffigures
 \mainmatter
@@ -83,25 +115,27 @@ the DLMF project proceeded to develop their own tool, \LaTeXML, for this purpose
 
 \paragraph{Design Goals} The idealistic goals of \LaTeXML\ are:
 \begin{itemize}
-\item Faithful emulation of \TeX's behaviour.
-\item Easily extensible.
-\item Lossless; preserving both semantic and presentation cues.
-\item Uses abstract \LaTeX-like, extensible, document type.
-\item Determine the semantics of mathematical content\\
+\item Faithful emulation of \TeX's behaviour;
+\item Easily extensible;
+\item Lossless, preserving both semantic and presentation cues;
+\item Use an abstract \LaTeX-like, extensible, document type;
+\item Infer the semantics of mathematical content\\
     (\emph{Good} Presentation \MathML, eventually Content \MathML\ and \OpenMath).
 \end{itemize}
 
-As these goals are not entirely practical, or even somewhat contradictory,
+As these goals are not entirely practical, even somewhat contradictory,
 they are implicitly modified by \emph{as much as possible}.
 Completely mimicking \TeX's, and \LaTeX's, behaviour would seem to require the
 sneakiest modifications to \TeX, itself; redefining \LaTeX's internals does 
-not really guarantee compatibility. ``Ease of use'' is, of course, in the eye of the beholder.
+not really guarantee compatibility. ``Ease of use'' is, of course, in the eye of the beholder;
+this manual is an attempt to make it easier!
 More significantly, few documents are likely to have completely unambiguous
 mathematics markup; human understanding of both the topic and the surrounding 
 text is needed to properly interpret any particular fragment.
-Thus, rather than pretend to provide a ``turn-key'' solution,
-we expect that document-specific declarations or tuning to be necessary
-to faithfully convert documents.  Towards this end, we provide a variety
+Thus, while we'll try to provide a ``turn-key'' solution that does the `Right Thing'
+automatically, we expect that applications requiring high semantic content will require
+document-specific declarations and tuning to achieve the desired result.
+Towards this end, we provide a variety
 of means to customize the processing and declare the author's intent.
 At the same time, especially for new documents, we encourage a more logical, 
 content-oriented markup style, over a purely presentation-oriented style.
@@ -113,33 +147,44 @@ the system architecture in some detail. Strategies for customization
 and implementation of new packages is described in Chapter \ref{customization}.
 The special considerations for mathematics, including details of representation
 and how to improve the conversion, are covered in Chapter \ref{math}.
+Several specialized topics are covered in the remaining chapters.
 An overview of outstanding issues and planned future improvements
 are given in Chapter \ref{todo}.
 
 Finally, the Appendices give detailed documentation the system components:
 Appendix \ref{commands} describes the command-line programs provided by the system;
-Appendices \ref{coremodules} and \ref{utilitymodules} describes the core and utility Perl modules 
-comprising the system, while Appendix \ref{postmodules} describes the postprocessing modules;
-Appendix \ref{schema} describes the \XML\ schema used by \LaTeXML;
-finally, Appendix \ref{errorcodes} gives an overview of the warning and
+Appendix \ref{included.bindings} lists the \LaTeX\ style packages for which
+we've provided \LaTeXML-specific bindings.
+Appendices \ref{modules},  \ref{commonmodules}, \ref{coremodules}, \ref{utilitymodules},
+\ref{premodules} and \ref{postmodules}
+describes the various Perl modules, in groups, that comprise the system.
+Appendix \ref{schema} describes the \XML\ schema used by \LaTeXML.
+Appendix \ref{errorcodes} gives an overview of the warning and
 error messages that \LaTeXML\ may generate.
+Appendix \ref{cssclasses} describes the strategy and naming conventions
+used for CSS styling of the resulting \HTML.
 
-If all else fails, please consult the source code, or the author.
-
-\vskip 1cm\relax
 Using \LaTeXML, and programming for it, can be somewhat confusing as one is dealing with several
 languages not normally combined, often within the same file,
---- Perl, \TeX\ and \XML\ (along with \XSLT, \HTML, \CSS), plus shell programming.
-To help visually distinguish different contexts, if only slightly,
-we'll try to put `programming' oriented material (Perl, \TeX) in a typewriter font,
+--- Perl, \TeX\ and \XML\ (along with \XSLT, \HTML, \CSS),
+plus the occasional shell programmming.
+To help visually distinguish different contexts in this manual
+we will put `programming' oriented material (Perl, \TeX) in a typewriter font,
 \texttt{like this}; \XML\ material will be put in a sans-serif face
 \textsf{like this}.
 
+\vskip 1cm\relax
+If you encounter difficulties, there is a support mailing list at
+\URL[\texttt{latexml-project}]{http://lists.jacobs-university.de/mailman/listinfo/project-latexml}.
+Bugs and enhancement requests can be reported at
+\URL[Github]{https://github.com/brucemiller/LaTeXML}.
+If all else fails, please consult the source code, or the author.
+
 \begin{advanced}
-In the interests of at least attempting to describe everything,
-there will be a lot of material that will not make much sense until
-you have dabbled quite a bit in \LaTeXML's internals.
-Such `advanced' or dangerous material will be presented like this paragraph
+Danger! When you see this sign, be warned that the material presented is
+somewhat advanced and may not make much sense until you have dabbled quite
+a bit in \LaTeXML's internals.
+Such advanced or `dangerous' material will be presented like this paragraph
 to make it easier to skip over.
 \end{advanced}
 
@@ -153,23 +198,24 @@ conversion to \HTML, processing images, conversion to \MathML\ and so on.
 \end{description}
 \noindent The usage of these commands can be as simple as
 \begin{lstlisting}[style=shell]
-latexml doc.tex | latexmlpost --dest=doc.xhtml
+latexml doc.tex | latexmpost --dest=doc.html
 \end{lstlisting}
-\noindent to convert a single document into \XHTML,  or as complicated as
+\noindent to convert a single document into \textsc{HTML5} document,
+ or as complicated as
 \begin{lstlisting}[style=shell]
 latexml --dest=1.xml ch1
 latexml --dest=2.xml ch2
-@ \hbox{}\hspace{1in}\ldots @
+@ \hbox{}\hspace{1in}$\vdots$ @
 latexml --dest=b.xml b
-latexml --dest=B.xml B.bib
-latexmlpost --prescan --db=my.db --bib=B.xml --dest=1.xhtml 1
-latexmlpost --prescan --db=my.db --bib=B.xml --dest=2.xhtml 2
-@ \hbox{}\hspace{1in}\ldots @
-latexmlpost --prescan --db=my.db --bib=B.xml --dest=b.xhtml b
-latexmlpost --noscan --db=my.db --bib=B.xml --dest=1.xhtml 1
-latexmlpost --noscan --db=my.db --bib=B.xml --dest=2.xhtml 2
-@ \hbox{}\hspace{1in}\ldots @
-latexmlpost --noscan --db=my.db --bib=B.xml --dest=b.xhtml b
+latexml --dest=B.bib.xml B.bib
+latexmlpost --prescan --db=my.db --dest=1.html 1
+latexmlpost --prescan --db=my.db --dest=2.html 2
+@ \hbox{}\hspace{1in}$\vdots$ @
+latexmlpost --prescan --db=my.db --dest=b.html b
+latexmlpost --noscan --db=my.db  --dest=1.html 1
+latexmlpost --noscan --db=my.db  --dest=2.html 2
+@ \hbox{}\hspace{1in}$\vdots$ @
+latexmlpost --noscan --db=my.db  --dest=b.html b
 \end{lstlisting}
 \noindent to convert a whole set of documents, including a bibliography,
 into a complete interconnected site.
@@ -202,10 +248,11 @@ if no \shellcode|--destination| is supplied, it writes the result to standard ou
 For details on the processing, see Chapter \ref{architecture},
 and Chapter \ref{math} for more information about math parsing.
 
-\paragraph{\BibTeX\ processing}
+\paragraph{\BibTeX\ processing}\label{usage.conversion.bibtex}
 If the source file has an explicit extension of \texttt{.bib},
 or if the \cmd{--bibtex} option is used, the source will be
-treated as a \BibTeX\ database.
+treated as a \BibTeX\ database.  See \ref{usage.post.bibtex}
+for how \BibTeX\ files are included in the final output.
 
 \begin{advanced}
 Note that the timing is different than with \BibTeX\ and \LaTeX.
@@ -214,7 +261,8 @@ bibliographic entries according to the \texttt{.aux} file;
 all \TeX\ expansion and processing is carried out only when
 the result is included in the main \LaTeX\ document.
 In contrast, \cmd{latexml} processes and expands
-the entire bibliography, included the \TeX\ within it, when it is converted to XML;
+the entire bibliography, including any \TeX\ markup within it,
+when it is converted to XML;
 the selection of entries is done during postprocessing.
 One implication is that latexml does not know about packages
 included in the main document; if the bibliography uses
@@ -222,7 +270,7 @@ macros defined in such packages, the packages must be explicitly
 specified using the \cmd{--preload} option.
 \end{advanced}
 
-\paragraph{Useful Options}
+\paragraph{Useful Options}\label{usage.conversion.options}
 The number and detail of progress and debugging messages printed
 during processing can be controlled using
 \begin{lstlisting}[style=shell]
@@ -302,16 +350,16 @@ included in the distribution.
 
 
 %%%----------------------------------------------------------------------
-\section[Postprocessing]{Basic Postprocessing}\label{usage.single}\index{latexmlpost!basic usage}
+\section[Postprocessing]{Basic Postprocessing}\label{usage.post}\index{latexmlpost!basic usage}
 In the simplest situation, you have a single \TeX\ source document
 from which you want to generate a single output document.
 The command
 \begin{lstlisting}[style=shell]
-latexmlpost %options% --destination=%doc%.xhtml %doc%
+latexmlpost %options% --destination=%doc%.html %doc%
 \end{lstlisting}
 or similarly with
-\shellcode|--destination=%doc%.html| or
-\shellcode|--destination=%doc%.html5|,
+\shellcode|--destination=%doc%.html4|,
+\shellcode|--destination=%doc%.xhtml|,
 will carry out a set of appropriate transformations in sequence:
 \begin{itemize}
   \item scanning of labels and ids;
@@ -325,17 +373,19 @@ The output format affects the defaults for each step, and particularly,
 the \XSLT\ stylesheet that is used, and is determined
 by the file extension of \shellcode{--destination}, or by the option
 \begin{lstlisting}[style=shell]
---format=(xhtml|html|html5|xml)
+--format=(html|html5|html4|xhtml|xml)
 \end{lstlisting}
 which overrides the extension used in the destination. The recognized formats are:
 \begin{description}
- \item[html] both math and graphics are converted to png images;
-    \code{LaTeXML-html.xslt} is used.
+ \item[html or html5] math is converted to Presentation \MathML,
+     some `vector' style graphics are converted to SVG,
+     other graphics are converted to images;
+     \code{LaTeXML-html5.xslt} is used.
+     The file extension html is generates html5
+ \item[html4] both math and graphics are converted to png images;
+    \code{LaTeXML-html4.xslt} is used.
  \item[xhtml] math is converted to Presentation \MathML, other graphics are converted to images;
      \code{LaTeXML-xhtml.xslt}  is used.
- \item[html5] math is converted to Presentation \MathML, other graphics are converted to images;
-     \code{LaTeXML-html5.xslt} is used.
-    (Note that the extension \code{.html5} is not commonly recognized by web servers)
  \item[xml] no math, graphics or \XSLT\ conversion is carried out.
 \end{description}
 Of course, all of these conversions can be controlled or overridden
@@ -343,12 +393,12 @@ by explicit options described below.
 For more details about less common options, see the command
 documentation \ltxcmd{latexmlpost}, as well as Appendix \ref{postmodules}.
 
-\paragraph{Scanning}
+\paragraph{Scanning}\label{usage.post.scanning}
 The scanning step collects information about all labels, ids,
 indexing commands, cross-references and so on, to be used
 in the following postprocessing stages.
 
-\paragraph{Indexing}
+\paragraph{Indexing}\label{usage.post.indexing}
 An index is built from \verb|\index| markup, if
 \shellcode{makeidx}'s \verb|\printindex| command has been used,
 but this can be disabled by
@@ -363,20 +413,30 @@ Thus \verb|\index{term a!term b}| also shows up as \verb|\index{term b!term a}|.
 This leads to a more complete, but possibly rather silly, index,
 depending on how the terms have been written.
 
-\paragraph{Bibliography}
-Bibliographic data from BibTeX can be provided with the option
+\paragraph{Bibliography}\label{usage.post.bibtex}
+When a document contains a request for bibliographies,
+typically due to the \verb|\bibliography{..}| command,
+the postprocessor will look for the named bibliographies.
+It first looks for preconverted bibliographies with the
+extention \verb|.bib.xml|, otherwise it will look
+for \verb|.bib| and convert it internally (the latter
+is a somewhat experimental feature).
+
+If you want to override that search, for example using a bibliography
+with a different name,  you can supply that filename using the option
 \begin{lstlisting}[style=shell]
---bibliography=%bibfile%.xml
+--bibliography=%bibfile%.bib.xml
 \end{lstlisting}
+Note that the internal bibliography list will then be ignored.
 The bibliography would have typically been produced by running
 \begin{lstlisting}[style=shell]
-latexml --dest=bibfile.xml bibfile.bib
+latexml --dest=bibfile.bib.xml bibfile.bib
 \end{lstlisting}
 Note that the \XML\ file, bibfile, is not used to directly produce
 an \HTML-formatted bibliography, rather it is used to fill in
 the \verb|\bibliography{..}| within a \TeX\ document.
 
-\paragraph{Cross-Referencing}
+\paragraph{Cross-Referencing}\label{usage.post.crossref}
 In this stage, the scanned information is used to fill in the
 text and links of cross-references within the document.
 The option
@@ -395,7 +455,7 @@ can control the format of urls with the document.
     This allows the files to be browsed from the local filesystem.
 \end{description}
 
-\paragraph{Math Conversion}
+\paragraph{Math Conversion}\label{usage.post.math}
 Specific conversions of the mathematics can be requested
 using the options
 \begin{lstlisting}[style=shell]
@@ -416,7 +476,16 @@ The secondary format is incorporated using whatever means
 the primary format uses; eg. \MathML\ combines formats using
 \texttt{m:semantics} and \texttt{m:annotation-xml}.
 
-\paragraph[Graphics]{Graphics processing}
+Given the state of current browsers, when generating MathML it may be
+useful to conditionally include the `polyfill' library \URL[MathJax]{http://mathjax.org/},
+for rendering MathML in browsers that don't support it natively.
+The following option includes a short Javascript that will load MathJax into such browsers:
+\begin{lstlisting}[style=shell]
+--javascript=LaTeXML-maybeMathJax.js
+\end{lstlisting}
+(See \ref{usage.post.xslt} for more information about including Javascript.)
+
+\paragraph[Graphics]{Graphics processing}\label{usage.post.graphics}
 Conversion of graphics (eg.~from the \code{graphic(s|x)} packages' 
 \verb|\includegraphics|) can be enabled or disabled
 using
@@ -433,7 +502,7 @@ controlled by
 --svg %or% --nosvg
 \end{lstlisting}
 
-\paragraph{Stylesheets and Javascript}
+\paragraph{Stylesheets and Javascript}\label{usage.post.xslt}
 If you wish to provide your own \XSLT\,
 \CSS\ stylesheets or javascript programs, the options 
 \begin{lstlisting}[style=shell]
@@ -476,7 +545,7 @@ To develop \CSS\ and \XSLT\ stylesheets,
 a knowledge of the \LaTeXML\ document type is also necessary; see  Appendix \ref{schema}.
 
 %%%----------------------------------------------------------------------
-\section[Splitting]{Splitting the Output}\label{usage.multiple}\index{latexmlpost!basic usage!split pages}
+\section[Splitting]{Splitting the Output}\label{usage.splitting}\index{latexmlpost!basic usage!split pages}
 For larger documents, it is often desirable to break the 
 result into several interlinked pages. This split,
 carried out before scanning, is requested by 

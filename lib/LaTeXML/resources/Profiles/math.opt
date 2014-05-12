@@ -16,5 +16,4 @@ preload = eucal.sty
 preload = [dvipsnames]xcolor.sty
 preload = url.sty
 preload = hyperref.sty
-preload = mws.sty 
 preload = [ids]latexml.sty

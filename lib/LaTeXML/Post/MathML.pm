@@ -425,8 +425,9 @@ sub pmml_internal {
   #Experimental XMArray, XMRow and XMCell support (refactoring).
   #DG: We should accommodate XMRow and XMCell elements appearing out of Arrays (sTeX notations)
   elsif ($tag eq 'ltx:XMArray') {
-    my $style     = $node->getAttribute('mathstyle');
-    my $vattach   = $node->getAttribute('vattach');
+    my $style   = $node->getAttribute('mathstyle');
+    my $vattach = $node->getAttribute('vattach');
+    $vattach = 'center' if $vattach && ($vattach eq 'middle');    # MathML uses center for this!
     my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
     local $LaTeXML::MathML::STYLE
       = ($style && $stylestep{$style} ? $style : $LaTeXML::MathML::STYLE);
@@ -1161,6 +1162,7 @@ DefMathML('Apply:ENCLOSE:?', sub {
 
 DefMathML("Token:APPLYOP:?",  \&pmml_mo, undef);  # APPLYOP is (only) \x{2061}; FUNCTION APPLICATION
 DefMathML("Token:OPERATOR:?", \&pmml_mo, undef);
+DefMathML("Token:DIFFOP:?",   \&pmml_mo, undef);
 
 DefMathML('Apply:?:?', sub {
     my ($op, @args) = @_;
