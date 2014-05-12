@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
 /=====================================================================\ 
-|  LaTeXML-html5.xsl                                                  |
-|  Stylesheet for converting LaTeXML documents to html5               |
+|  LaTeXML-epub3.xsl                                                  |
+|  Stylesheet for converting LaTeXML documents to ePub3               |
 |=====================================================================|
 | Part of LaTeXML:                                                    |
 |  Public domain software, produced as part of work done by the       |
