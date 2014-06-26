@@ -27,6 +27,7 @@ use base qw(LaTeXML::Post::Processor);
 #         CSS   is a '|' separated list of paths
 #         ICON  a favicon
 #         resource_directory a directory under top-level to put resources (css, js, etc)
+#         searchpaths : list of paths to search
 our %STYLE_CACHE = ();    # Class-level cache for stylesheets.
 
 sub new {
@@ -36,7 +37,8 @@ sub new {
   Error('expected', 'stylesheet', undef, "No stylesheet specified!") unless $stylesheet;
   if (!ref $stylesheet) {
     my $pathname = pathname_find($stylesheet,
-      types => ['xsl'], installation_subdir => 'resources/XSLT');
+      types => ['xsl'], installation_subdir => 'resources/XSLT',
+      paths => $$self{searchpaths} || ['.']);
     Error('missing-file', $stylesheet, undef, "No stylesheet '$stylesheet' found!")
       unless $pathname && -f $pathname;
     $stylesheet = $pathname; }
@@ -59,6 +61,7 @@ sub new {
 
 sub process {
   my ($self, $doc, $root) = @_;
+  return unless $$self{stylesheet};
   # # Set up the Stylesheet parameters; making pathname parameters relative to document
   my %params = %{ $$self{parameters} };
 
