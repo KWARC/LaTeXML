@@ -150,6 +150,10 @@ sub getHash {
   my ($self) = @_;
   return map { ($_ => ToString($$self{hash}{$_})) } keys %{ $$self{hash} }; }
 
+sub hasKey {
+  my ($self, $key) = @_;
+  return exists $$self{hash}{$key}; }
+
 sub beDigested {
   my ($self, $stomach) = @_;
   my $keyset = $$self{keyset};
