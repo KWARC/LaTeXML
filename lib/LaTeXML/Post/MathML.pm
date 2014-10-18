@@ -249,7 +249,7 @@ my %sizes = (    # CONSTANT
   tiny => 'small', script => 'small', footnote => 'small', small => 'small',
   normal => 'normal',
   large => 'big', Large => 'big', LARGE => 'big', huge => 'big', Huge => 'big',
-  big => '1.1em', Big => '1.5em', bigg => '2.0em', Bigg => '2.5em');
+  big => '1.2em', Big => '1.6em', bigg => '2.1em', Bigg => '2.6em');
 
 # Given a font string (joining the components)
 # reduce it to a "sane" font.  Note that MathML uses a single mathvariant
@@ -426,7 +426,7 @@ sub pmml_internal {
   elsif ($tag eq 'ltx:XMArray') {
     my $style   = $node->getAttribute('mathstyle');
     my $vattach = $node->getAttribute('vattach');
-    $vattach = 'center' if $vattach && ($vattach eq 'middle');    # MathML uses center for this!
+    $vattach = 'axis' if !$vattach || ($vattach eq 'middle');    # roughly MathML's axis?
     my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
     local $LaTeXML::MathML::STYLE
       = ($style && $stylestep{$style} ? $style : $LaTeXML::MathML::STYLE);
@@ -451,7 +451,10 @@ sub pmml_internal {
 ### We shouldn't use a blanket (row|column)spacing!!!
 ### Either it should scale with font size, or be recorded when creating the alignment!
 ####    my $result = ['m:mtable', { rowspacing => "0.2ex", columnspacing => "0.4em", align => $vattach }, @rows];
-    my $result = ['m:mtable', { align => $vattach }, @rows];
+    my $result = ['m:mtable', { ($vattach ne 'axis' ? (align => $vattach) : ()),
+        # Mozilla seems to need some encouragement?
+        ($LaTeXML::MathML::STYLE eq 'display' ? (displaystyle => 'true') : ()) },
+      @rows];
     $result = ['m:mstyle', {@$styleattr}, $result] if $styleattr;
     return $result; }
   elsif ($tag eq 'ltx:XMRow') {
@@ -625,7 +628,7 @@ my %plane1hack = (    # CONSTANT
 sub stylizeContent {
   my ($item, $mihack, %attr) = @_;
   my $iselement = (ref $item) eq 'XML::LibXML::Element';
-  my $href      = ($iselement ? $item->getAttribute('href') : $attr{href});
+  my $role      = ($iselement ? $item->getAttribute('role') : 'ID');
   my $font      = ($iselement ? $item->getAttribute('font') : $attr{font})
     || $LaTeXML::MathML::FONT;
   my $size = ($iselement ? $item->getAttribute('fontsize') : $attr{fontsize})
@@ -642,11 +645,20 @@ sub stylizeContent {
   my $stretchy = ($iselement ? $item->getAttribute('stretchy') : $attr{stretchy});
   $size = undef if ($stretchy || 'false') eq 'true';    # Ignore size, if we're stretching.
   $size = undef if $size && ($size eq $LaTeXML::MathML::STYLE);
-  $stretchy = 'false' if $size;   # Conversely, if size was specifically set, we shouldn't stretch it!
-                                  # Failsafe for empty tokens?
+  my $stretchyhack = undef;
 
+  if ($size) {
+    # Note that symmetric is only allowed when stretchy, which looks crappy for specific sizes
+    # so we'll pretend that delimiters are still stretchy, but restrict size by minsize & maxsize
+    # (Thanks Peter Krautzberger)
+    if (($role eq 'OPEN') || ($role eq 'CLOSE')) {
+      $stretchyhack = 1;
+      $stretchy     = undef; }
+    else {
+      $stretchy = 'false' } };    # Conversely, if size was specifically set, we shouldn't stretch it!
+                                  # Failsafe for empty tokens?
   if ((!defined $text) || ($text eq '')) {
-    $text = ($iselement ? $item->getAttribute('name') || $item->getAttribute('meaning') || $item->getAttribute('role') : '?');
+    $text = ($iselement ? $item->getAttribute('name') || $item->getAttribute('meaning') || $role : '?');
     $color = 'red'; }
 
   if ($font && !$variant) {
@@ -682,9 +694,11 @@ sub stylizeContent {
       $text = join('', @c);
       $variant = ($plane1hack && ($variant =~ /^bold/) ? 'bold' : undef); } }
   return ($text,
-    ($href     ? (href           => $href)              : ()),
-    ($variant  ? (mathvariant    => $variant)           : ()),
-    ($size     ? (mathsize       => $sizes{$size})      : ()),
+    ($variant ? (mathvariant => $variant) : ()),
+    ($size ? ($stretchyhack
+        ? (minsize => $sizes{$size}, maxsize => $sizes{$size})
+        : (mathsize => $sizes{$size}))
+      : ()),
     ($color    ? (mathcolor      => $color)             : ()),
     ($bgcolor  ? (mathbackground => $bgcolor)           : ()),
     ($opacity  ? (style          => "opacity:$opacity") : ()),    # ???
@@ -722,9 +736,11 @@ sub pmml_mo {
   my $isfence   = $role && ($role =~ /^(OPEN|CLOSE)$/);
   my $ispunct   = $role && ($role eq 'PUNCT');
   my $islargeop = $role && ($role =~ /^(SUMOP|INTOP)$/);
-  my $lpad = ((ref $item) && $item->getAttribute('lpadding'))
+  my $lpad      = $attr{lpadding}
+    || ((ref $item) && $item->getAttribute('lpadding'))
     || ($role && ($role eq 'MODIFIEROP') && 'mediummathspace');
-  my $rpad = ((ref $item) && $item->getAttribute('rpadding'))
+  my $rpad = $attr{rpadding}
+    || ((ref $item) && $item->getAttribute('rpadding'))
     || ($role && ($role eq 'MODIFIEROP') && 'mediummathspace');
   my $pos = (ref $item && $item->getAttribute('scriptpos')) || 'post';
   return ['m:mo', { %mmlattr,
@@ -778,10 +794,17 @@ sub pmml_script {
   my ($innerbase, $prescripts, $midscripts, $postscripts, $emb_left, $emb_right)
     = pmml_script_decipher($op, $base, $script);
   # check if base needs displaystyle.
-  my $result = pmml_script_multi_layout(
-    pmml_script_mid_layout($innerbase, $midscripts, $emb_left, $emb_right),
-    $prescripts, $postscripts);
-  return $result; }
+  my $style = $innerbase->getAttribute('mathstyle');
+  if ($style && ($style ne $LaTeXML::MathML::STYLE)) {
+    local $LaTeXML::MathML::STYLE = $style;
+    return ['m:mstyle', { displaystyle => ($style eq 'display' ? 'true' : 'false') },
+      pmml_script_multi_layout(
+        pmml_script_mid_layout($innerbase, $midscripts, $emb_left, $emb_right),
+        $prescripts, $postscripts)]; }
+  else {
+    return pmml_script_multi_layout(
+      pmml_script_mid_layout($innerbase, $midscripts, $emb_left, $emb_right),
+      $prescripts, $postscripts); } }
 
 sub pmml_script_mid_layout {
   my ($base, $midscripts, $emb_left, $emb_right) = @_;
@@ -1158,7 +1181,7 @@ DefMathML('Apply:OVERACCENT:?', sub {
     if (getQName($base) eq 'ltx:XMApp') {
       my ($xaccent, $xbase) = element_nodes($base);
       if ((getQName($xaccent) eq 'ltx:XMTok')
-        && ($xaccent->getAttribute('role') eq 'UNDERACCENT')) {
+        && (($xaccent->getAttribute('role') || '') eq 'UNDERACCENT')) {
         return ['m:munderover', { accent => 'true', accentunder => 'true' },
           pmml($xbase), pmml_scriptsize($xaccent), pmml_scriptsize($accent)]; } }
     return ['m:mover', { accent => 'true' }, pmml($base), pmml_scriptsize($accent)]; });
@@ -1168,7 +1191,7 @@ DefMathML('Apply:UNDERACCENT:?', sub {
     if (getQName($base) eq 'ltx:XMApp') {
       my ($xaccent, $xbase) = element_nodes($base);
       if ((getQName($xaccent) eq 'ltx:XMTok')
-        && ($xaccent->getAttribute('role') eq 'OVERACCENT')) {
+        && (($xaccent->getAttribute('role') || '') eq 'OVERACCENT')) {
         return ['m:munderover', { accent => 'true', accentunder => 'true' },
           pmml($xbase), pmml_scriptsize($accent), pmml_scriptsize($xaccent)]; } }
     return ['m:munder', { accentunder => 'true' }, pmml($base), pmml_scriptsize($accent)]; });
@@ -1188,7 +1211,6 @@ DefMathML('Apply:ENCLOSE:?', sub {
 
 DefMathML("Token:APPLYOP:?",  \&pmml_mo, undef);  # APPLYOP is (only) \x{2061}; FUNCTION APPLICATION
 DefMathML("Token:OPERATOR:?", \&pmml_mo, undef);
-DefMathML("Token:DIFFOP:?",   \&pmml_mo, undef);
 
 DefMathML('Apply:?:?', sub {
     my ($op, @args) = @_;
@@ -1200,6 +1222,11 @@ DefMathML('Apply:?:?', sub {
     my ($op, @args) = @_;
     return ['m:apply', {}, cmml($op), map { cmml($_) } @args]; });
 DefMathML('Apply:COMPOSEOP:?', \&pmml_infix, undef);
+DefMathML("Token:DIFFOP:?",    \&pmml_mo,    undef);
+DefMathML("Apply:DIFFOP:?", sub {
+    my ($op, @args) = @_;
+    return ['m:mrow', {}, map { pmml($_) } $op, @args]; },
+  undef);
 
 # In pragmatic CMML, these are containers
 DefMathML("Apply:?:open-interval", undef, sub {
@@ -1297,8 +1324,9 @@ DefMathML('Token:SUBSCRIPTOP:?', undef, sub {
 #DG Experimental: qvars for MWS
 DefMathML('Token:?:qvar', undef, sub { ['m:csymbol', { cd => 'mws', name => 'qvar' }, $_[0]->textContent]; });
 
-DefMathML('Apply:POSTFIX:?', sub {
+DefMathML('Apply:POSTFIX:?', sub {    # Reverse presentation, no @apply
     return ['m:mrow', {}, pmml($_[1]), pmml($_[0])]; });
+DefMathML("Token:POSTFIX:?", sub { pmml_mo($_[0], lpadding => '-4pt', rpadding => '1pt'); }, undef);
 
 DefMathML('Apply:?:square-root',
   sub {

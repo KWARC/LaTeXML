@@ -173,6 +173,7 @@ maybeColRHS :
 
 
 punctExpr : PUNCT Expression                    { [$item[1],$item[2]]; }
+
 relopExpr : relop Expression                    { [$item[1],$item[2]]; }
           | relop /^\Z/                         { [$item[1], Absent()]; }
 
@@ -195,6 +196,12 @@ Expressions : Expression punctExpr(s?)
                                 { NewList($item[1],map(@$_,@{$item[2]})); }
 
 Expression  : SignedTerm moreTerms[[],$item[1]] addExpressionModifier[$item[2]]
+            # # very tentatively allow an operator as a complete expression
+            # # BUT, this should only suceed if at end, or followed by punctuation!!!!!!!
+            # # (or CLOSE, or... ?!?!?!?)
+            | AnyOp ...anyOpIsolator { $item[1]; }
+
+anyOpIsolator : /^\Z/ | PUNCT | CLOSE
 
 # moreTerms[ [($term,$addop)*], $term];  Check for more addop & term's
 moreTerms :
@@ -220,7 +227,7 @@ addExpressionModifier :
 ###                 moreRHS[$item[3],$item[4],$item[5]] balancedClose[$item[2]]
 ###            { Apply(New('annotated'),$arg[0],Fence($item[2],$item[6],$item[7])); }
         | PUNCT(?) OPEN MODIFIEROP Expression balancedClose[$item[2]]
-            { Apply($item[3],$arg[0],$item[4]); }
+            { Apply($item[3],$arg[0],$item[4]); } # Is the punctuation Lost here?
         | MODIFIER
             { Apply(New('annotated'),$arg[0],$item[1]); }
         | MODIFIEROP Expression
@@ -236,9 +243,6 @@ addExpressionModifier :
 SignedTerm : AddOp Term                         { Apply($item[1],$item[2]); }
         | Term
 
-### Term        : Factor (MULOP(?) Factor { [$item[1]->[0] || InvisibleTimes(), $item[2]]; })(s?)
-###                                     { LeftRec($item[1],map(@$_,@{$item[2]})); }
-
 Term    : Factor moreFactors[$item[1]]
 moreFactors :
           /^\Z/ { $arg[0];}   # short circuit!
@@ -246,9 +250,6 @@ moreFactors :
         # Given an explicit COMPOSEOP, we'll assume the preceding is
         # an implicit lambda of some sort(?)
         | COMPOSEOP makeComposition[$arg[0],$item[1]]
-#        | { ($forbidEvalAt ? undef : 1); }
-#         evalAtOp POSTSUBSCRIPT
-#                  moreFactors[Apply(New('evaluated-at'),$arg[0],Arg($item[3],0))]
         | { ($forbidEvalAt ? undef : 1); }
           evalAtOp maybeEvalAt[$arg[0],$item[2]]
         | Factor moreFactors[ApplyNary(InvisibleTimes(),$arg[0],$item[1])]
@@ -264,8 +265,6 @@ Factor  :
         # These 2nd two are Iffy; hopefully the 1st rule will protect from backtrack?
           OPEN ARRAY CLOSE  addScripts[Fence($item[1],$item[2],$item[3])]
           # perhaps only when OPEN or CLOSED is { or } ??
-#       | OPEN ARRAY  { Annotate(Apply(New('cases'),$item[2]),open=>$item[1]); }
-#       | ARRAY CLOSE { Annotate(Apply(New('cases'),$item[1]),close=>$item[2]); }
         # should be explicitly {, and moreover the array should be only 1 or 2 columns!
         | LBRACE ARRAY { InterpretDelimited(New('cases'),$item[1],$item[2],Absent()); }
         | ARRAY RBRACE { InterpretDelimited(New('cases'),Absent(),$item[1],$item[2]); }
@@ -444,16 +443,14 @@ factorOpen :
         | Expression factorOpenExpr[$arg[0],$item[1]]
         # Empty OPEN CLOSE ?
         | balancedClose[$arg[0]] addScripts[Fence($arg[0],$item[1])]
-        # Singlet containing an operator ? 
-        | AnyOp balancedClose[$arg[0]]
-                   addScripts[Fence($arg[0],$item[1],$item[2])]
-
+        # Sequence starting  with an operator ? 
+        | AnyOp factorOpenExpr[$arg[0],$item[1]]
 
 # factorOpenExpr[$open,$expr];  Try to recognize various things that start
 #   this way. Need some extra productions for sets (w/possible middle '|' )
 #   and vectors; all n-ary.
 factorOpenExpr :
-        # 2nd expression; some kind of pair, interval, set, whatever
+        # 2nd expression; some kind of pair, interval, set, whatever [Any CLOSE, NOT balancedClose]
          (PUNCT Expression { [$item[1],$item[2]]; })(s)  CLOSE
                   addScripts[Fence($arg[0],$arg[1],map(@$_,@{$item[1]}),$item[2])]
         # only 2 things and 2nd one is an op?; some kind of group???
@@ -581,6 +578,7 @@ makeComposition :
 # addOpArgs[$bigop]; Add following Term to a bigop, if present.
 addOpArgs :
           /^\Z/ { $arg[0];}   # short circuit!
+        # Is the APPLYOP getting "lost" here?
         | APPLYOP(?) Factor moreOpArgFactors[$item[2]] { Apply($arg[0],$item[3]);}
         | { $arg[0]; }
 

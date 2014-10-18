@@ -1175,7 +1175,8 @@ sub createXMRefs {
   my @refs = ();
   foreach my $arg (@args) {
     my $isarray = (ref $arg eq 'ARRAY');
-    my $qname = ($isarray ? $$arg[0] : $document->getNodeQName($arg));
+    my $qname   = ($isarray ? $$arg[0] : $document->getNodeQName($arg));
+    my $box     = ($isarray ? $$arg[1]{_box} : $document->getNodeBox($arg));
     # XMHint's are ephemeral, they may disappear; so just clone it w/o id
     if ($qname eq 'ltx:XMHint') {
       my %attr = ($isarray ? %{ $$arg[1] } : (map { $_->nodeName => $_->getValue } $arg->attributes));
@@ -1183,14 +1184,14 @@ sub createXMRefs {
       push(@refs, [$qname, {%attr}]); }
     # Likewise, clone an XMRef (w/o any attributes or id ?) rather than create an XMRef to an XMRef.
     elsif ($qname eq 'ltx:XMRef') {
-      push(@refs, [$qname, { idref => $arg->getAttribute('idref') }]); }
+      push(@refs, [$qname, { idref => $arg->getAttribute('idref'), _box => $box }]); }
     else {
       my $id = ($isarray ? $$arg[1]{'xml:id'} : $arg->getAttribute('xml:id'));
       if (!$id) {
         $id = ToString(getXMArgID());
         if ($isarray) { $$arg[1]{'xml:id'} = $id; }
         else { $document->setAttribute($arg, 'xml:id' => $id); } }
-      push(@refs, ['ltx:XMRef', { 'idref' => $id }]); } }
+      push(@refs, ['ltx:XMRef', { 'idref' => $id, _box => $box }]); } }
   return @refs; }
 
 # DefMath Define a Mathematical symbol or function.
@@ -1232,7 +1233,7 @@ sub DefMathI {
   my $nargs   = ($paramlist ? scalar($paramlist->getParameters) : 0);
   my $csname  = $cs->getString;
   my $meaning = $options{meaning};
-  my $name    = $csname;
+  my $name    = $options{alias} || $csname;
   $name =~ s/^\\//;
   $name = $options{name} if defined $options{name};
   $name = undef          if (defined $name)
@@ -1367,26 +1368,20 @@ sub defmath_dual {
 
 sub defmath_prim {
   my ($cs, $paramlist, $presentation, %options) = @_;
-  my $string     = ToString($presentation);
-  my %attributes = %options;
-  my $reqfont    = $attributes{font} || {};
-  delete $attributes{locked};
-  delete $attributes{font};
-  ## Whoops???
-###  $attributes{name} = $name if (defined $name) && !(defined $options{name});
+  my $string = ToString($presentation);
+  my $reqfont = $options{font} || {};
+  delete $options{locked};
+  delete $options{font};
   $STATE->installDefinition(LaTeXML::Core::Definition::Primitive->new($cs, undef, sub {
-        my ($stomach) = @_;
-        my $locator   = $stomach->getGullet->getLocator;
-        my $font      = LookupValue('font')->merge(%$reqfont)->specialize($string);
-        my $attr      = {};
-        foreach my $key (keys %attributes) {
-          my $value = $attributes{$key};
+        my ($stomach)  = @_;
+        my $locator    = $stomach->getGullet->getLocator;
+        my %properties = %options;
+        my $font       = LookupValue('font')->merge(%$reqfont)->specialize($string);
+        foreach my $key (keys %properties) {
+          my $value = $properties{$key};
           if (ref $value eq 'CODE') {
-            $$attr{$key} = &$value(); }
-          else {
-            $$attr{$key} = $value; } }
-        LaTeXML::Core::Box->new($string, $font, $locator, $cs,
-          mode => 'math', attributes => $attr); }));
+            $properties{$key} = &$value(); } }
+        LaTeXML::Core::Box->new($string, $font, $locator, $cs, mode => 'math', %properties); }));
   return; }
 
 sub defmath_cons {

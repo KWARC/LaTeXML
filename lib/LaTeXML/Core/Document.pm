@@ -347,6 +347,11 @@ sub finalize_rec {
   my $declared_font       = $LaTeXML::FONT;
   my $desired_font        = $LaTeXML::FONT;
   my %pending_declaration = ();
+  if (my $comment = $node->getAttribute('_pre_comment')) {
+    $node->parentNode->insertBefore(XML::LibXML::Comment->new($comment), $node); }
+  if (my $comment = $node->getAttribute('_comment')) {
+    $node->parentNode->insertAfter(XML::LibXML::Comment->new($comment), $node); }
+
   if (my $font_attr = $node->getAttribute('_font')) {
     $desired_font        = $$self{node_fonts}{$font_attr};
     %pending_declaration = $desired_font->relativeTo($declared_font);
@@ -359,7 +364,6 @@ sub finalize_rec {
           $declared_font = $declared_font->merge(%{ $pending_declaration{$attr}{properties} });
           delete $pending_declaration{$attr}; } }
     } }
-
   local $LaTeXML::FONT = $declared_font;
   foreach my $child ($node->childNodes) {
     my $type = $child->nodeType;
@@ -1022,9 +1026,9 @@ sub autoCollapseChildren {
 # insertion point (eg $$self{node}), but rather relative to nodes specified
 # in the arguments.
 
-# Set an attribute on a node, decoding the prefix, if any.
+# Set any allowed attribute on a node, decoding the prefix, if any.
 # Also records, and checks, any id attributes.
-# We _could_ check whether attribute is even allowed here? NOT YET.
+# [xml:id and namespaced attributes are always allowed]
 sub setAttribute {
   my ($self, $node, $key, $value) = @_;
   $value = $value->toAttribute if ref $value;
@@ -1033,8 +1037,13 @@ sub setAttribute {
       $value = $self->recordID($value, $node);    # Do id book keeping
       $node->setAttributeNS($LaTeXML::Common::XML::XML_NS, 'id', $value); }    # and bypass all ns stuff
     elsif ($key !~ /:/) {    # No colon; no namespace (the common case!)
-      $node->setAttribute($key => $value); }
-    else {
+                             # Ignore attributes not allowed by the model,
+                             # but accept "internal" attributes.
+      my $model = $$self{model};
+      my $qname = $model->getNodeQName($node);
+      if ($model->canHaveAttribute($qname, $key) || $key =~ /^_/) {
+        $node->setAttribute($key => $value); } }
+    else {                   # Accept any namespaced attributes
       my ($ns, $name) = $$self{model}->decodeQName($key);
       if ($ns) {             # If namespaced attribute (must have prefix!
         my $prefix = $node->lookupNamespacePrefix($ns);    # namespace already declared?
