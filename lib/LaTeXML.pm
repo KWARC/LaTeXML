@@ -31,7 +31,7 @@ use vars qw($VERSION);
 use version; our $VERSION = version->declare("v0.8.0");
 use LaTeXML::Version;
 # Derived, more informative version numbers
-our $FULLVERSION = "LaTeXML version $LaTeXML::VERSION"
+our $FULLVERSION = "LaTeXML version $LaTeXML::VERSION (KWARC fork)"
   . ($LaTeXML::Version::REVISION ? "; revision $LaTeXML::Version::REVISION" : '');
 # Handy identifier string for any executable.
 our $IDENTITY = "$FindBin::Script ($LaTeXML::FULLVERSION)";
