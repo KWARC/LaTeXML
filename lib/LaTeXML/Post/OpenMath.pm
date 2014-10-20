@@ -48,13 +48,16 @@ sub preprocess {
   return; }
 
 sub outerWrapper {
-  my ($self, $doc, $math, $xmath, @conversion) = @_;
   my ($self, $doc, $xmath, $om) = @_;
   # Using the prefix to determine foreign attributes
-  my @foreign_attributes = grep { my $prefix = $_->prefix; $prefix && ($prefix !~ /^xml|ltx$/); } $xmath->attributes;
+  my $math = $xmath->parentNode;
+  my @foreign_attributes = grep { my $prefix = $_->prefix; $prefix && ($prefix !~ /^xml|ltx$/); } ($xmath->attributes, $math->attributes);
   my %foreign_copies = ();
   %foreign_copies = (map { $_->nodeName() => $_->getValue() } @foreign_attributes) if @foreign_attributes;
-return ['om:OMOBJ', \%foreign_copies, $om]; }
+  my $wrapped = ['om:OMOBJ', \%foreign_copies, $om];
+  if (my $id = $xmath->getAttribute('fragid')) {        # Associate id's, but DONT crossref
+    $wrapped = $self->associateID($wrapped, $id, 1); }
+  return $wrapped; }
 
 sub convertNode {
   my ($self, $doc, $xmath) = @_;
@@ -124,7 +127,7 @@ sub om_expr {
   # map any ID here, as well, BUT, since we follow split/scan, use the fragid, not xml:id!
   return $result if (!$node || $node->isa('XML::LibXML::Text'));
   if (my $id = $node->getAttribute('fragid')) {
-    $$result[1]{'xml:id'} = $id . $LaTeXML::Post::MATHPROCESSOR->IDSuffix; }
+    $result = $LaTeXML::Post::MATHPROCESSOR->associateID($result, $id); }
   return $result; }
 
 # Is it clear that we should just getAttribute('role'),
