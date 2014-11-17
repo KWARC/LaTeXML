@@ -48,7 +48,7 @@ use File::Which;
 use Unicode::Normalize;
 use Text::Balanced;
 use base qw(Exporter);
-our @EXPORT    = (qw(&DefExpandable
+our @EXPORT = (qw(&DefExpandable
     &DefMacro &DefMacroI
     &DefConditional &DefConditionalI &IfCondition
     &DefPrimitive  &DefPrimitiveI
@@ -1618,7 +1618,7 @@ sub FindFile_aux {
   my ($file, %options) = @_;
   my $path;
   # If cached, return simple path (it's a key into the cache)
-  if (LookupValue($file . '_contents')) {
+  if (defined LookupValue($file . '_contents')) {
     return $file; }
   if (pathname_is_absolute($file)) {    # And if we've got an absolute path,
     return $file if -f $file;           # No need to search, just check if it exists.
@@ -1878,7 +1878,9 @@ sub ProcessOptions {
 
   if ($options{inorder}) {    # Execute options in the order passed in (eg. \ProcessOptions*)
     foreach my $option (@classoptions) {    # process global options, but no error
-      executeOption_internal($option); }
+      if    (executeOption_internal($option))        { }
+      elsif (executeDefaultOption_internal($option)) { } }
+
     foreach my $option (@curroptions) {
       if    (executeOption_internal($option))        { }
       elsif (executeDefaultOption_internal($option)) { } } }
@@ -2096,9 +2098,10 @@ sub LoadedPool {
   my ($mode) = @_;
   $mode = ToString($mode) if ref $mode;
   $mode =~ s/^\s*//; $mode =~ s/\s*$//;
+  my $is_loaded = 0;
   if (my $poolfile = FindFile($mode . ".pool")) {
-    $STATE->lookupValue($poolfile . '_loaded'); }
-  else { 0; } }
+    $is_loaded = $STATE->lookupValue($poolfile . '_loaded'); }
+  return $is_loaded; }
 
 sub AtBeginDocument {
   my (@operations) = @_;
