@@ -142,9 +142,18 @@ sub om_expr_aux {
     #leftover when we unwrap a ltx:XMText, we should simply add its text content
     return $node->textContent;
   }
+  elsif ($tag eq 'om:OMOBJ') {
+    # Don't ask how we get here... OMSTR business:
+    return $node; }
+  elsif ($tag eq 'm:math') { # Looks foreign to me!
+    return ['om:OMFOREIGN', {}, $node]; }
+  ## The ltx:Math and ltx:XMath cases should only be triggered by recursing into an OMSTR
+  elsif (($tag eq 'ltx:Math') || ($tag eq 'ltx:XMath')) {    # OMSTR recursive, delve deeper
+    my ($item, @rest) = element_nodes($node);
+    return ((!$item || @rest) ? om_unparsed($item, @rest) : om_expr($item)); }
   elsif (($tag eq 'ltx:XMWrap') || ($tag eq 'ltx:XMArg')) {    # Unparsed
     my ($item, @rest) = element_nodes($node);
-    return (!$item || @rest ? om_unparsed($item, @rest) : om_expr($item)); }
+    return ((!$item || @rest) ? om_unparsed($item, @rest) : om_expr($item)); }
   elsif ($tag eq 'ltx:XMDual') {
     my ($content, $presentation) = element_nodes($node);
     return om_expr($content); }
@@ -166,7 +175,7 @@ sub om_expr_aux {
   elsif ($tag eq 'ltx:XMArg') {                                # Only present if parsing failed!
     return om_expr($node->firstChild); }
   #DG: Experimental support for ltx:XMText (sTeX ticket #1627)
-  elsif ($tag eq 'ltx:XMText') {                               # Text may contain math inside)
+  elsif (($tag eq 'ltx:XMText') || ($tag eq 'ltx:text')) { # Text may contain math inside)
         #always an extra <ltx:text> wrapper needs to be unwrapped)
     my $qname = getQName($node->firstChild);
     $node = $node->firstChild if ($qname && ($qname eq 'ltx:text'));
