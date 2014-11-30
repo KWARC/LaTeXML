@@ -372,8 +372,8 @@ sub processNode {
 
 sub maybeSetMathImage {
   my ($self, $math, $conversion) = @_;
-  if (($$conversion{mimetype} =~ /^image\//)    # Got an image?
-    && !$math->getAttribute('imagesrc')) {      # and it's the first one
+  if ((($$conversion{mimetype} || '') =~ /^image\//)    # Got an image?
+    && !$math->getAttribute('imagesrc')) {              # and it's the first one
     if (my $src = $$conversion{src}) {
       $math->setAttribute(imagesrc    => $src);
       $math->setAttribute(imagewidth  => $$conversion{width});
@@ -508,7 +508,7 @@ sub new {
     $class = ref $class; }
   map { $data{$_} = $options{$_} } keys %options;    # These override.
   if ((defined $options{destination}) && (!defined $options{destinationDirectory})) {
-    my ($vol, $dir, $name) = File::Spec->splitpath($data{destination});
+    my ($dir, $name, $ext) = pathname_split($data{destination});
     $data{destinationDirectory} = $dir || '.'; }
   # Check consistency of siteDirectory (providing there's a destinationDirectory)
   if ($data{destinationDirectory}) {
@@ -562,7 +562,7 @@ sub newFromFile {
   my ($class, $source, %options) = @_;
   $options{source} = $source;
   if (!$options{sourceDirectory}) {
-    my ($vol, $dir, $name) = File::Spec->splitpath($source);
+    my ($dir, $name, $ext) = pathname_split($source);
     $options{sourceDirectory} = $dir || '.'; }
   my $doc = $class->new(LaTeXML::Common::XML::Parser->new()->parseFile($source), %options);
   $doc->validate if $$doc{validate};
