@@ -1,7 +1,7 @@
 language: perl
 perl:
+  - "5.20"
   - "5.18"
-  - "5.16"
   - "5.14"
   - "5.10"
   - "5.8"
@@ -9,4 +9,10 @@ perl:
 before_install:
   #This should solve problem installing Perl's DB_File & GraphViz
   - "sudo apt-get update -qq"
-  - "sudo apt-get install libdb-dev libxml2-dev 2>&1 | tail -n 4"
+  - "sudo apt-get install libdb-dev libxml2-dev"
+  # XML::LibXSLT has a breaking change with introducing maxvars
+  # see: https://metacpan.org/source/SHLOMIF/XML-LibXSLT-1.93/Changes
+  # So we _have to_ install libxslt from source, until Travis updates to 1.1.28
+  - "wget http://xmlsoft.org/sources/libxslt-1.1.28.tar.gz"
+  - "tar -xzvf libxslt-1.1.28.tar.gz"
+  - "cd libxslt-1.1.28 && ./configure && make && sudo make install && cd -"
