@@ -135,22 +135,12 @@ sub om_expr {
 sub om_expr_aux {
   my ($node) = @_;
   return OMError("Missing Subexpression") unless $node;
-  return OMError("Text node: " . ($node->toString(1))) if ($node && (ref $node) && $node->isa('XML::LibXML::Text'));
   my $tag = getQName($node) || '';    #DG: Suppress warnings if not defined
                                       #(huh?! Possibly due to recursion of the OMSTR treatment!)
   if (!$tag) {
     #leftover when we unwrap a ltx:XMText, we should simply add its text content
     return $node->textContent;
   }
-  elsif ($tag eq 'om:OMOBJ') {
-    # Don't ask how we get here... OMSTR business:
-    return $node; }
-  elsif ($tag eq 'm:math') { # Looks foreign to me!
-    return ['om:OMFOREIGN', {}, $node]; }
-  ## The ltx:Math and ltx:XMath cases should only be triggered by recursing into an OMSTR
-  elsif (($tag eq 'ltx:Math') || ($tag eq 'ltx:XMath')) {    # OMSTR recursive, delve deeper
-    my ($item, @rest) = element_nodes($node);
-    return ((!$item || @rest) ? om_unparsed($item, @rest) : om_expr($item)); }
   elsif (($tag eq 'ltx:XMWrap') || ($tag eq 'ltx:XMArg')) {    # Unparsed
     my ($item, @rest) = element_nodes($node);
     return ((!$item || @rest) ? om_unparsed($item, @rest) : om_expr($item)); }
@@ -175,14 +165,43 @@ sub om_expr_aux {
   elsif ($tag eq 'ltx:XMArg') {                                # Only present if parsing failed!
     return om_expr($node->firstChild); }
   #DG: Experimental support for ltx:XMText (sTeX ticket #1627)
-  elsif (($tag eq 'ltx:XMText') || ($tag eq 'ltx:text')) { # Text may contain math inside)
-        #always an extra <ltx:text> wrapper needs to be unwrapped)
-    my $qname = getQName($node->firstChild);
-    $node = $node->firstChild if ($qname && ($qname eq 'ltx:text'));
-    return ['om:OMSTR', {}, (grep { defined } map { om_expr($_) } ($node->childNodes))]; }
-  else {
-    return ['om:OMSTR', {}, $node->textContent]; }
+  elsif ($tag eq 'ltx:XMText') { # Text may contain math inside
+    my @c = $node->childNodes;
+    # HEURISTIC? To remove leading & trailing blanknodes
+    if ($c[0] && ($c[0]->nodeType == XML_TEXT_NODE) && ($c[0] =~ /^\s*$/)) {
+      shift(@c); }
+    if ($c[-1] && ($c[-1]->nodeType == XML_TEXT_NODE) && ($c[-1] =~ /^\s*$/)) {
+      pop(@c); }
+    return ['om:OMSTR', {}, (map {om_text_aux($_) } @c) ]; }
   return OMError("Unknown problem with om_expr_aux"); }
+
+sub om_text_aux {
+  my ($node, %attr) = @_;
+  return () unless $node;
+  my $type = $node->nodeType;
+  if ($type == XML_TEXT_NODE) {
+    return $node; }
+  elsif ($type == XML_DOCUMENT_FRAG_NODE) {
+    return map { om_text_aux($_, %attr) } $node->childNodes; }
+  elsif ($type == XML_ELEMENT_NODE) {
+    my $tag = getQName($node);
+    if ($tag eq 'ltx:Math') {
+      # [NOTE BUG!!! we're not passing through the context... (but maybe pick it up anyway)]
+      # If XMath still there, convert it now.
+      if (my $xmath = $LaTeXML::Post::DOCUMENT->findnode('ltx:XMath', $node)) {
+        my ($item, @rest) = element_nodes($xmath);
+        return (!$item || @rest ? om_unparsed($item, @rest) : om_expr($item)) }
+      # Otherwise, may already have gotten converted ? return that
+      elsif (my $omobj = $LaTeXML::Post::DOCUMENT->findnode('om:OMOBJ', $node)) {
+        return $omobj->childNodes; }
+      else {    # ???
+        return (); } }
+    elsif ($tag eq 'ltx:text') {    # ltx:text element is fine, if we can manage the attributes!
+      return map { om_text_aux($_, %attr) } $node->childNodes; }
+    else {
+      return (); } }
+  else {
+    return (); } }
 
 sub om_unparsed {
   my (@nodes) = @_;
