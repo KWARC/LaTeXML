@@ -1295,7 +1295,7 @@ DefConstructorI(T_CS('\begin{verbatim}'), undef,
       my $gullet = $stomach->getGullet;
       while (defined(my $line = $gullet->readRawLine)) {
 
-        if ($line =~ /^(.*?)\\end{verbatim}(.*?)$/) {
+        if ($line =~ /^(.*?)\\end\{verbatim\}(.*?)$/) {
           push(@lines, $1 . "\n"); $gullet->unread(Tokenize($2), T_CR);
           last; }
         push(@lines, $line . "\n"); }
@@ -2517,7 +2517,8 @@ sub tabularBindings {
 
 # Keyvals are for attributes for the alignment.
 # Typical keys are width, vattach,...
-DefPrimitive('\@tabular@bindings AlignmentTemplate OptionalKeyVals', sub {
+DefKeyVal('tabular', 'width', 'Dimension');
+DefPrimitive('\@tabular@bindings AlignmentTemplate OptionalKeyVals:tabular', sub {
     my ($stomach, $template, $attributes) = @_;
     my %attr = ($attributes ? $attributes->getPairs : ());
     if (my $va = $attr{vattach}) {
@@ -3012,7 +3013,7 @@ sub process_index_phrases {
         pop(@tokens);    # Remove the extra "!" stopbit.
         my $extra = ToString(Tokens(@tokens));
         if ($extra =~ /^see\s*{/) { push(@expansion, T_CS('\@indexsee'), @tokens[3 .. $#tokens]); }
-        elsif ($extra =~ /^seealso\s*{/) { push(@expansion, T_CS('\@indexseealso'), @tokens[7 .. $#tokens]); }
+        elsif ($extra =~ /^seealso\s*\{/) { push(@expansion, T_CS('\@indexseealso'), @tokens[7 .. $#tokens]); }
         elsif ($extra eq '(') { }                                            # ?
         elsif ($extra eq ')') { }                                            # ?
         else                  { $style = $index_style{$extra} || $extra; }
@@ -4421,6 +4422,63 @@ DefMacroI('\sw@slant',    undef, '');
 DefMacroI('\fix@penalty', undef, '');
 
 DefPrimitiveI('\@@end', undef, sub { $_[0]->getGullet->flush; return; });
+
+#**********************************************************************
+# Modern pdflatex seems to come with hyphenation tables predefined
+# for many languages. We don't need or use hyphenation tables,
+# but some (versions of some) software (babel), check for
+# the presence of these \l@<language> macros
+# But also see \iflanguage (re)defined in babel.def.ltxml
+RawTeX(<<'EoTeX');
+\newlanguage\l@english
+\newlanguage\l@usenglishmax
+\newlanguage\l@dumylang
+\newlanguage\l@nohyphenation
+\newlanguage\l@arabic
+\newlanguage\l@basque
+\newlanguage\l@bulgarian
+\newlanguage\l@coptic
+\newlanguage\l@welsh
+\newlanguage\l@czech
+\newlanguage\l@slovak
+\newlanguage\l@german
+\newlanguage\l@ngerman
+\newlanguage\l@danish
+\newlanguage\l@esperanto
+\newlanguage\l@spanish
+\newlanguage\l@catalan
+\newlanguage\l@galician
+\newlanguage\l@estonian
+\newlanguage\l@farsi
+\newlanguage\l@finnish
+\newlanguage\l@french
+\newlanguage\l@greek
+\newlanguage\l@monogreek
+\newlanguage\l@ancientgreek
+\newlanguage\l@croatian
+\newlanguage\l@hungarian
+\newlanguage\l@interlingua
+\newlanguage\l@ibycus
+\newlanguage\l@indonesian
+\newlanguage\l@icelandic
+\newlanguage\l@italian
+\newlanguage\l@latin
+\newlanguage\l@mongolian
+\newlanguage\l@dutch
+\newlanguage\l@norsk
+\newlanguage\l@polish
+\newlanguage\l@portuguese
+\newlanguage\l@pinyin
+\newlanguage\l@romanian
+\newlanguage\l@russian
+\newlanguage\l@slovenian
+\newlanguage\l@uppersorbian
+\newlanguage\l@serbian
+\newlanguage\l@swedish
+\newlanguage\l@turkish
+\newlanguage\l@ukenglish
+\newlanguage\l@ukrainiane
+EoTeX
 
 #**********************************************************************
 # Since \write does nothing... ?

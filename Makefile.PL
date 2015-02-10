@@ -63,6 +63,7 @@ WriteMakefile(NAME => 'LaTeXML',
     'Test::More'        => 0,
     'Time::HiRes'       => 0,
     'URI'               => 0,
+    'version'           => 0,
     # If we have an "old" version of XML::LibXML,
     # we also need XPathContext.
     # But we can't determine that additional dependence
@@ -76,6 +77,15 @@ WriteMakefile(NAME => 'LaTeXML',
   },
   EXE_FILES => ['bin/latexml', 'bin/latexmlpost', 'bin/latexmlfind', 'bin/latexmlmath', 'bin/latexmlc'],
   macro => $MORE_MACROS,
+  # link to  github location to newer MakeMaker
+  (eval { ExtUtils::MakeMaker->VERSION(6.46) } ? (META_MERGE => {
+   'meta-spec' => { version => 2 },
+   resources => {
+     repository => {
+       type => 'git',
+       url => 'https://github.com/brucemiller/LaTeXML.git',
+       web => 'https://github.com/brucemiller/LaTeXML'}}})
+    : () ),
 );
 
 print STDERR ('=' x 55), "\n",

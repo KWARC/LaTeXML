@@ -464,7 +464,7 @@ sub CleanID {
   $key =~ s/^\s+//s; $key =~ s/\s+$//s;    # Trim leading/trailing, in any case
   $key =~ s/\s//sg;
   # Remove common idiom:
-  $key =~ s/\${}\^{(.*?)}\$/$1/g;
+  $key =~ s/\$\{\}\^\{(.*?)\}\$/$1/g;
   # transform some forbidden chars
   $key =~ s/:/../g;                        # No colons!
   $key =~ s/@/-at-/g;
@@ -512,7 +512,7 @@ sub CleanURL {
   my ($url) = @_;
   $url = ToString($url);
   $url =~ s/^\s+//s; $url =~ s/\s+$//s;    # Trim leading/trailing, in any case
-  $url =~ s/\\~{}/~/g;
+  $url =~ s/\\~\{\}/~/g;
   return $url; }
 
 #======================================================================
@@ -727,7 +727,10 @@ sub ResetCounter {
 # <number> for <prefix> amongst its descendents.
 sub GenerateID {
   my ($document, $node, $whatsit, $prefix) = @_;
-  if (!$node->hasAttribute('xml:id') && $document->canHaveAttribute($node, 'xml:id')) {
+  # If node doesn't already have an id, and can
+  if (!$node->hasAttribute('xml:id') && $document->canHaveAttribute($node, 'xml:id')
+    # but isn't a _Capture_ node (which ultimately should disappear)
+    && ($document->getNodeQName($node) ne 'ltx:_Capture_')) {
     my $ancestor = $document->findnode('ancestor::*[@xml:id][1]', $node)
       || $document->getDocument->documentElement;
     ## Old versions don't like $ancestor->getAttribute('xml:id');

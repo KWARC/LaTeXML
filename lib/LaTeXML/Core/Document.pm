@@ -683,7 +683,7 @@ sub maybeCloseElement {
 
 # This closes all nodes until $node becomes the current point.
 sub closeToNode {
-  my ($self, $node) = @_;
+  my ($self, $node, $ifopen) = @_;
   my $model = $$self{model};
   my ($t, @cant_close) = ();
   my $n = $$self{node};
@@ -696,7 +696,8 @@ sub closeToNode {
   if ($t == XML_DOCUMENT_NODE) {    # Didn't find $node at all!!
     Error('malformed', $model->getNodeQName($node), $self,
       "Attempt to close " . Stringify($node) . ", which isn't open",
-      "Currently in " . $self->getInsertionContext); }
+      "Currently in " . $self->getInsertionContext) unless $ifopen;
+    return; }
   else {                            # Found node.
     Error('malformed', $model->getNodeQName($node), $self,
       "Closing " . Stringify($node) . " whose open descendents do not auto-close",
@@ -994,7 +995,7 @@ sub autoCollapseChildren {
         # Special case attributes
         if ($key eq 'xml:id') {    # Use the replacement id
           if (!$node->hasAttribute($key)) {
-            $self->recordID($val, $node);
+            $val = $self->recordID($val, $node);
             $node->setAttribute($key, $val); } }
         elsif ($key eq 'class') {    # combine $class
           if (my $class = $node->getAttribute($key)) {
@@ -1065,10 +1066,12 @@ sub recordID {
   my ($self, $id, $node) = @_;
   if (my $prev = $$self{idstore}{$id}) {    # Whoops! Already assigned!!!
                                             # Can we recover?
-    my $badid = $id;
-    $id = $self->modifyID($id);
-    Info('malformed', 'id', $node, "Duplicated attribute xml:id",
-      "Using id='$id' on " . Stringify($node), "id='$badid' already set on " . Stringify($prev)); }
+    if (!$node->isSameNode($prev)) {
+      my $badid = $id;
+      $id = $self->modifyID($id);
+      Info('malformed', 'id', $node, "Duplicated attribute xml:id",
+        "Using id='$id' on " . Stringify($node),
+        "id='$badid' already set on " . Stringify($prev)); } }
   $$self{idstore}{$id} = $node;
   return $id; }
 
@@ -1082,7 +1085,8 @@ sub recordNodeIDs {
   my ($self, $node) = @_;
   foreach my $idnode ($self->findnodes('descendent-or-self::*[@xml:id]', $node)) {
     if (my $id = $idnode->getAttribute('xml:id')) {
-      $self->recordID($id, $idnode); } }
+      my $newid = $self->recordID($id, $idnode);
+      $idnode->setAttribute('xml:id' => $newid) if $newid ne $id; } }
   return; }
 
 sub unRecordNodeIDs {
@@ -1219,6 +1223,16 @@ sub getNodeFont {
   my $t = $node->nodeType;
   return (($t == XML_ELEMENT_NODE) && $$self{node_fonts}{ $node->getAttribute('_font') })
     || LaTeXML::Common::Font->textDefault(); }
+
+sub getNodeLanguage {
+  my ($self, $node) = @_;
+  my ($font, $lang);
+  while ($node && ($node->nodeType == XML_ELEMENT_NODE)
+    && !(($lang = $node->getAttribute('xml:lang'))
+      || (($font = $$self{node_fonts}{ $node->getAttribute('_font') })
+        && ($lang = $font->getLanguage)))) {
+    $node = $node->parentNode; }
+  return $lang || 'en'; }
 
 sub decodeFont {
   my ($self, $fontid) = @_;
@@ -1393,8 +1407,8 @@ sub appendClone_aux {
           my $key = $attr->nodeName;
           if ($key eq 'xml:id') {    # Use the replacement id
             my $newid = $LaTeXML::Core::Document::IDMAP{ $attr->getValue };
-            $new->setAttribute($key, $newid);
-            $self->recordID($newid, $new); }
+            $newid = $self->recordID($newid, $new);
+            $new->setAttribute($key, $newid); }
           elsif ($key eq 'idref') {    # Refer to the replacement id if it was replaced
             my $id = $attr->getValue;
             $new->setAttribute($key, $LaTeXML::Core::Document::IDMAP{$id} || $id); }
@@ -1482,7 +1496,9 @@ sub renameNode {
   # Finally, remove the old node
   $self->removeNode($node);
   # and FINALLY, we can register the new node under the id.
-  $self->recordID($id, $new) if $id;
+  if ($id) {
+    my $newid = $self->recordID($id, $new);
+    $new->setAttribute('xml:id' => $newid) if $newid ne $id; }
   return $new; }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1519,6 +1535,10 @@ sub appendTree {
         my $tag = $self->getNodeQName($child);
         my %attributes = map { $_->nodeType == XML_ATTRIBUTE_NODE ? ($_->nodeName => $_->getValue) : () }
           $child->attributes;
+        # DANGER: REMOVE the xml:id attribute from $child!!!!
+        # This protects against some versions of XML::LibXML that warn against duplicate id's
+        # Hopefully, you shouldn't be using the node any more
+        $child->removeAttribute('xml:id') if $attributes{'xml:id'};
         my $new = $self->openElementAt($node, $tag, %attributes);
         $self->appendTree($new, $child->childNodes); }
       elsif ($type == XML_DOCUMENT_FRAG_NODE) {

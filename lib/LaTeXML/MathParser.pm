@@ -43,11 +43,6 @@ our %EXPORT_TAGS = (constructors
       &SawNotation &IsNotationAllowed
       &isMatchingClose &Fence)]);
 
-my $DEFAULT_FONT = LaTeXML::Common::Font->new(    # [CONSTANT]
-  family => 'serif',   series     => 'medium',
-  shape  => 'upright', size       => 'normal',
-  color  => 'black',   background => 'white', opacity => 1);
-
 # ================================================================================
 sub new {
   my ($class) = @_;
@@ -150,7 +145,7 @@ sub token_prettyname {
   if (defined $name) { }
   elsif ($name = $node->textContent) {
     my $font = $LaTeXML::MathParser::DOCUMENT->getNodeFont($node);
-    my %attr = $font->relativeTo($DEFAULT_FONT);
+    my %attr = $font->relativeTo(LaTeXML::Common::Font->textDefault);
     my $desc = join(' ', map { ToString($attr{$_}{value}) } keys %attr);
     $name .= "{$desc}" if $desc; }
   else {
@@ -269,18 +264,40 @@ sub parse_rec {
     if ($tag eq 'ltx:XMath') {    # Replace the content of XMath with parsed result
       NoteProgress('[' . ++$$self{n_parsed} . ']');
       map { $document->unRecordNodeIDs($_) } element_nodes($node);
+      # unbindNode followed by (append|replace)Tree (which removes ID's) should be safe
       map { $_->unbindNode() } $node->childNodes;
       $document->appendTree($node, $result);
       $result = [element_nodes($node)]->[0]; }
     else {                        # Replace the whole node for XMArg, XMWrap; preserve some attributes
       NoteProgressDetailed($TAG_FEEDBACK{$tag} || '.');
-      # Copy all attributes (Annotate will sort out)
+      # Copy all attributes
       my $resultid = p_getAttribute($result, 'xml:id');
       my %attr = map { (getQName($_) => $_->getValue) }
         grep { $_->nodeType == XML_ATTRIBUTE_NODE } $node->attributes;
-      $result = Annotate($result, %attr);
+      # add to result, even allowing modification of xml node, since we're committed.
+      # [Annotate converts node to array which messes up clearing the id!]
+      my $isarr = ref $result eq 'ARRAY';
+      my $rtag = ($isarr ? $$result[0] : $document->getNodeQName($result));
+      # Make sure font is "Appropriate", if we're creating a new token (yuck)
+      if ($isarr && $attr{_font} && ($rtag eq 'ltx:XMTok')) {
+        my $content = join('', @$result[2 .. $#$result]);
+        if ((!defined $content) || ($content eq '')) {
+          delete $attr{_font}; }    # No font needed
+        elsif (my $font = $document->decodeFont($attr{_font})) {
+          delete $attr{_font};
+          $attr{font} = $font->specialize($content); } }
+      else {
+        delete $attr{_font}; }
+      foreach my $key (keys %attr) {
+        next unless ($key =~ /^_/) || $document->canHaveAttribute($rtag, $key);
+        my $value = $attr{$key};
+        if ($key eq 'xml:id') {     # Since we're moving the id...bookkeeping
+          $document->unRecordID($value);
+          $node->removeAttribute('xml:id'); }
+        if ($isarr) { $$result[1]{$key} = $value; }
+        else { $document->setAttribute($result, $key => $value); } }
       $result = $document->replaceTree($result, $node);
-      my $newid = p_getAttribute($result, 'xml:id');
+      my $newid = $attr{'xml:id'};
       # Danger: the above code replaced the id on the parsed result with the one from XMArg,..
       # If there are any references to $resultid, we need to point them to $newid!
       if ($resultid && $newid && ($resultid ne $newid)) {
@@ -440,6 +457,7 @@ sub parse_kludge {
 
   # If we got to here, remove the nodes and replace them by the kludged structure.
   map { $document->unRecordNodeIDs($_) } element_nodes($mathnode);
+  # unbindNode followed by (append|replace)Tree (which removes ID's) should be safe
   map { $_->unbindNode() } $mathnode->childNodes;
   # We're hoping for a single list on the stack,
   # But extra CLOSEs will leave extra junk behind, so process all the stacked lists.
@@ -872,7 +890,9 @@ sub New {
     my $value = p_getValue($attributes{$key});
     $attr{$key} = $value if defined $value; }
   if (!$attr{font}) {
-    $attr{font} = ($content && $content =~ /\S/ ? $DEFAULT_FONT->specialize($content) : LaTeXML::Common::Font->new()); }
+    $attr{font} = ($content && $content =~ /\S/
+      ? LaTeXML::Common::Font->textDefault->specialize($content)
+      : LaTeXML::Common::Font->new()); }
   return ['ltx:XMTok', {%attr}, ($content ? ($content) : ())]; }
 
 # Some handy shorthands.

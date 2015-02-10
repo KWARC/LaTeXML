@@ -143,16 +143,16 @@ our $bbl_language_map = {
   welsh           => 'cy',       # welsh
 };
 
-Let('\ltx@save@bbl@switch',      '\bbl@switch');
-Let('\ltx@save@select@language', '\select@language');
-# Redefine \bbl@switch, or \select@language to call our own language switcher
-# Careful: \bbl@switch is only used in newer babels(?)
+Let('\ltx@save@bbl@switch',       '\bbl@switch');
+Let('\ltx@save@select@language',  '\select@language');
+Let('\ltx@save@foreign@language', '\foreign@language');
+# Overkill; redefine ALL these since we never know which one will
+# be used in various babel versions.
+# \bbl@switch is only used in newer babels(?)
 RawTeX(<<'EoTeX');
-\@ifundefined{bbl@switch}{
-  \def\select@language#1{\ltx@bbl@select@language{#1}\ltx@save@select@language{#1}}
-}{
-  \def\bbl@switch#1{\ltx@bbl@select@language{#1}\ltx@save@bbl@switch{#1}}
-}
+\def\select@language#1{\ltx@save@select@language{#1}\ltx@bbl@select@language{#1}}
+\def\foreign@language#1{\ltx@save@foreign@language{#1}\ltx@bbl@select@language{#1}}
+\def\bbl@switch#1{\ltx@save@bbl@switch{#1}\ltx@bbl@select@language{#1}}
 EoTeX
 
 DefPrimitive('\ltx@bbl@select@language{}', sub {
@@ -161,6 +161,18 @@ DefPrimitive('\ltx@bbl@select@language{}', sub {
     my $iso = $$bbl_language_map{$language};
     MergeFont(language => $iso) if $iso;
     return; });
+
+# pretend we've got hyphenation patterns for ANY language.
+DefMacro('\iflanguage{}', <<'EoTeX');
+\expandafter\ifx\csname l@#1\endcsname\relax
+  \expandafter\newlanguage\csname l@#1\endcsname\fi
+\expandafter\edef\expandafter\@@@@lang\expandafter{\csname l@#1\endcsname}
+\ifnum\csname l@#1\endcsname=\language
+  \expandafter\@firstoftwo
+\else
+  \expandafter\@secondoftwo
+\fi
+EoTeX
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 1;

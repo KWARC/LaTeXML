@@ -197,8 +197,15 @@ sub pathname_timestamp {
   my ($pathname) = @_;
   return -f $pathname ? (stat($pathname))[9] : 0; }
 
-our $Pathname_CWD = pathname_canonical(cwd());
-sub pathname_cwd { $Pathname_CWD; }
+our $cached_cwd;
+sub pathname_cwd {
+  if ($cached_cwd || ($cached_cwd = pathname_canonical(cwd()))) {
+    $cached_cwd; }
+  else {
+    Fatal('expected', 'cwd', undef,
+      "Could not determine current working directory (cwd)",
+      "Perhaps a problem with Perl's locale settings?");
+    return; } }
 
 sub pathname_chdir {
   my ($directory) = @_;

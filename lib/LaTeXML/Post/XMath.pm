@@ -48,7 +48,6 @@ sub convertNode {
   my $idsuffix = $self->IDSuffix;
   return { processor => $self, encoding => $lxMimeType, mimetype => $lxMimeType,
     xml => ($idsuffix
-        # Should we be trying to call/mimic associateID ?
       ? ['ltx:XMath', {}, map { $doc->cloneNode($_, $idsuffix) } element_nodes($xmath)]
         # If no idsuffix, we're actually just PRESERVING the xmath,
         # so we shouldn't need any cloning or id munging (!?!?!?!)
@@ -60,9 +59,10 @@ sub combineParallel {
   my $id  = $xmath->getAttribute('fragid');
   my @alt = ();
   foreach my $secondary (@secondaries) {
-    if ($$secondary{mimetype} =~ $lxMimeType) {    # XMath
+    my $mimetype = $$secondary{mimetype} || 'unknown';
+    if ($mimetype eq $lxMimeType) {    # XMath
       push(@alt, $$secondary{xml}); }
-    elsif (my $xml = $$secondary{xml}) {           # Other XML? may need wrapping.
+    elsif (my $xml = $$secondary{xml}) {    # Other XML? may need wrapping.
       push(@alt, $$secondary{processor}->outerWrapper($doc, $xmath, $xml)); }
     #    elsif (my $src = $$secondary{src}) {         # something referred to by a file? Image, maybe?
     #      push(@alt, ['ltx:graphic', { src => $src }]); }

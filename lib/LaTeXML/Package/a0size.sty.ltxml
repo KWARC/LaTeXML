@@ -1,6 +1,6 @@
 # -*- CPERL -*-
 # /=====================================================================\ #
-# |  multirow                                                           | #
+# |  a0size                                                             | #
 # | Implementation for LaTeXML                                          | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
@@ -15,12 +15,7 @@ use strict;
 use warnings;
 use LaTeXML::Package;
 
-DefPrimitive('\multirowsetup', undef);
-DefPrimitive('\multirow{Number}[Number]{}[Dimension]{}', sub {
-    my ($stomach, $nrows, $bigstruts, $width, $fixup, $content) = @_;
-    my $colspec = LookupValue('Alignment')->currentColumn;
-    $$colspec{rowspan} = $nrows->valueOf;
-    Digest(Tokens(T_CS('\hbox'), T_BEGIN, T_CS('\multirowsetup'), $content->unlist, T_END)); });
-
+#**********************************************************************
+# Nothing to do here!
 #**********************************************************************
 1;

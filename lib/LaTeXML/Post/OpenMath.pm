@@ -55,8 +55,8 @@ sub outerWrapper {
   my %foreign_copies = ();
   %foreign_copies = (map { $_->nodeName() => $_->getValue() } @foreign_attributes) if @foreign_attributes;
   my $wrapped = ['om:OMOBJ', \%foreign_copies, $om];
-  if (my $id = $xmath->getAttribute('fragid')) {        # Associate id's, but DONT crossref
-    $wrapped = $self->associateID($wrapped, $id, 1); }
+  # Associate the generated node with the source XMath node; but don't cross-reference
+  $self->associateNode($wrapped, $xmath, 1);
   return $wrapped; }
 
 sub convertNode {
@@ -71,22 +71,22 @@ sub combineParallel {
   my $id   = $xmath->getAttribute('fragid');
   my @attr = ();
   foreach my $secondary (@secondaries) {
-    my $type = $$secondary{mimetype};
-    if ($$secondary{mimetype} eq $omMimeType) {    # Another OpenMath object?
+    my $mimetype = $$secondary{mimetype} || 'unknown';
+    if ($mimetype eq $omMimeType) {    # Another OpenMath object?
       push(@attr,
-        ['om:OMS', { cd => "Alternate", name => $$secondary{mimetype} }],
+        ['om:OMS', { cd => "Alternate", name => $mimetype }],
         $$secondary{xml}); }
-    elsif (my $xml = $$secondary{xml}) {           # Or some other XML object?
-                                                   # ORRRR should this be in other order?
+    elsif (my $xml = $$secondary{xml}) {    # Or some other XML object?
+                                            # ORRRR should this be in other order?
       push(@attr,
-        ['om:OMS', { cd => "Alternate", name => $$secondary{mimetype} }],
+        ['om:OMS', { cd => "Alternate", name => $mimetype }],
         ['om:OMFOREIGN', {}, $$secondary{processor}->outerWrapper($doc, $xmath, $xml)]); }
     # What do do with src?
 ##    elsif (my $src = $$secondary{src}) {         # something referred to by a file? Image, maybe?
-##      push(@wsecondaries, ['m:annotation', { encoding => $$secondary{mimetype}, src => $src }]); }
-    elsif (my $string = $$secondary{string}) {     # simple string data?
+##      push(@wsecondaries, ['m:annotation', { encoding => $mimetype, src => $src }]); }
+    elsif (my $string = $$secondary{string}) {    # simple string data?
       push(@attr,
-        ['om:OMS', { cd => "Alternate", name => $$secondary{mimetype} }],
+        ['om:OMS', { cd => "Alternate", name => $mimetype }],
         ['om:OMSTR', {}, $string]); }
     # anything else ignore?
   }
@@ -95,9 +95,9 @@ sub combineParallel {
   if (my $tex = $math && isElementNode($math) && $math->getAttribute('tex')) {
     push(@attr,
       ['om:OMS', { cd => 'Alternate', name => 'TeX' }],
-      ['om:OMFOREIGN', {}, $tex]); }               # Should this simply be OMSTR ???
+      ['om:OMFOREIGN', {}, $tex]); }              # Should this simply be OMSTR ???
   return { processor => $self,
-    mimetype => 'application/openmath+xml',
+    mimetype => $omMimeType,
     xml => ['om:OMATTR', {}, @attr, $$primary{xml}] }; }
 
 sub getQName {
@@ -124,10 +124,8 @@ sub om_expr {
   # Get the real node, first.
   $node = $LaTeXML::Post::DOCUMENT->realizeXMNode($node);
   my $result = om_expr_aux($node);
-  # map any ID here, as well, BUT, since we follow split/scan, use the fragid, not xml:id!
-  return $result if (!$node || $node->isa('XML::LibXML::Text'));
-  if (my $id = $node->getAttribute('fragid')) {
-    $result = $LaTeXML::Post::MATHPROCESSOR->associateID($result, $id); }
+  # Associate the generated node with the source XMath node.
+  $LaTeXML::Post::MATHPROCESSOR->associateNode($result, $node);
   return $result; }
 
 # Is it clear that we should just getAttribute('role'),
