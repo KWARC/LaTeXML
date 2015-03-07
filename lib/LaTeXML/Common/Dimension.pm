@@ -53,21 +53,16 @@ sub pointformat {
   # there's TeX code that depends on getting enough precision
   # If you use %.5f, tikz (for example) will sometimes hang trying to do arithmetic!
   # But see toAttribute for friendlier forms....
+  # [do we need the juggling in attributeFormat to be reproducible?]
   my $s = sprintf("%.6f", ($sp / 65536));
   $s =~ s/0+$// if $s =~ /\./;
   #  $s =~ s/\.$//;
   $s =~ s/\.$/.0/;    # Seems TeX prints .0 which in odd corner cases, people use?
   return $s . 'pt'; }
 
-# When saved in an attribute, however, we can afford to lose
-# a lot of useless precision. Keeping only 1 decimal; do we even need that?
 sub attributeformat {
   my ($sp) = @_;
-  my $s = sprintf("%.1f", ($sp / 65536));
-  $s =~ s/0+$// if $s =~ /\./;
-  #  $s =~ s/\.$//;
-  $s =~ s/\.$/.0/;
-  return $s . 'pt'; }
+  return sprintf('%.1fpt', LaTeXML::Common::Number::roundto($sp / 65536, 1)); }
 
 #======================================================================
 1;

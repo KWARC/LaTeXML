@@ -1,6 +1,6 @@
 # -*- mode: Perl -*-
 # /=====================================================================\ #
-# |  iopart.cls                                                         | #
+# |  listingsutf8                                                       | #
 # | Implementation for LaTeXML                                          | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
@@ -15,14 +15,8 @@ use strict;
 use warnings;
 use LaTeXML::Package;
 
-foreach my $option (qw()) {
-  DeclareOption($option, undef); }
-
-# Anything else gets passed to article.
-DeclareOption(undef, sub {
-    PassOptions('article', 'cls', ToString(Digest(T_CS('\CurrentOption')))); });
-
-LoadClass('article');
-RequirePackage('iopart_support');
-
+#======================================================================
+# Hopefully plain old listings will work for latexml...
+RequirePackage('listings');
+#======================================================================
 1;

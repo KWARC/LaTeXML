@@ -55,12 +55,13 @@ my @hex = qw(0 1 2 3 4 5 6 7 8 9 A B C D E F);    # [CONSTANT]
 
 sub hex2 {
   my ($n) = @_;
-  return $hex[int($n / 16)] . $hex[$n % 16]; }
+  my $nn = LaTeXML::Common::Number::roundto($n * 255, 0);
+  return $hex[int($nn / 16)] . $hex[$nn % 16]; }
 
 sub toHex {
   my ($self) = @_;
   my ($model, $r, $g, $b) = @$self;
-  return '#' . hex2(int($r * 255 + 0.5)) . hex2(int($g * 255 + 0.5)) . hex2(int($b * 255 + 0.5)); }
+  return '#' . hex2($r) . hex2($g) . hex2($b); }
 
 #======================================================================
 1;

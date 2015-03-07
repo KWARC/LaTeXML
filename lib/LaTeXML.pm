@@ -28,7 +28,7 @@ use LaTeXML::Util::ObjectDB;
 use LaTeXML::Post::Scan;
 use vars qw($VERSION);
 # This is the main version of LaTeXML being claimed.
-use version; our $VERSION = version->declare("0.8.0_02");
+use version; our $VERSION = version->declare("0.8.1");
 use LaTeXML::Version;
 # Derived, more informative version numbers
 our $FULLVERSION = "LaTeXML version $LaTeXML::VERSION (KWARC fork)"
@@ -811,5 +811,6 @@ Deyan Ginev <deyan.ginev@nist.gov>
 
 Public domain software, produced as part of work done by the
 United States Government & not subject to copyright in the US.
+You may consider this as released under the CC0 License.
 
 =cut

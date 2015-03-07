@@ -1,6 +1,6 @@
 # -*- mode: Perl -*-
 # /=====================================================================\ #
-# |  iopart.cls                                                         | #
+# |  type1cm.def                                                        | #
 # | Implementation for LaTeXML                                          | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
@@ -15,14 +15,9 @@ use strict;
 use warnings;
 use LaTeXML::Package;
 
-foreach my $option (qw()) {
-  DeclareOption($option, undef); }
+#**********************************************************************
+# Nothing to do
 
-# Anything else gets passed to article.
-DeclareOption(undef, sub {
-    PassOptions('article', 'cls', ToString(Digest(T_CS('\CurrentOption')))); });
-
-LoadClass('article');
-RequirePackage('iopart_support');
+#**********************************************************************
 
 1;
