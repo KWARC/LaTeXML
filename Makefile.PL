@@ -84,8 +84,8 @@ WriteMakefile(NAME => 'LaTeXML',
    resources => {
      repository => {
        type => 'git',
-       url => 'https://github.com/brucemiller/LaTeXML.git',
-       web => 'https://github.com/brucemiller/LaTeXML'}}})
+       url => 'https://github.com/KWARC/LaTeXML.git',
+       web => 'https://github.com/KWARC/LaTeXML'}}})
     : () ),
 );
 
