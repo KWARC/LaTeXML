@@ -522,38 +522,56 @@
 
   <xsl:strip-space elements="ltx:TOC ltx:toclist ltx:tocentry"/>
 
-  <!-- explictly requested TOC -->
+  <!-- explicitly requested TOC -->
   <xsl:template match="ltx:TOC[@format='short']">
     <xsl:param name="context"/>
-    <xsl:apply-templates mode="short">
-      <xsl:with-param name="context" select="$context"/>
-    </xsl:apply-templates>
+    <xsl:element name="div" namespace="{$html_ns}">
+      <xsl:call-template name='add_attributes'/>
+      <xsl:apply-templates mode="short">
+        <xsl:with-param name="context" select="$context"/>
+      </xsl:apply-templates>
+    </xsl:element>
   </xsl:template>
 
   <xsl:template match="ltx:TOC[@format='veryshort']">
     <xsl:param name="context"/>
-    <xsl:apply-templates mode="veryshort">
-      <xsl:with-param name="context" select="$context"/>
-    </xsl:apply-templates>
+    <xsl:element name="div" namespace="{$html_ns}">
+      <xsl:call-template name='add_attributes'/>
+      <xsl:apply-templates mode="veryshort">
+        <xsl:with-param name="context" select="$context"/>
+      </xsl:apply-templates>
+    </xsl:element>
+  </xsl:template>
 
+  <xsl:template match="ltx:TOC[@format='normal2']">
+    <xsl:param name="context"/>
+    <xsl:element name="div" namespace="{$html_ns}">
+      <xsl:call-template name='add_attributes'/>
+      <xsl:apply-templates mode="normal2">
+        <xsl:with-param name="context" select="$context"/>
+      </xsl:apply-templates>
+    </xsl:element>
   </xsl:template>
 
   <xsl:template match="ltx:TOC">
     <xsl:param name="context"/>
     <xsl:if test="ltx:toclist/descendant::ltx:tocentry">
       <xsl:text>&#x0A;</xsl:text>
-      <xsl:if test="@name">
-        <xsl:element name="h6" namespace="{$html_ns}">
-          <xsl:variable name="innercontext" select="'inline'"/><!-- override -->
-          <xsl:apply-templates select="@name">
-            <xsl:with-param name="context" select="$innercontext"/>
-          </xsl:apply-templates>
-          <xsl:text>:</xsl:text>
-        </xsl:element>
-      </xsl:if>
-      <xsl:apply-templates>
-        <xsl:with-param name="context" select="$context"/>
-      </xsl:apply-templates>
+      <xsl:element name="div" namespace="{$html_ns}">
+        <xsl:call-template name='add_attributes'/>
+        <xsl:if test="@name">
+          <xsl:element name="h6" namespace="{$html_ns}">
+            <xsl:variable name="innercontext" select="'inline'"/><!-- override -->
+            <xsl:apply-templates select="@name">
+              <xsl:with-param name="context" select="$innercontext"/>
+            </xsl:apply-templates>
+            <xsl:text>:</xsl:text>
+          </xsl:element>
+        </xsl:if>
+        <xsl:apply-templates>
+          <xsl:with-param name="context" select="$context"/>
+        </xsl:apply-templates>
+      </xsl:element>
     </xsl:if>
   </xsl:template>
 
@@ -561,7 +579,9 @@
     <xsl:param name="context"/>
     <xsl:text>&#x0A;</xsl:text>
     <xsl:element name="div" namespace="{$html_ns}">
-      <xsl:attribute name="class">ltx_toc_compact</xsl:attribute>
+      <xsl:call-template name='add_attributes'>
+        <xsl:with-param name="extra_classes" select="'ltx_toc_compact'"/>
+      </xsl:call-template>
       <xsl:text>&#x0A;&#x2666; </xsl:text>
       <xsl:apply-templates mode="short">
         <xsl:with-param name="context" select="$context"/>
@@ -573,7 +593,9 @@
     <xsl:param name="context"/>
     <xsl:text>&#x0A;</xsl:text>
     <xsl:element name="div" namespace="{$html_ns}">
-      <xsl:attribute name="class">ltx_toc_verycompact</xsl:attribute>
+      <xsl:call-template name='add_attributes'>
+        <xsl:with-param name="extra_classes" select="'ltx_toc_verycompact'"/>
+      </xsl:call-template>
       <xsl:text>&#x2666;</xsl:text>
       <xsl:apply-templates mode="veryshort">
         <xsl:with-param name="context" select="$context"/>
@@ -592,6 +614,28 @@
       </xsl:apply-templates>
       <xsl:text>&#x0A;</xsl:text>
     </xsl:element>
+  </xsl:template>
+
+  <xsl:template match="ltx:toclist" mode="normal2">
+    <xsl:param name="context"/>
+    <xsl:text>&#x0A;</xsl:text>
+    <xsl:apply-templates select="." mode="twocolumn">
+      <xsl:with-param name="context" select="$context"/>
+    </xsl:apply-templates>
+  </xsl:template>
+  <xsl:template match="ltx:toclist" mode="twocolumn">
+    <xsl:param name="context"/>
+    <xsl:param name="items"    select="ltx:tocentry"/>
+    <xsl:param name="lines"    select="descendant::ltx:tocentry"/>
+    <xsl:param name="halflines" select="ceiling(count($lines) div 2)"/>
+    <xsl:param name="miditem"
+               select="count($lines[position() &lt; $halflines]/ancestor::ltx:tocentry[parent::ltx:toclist[parent::ltx:TOC]]) + 1"/>
+    <xsl:call-template name="split-columns">
+      <xsl:with-param name="context" select="$context"/>
+      <xsl:with-param name="wrapper" select="'ul'"/>
+      <xsl:with-param name="items"   select="$items"/>
+      <xsl:with-param name="miditem" select="$miditem"/>
+    </xsl:call-template>
   </xsl:template>
 
   <xsl:template match="ltx:tocentry">
