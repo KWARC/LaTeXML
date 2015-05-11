@@ -803,7 +803,9 @@ sub getInsertionCandidates {
   $first = $first->parentNode if $first && $first->getType == XML_TEXT_NODE;
   my $isCapture = $first && ($first->localname || '') eq '_Capture_';
   push(@nodes, $first) if $first && $first->getType != XML_DOCUMENT_NODE && !$isCapture;
-  $node = $node->lastChild if $node && $node->hasChildNodes;
+  # This includes the CHILDREN of the current node.
+  # Is this correct? perhaps for attribute, less obviously correct for an element
+###  $node = $node->lastChild if $node && $node->hasChildNodes;
   while ($node && ($node->nodeType != XML_DOCUMENT_NODE)) {
     my $n = $node;
     while ($n) {
@@ -1058,6 +1060,24 @@ sub setAttribute {
       else {
         $node->setAttribute($name => $value); } } }    # redundant case...
   return; }
+
+sub addSSValues {
+  my ($self, $node, $key, $values) = @_;
+  $values = $values->toAttribute if ref $values;
+  if ((defined $values) && ($values ne '')) {          # Skip if `empty'; but 0 is OK!
+    my @values = split(/\s/, $values);
+    if (my $oldvalues = $node->getAttribute($key)) {    # previous values?
+      my @old = split(/\s/, $oldvalues);
+      foreach my $new (@values) {
+        push(@old, $new) unless grep { $_ eq $new } @old; }
+      $self->setAttribute($node, $key => join(' ', sort @old)); }
+    else {
+      $self->setAttribute($node, $key => join(' ', sort @values)); } }
+  return; }
+
+sub addClass {
+  my ($self, $node, $class) = @_;
+  return $self->addSSValues($node, class => $class); }
 
 #**********************************************************************
 # Association of nodes and ids (xml:id)

@@ -323,6 +323,7 @@ sub fill_in_refs {
             $doc->addNodes($ref, $label);    # Just to reassure (?) readers.
             $ref->setAttribute(broken => 1); }
         } } }
+
     if ($id) {
       $n++;
       if (!$ref->getAttribute('href')) {
@@ -386,8 +387,7 @@ sub fill_in_bibrefs {
 sub make_bibcite {
   my ($self, $doc, $bibref) = @_;
 
-  # NOTE: bibkeys are downcased when we look them up!
-  my @keys         = map { lc($_) } grep { $_ } split(/,/, $bibref->getAttribute('bibrefs'));
+  my @keys         = grep { $_ } split(/,/, $bibref->getAttribute('bibrefs'));
   my $show         = $bibref->getAttribute('show');
   my @preformatted = $bibref->childNodes();
   if ($show && ($show eq 'none') && !@preformatted) {
@@ -404,7 +404,8 @@ sub make_bibcite {
   my @data    = ();
   foreach my $key (@keys) {
     my ($bentry, $id, $entry);
-    if (($bentry = $$self{db}->lookup("BIBLABEL:$key"))
+    # NOTE: bibkeys are downcased when we look them up!
+    if (($bentry = $$self{db}->lookup("BIBLABEL:" . lc($key)))
       && ($id    = $bentry->getValue('id'))
       && ($entry = $$self{db}->lookup("ID:$id"))) {
       my $authors  = $entry->getValue('authors');
@@ -421,9 +422,11 @@ sub make_bibcite {
         ($rawyear, $suffix) = ($1, $2); }
       $show = 'refnum' unless ($show eq 'none') || $authors || $fauthors || $keytag; # Disable author-year format!
                                                                                      # fullnames ?
-      push(@data, { authors => [$doc->trimChildNodes($authors || $fauthors || $keytag)],
+      push(@data, {
+          key         => $key,
+          authors     => [$doc->trimChildNodes($authors || $fauthors || $keytag)],
           fullauthors => [$doc->trimChildNodes($fauthors || $authors || $keytag)],
-          authortext => ($authors || $fauthors ? ($authors || $fauthors)->textContent : ''),
+          authortext  => ($authors || $fauthors ? ($authors || $fauthors)->textContent : ''),
           year => [$doc->trimChildNodes($year || $typetag)],
           rawyear => $rawyear,
           suffix  => $suffix,
@@ -435,7 +438,7 @@ sub make_bibcite {
             ($title ? (title => orNull($title->textContent)) : ()) } }); }
     else {
       $self->note_missing('warn', 'Entry for citation', $key);
-      push(@data, { refnum => [$key], title => [$key],
+      push(@data, { key => $key, refnum => [$key], title => [$key], year => [],
           attr => { idref => $key, title => $key, class => "ltx_missing_citation" } });
     } }
   my $checkdups = ($show =~ /author/i) && ($show =~ /(year|number)/i);
@@ -460,7 +463,9 @@ sub make_bibcite {
       elsif ($show =~ s/^phrase(\d)//i) {
         push(@stuff, $phrases[$1 - 1]->childNodes) if $phrases[$1 - 1]; }
       elsif ($show =~ s/^year//i) {
-        if (@{ $$datum{year} }) {
+        if (!$$datum{year}) {
+          $self->note_missing('warn', 'Date for citation', $$datum{key}); }
+        elsif (@{ $$datum{year} }) {
           push(@stuff, ['ltx:ref', $$datum{attr}, @{ $$datum{year} }]);
           $didref = 1;
           while ($checkdups && @data && ($$datum{authortext} eq $data[0]{authortext})) {
@@ -693,30 +698,44 @@ sub fillInGlossaryRef {
       my $title = $entry->getValue('expansion');
       if (!$ref->getAttribute('title') && $title) {
         $ref->setAttribute(title => $title->textContent); }
+      if (my $id = $entry->getValue('id')) {
+        $ref->setAttribute(idref => $id); }
       if (!$ref->textContent && !element_nodes($ref)) {
-        $doc->addNodes($ref, $self->generateGlossaryRefTitle($doc, $entry, $show)); }
-    } }
+        my @stuff = $self->generateGlossaryRefTitle($doc, $entry, $show);
+        if (@stuff) {
+          $doc->addNodes($ref, @stuff); }
+        else {
+          $self->note_missing('warn', "Glossary ($role) contents ($show) for key", $key);
+          $doc->addNodes($ref, $key);
+          $doc->addClass($ref, 'ltx_missing'); } } }
+    else {
+      $self->note_missing('warn', "Glossary ($role) Entry for key", $key); }
+    if (!$ref->textContent && !element_nodes($ref)) {
+      $doc->addNodes($ref, $key);
+      $doc->addClass($ref, 'ltx_missing'); } }
   NoteProgressDetailed(" [Filled in $n glossaryrefs]");
   return; }
 
 sub generateGlossaryRefTitle {
   my ($self, $doc, $entry, $show) = @_;
-  my @stuff = ();
-  my $OK    = 0;
-  while ($show) {
-    if ($show =~ s/^short//) {
-      if (my $phrase = $entry->getValue('phrase')) {
-        $OK = 1;
-        push(@stuff, ['ltx:text', { class => 'ltx_glossary_short' },
-            $self->prepRefText($doc, $phrase)]); } }
-    elsif ($show =~ s/^long//) {
-      if (my $phrase = $entry->getValue('expansion')) {
-        $OK = 1;
-        push(@stuff, ['ltx:text', { class => 'ltx_glossary_long' },
-            $self->prepRefText($doc, $phrase)]); } }
-    elsif ($show =~ s/^(.)//) {
-      push(@stuff, $1); } }
-  return ($OK ? @stuff : ()); }
+  my $phrases = $entry->getValue('phrases');
+  my @stuff   = ();
+  if (my $phrase = $entry->getValue('phrase:' . $show)) {
+    push(@stuff, ['ltx:text', { class => 'ltx_glossary_' . $show },
+        $self->prepRefText($doc, $phrase)]); }
+  elsif ($show =~ /^(\w+)-plural$/) {
+    my $sh = $1;
+    if (my $phrase = $entry->getValue('phrase:' . $sh)) {
+      push(@stuff, ['ltx:text', { class => 'ltx_glossary_' . $show },
+          $self->prepRefText($doc, $phrase), 's']); } }
+  elsif ($show =~ /^(\w+)-indefinite$/) {
+    my $sh = $1;
+    if (my $phrase = $entry->getValue('phrase:' . $sh)) {
+      my $s = $phrase->textContent;
+      my $art = ($s =~ /^[aeiou]/i ? 'an ' : 'a ');
+      push(@stuff, ['ltx:text', { class => 'ltx_glossary_' . $show },
+          $art, $self->prepRefText($doc, $phrase)]); } }
+  return @stuff; }
 
 sub orNull {
   return (grep { defined } @_) ? @_ : undef; }

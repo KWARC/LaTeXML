@@ -243,6 +243,7 @@ sub initializeState {
   my $gullet  = $stomach->getGullet;
   $stomach->initialize;
   my $paths = $state->lookupValue('SEARCHPATHS');
+  $state->assignValue('InitialPreloads' => 1, 'global');
   foreach my $preload (@files) {
     my ($options, $type);
     $options = $1 if $preload =~ s/^\[([^\]]*)\]//;
@@ -262,6 +263,7 @@ sub initializeState {
     LaTeXML::Package::InputDefinitions($preload, type => $type,
       handleoptions => $handleoptions, options => $options);
   }
+  $state->assignValue('InitialPreloads' => undef, 'global');
   return; }
 
 sub writeDOM {

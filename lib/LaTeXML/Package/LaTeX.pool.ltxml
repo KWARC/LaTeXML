@@ -352,7 +352,7 @@ DefMacroI('\thempfootnote', undef, '\arabic{mpfootnote}');
 DefConstructor('\footnote[]{}',
   "<ltx:note role='footnote' mark='#refnum'>#2</ltx:note>",
   mode => 'text', bounded => 1,
-  beforeDigest => sub { reenterTextMode(); },
+  beforeDigest => sub { reenterTextMode(); Digest('\normalfont'); },
   properties => sub {
     ($_[1] ? (refnum => $_[1]) : RefStepCounter('footnote')) });
 DefConstructor('\footnotemark[]',
@@ -3044,9 +3044,7 @@ DefConstructor('\@indexseealso{}',
     key => sub { CleanIndexKey($_[1]); } });
 
 DefConstructor('\glossary{}',
-  "<ltx:glossarymark>"
-    . "<ltx:glossaryphrase key='#key'>#1</ltx:glossaryphrase>"
-    . "</ltx:glossarymark>",
+  "<ltx:glossaryphrase role='glossary' key='#key'>#1</ltx:glossaryphrase>",
   properties => { key => sub { CleanIndexKey($_[1]); } },
   sizer => 0);
 

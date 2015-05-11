@@ -369,6 +369,7 @@ lib/LaTeXML/Package/courier.sty.ltxml
 lib/LaTeXML/Package/cp852.def.ltxml
 lib/LaTeXML/Package/crop.sty.ltxml
 lib/LaTeXML/Package/cropmark.sty.ltxml
+lib/LaTeXML/Package/deluxetable.sty.ltxml
 lib/LaTeXML/Package/dcolumn.sty.ltxml
 lib/LaTeXML/Package/doublespace.sty.ltxml
 lib/LaTeXML/Package/dsfont.sty.ltxml
@@ -414,6 +415,7 @@ lib/LaTeXML/Package/geometry.sty.ltxml
 lib/LaTeXML/Package/german.sty.ltxml
 lib/LaTeXML/Package/graphics.sty.ltxml
 lib/LaTeXML/Package/graphicx.sty.ltxml
+lib/LaTeXML/Package/grffile.sty.ltxml
 lib/LaTeXML/Package/here.sty.ltxml
 lib/LaTeXML/Package/helvet.sty.ltxml
 lib/LaTeXML/Package/hhline.sty.ltxml
@@ -495,6 +497,7 @@ lib/LaTeXML/Package/rotating.sty.ltxml
 lib/LaTeXML/Package/rsfs.sty.ltxml
 lib/LaTeXML/Package/scalefnt.sty.ltxml
 lib/LaTeXML/Package/setspace.sty.ltxml
+lib/LaTeXML/Package/slashed.sty.ltxml
 lib/LaTeXML/Package/slides.cls.ltxml
 lib/LaTeXML/Package/subfigure.sty.ltxml
 lib/LaTeXML/Package/supertabular.sty.ltxml
@@ -506,6 +509,7 @@ lib/LaTeXML/Package/TeX.pool.ltxml
 lib/LaTeXML/Package/textcomp.sty.ltxml
 lib/LaTeXML/Package/texvc.sty.ltxml
 lib/LaTeXML/Package/theorem.sty.ltxml
+lib/LaTeXML/Package/threeparttable.sty.ltxml
 lib/LaTeXML/Package/tikz.sty.ltxml
 lib/LaTeXML/Package/tikz-3dplot.sty.ltxml
 lib/LaTeXML/Package/times.sty.ltxml
