@@ -1,17 +1,11 @@
 # -*- mode: Perl -*-
 # /=====================================================================\ #
-# |  pgfplots.sty                                                       | #
+# |  pslatex                                                            | #
 # | Implementation for LaTeXML                                          | #
 # |=====================================================================| #
 # | Part of LaTeXML:                                                    | #
 # |  Public domain software, produced as part of work done by the       | #
 # |  United States Government & not subject to copyright in the US.     | #
-# |---------------------------------------------------------------------| #
-# | Thanks to Silviu Vlad Oprea <s.oprea@jacobs-university.de>          | #
-# | of the arXMLiv group for initial implementation                     | #
-# |    http://arxmliv.kwarc.info/                                       | #
-# | Released under the Gnu Public License                               | #
-# | Released to the Public Domain                                       | #
 # |---------------------------------------------------------------------| #
 # | Bruce Miller <bruce.miller@nist.gov>                        #_#     | #
 # | http://dlmf.nist.gov/LaTeXML/                              (o o)    | #
@@ -21,7 +15,6 @@ use strict;
 use warnings;
 use LaTeXML::Package;
 
-DefMacroI('\pgfplots@iffileexists', undef, '\IfFileExists', locked => 1);
-InputDefinitions('pgfplots', type => 'sty', noltxml => 1);
-
+# Nothing much to do here.
+DefMath('\omicron', "\x{03BF}");    # GREEK SMALL LETTER OMICRON
 1;

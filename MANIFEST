@@ -336,6 +336,7 @@ lib/LaTeXML/Package/amstex.tex.ltxml
 lib/LaTeXML/Package/amstext.sty.ltxml
 lib/LaTeXML/Package/amsthm.sty.ltxml
 lib/LaTeXML/Package/amsxtra.sty.ltxml
+lib/LaTeXML/Package/apjfonts.sty.ltxml
 lib/LaTeXML/Package/applemac.def.ltxml
 lib/LaTeXML/Package/array.sty.ltxml
 lib/LaTeXML/Package/article.cls.ltxml
@@ -362,6 +363,7 @@ lib/LaTeXML/Package/cite.sty.ltxml
 lib/LaTeXML/Package/citesort.sty.ltxml
 lib/LaTeXML/Package/cmbright.sty.ltxml
 lib/LaTeXML/Package/color.sty.ltxml
+lib/LaTeXML/Package/colordvi.sty.ltxml
 lib/LaTeXML/Package/colortbl.sty.ltxml
 lib/LaTeXML/Package/comment.sty.ltxml
 lib/LaTeXML/Package/concmath.sty.ltxml
@@ -380,6 +382,7 @@ lib/LaTeXML/Package/elsart.sty.ltxml
 lib/LaTeXML/Package/elsart_support.sty.ltxml
 lib/LaTeXML/Package/emulateapj.cls.ltxml
 lib/LaTeXML/Package/emulateapj.sty.ltxml
+lib/LaTeXML/Package/emulateapj5.sty.ltxml
 lib/LaTeXML/Package/enumerate.sty.ltxml
 lib/LaTeXML/Package/epigraph.sty.ltxml
 lib/LaTeXML/Package/epsfig.sty.ltxml
@@ -395,7 +398,9 @@ lib/LaTeXML/Package/eurosym.sty.ltxml
 lib/LaTeXML/Package/euscript.sty.ltxml
 lib/LaTeXML/Package/exscale.sty.ltxml
 lib/LaTeXML/Package/fancyhdr.sty.ltxml
+lib/LaTeXML/Package/fix-cm.sty.ltxml
 lib/LaTeXML/Package/fixltx2e.sty.ltxml
+lib/LaTeXML/Package/flafter.sty.ltxml
 lib/LaTeXML/Package/fleqn.sty.ltxml
 lib/LaTeXML/Package/float.sty.ltxml
 lib/LaTeXML/Package/floatfig.sty.ltxml
@@ -426,6 +431,7 @@ lib/LaTeXML/Package/ifpdf.sty.ltxml
 lib/LaTeXML/Package/ifthen.sty.ltxml
 lib/LaTeXML/Package/ifvtex.sty.ltxml
 lib/LaTeXML/Package/ifxetex.sty.ltxml
+lib/LaTeXML/Package/import.sty.ltxml
 lib/LaTeXML/Package/indentfirst.sty.ltxml
 lib/LaTeXML/Package/inputenc.sty.ltxml
 lib/LaTeXML/Package/inst_support.sty.ltxml
@@ -469,6 +475,8 @@ lib/LaTeXML/Package/numprint.sty.ltxml
 lib/LaTeXML/Package/OmniBus.cls.ltxml
 lib/LaTeXML/Package/palatino.sty.ltxml
 lib/LaTeXML/Package/paralist.sty.ltxml
+lib/LaTeXML/Package/parskip.sty.ltxml
+lib/LaTeXML/Package/pdfsync.sty.ltxml
 lib/LaTeXML/Package/pdfTeX.pool.ltxml
 lib/LaTeXML/Package/pdflscape.sty.ltxml
 lib/LaTeXML/Package/pgf.sty.ltxml
@@ -479,6 +487,7 @@ lib/LaTeXML/Package/pifont.sty.ltxml
 lib/LaTeXML/Package/placeins.sty.ltxml
 lib/LaTeXML/Package/preview.sty.ltxml
 lib/LaTeXML/Package/psfig.sty.ltxml
+lib/LaTeXML/Package/pslatex.sty.ltxml
 lib/LaTeXML/Package/pspicture.sty.ltxml
 lib/LaTeXML/Package/pst-grad.sty.ltxml
 lib/LaTeXML/Package/pst-node.sty.ltxml
@@ -493,15 +502,20 @@ lib/LaTeXML/Package/revtex4.cls.ltxml
 lib/LaTeXML/Package/revtex4.sty.ltxml
 lib/LaTeXML/Package/revtex.cls.ltxml
 lib/LaTeXML/Package/revtex.sty.ltxml
+lib/LaTeXML/Package/rotate.sty.ltxml
 lib/LaTeXML/Package/rotating.sty.ltxml
 lib/LaTeXML/Package/rsfs.sty.ltxml
 lib/LaTeXML/Package/scalefnt.sty.ltxml
 lib/LaTeXML/Package/setspace.sty.ltxml
 lib/LaTeXML/Package/slashed.sty.ltxml
 lib/LaTeXML/Package/slides.cls.ltxml
+lib/LaTeXML/Package/srcltx.sty.ltxml
+lib/LaTeXML/Package/subfig.sty.ltxml
 lib/LaTeXML/Package/subfigure.sty.ltxml
+lib/LaTeXML/Package/subfloat.sty.ltxml
 lib/LaTeXML/Package/supertabular.sty.ltxml
 lib/LaTeXML/Package/svjour.cls.ltxml
+lib/LaTeXML/Package/svg.cls.ltxml
 lib/LaTeXML/Package/svmult.cls.ltxml
 lib/LaTeXML/Package/sv_support.sty.ltxml
 lib/LaTeXML/Package/tabularx.sty.ltxml
@@ -514,6 +528,7 @@ lib/LaTeXML/Package/tikz.sty.ltxml
 lib/LaTeXML/Package/tikz-3dplot.sty.ltxml
 lib/LaTeXML/Package/times.sty.ltxml
 lib/LaTeXML/Package/tocbibind.sty.ltxml
+lib/LaTeXML/Package/transparent.sty.ltxml
 lib/LaTeXML/Package/txfonts.sty.ltxml
 lib/LaTeXML/Package/t1enc.def.ltxml
 lib/LaTeXML/Package/units.sty.ltxml

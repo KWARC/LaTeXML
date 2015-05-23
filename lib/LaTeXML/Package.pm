@@ -49,7 +49,7 @@ use Text::Balanced;
 use base qw(Exporter);
 our @EXPORT = (qw(&DefExpandable
     &DefMacro &DefMacroI
-    &DefConditional &DefConditionalI &IfCondition
+    &DefConditional &DefConditionalI &IfCondition &SetCondition
     &DefPrimitive  &DefPrimitiveI
     &DefRegister &DefRegisterI
     &DefConstructor &DefConstructorI
@@ -640,23 +640,24 @@ sub AddToCounter {
   return; }
 
 sub StepCounter {
-  my ($ctr) = @_;
+  my ($ctr, $noreset) = @_;
   my $value = CounterValue($ctr);
   AssignValue("\\c\@$ctr" => $value->add(Number(1)), 'global');
   AfterAssignment();
   DefMacroI(T_CS("\\\@$ctr\@ID"), undef, Tokens(Explode(LookupValue('\c@' . $ctr)->valueOf)),
     scope => 'global');
   # and reset any within counters!
-  if (my $nested = LookupValue("\\cl\@$ctr")) {
-    foreach my $c ($nested->unlist) {
-      ResetCounter(ToString($c)); } }
+  if (!$noreset) {
+    if (my $nested = LookupValue("\\cl\@$ctr")) {
+      foreach my $c ($nested->unlist) {
+        ResetCounter(ToString($c)); } } }
   DigestIf(T_CS("\\the$ctr"));
   return; }
 
 # HOW can we retract this?
 sub RefStepCounter {
-  my ($ctr) = @_;
-  StepCounter($ctr);
+  my ($ctr, $noreset) = @_;
+  StepCounter($ctr, $noreset);
   my $iddef = LookupDefinition(T_CS("\\the$ctr\@ID"));
   my $has_id = $iddef && ((!defined $iddef->getParameters) || ($iddef->getParameters->getNumArgs == 0));
 
@@ -957,13 +958,30 @@ sub IfCondition {
   my $gullet = $STATE->getStomach->getGullet;
   $if = coerceCS($if);
   my ($defn, $test);
-  if (($defn = $STATE->lookupMeaning($if)) && (($$defn{conditional_type} || '') eq 'if')
-    && ($test = $defn->getTest)) {
+  if (($defn = $STATE->lookupMeaning($if))
+    && (($$defn{conditional_type} || '') eq 'if') && ($test = $defn->getTest)) {
     return &$test($gullet, @args); }
+  elsif (XEquals($if, T_CS('\iftrue'))) {
+    return 1; }
+  elsif (XEquals($if, T_CS('\iffalse'))) {
+    return 0; }
   else {
     Error('expected', 'conditional', $gullet,
       "Expected a conditional, got '" . ToString($if) . "'");
     return; } }
+
+# Used only for regular \newif type conditions
+sub SetCondition {
+  my ($defn, $test);
+  my ($if, $value) = @_;
+  # We'll accept any conditional \ifxxx, providing it takes no arguments
+  if (($defn = $STATE->lookupMeaning($if)) && (($$defn{conditional_type} || '') eq 'if')
+    && !$defn->getParameters) {
+    Let($if, ($value ? T_CS('\iftrue') : T_CS('\iffalse'))) }
+  else {
+    Error('expected', 'conditional', $STATE->getStomach,
+      "Expected a conditional defined by \\newif, got '" . ToString($if) . "'"); }
+  return; }
 
 #======================================================================
 # Define a primitive control sequence.
