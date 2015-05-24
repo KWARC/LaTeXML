@@ -5,6 +5,7 @@ whatsout = document
 format = xhtml
 pmml =
 cmml =
+mathtex =
 nodefaultresources = 
 stylesheet = ../xsl/zbl2html.xsl
 preload = zbl.cls
