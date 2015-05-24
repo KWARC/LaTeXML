@@ -207,7 +207,8 @@ sub convertDocument {
         else {
           $preload =~ s/\.sty$//;
           $document->insertPI('latexml', package => $preload, ($options ? (options => $options) : ())); } }
-      $document->absorb($digested);
+      { no warnings 'recursion';
+        $document->absorb($digested); }
       NoteEnd("Building");
 
       if (my $rules = $state->lookupValue('DOCUMENT_REWRITE_RULES')) {
