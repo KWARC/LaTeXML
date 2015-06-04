@@ -3,7 +3,7 @@ perl: 5.20
 
 before_install:
  - sudo apt-get update -qq
- - sudo apt-get install libdb-dev libxml2-dev libxslt1-dev texlive texlive-fonts-extra texlive-latex-extra
+ - sudo apt-get install libdb-dev libxml2-dev libxslt1-dev texlive texlive-fonts-extra texlive-latex-extra texlive-lang-cyrillic
 
 install:
  - cpanm --installdeps .
