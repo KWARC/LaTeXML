@@ -1,11 +1,18 @@
 language: perl
-perl:
-  - "5.20"
-  - "5.18"
-  - "5.14"
-  - "5.10"
+perl: 5.20
 
 before_install:
-  #This should solve problem installing Perl's DB_File & GraphViz
-  - "sudo apt-get update -qq"
-  - "sudo apt-get install libdb-dev libxml2-dev libxslt1-dev 2>&1 | tail -n 4"
+ - sudo apt-get update -qq
+ - sudo apt-get install libdb-dev libxml2-dev libxslt1-dev texlive texlive-fonts-extra texlive-latex-extra
+
+install:
+ - cpanm --installdeps .
+ - cpanm Marpa::R2
+ - cpanm Test::LeakTrace
+
+script:
+ - perl Makefile.PL
+ - make
+ - git clone https://github.com/KWARC/sTeX
+ - export STEXSTYDIR=`pwd`/sTeX/sty
+ - make test
