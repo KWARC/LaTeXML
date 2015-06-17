@@ -11,8 +11,6 @@ install:
  - cpanm Test::LeakTrace
 
 script:
- - perl Makefile.PL
- - make
  - git clone https://github.com/KWARC/sTeX
  - export STEXSTYDIR=`pwd`/sTeX/sty
- - make test
+ - cpanm -v .
