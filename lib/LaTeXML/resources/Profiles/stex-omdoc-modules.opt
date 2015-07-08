@@ -1,6 +1,6 @@
 comments =
 format = xml
-whatsin = fragment 
+whatsin = fragment
 whatsout = document
 post =
 xmath =
@@ -31,7 +31,7 @@ path = $STEXSTYDIR/../schema/rng
 includestyles =
 stylesheet = $STEXSTYDIR/../xsl/omdocpost.xsl
 nodefaultresources =
-preload = mikoslides.cls
+preload = omdoc.cls
 preload = amsmath
 preload = amssymb
 preload = tikz

@@ -3,5 +3,5 @@ parse = Marpa
 format = xhtml
 pmml =
 cmml =
-nodefaultresources = 
+nodefaultresources =
 preload = [ids]latexml.sty

@@ -1,6 +1,6 @@
 comments =
 format = xml
-whatsin = fragment 
+whatsin = fragment
 whatsout = document
 post =
 xmath =
