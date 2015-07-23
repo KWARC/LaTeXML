@@ -34,7 +34,7 @@ our @EXPORT = (
   qw( &DefOpenMath ),
   qw( &om_expr ),
 );
-  
+
 my $omURI      = "http://www.openmath.org/OpenMath";    # CONSTANT
 my $omMimeType = 'application/openmath+xml';            # CONSTANT
 our $pres_processor = LaTeXML::Post::MathML::Presentation->new();
@@ -161,11 +161,11 @@ sub om_expr_aux {
     if (scalar(element_nodes($node))) {    # If it has markup?
       return ['om:OMATTR', {},
         ['om:OMATP', {},
-        ['om:OMS', { cd => 'OMDoc', name => 'verbalizes' },
+        ['om:OMS', { cd => 'OMDoc', name => 'verbalizes' }],
           ['om:FOREIGN', { encoding => 'mtext' },
             $LaTeXML::Post::MATHPROCESSOR->convertXMTextContent($LaTeXML::Post::DOCUMENT,
               $node->childNodes)]],
-        ['om:OMS', { cd => 'OMDoc', name => 'infObj' }]]] }
+        ['om:OMS', { cd => 'OMDoc', name => 'infObj' }]] }
     else {
       return ['om:OMSTR', {}, $node->textContent]; } }
   else {
