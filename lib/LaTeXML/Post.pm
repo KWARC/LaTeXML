@@ -447,7 +447,7 @@ sub convertXMTextContent {
   foreach my $node (@nodes) {
     if ($node->nodeType == XML_TEXT_NODE) {
       my $string = $node->textContent;
-      $string =~ s/^\s+/$NBSP/; $string =~ s/\s+$/$NBSP/;    # should we???
+     # $string =~ s/^\s+/$NBSP/; $string =~ s/\s+$/$NBSP/;    # should we???
       push(@result, $string); }
     else {
       my $tag = $doc->getQName($node);
