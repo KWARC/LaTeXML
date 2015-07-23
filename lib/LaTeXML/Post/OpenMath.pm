@@ -34,7 +34,7 @@ our @EXPORT = (
   qw( &DefOpenMath ),
   qw( &om_expr ),
 );
-
+  
 my $omURI      = "http://www.openmath.org/OpenMath";    # CONSTANT
 my $omMimeType = 'application/openmath+xml';            # CONSTANT
 our $pres_processor = LaTeXML::Post::MathML::Presentation->new();
