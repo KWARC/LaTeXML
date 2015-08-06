@@ -112,16 +112,18 @@ sub NoteEnd {
 
 sub Fatal {
   my ($category, $object, $where, $message, @details) = @_;
+  my $inhandler = !$SIG{__DIE__};
+  my $ineval    = $^S;
+  $SIG{__DIE__} = undef;    # SHOULD have been localized by caller!
   my $verbosity = getVerbosity();
-  if (!$LaTeXML::Common::Error::InHandler && defined($^S)) {    # Careful about recursive call!
-    $LaTeXML::POST && $$LaTeXML::POST{status}{fatal}++;
+  if (!$inhandler) {
+    $LaTeXML::POST && $$LaTeXML::POST{status}{fatal}++ if !$ineval;
     $message
       = generateMessage("Fatal:" . $category . ":" . ToString($object), $where, $message, 1,
       @details);
   }
-  else {    # If we ARE in a recursive call, the actual message is $details[0]
+  else {                    # If we ARE in a recursive call, the actual message is $details[0]
     $message = $details[0] if $details[0]; }
-  local $LaTeXML::Common::Error::InHandler = 1;
   if ($verbosity > 1) {
     require Carp;
     Carp::croak $message; }
@@ -442,12 +444,13 @@ sub combineParallel {
 my $NBSP = pack('U', 0xA0);    # CONSTANT
 
 sub convertXMTextContent {
-  my ($self, $doc, @nodes) = @_;
+  my ($self, $doc, $convertspaces, @nodes) = @_;
   my @result = ();
   foreach my $node (@nodes) {
     if ($node->nodeType == XML_TEXT_NODE) {
       my $string = $node->textContent;
-     # $string =~ s/^\s+/$NBSP/; $string =~ s/\s+$/$NBSP/;    # should we???
+      if ($convertspaces) {
+        $string =~ s/^\s+/$NBSP/; $string =~ s/\s+$/$NBSP/; }
       push(@result, $string); }
     else {
       my $tag = $doc->getQName($node);
@@ -475,7 +478,7 @@ sub convertXMTextContent {
             } } }
         # Probably should invoke associateNode ???
         push(@result,
-          [$tag, {%attr}, $self->convertXMTextContent($doc, $node->childNodes)]); } } }
+          [$tag, {%attr}, $self->convertXMTextContent($doc, $convertspaces, $node->childNodes)]); } } }
   return @result; }
 
 # When converting an XMath node (with an id) to some other format,
@@ -647,6 +650,7 @@ sub new {
     else {
       $data{siteDirectory} = $data{destinationDirectory}; } }
 
+  $xmldoc = $xmldoc->getDocument if ref $xmldoc eq 'LaTeXML::Core::Document';
   $data{document} = $xmldoc;
   if (!$xmldoc || !($xmldoc->documentElement)) {
     Fatal('expected', 'document', undef, "Document has no root element"); }
@@ -1256,6 +1260,9 @@ sub initial {
   $string =~ s/^[^a-zA-Z]*// if $force;
   return ($string =~ /^([a-zA-Z])/ ? uc($1) : '*'); }
 
+# This would typically be called to normalize the leading/trailing whitespace of nodes
+# that take mixed markup. WE SHOULDN'T BE DOING THIS. We need to NOT add "ignorable whitespace"
+# to nodes that CAN HAVE mixed content. otherwise we don't know if it is ignorable!
 sub trimChildNodes {
   my ($self, $node) = @_;
   if (!$node) {
@@ -1266,11 +1273,17 @@ sub trimChildNodes {
     if ($children[0]->nodeType == XML_TEXT_NODE) {
       my $s = $children[0]->data;
       $s =~ s/^\s+//;
-      $children[0]->setData($s); }
+      if ($s) {
+        $children[0]->setData($s); }
+      else {
+        shift(@children); } }
     if ($children[-1]->nodeType == XML_TEXT_NODE) {
       my $s = $children[-1]->data;
       $s =~ s/\s+$//;
-      $children[-1]->setData($s); }
+      if ($s) {
+        $children[-1]->setData($s); }
+      else {
+        pop(@children); } }
     return @children; }
   else {
     return (); } }
@@ -1280,7 +1293,7 @@ sub trimChildNodes {
 sub addNavigation {
   my ($self, $relation, $id) = @_;
   return if $self->findnode('//ltx:navigation/ltx:ref[@rel="' . $relation . '"][@idref="' . $id . '"]');
-  my $ref = ['ltx:ref', { idref => $id, rel => $relation, show => 'fulltitle' }];
+  my $ref = ['ltx:ref', { idref => $id, rel => $relation, show => 'toctitle' }];
   if (my $nav = $self->findnode('//ltx:navigation')) {
     $self->addNodes($nav, $ref); }
   else {

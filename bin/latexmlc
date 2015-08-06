@@ -153,20 +153,15 @@ if ($log) {
 
 if ($result) {
   if ($opts->get('destination')) {
-    # Document local conversions get written during ->convert
-    # _IF_ they have requested post-processing.
-    # TODO: Post::Writer could be invoked after regular processing too?
-    #       What is a clean way to separate who writes when?
-    if (! ($opts->get('local') && $opts->get('post') && ($opts->get('whatsout') eq 'document'))) {
-      # Write to disk
-      my $output_handle;
-      if ( ! open($output_handle,">",$opts->get('destination')) ) {
-        print STDERR "Fatal:I/O:forbidden Couldn't open output file ".$opts->get('destination').": $!";
-        exit 1;
-      }
-      print $output_handle $result;
-      close $output_handle; }}
-  else { print STDOUT $result,"\n"; } #If no destination, write to STDOUT
+    my $output_handle;
+    if (!open($output_handle, ">", $opts->get('destination'))) {
+      print STDERR "Fatal:IO:forbidden Couldn't open output file " . $opts->get('destination') . ": $!";
+      exit 1;
+    }
+    binmode($output_handle, ":encoding(UTF-8)");
+    print $output_handle $result;
+    close $output_handle;
+  } else { print STDOUT $result, "\n"; }    #Output to STDOUT
 }
 
 # Print summary, if requested, to STDERR
