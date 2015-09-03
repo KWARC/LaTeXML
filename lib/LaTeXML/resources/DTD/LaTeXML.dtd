@@ -569,7 +569,8 @@
   refnum CDATA #IMPLIED
   frefnum CDATA #IMPLIED
   rrefnum CDATA #IMPLIED
-  backgroundcolor CDATA #IMPLIED>
+  backgroundcolor CDATA #IMPLIED
+  rowsep CDATA #IMPLIED>
 
 <!ELEMENT ltx:MathFork ((ltx:Math|ltx:text),ltx:MathBranch*)>
 <!ATTLIST ltx:MathFork
@@ -824,7 +825,8 @@
   refnum CDATA #IMPLIED
   frefnum CDATA #IMPLIED
   rrefnum CDATA #IMPLIED
-  backgroundcolor CDATA #IMPLIED>
+  backgroundcolor CDATA #IMPLIED
+  itemsep CDATA #IMPLIED>
 
 <!ELEMENT ltx:inline-itemize (ltx:inline-item)*>
 <!ATTLIST ltx:inline-itemize
@@ -2297,7 +2299,9 @@
   meaning CDATA #IMPLIED
   omcd CDATA #IMPLIED
   vattach (top|middle|bottom|baseline) #IMPLIED
-  width CDATA #IMPLIED>
+  width CDATA #IMPLIED
+  rowsep CDATA #IMPLIED
+  colsep CDATA #IMPLIED>
 
 <!ELEMENT ltx:XMRow (ltx:XMCell)*>
 <!ATTLIST ltx:XMRow
@@ -2379,7 +2383,9 @@
   xml:id ID #IMPLIED
   fragid CDATA #IMPLIED
   vattach (top|middle|bottom) #IMPLIED
-  width CDATA #IMPLIED>
+  width CDATA #IMPLIED
+  rowsep CDATA #IMPLIED
+  colsep CDATA #IMPLIED>
 
 <!ELEMENT ltx:thead (ltx:tr)*>
 <!ATTLIST ltx:thead

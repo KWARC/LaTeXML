@@ -184,7 +184,9 @@
 <!--    <xsl:text>(</xsl:text>-->
     <xsl:element name="span" namespace="{$html_ns}">
       <xsl:variable name="innercontext" select="'inline'"/><!-- override -->
-      <xsl:attribute name="class">ltx_tag ltx_tag_<xsl:value-of select="local-name(..)"/></xsl:attribute>
+      <xsl:attribute name="class">ltx_tag ltx_tag_<xsl:value-of select="local-name(..)"/>
+      ltx_eqn_eqno ltx_align_middle
+      <xsl:value-of select="f:if(ancestor-or-self::*[contains(@class,'ltx_leqno')],'ltx_align_left','ltx_align_right')"/></xsl:attribute>
       <xsl:choose>
         <xsl:when test="../ltx:tag">
           <xsl:apply-templates select="../ltx:tag">    
@@ -883,6 +885,12 @@ ancestor-or-self::ltx:equationgroup[position()=1][@refnum]/descendant::ltx:equat
       </xsl:if>
       <xsl:call-template name="add_attributes">
         <xsl:with-param name="extra_classes" select="'ltx_eqn_cell'"/>
+	<xsl:with-param name="extra_style">
+          <xsl:if test="ancestor::ltx:equationgroup/@rowsep">
+              <xsl:value-of select="concat('padding-top:',f:half(ancestor::ltx:equationgroup/@rowsep),';')"/>
+              <xsl:value-of select="concat('padding-bottom:',f:half(ancestor::ltx:equationgroup/@rowsep),';')"/>
+            </xsl:if>
+	  </xsl:with-param>
       </xsl:call-template>
       <xsl:apply-templates>
         <xsl:with-param name="context" select="$context"/>
@@ -991,7 +999,12 @@ ancestor-or-self::ltx:equationgroup[position()=1][@refnum]/descendant::ltx:equat
         <xsl:element name="{f:blockelement($context,'li')}" namespace="{$html_ns}">
           <xsl:call-template name="add_id"/>
           <xsl:call-template name="add_attributes">
-            <xsl:with-param name="extra_style" select="'list-style-type:none;'"/>
+            <xsl:with-param name="extra_style">
+              <xsl:value-of select="'list-style-type:none;'"/>
+              <xsl:if test="@itemsep">
+                <xsl:value-of select="concat('padding-top:',@itemsep,';')"/>
+              </xsl:if>
+            </xsl:with-param>
           </xsl:call-template>
           <xsl:apply-templates select="." mode="begin">
             <xsl:with-param name="context" select="$context"/>

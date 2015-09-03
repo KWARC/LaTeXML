@@ -451,13 +451,17 @@ sub pmml_internal {
   #Experimental XMArray, XMRow and XMCell support (refactoring).
   #DG: We should accommodate XMRow and XMCell elements appearing out of Arrays (sTeX notations)
   elsif ($tag eq 'ltx:XMArray') {
+    my $width   = $node->getAttribute('width');
     my $style   = $node->getAttribute('mathstyle');
     my $vattach = $node->getAttribute('vattach');
+    my $rowsep  = $node->getAttribute('rowsep') || '0pt';
+    my $colsep  = $node->getAttribute('colsep') || '5pt';
     $vattach = 'axis' if !$vattach || ($vattach eq 'middle');    # roughly MathML's axis?
     my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
     local $LaTeXML::MathML::STYLE
       = ($style && $stylestep{$style} ? $style : $LaTeXML::MathML::STYLE);
     my @rows = ();
+
     foreach my $row (element_nodes($node)) {
       my @cols = ();
       foreach my $col (element_nodes($row)) {
@@ -480,6 +484,9 @@ sub pmml_internal {
 ### Either it should scale with font size, or be recorded when creating the alignment!
 ####    my $result = ['m:mtable', { rowspacing => "0.2ex", columnspacing => "0.4em", align => $vattach }, @rows];
     my $result = ['m:mtable', { ($vattach ne 'axis' ? (align => $vattach) : ()),
+        ($rowsep ? (rowspacing    => $rowsep) : ()),
+        ($colsep ? (columnspacing => $colsep) : ()),
+        ($width  ? (width         => $width)  : ()),
         # Mozilla seems to need some encouragement?
         ($LaTeXML::MathML::STYLE eq 'display' ? (displaystyle => 'true') : ()) },
       @rows];
@@ -516,11 +523,11 @@ sub pmml_internal {
     return $result; }
   # DG: End of experimental table code
   elsif ($tag eq 'ltx:XMText') {
+    my @c = $node->childNodes;
     if (!$$self{nestmath}) {
-      my @c = $node->childNodes;
       return pmml_row(map { pmml_text_aux($_) } @c); }
     else {
-      return ['m:mtext', {}, $self->convertXMTextContent($doc, $node->childNodes)]; } }
+      return ['m:mtext', {}, $self->convertXMTextContent($doc, 1, @c)]; } }
   elsif ($tag eq 'ltx:ERROR') {
     my $cl = $node->getAttribute('class');
     return ['m:merror', { class => join(' ', grep { $_ } 'ltx_ERROR', $cl) },
@@ -650,9 +657,9 @@ my %plane1hack = (    # CONSTANT
 # Given an item (string or token element w/attributes) and latexml attributes,
 # convert the string to the appropriate unicode (possibly plane1)
 # & MathML presentation attributes (mathvariant, mathsize, mathcolor, stretchy)
-# $mihack is a boolean whether to apply mi's special case rule for single character identifier.
+# $tag specifies the element that these attributes will apply to (some attributes disallowed)
 sub stylizeContent {
-  my ($item, $mihack, %attr) = @_;
+  my ($item, $tag, %attr) = @_;
   my $iselement = (ref $item) eq 'XML::LibXML::Element';
   my $role      = ($iselement ? $item->getAttribute('role') : 'ID');
   my $font      = ($iselement ? $item->getAttribute('font') : $attr{font})
@@ -682,7 +689,8 @@ sub stylizeContent {
       $stretchy     = undef; }
     else {
       $stretchy = 'false' } };    # Conversely, if size was specifically set, we shouldn't stretch it!
-                                  # Failsafe for empty tokens?
+  $stretchy = undef unless $tag eq 'm:mo';    # Only allowed on m:mo!
+                                              # Failsafe for empty tokens?
   if ((!defined $text) || ($text eq '')) {
     $text = ($iselement ? $item->getAttribute('name') || $item->getAttribute('meaning') || $role : '?');
     $color = 'red'; }
@@ -690,7 +698,7 @@ sub stylizeContent {
   if ($font && !$variant) {
     Warn('unexpected', $font, undef, "Unrecognized font variant '$font'"); $variant = ''; }
   # Special case for single char identifiers?
-  if ($mihack && ($text =~ /^.$/)) {    # Single char in mi?
+  if (($tag eq 'm:mi') && ($text =~ /^.$/)) {    # Single char in mi? (what about m:ci?)
     if    ($variant eq 'italic') { $variant = undef; }         # Defaults to italic
     elsif (!$variant)            { $variant = 'normal'; } }    # must say so explicitly.
 
@@ -747,19 +755,19 @@ my %punctuation = (',' => 1, ';' => 1, "\x{2063}" => 1);                 # CONST
 # Generally, $item in the following ought to be a string.
 sub pmml_mi {
   my ($item, %attr) = @_;
-  my ($text, %mmlattr) = stylizeContent($item, 1, %attr);
+  my ($text, %mmlattr) = stylizeContent($item, 'm:mi', %attr);
   return ['m:mi', {%mmlattr}, $text]; }
 
 # Really, the same issues as with mi.
 sub pmml_mn {
   my ($item, %attr) = @_;
-  my ($text, %mmlattr) = stylizeContent($item, 0, %attr);
+  my ($text, %mmlattr) = stylizeContent($item, 'm:mn', %attr);
   return ['m:mn', {%mmlattr}, $text]; }
 
 # Note that $item should be either a string, or at most, an XMTok
 sub pmml_mo {
   my ($item, %attr) = @_;
-  my ($text, %mmlattr) = stylizeContent($item, 0, %attr);
+  my ($text, %mmlattr) = stylizeContent($item, 'm:mo', %attr);
   my $role = (ref $item ? $item->getAttribute('role') : $attr{role});
   my $isfence   = $role && ($role =~ /^(OPEN|CLOSE)$/);
   my $ispunct   = $role && ($role eq 'PUNCT');
@@ -968,8 +976,8 @@ sub pmml_text_aux {
   return () unless $node;
   my $type = $node->nodeType;
   if ($type == XML_TEXT_NODE) {
-    my ($string, %mmlattr) = stylizeContent($node, 0, %attr);
-    $string =~ s/^\s/$NBSP/; $string =~ s/\s$/$NBSP/;
+    my ($string, %mmlattr) = stylizeContent($node, 'm:mtext', %attr);
+    $string =~ s/^\s+/$NBSP/; $string =~ s/\s+$/$NBSP/;
     return ['m:mtext', {%mmlattr}, $string]; }
   elsif ($type == XML_DOCUMENT_FRAG_NODE) {
     return map { pmml_text_aux($_, %attr) } $node->childNodes; }
@@ -997,7 +1005,7 @@ sub pmml_text_aux {
       ###      map(pmml_text_aux($_,%attr), $node->childNodes); }}
       # So, let's just include the raw latexml markup, let the xslt convert it
       # And hope that the ultimate agent can deal with it!
-      my ($ignore, %mmlattr) = stylizeContent($node, 0, %attr);
+      my ($ignore, %mmlattr) = stylizeContent($node, 'm:mtext', %attr);
       delete $mmlattr{stretchy};    # not useful (not too sure
       Warn('unexpected', 'nested-math', $node,
         "We're getting m:math nested within an m:mtext")
@@ -1059,7 +1067,7 @@ sub cmml_internal {
     return &{ lookupContent('Array', $node->getAttribute('role'), $node->getAttribute('meaning')) }($node); }
   elsif ($tag eq 'ltx:XMText') {
     return ['m:mtext', {},
-      $LaTeXML::Post::MATHPROCESSOR->convertXMTextContent($LaTeXML::Post::DOCUMENT,
+      $LaTeXML::Post::MATHPROCESSOR->convertXMTextContent($LaTeXML::Post::DOCUMENT, 1,
         $node->childNodes)]; }
   else {
     return ['m:mtext', {}, $node->textContent]; } }
@@ -1094,7 +1102,7 @@ sub cmml_ci {
     my $cd = $item->getAttribute('omcd') || 'latexml';
     return ['m:csymbol', { cd => $cd }, $meaning]; }
   else {
-    my ($content, %mmlattr) = stylizeContent($item, 1);
+    my ($content, %mmlattr) = stylizeContent($item, 'm:ci');
     if (my $mv = $mmlattr{mathvariant}) {
       $content = $mv . "-" . $content; }
     return ['m:ci', {}, $content]; } }

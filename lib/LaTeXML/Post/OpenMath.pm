@@ -160,11 +160,12 @@ sub om_expr_aux {
   elsif ($tag eq 'ltx:XMText') {
     if (scalar(element_nodes($node))) {    # If it has markup?
       return ['om:OMATTR', {},
-        ['om:OMATP', { cd => 'OMDoc', name => 'verbalizes' },
-          ['om:FOREIGN', { encoding => 'mtext' },
-            $LaTeXML::Post::MATHPROCESSOR->convertXMTextContent($LaTeXML::Post::DOCUMENT,
-              $node->childNodes)]],
-        ['om:OMS', { cd => 'OMDoc', name => 'infObj' }]] }
+        ['om:OMATP', {},
+          ['om:OMS', { cd => 'OMDoc', name => 'verbalizes' },
+            ['om:FOREIGN', { encoding => 'mtext' },
+              $LaTeXML::Post::MATHPROCESSOR->convertXMTextContent($LaTeXML::Post::DOCUMENT, 0,
+                $node->childNodes)]],
+          ['om:OMS', { cd => 'OMDoc', name => 'infObj' }]]] }
     else {
       return ['om:OMSTR', {}, $node->textContent]; } }
   else {
@@ -246,7 +247,9 @@ DefOpenMath('Token:?:?', sub {
       my $cd = $token->getAttribute('omcd') || 'latexml';
       $om_token = ['om:OMS', { name => $meaning, cd => $cd }]; }
     else {
-      my $name = $token->textContent || $token->getAttribute('name');
+      my ($name, %mmlattr) = LaTeXML::Post::MathML::stylizeContent($token, 'om:OMV');
+      if (my $mv = $mmlattr{mathvariant}) {
+        $name = $mv . "-" . $name; }
       $om_token = ['om:OMV', { name => $name }]; }
     my $font;
     if (($font = $token->getAttribute('font')) && ($$special_fonts{ lc($font) })) {

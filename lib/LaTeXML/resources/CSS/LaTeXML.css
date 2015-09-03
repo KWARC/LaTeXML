@@ -122,12 +122,15 @@ td.ltx_subfloat { width:50%; }
 .ltx_eqn_div { display:block; width:95%; text-align:center; }
 
 /* equations in aligned mode (aligning tags, etc as well as equations) */
-.ltx_eqn_table { display:table; width:100%; }
+.ltx_eqn_table { display:table; width:100%; border-collapse:collapse; }
 .ltx_eqn_row   { display:table-row; }
 .ltx_eqn_cell  { display:table-cell; width:auto; }
 
-.ltx_tag_equation.ltx_align_left  { position:absolute; left:3em; }
-.ltx_tag_equation.ltx_align_right { position:absolute; right:3em; }
+.ltx_tag_equationgroup.ltx_align_left,
+.ltx_tag_equation.ltx_align_left{ position:absolute; left:3em; }
+.ltx_tag_equationgroup.ltx_align_right,
+.ltx_tag_equation.ltx_align_right{ position:absolute; right:3em; }
+
 
 table.ltx_eqn_align tr.ltx_equation td.ltx_align_left + td.ltx_align_right { padding-left:3em; }
 table.ltx_eqn_eqnarray tr.ltx_eqn_lefteqn + tr td.ltx_align_right { min-width:2em; }
@@ -196,12 +199,14 @@ dl.ltx_description dl.ltx_description dd { margin-left:3em; }
    Outer box establishes resulting size, neutralizes any outer positioning, etc;
    inner establishes position of stuff to be rotated */
 .ltx_transformed_outer {
-    position:relative; top:0pt;left:0pt;
+    position:relative; bottom:0pt;left:0pt;
     overflow:visible; }
 .ltx_transformed_inner {
     display:block;
-    position:absolute;top:0pt;left:0pt; }
+    position:absolute;bottom:0pt;left:0pt; }
 .ltx_transformed_inner > .ltx_p {text-indent:0em; margin:0; padding:0; }
+/* If simulating a table (html5), try to get rowspan to work...sorta? */
+span.ltx_rowspan { position:absolute; top:0; bottom:0; }
 
 /* by default, p doesn't indent */
 .ltx_p { text-indent:0em; white-space:normal; }
@@ -236,14 +241,21 @@ dl.ltx_description dl.ltx_description dd { margin-left:3em; }
 .ltx_framed  { border:1px solid black;}
 .ltx_tabular .ltx_td,
 .ltx_tabular .ltx_th { padding:0.1em 0.5em; }
+/* regular lines */
 .ltx_border_t  { border-top:1px solid black; }
 .ltx_border_r  { border-right:1px solid black; }
 .ltx_border_b  { border-bottom:1px solid black; }
 .ltx_border_l  { border-left:1px solid black; }
+/* double lines */
 .ltx_border_tt { border-top:3px double black; }
 .ltx_border_rr { border-right:3px double black; }
 .ltx_border_bb { border-bottom:3px double black; }
 .ltx_border_ll { border-left:3px double black; }
+/* Light lines */
+.ltx_border_T  { border-top:1px solid gray; }
+.ltx_border_R  { border-right:1px solid gray; }
+.ltx_border_B  { border-bottom:1px solid gray; }
+.ltx_border_L  { border-left:1px solid gray; }
 
 /*======================================================================
  Misc */

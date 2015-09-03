@@ -1025,20 +1025,30 @@ DefMacro('\@itemlabel', '');         # Maybe needs to be same as \item will be u
 # by determining the right counter (level)
 # and binding the right \item ( \$type@item, if $type is defined)
 sub beginItemize {
-  my ($type, $counter) = @_;
+  my ($type, $counter, $nolevel) = @_;
   $counter = '@@item' unless $counter;
   my $level = LookupValue('itemlevel') + 1;
-  AssignValue(itemlevel => $level);
+  AssignRegister('\itemsep' => LookupRegister('\lx@default@itemsep'));
+  AssignValue(itemlevel         => $level);
+  AssignValue(itemization_items => 0);
   my $postfix = ToString(Tokens(roman($level)));
+  my $usecounter = ($nolevel ? $counter : $counter . $postfix);
   Let('\item' => "\\" . $type . '@item') if defined $type;
-  AssignValue(itemcounter => $counter . $postfix);
-  ResetCounter($counter . $postfix);
+  DefMacroI('\@listctr', undef, Tokens(Explode($usecounter)));
+  AssignValue(itemcounter => $usecounter);
+  ResetCounter($usecounter);
   return RefStepCounter('@itemize' . $postfix); }
 
 # Create id, and refnum attributes for an itemize type \item
 sub RefStepItemCounter {
-  my ($tag) = @_;
+  my ($tag)   = @_;
   my $counter = LookupValue('itemcounter');
+  my $n       = LookupValue('itemization_items');
+  AssignValue(itemization_items => $n + 1);
+  my %attr = ();
+  my $sep  = LookupRegister('\itemsep');
+  if (($n > 0) && ($sep->valueOf != LookupRegister('\lx@default@itemsep')->valueOf)) {
+    $attr{itemsep} = $sep; }
   if (defined $tag) {
     my @props     = RefStepID($counter);
     my $refnum    = Digest(Tokens(T_BEGIN, $tag->unlist, T_END));
@@ -1046,9 +1056,9 @@ sub RefStepItemCounter {
     my $s_refnum  = ToString($refnum);
     my $s_frefnum = ToString($frefnum);
     return (@props, refnum => $refnum,
-      ($frefnum && (!$refnum || ($s_frefnum ne $s_refnum)) ? (frefnum => $frefnum) : ())); }
+      ($frefnum && (!$refnum || ($s_frefnum ne $s_refnum)) ? (frefnum => $frefnum) : ()), %attr); }
   else {
-    return RefStepCounter($counter); } }
+    return (RefStepCounter($counter), %attr); } }
 
 # The following two aren't used here; they're defined here so they
 # can be used in paralist.sty, enumerate.sty (perhaps others?)
@@ -1106,7 +1116,7 @@ sub setEnumerationStyle {
 # unless the optional tag argument was given!
 # We'll make the <ltx:tag> from either the optional arg, or from \labelitemi..
 DefConstructor('\itemize@item OptionalUndigested',
-  "<ltx:item xml:id='#id' ?#1(refnum='#refnum')>"
+  "<ltx:item xml:id='#id' ?#1(refnum='#refnum') itemsep='#itemsep'>"
     . "?&defined(#frefnum)(<ltx:tag>#frefnum</ltx:tag>)(?&defined(#refnum)(<ltx:tag>#refnum</ltx:tag>))",
   properties => sub { RefStepItemCounter($_[1]); });
 DefConstructor('\inline@itemize@item OptionalUndigested',
@@ -1115,7 +1125,7 @@ DefConstructor('\inline@itemize@item OptionalUndigested',
   properties => sub { RefStepItemCounter($_[1]); });
 
 DefConstructor('\enumerate@item OptionalUndigested',
-  "<ltx:item xml:id='#id' refnum='#refnum' frefnum='#frefnum' rrefnum='#rrefnum'>"
+  "<ltx:item xml:id='#id' refnum='#refnum' frefnum='#frefnum' rrefnum='#rrefnum' itemsep='#itemsep'>"
     . "?&defined(#frefnum)(<ltx:tag>#frefnum</ltx:tag>)(?&defined(#refnum)(<ltx:tag>#refnum</ltx:tag>))",
   properties => sub { RefStepItemCounter($_[1]); });
 DefConstructor('\inline@enumerate@item OptionalUndigested',
@@ -1124,7 +1134,7 @@ DefConstructor('\inline@enumerate@item OptionalUndigested',
   properties => sub { RefStepItemCounter($_[1]); });
 
 DefConstructor('\description@item OptionalUndigested',
-  "<ltx:item xml:id='#id' refnum='#refnum' frefnum='#frefnum' rrefnum='#rrefnum'>"
+  "<ltx:item xml:id='#id' refnum='#refnum' frefnum='#frefnum' rrefnum='#rrefnum' itemsep='#itemsep'>"
     . "?&defined(#frefnum)(<ltx:tag>#frefnum</ltx:tag>)(?&defined(#refnum)(<ltx:tag>#refnum</ltx:tag>))",
   properties => sub { RefStepItemCounter($_[1]); });
 DefConstructor('\inline@description@item OptionalUndigested',
@@ -1196,16 +1206,28 @@ DefMacroI('\fnum@@@desciv',  undef, '{\descriptionlabel{}}');
 #======================================================================
 # C.6.3 The list and trivlist environments.
 #======================================================================
-# These are unlikely to generate what is wanted, but list, trivlist
-# don't give enough idea of the logical structure.
-# And, they can contain \item, so we need some list-like structure.
-# \begin{list}{number counter}{prelim}
-DefEnvironment('{list}{}{}',
-  "<ltx:itemize>#body</ltx:itemize>",
-  properties => sub { beginItemize('list'); });
+# Generic lists are given a way to format the item label, and presumably
+# a counter.
+
+DefConditional('\if@nmbrlist');
+DefMacro('\@listctr', '');
+DefPrimitive('\usecounter{}', sub {
+    my ($stomach, $counter) = @_;
+    $counter = ToString(Expand($counter));
+    beginItemize('list', $counter, ($counter ? 1 : 0));
+    return; });
+
+DefMacro('\list{}{}',
+'\let\@listctr\@empty#2\ifx\@listctr\@empty\usecounter{}\fi\expandafter\def\csname fnum@\@listctr\endcsname{#1}\lx@list');
+DefMacro('\endlist', '\endlx@list');
+
+DefConstructor('\lx@list DigestedBody',
+  "<ltx:itemize>#1</ltx:itemize>",
+  beforeDigest => sub { $_[0]->bgroup; });
+DefPrimitive('\endlx@list', sub { $_[0]->egroup; });
 
 DefConstructor('\list@item OptionalUndigested',
-  "<ltx:item xml:id='#id' refnum='#refnum' frefnum='#frefnum' rrefnum='#rrefnum'>"
+  "<ltx:item xml:id='#id' refnum='#refnum' frefnum='#frefnum' rrefnum='#rrefnum' itemsep='#itemsep'>"
     . "?&defined(#frefnum)(<ltx:tag>#frefnum</ltx:tag>)(?&defined(#refnum)(<ltx:tag>#refnum</ltx:tag>))",
   properties => sub { RefStepItemCounter($_[1]); });
 
@@ -1222,47 +1244,43 @@ DefEnvironment('{trivlist}',
   properties => sub { beginItemize('trivlist'); });
 
 DefConstructor('\trivlist@item OptionalUndigested',
-  "<ltx:item xml:id='#id' refnum='#refnum'>"
+  "<ltx:item xml:id='#id' refnum='#refnum' itemsep='#itemsep'>"
     . "<ltx:tag>#refnum</ltx:tag>",    # At least an empty tag!
   properties => sub { ($_[1] ? (refnum => Digest(Expand($_[1]))) : ()); });
 
-DefRegister('\topsep'           => Glue(0));
-DefRegister('\partopsep'        => Glue(0));
-DefRegister('\itemsep'          => Glue(0));
-DefRegister('\parsep'           => Glue(0));
-DefRegister('\@topsep'          => Glue(0));
-DefRegister('\@topsepadd'       => Glue(0));
-DefRegister('\@outerparskip'    => Glue(0));
-DefRegister('\leftmargin'       => Dimension(0));
-DefRegister('\rightmargin'      => Dimension(0));
-DefRegister('\listparindent'    => Dimension(0));
-DefRegister('\itemindent'       => Dimension(0));
-DefRegister('\labelwidth'       => Dimension(0));
-DefRegister('\labelsep'         => Dimension(0));
-DefRegister('\@totalleftmargin' => Dimension(0));
-DefRegister('\leftmargini'      => Dimension(0));
-DefRegister('\leftmarginii'     => Dimension(0));
-DefRegister('\leftmarginiii'    => Dimension(0));
-DefRegister('\leftmarginiv'     => Dimension(0));
-DefRegister('\leftmarginv'      => Dimension(0));
-DefRegister('\leftmarginvi'     => Dimension(0));
-DefRegister('\@listdepth'       => Number(0));
-DefRegister('\@itempenalty'     => Number(0));
-DefRegister('\@beginparpenalty' => Number(0));
-DefRegister('\@endparpenalty'   => Number(0));
-DefRegister('\labelwidthi'      => Dimension(0));
-DefRegister('\labelwidthii'     => Dimension(0));
-DefRegister('\labelwidthiii'    => Dimension(0));
-DefRegister('\labelwidthiv'     => Dimension(0));
-DefRegister('\labelwidthv'      => Dimension(0));
-DefRegister('\labelwidthvi'     => Dimension(0));
+DefRegister('\topsep'             => Glue(0));
+DefRegister('\partopsep'          => Glue(0));
+DefRegister('\lx@default@itemsep' => Glue(0));
+DefRegister('\itemsep'            => Glue(0));
+DefRegister('\parsep'             => Glue(0));
+DefRegister('\@topsep'            => Glue(0));
+DefRegister('\@topsepadd'         => Glue(0));
+DefRegister('\@outerparskip'      => Glue(0));
+DefRegister('\leftmargin'         => Dimension(0));
+DefRegister('\rightmargin'        => Dimension(0));
+DefRegister('\listparindent'      => Dimension(0));
+DefRegister('\itemindent'         => Dimension(0));
+DefRegister('\labelwidth'         => Dimension(0));
+DefRegister('\labelsep'           => Dimension(0));
+DefRegister('\@totalleftmargin'   => Dimension(0));
+DefRegister('\leftmargini'        => Dimension(0));
+DefRegister('\leftmarginii'       => Dimension(0));
+DefRegister('\leftmarginiii'      => Dimension(0));
+DefRegister('\leftmarginiv'       => Dimension(0));
+DefRegister('\leftmarginv'        => Dimension(0));
+DefRegister('\leftmarginvi'       => Dimension(0));
+DefRegister('\@listdepth'         => Number(0));
+DefRegister('\@itempenalty'       => Number(0));
+DefRegister('\@beginparpenalty'   => Number(0));
+DefRegister('\@endparpenalty'     => Number(0));
+DefRegister('\labelwidthi'        => Dimension(0));
+DefRegister('\labelwidthii'       => Dimension(0));
+DefRegister('\labelwidthiii'      => Dimension(0));
+DefRegister('\labelwidthiv'       => Dimension(0));
+DefRegister('\labelwidthv'        => Dimension(0));
+DefRegister('\labelwidthvi'       => Dimension(0));
 
 DefRegister('\@itemdepth' => Number(0));
-
-# NOTE: Eventually use \makelabel to construct the list ?
-#\makelabel{label}
-# Could do something with this, but it's a headache.
-DefPrimitive('\usecounter{}', undef);
 
 #======================================================================
 # C.6.4 Verbatim
@@ -1617,7 +1635,10 @@ sub eqnarrayBindings {
       closeRow       => sub { $_[0]->closeElement('ltx:equation'); },
       openColumn     => sub { $_[0]->openElement('ltx:_Capture_', @_[1 .. $#_]); },
       closeColumn    => sub { $_[0]->closeElement('ltx:_Capture_'); },
-      attributes => { class => 'ltx_eqn_eqnarray' }));
+      properties => { preserve_structure => 1 },
+      attributes => { class => 'ltx_eqn_eqnarray',
+        # UGH! \arraycolsep * 2
+        colsep => LookupRegister('\arraycolsep')->multiply(2) }));
 
   Let(T_ALIGN,       '\@alignment@align');
   Let("\\\\",        '\@alignment@newline');
@@ -2455,6 +2476,7 @@ DefPrimitiveI('\@tabbing@hfil',       undef, undef);
 DefPrimitiveI('\@tabbing@pushtabs', undef, undef);
 DefPrimitiveI('\@tabbing@poptabs',  undef, undef);
 
+# Should there be some rowsep/colsep set here?
 sub tabbingBindings {
   AssignValue(Alignment => LaTeXML::Core::Alignment->new(
       template => LaTeXML::Core::Alignment::Template->new(
@@ -2504,9 +2526,21 @@ DefPrimitiveI('\@tabbing@bindings', undef, sub {
 # attributes to all cells.  For HTML, CSS will be necessary to display them.
 # [We'll ignore HTML's frame, rules and colgroup mechanisms.]
 
+DefRegister('\lx@default@tabcolsep', Dimension('6pt'));
+DefRegister('\tabcolsep',            Dimension('6pt'));
+DefMacroI('\arraystretch', undef, "1");
+
 sub tabularBindings {
   my ($template, %properties) = @_;
   $properties{guess_headers} = 1 unless defined $properties{guess_headers};    # Defaults to yes
+  if (!defined $properties{attributes}{colsep}) {
+    my $sep = LookupRegister('\tabcolsep');
+    if ($sep->valueOf != LookupRegister('\lx@default@tabcolsep')->valueOf) {
+      $properties{attributes}{colsep} = $sep; } }
+  if (!defined $properties{attributes}{rowsep}) {
+    my $str = ToString(Expand(T_CS('\arraystretch')));
+    if ($str != 1) {
+      $properties{attributes}{rowsep} = Dimension(($str - 1) . 'em'); } }
   alignmentBindings($template, 'text', %properties);
   # Do like AddToMacro, but NOT global!
   foreach my $name ('@row@before', '@row@after', '@column@before', '@column@after') {
@@ -2549,20 +2583,15 @@ sub translateAttachment {
   return ($pos eq 't' ? 'top' : ($pos eq 'b' ? 'bottom' : 'middle')); }    # undef meaning 'baseline'
 
 DefConstructor('\@@tabular[] Undigested DigestedBody',
-  '#2',
-  reversion    => '\begin{tabular}[#1]{#2}#3\end{tabular}',
-  beforeDigest => sub { $_[0]->bgroup; },
-  mode         => 'text');
-
-DefConstructor('\@@tabular[] Undigested DigestedBody',
   '#3',
   reversion    => '\begin{tabular}[#1]{#2}#3\end{tabular}',
   beforeDigest => sub { $_[0]->bgroup; },
   sizer        => '#3',
   afterDigest  => sub {
     my ($stomach, $whatsit) = @_;
-    LookupValue('Alignment')->setProperties(
-      attributes => { vattach => translateAttachment($whatsit->getArg(1)) }); },
+    my $attr = LookupValue('Alignment')->getProperty('attributes');
+    $$attr{vattach} = translateAttachment($whatsit->getArg(1));
+    return; },
   mode => 'text');
 
 DefMacro('\csname tabular*\endcsname{Dimension}[]{}',
@@ -2595,12 +2624,11 @@ DefConstructor('\cline{}', '',
 
 DefConstructorI('\vline', undef, "",    # ???
   properties => { isVerticalRule => 1 },);
-DefRegister('\arraycolsep',    Dimension('5pt'));
-DefRegister('\tabcolsep',      Dimension('6pt'));
-DefRegister('\arrayrulewidth', Dimension('0.4pt'));
-DefRegister('\doublerulesep',  Dimension('2pt'));
+DefRegister('\lx@default@arraycolsep', Dimension('5pt'));
+DefRegister('\arraycolsep',            Dimension('5pt'));
+DefRegister('\arrayrulewidth',         Dimension('0.4pt'));
+DefRegister('\doublerulesep',          Dimension('2pt'));
 DefMacro('\extracolsep{}', Tokens());
-DefMacroI('\arraystretch',   undef, "1");
 DefMacroI('\tabularnewline', undef, Tokens());
 
 #======================================================================
@@ -2608,9 +2636,16 @@ DefMacroI('\tabularnewline', undef, Tokens());
 
 DefPrimitive('\@array@bindings [] AlignmentTemplate', sub {
     my ($stomach, $pos, $template) = @_;
-    alignmentBindings($template, 'math',
-      attributes => { vattach => translateAttachment($pos),
-        role => 'ARRAY' });
+    my $attr = { vattach => translateAttachment($pos),
+      role => 'ARRAY' };
+    # Determine column and row separations, if non default
+    my $colsep = LookupRegister('\arraycolsep');
+    if ($colsep->valueOf != LookupRegister('\lx@default@arraycolsep')->valueOf) {
+      $$attr{colsep} = $colsep; }
+    my $str = ToString(Expand(T_CS('\arraystretch')));
+    if ($str != 1) {
+      $$attr{rowsep} = Dimension(($str - 1) . 'em'); }
+    alignmentBindings($template, 'math', attributes => $attr);
     return; });
 
 DefMacro('\array[]{}',
@@ -2637,13 +2672,12 @@ DefPrimitive('\nofiles', undef);
 #======================================================================
 
 # \label attaches a label to the nearest parent that can accept a labels attribute
+# but only those that have an xml:id (but should this require a refnum and/or title ???)
 # Note that latex essentially allows redundant labels, but we can record only one!!!
-# No; next version. Find nearest that can accept a refnum attribute.
-# Or, better yet (more latex-like??) nearest that HAS a refnum!?!
 DefConstructor('\label Semiverbatim', sub {
     my ($document, $olabel, %props) = @_;
     my $label = $props{label};
-    if (my $savenode = $document->floatToAttribute('labels')) {
+    if (my $savenode = $document->floatToLabel) {
       my $node = $document->getNode;
       my %labels = map { ($_ => 1) } $label, split(/\s+/, $node->getAttribute('labels') || '');
       $document->setAttribute($node, labels => join(' ', sort keys %labels));
@@ -2710,7 +2744,26 @@ sub beginBibliography {
   setupPseudoBibitem();
   return; }
 
-DefMacro('\bibliography Semiverbatim', '\ifx.#1.\else\@bibliography{#1}\fi');
+DefMacro('\bibliography Semiverbatim', '\lx@ifusebbl{#1}{\input{\jobname.bbl}}{\@bibliography{#1}}');
+DefMacro('\lx@ifusebbl{}{}{}', sub {
+    my ($gullet, $bib_files, $bbl_clause, $bib_clause) = @_;
+    $bib_files = ToString(Expand($bib_files));
+    return unless $bib_files;
+    my $jobname = ToString(Expand(T_CS('\jobname')));
+
+    my $bbl_path = FindFile($jobname, type => 'bbl');
+    my $missing_bibs = '';
+    for my $bf (split(',', $bib_files)) {
+      my $bib_path = FindFile($bf, type => 'bib');
+      if (not $bib_path) {
+        $missing_bibs .= ',' unless length($missing_bibs) == 0;
+        $missing_bibs .= $bf; } }
+
+    if (length($missing_bibs) == 0 or not $bbl_path) {
+      return $bib_clause->unlist; }
+    else {
+      Info('expected', $missing_bibs, $_[0], "Couldn't find all bib files, using " . $jobname . ".bbl instead");
+      return $bbl_clause->unlist; } });
 DefConstructor('\@bibliography Semiverbatim',
   "<ltx:bibliography files='#1' xml:id='#id' "
     . "bibstyle='#bibstyle' citestyle='#citestyle' sort='#sort'>"
@@ -3016,8 +3069,8 @@ sub process_index_phrases {
         my $extra = ToString(Tokens(@tokens));
         if ($extra =~ /^see\s*{/) { push(@expansion, T_CS('\@indexsee'), @tokens[3 .. $#tokens]); }
         elsif ($extra =~ /^seealso\s*\{/) { push(@expansion, T_CS('\@indexseealso'), @tokens[7 .. $#tokens]); }
-        elsif ($extra eq '(') { }                                            # ?
-        elsif ($extra eq ')') { }                                            # ?
+        elsif ($extra eq '(') { $style = 'rangestart'; }                     # ?
+        elsif ($extra eq ')') { $style = 'rangeend'; }                       # ?
         else                  { $style = $index_style{$extra} || $extra; }
         @tokens = (); } }
     elsif (!@phrase && ($string =~ /\s/)) { }                                # Skip leading whitespace
@@ -3238,7 +3291,7 @@ DefRegister('\fill', Glue(0, '1fill'));
 # C.13.2 Space
 #======================================================================
 DefMacro('\hspace  OptionalMatch:* {Dimension}',
-  '\ifmmode\@math@hskip{#2}\else\@text@hskip{#2}\fi');
+  '\ifmmode\@math@hskip #2\relax\else\@text@hskip #2\relax\fi');
 
 DefPrimitive('\vspace OptionalMatch:* {}', undef);
 DefPrimitive('\addvspace {}',              undef);
@@ -3415,7 +3468,16 @@ DefConstructor('\rule[Dimension]{Dimension}{Dimension}',
 DefConstructor('\raisebox{Dimension}[Dimension][Dimension]{}',
   "<ltx:text yoffset='#1' _noautoclose='1'>#4</ltx:text>",
   mode => 'text', bounded => 1,
-  beforeDigest => sub { reenterTextMode(); });
+  beforeDigest => sub { reenterTextMode(); },
+  sizer => sub { raisedSizer($_[0]->getArg(4), $_[0]->getArg(1)); });
+
+sub raisedSizer {
+  my ($box, $y) = @_;
+  my ($w, $h, $d) = $box->getSize;
+  my $z = Dimension(0);
+  $h = $h->add($y)->larger($z);
+  $d = $d->subtract($y)->larger($z);
+  return ($w, $h, $d); }
 
 #**********************************************************************
 # C.14 Pictures and Color
@@ -4195,6 +4257,84 @@ DefMacroI('\@tempc',  undef, '');
 DefMacroI('\@gtempa', undef, '');
 
 RawTeX(<<'EOTeX');
+\long\def \loop #1\repeat{%
+  \def\iterate{#1\relax  % Extra \relax
+               \expandafter\iterate\fi
+               }%
+  \iterate
+  \let\iterate\relax
+}
+\newdimen\@ydim 							
+\let\@@hyph=\-   							%Very primitive and the only place that it shows up 
+\newbox\@arstrutbox							
+\newbox\@begindvibox							
+\newcount\@botnum							
+\newdimen\@botroom							 
+\newcount\@chclass							 
+\newcount\@chnum							
+\newdimen\@clnht							
+\newdimen\@clnwd							
+\newdimen\@colht							
+\newcount\@colnum							 
+\newdimen\@colroom							
+\newbox\@curfield							 
+\newbox\@curline							 
+\newcount\@currtype							 
+\newcount\@curtab							 
+\newcount\@curtabmar							
+\newbox\@dashbox							
+\newcount\@dashcnt							 
+\newdimen\@dashdim							 
+\newcount\@dbltopnum							
+\newdimen\@dbltoproom							
+\let\@dischyph=\-							%Similar to \@@hyph above. Later also \let\-\@dischyph
+\newcount\@enumdepth 
+\newcount\@floatpenalty							
+\newdimen\@fpmin							
+\newcount \@fpstype							
+\newcount\@highpenalty							
+\newcount\@hightab							
+\newbox\@holdpg								
+\newinsert \@kludgeins							%Don't know what this is, but it is using the new stuff 
+\newcount\@lastchclass							
+\newbox\@leftcolumn							
+\newbox\@linechar							
+\newdimen\@linelen							
+\newcount\@lowpenalty							
+\newdimen\@maxdepth							 
+\newcount\@medpenalty							
+\newdimen\@mparbottom \@mparbottom\z@					%New dimension, initial set to z@
+\newinsert\@mpfootins							 
+\newcount\@mplistdepth							
+\newcount\@multicnt							
+\newcount\@nxttabmar							
+\newbox\@outputbox							
+\newdimen\@pagedp							
+\newdimen\@pageht							
+\newbox\@picbox								
+\newdimen\@picht							
+\newdimen \@reqcolroom							
+\newskip\@rightskip \@rightskip \z@skip					
+\newcount\@savsf							
+\newdimen\@savsk							
+\newcount\@secpenalty							
+\def\@sqrt[#1]{\root #1\of}						%Very short definition of \@sqrt, is never redefined and seems to be some kind of alias.
+\newbox\@tabfbox							
+\newcount\@tabpush							
+\newdimen \@textfloatsheight						
+\newdimen\@textmin							
+\newcount\@topnum							
+\newdimen\@toproom							
+\newcount\@xarg								
+\newdimen\@xdim								
+\newcount\@yarg								
+\newdimen\@ydim								
+\newcount\@yyarg							
+\newtoks\every@math@size						%first time \newtoks
+\newif \if@fcolmade							 
+\newdimen\lower@bound							
+\newcount\par@deathcycles						 
+\newdimen\upper@bound							
 \newif\if@insert
 \newif\if@colmade
 \newif\if@specialpage   \@specialpagefalse
