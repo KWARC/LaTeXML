@@ -334,7 +334,7 @@ sub convert {
   # 5.1 Serialize the XML/HTML result (or just return the Perl object, if requested)
   undef $serialized;
   if ((defined $result) && ref($result) && (ref($result) =~ /^(:?LaTe)?XML/)) {
-    if ($$opts{format} =~ 'x(ht)?ml') {
+    if (($$opts{format} =~ 'x(ht)?ml')||($$opts{format} eq 'jats')) {
       $serialized = $result->toString(1); }
     elsif ($$opts{format} =~ /^html/) {
       if (ref($result) =~ '^LaTeXML::(Post::)?Document$') {    # Special for documents
@@ -664,6 +664,7 @@ sub bind_log {
     *STDERR_SAVED = *STDERR;
     *STDERR       = *$log_handle;
     binmode(STDERR, ':encoding(UTF-8)');
+    $LaTeXML::Common::Error::COLORIZED_LOGGING = -t STDERR;
     $$self{log_handle} = $log_handle;
   }
   return; }
@@ -679,6 +680,7 @@ sub flush_log {
     close $$self{log_handle};
     delete $$self{log_handle};
     *STDERR = *STDERR_SAVED;
+    $LaTeXML::Common::Error::COLORIZED_LOGGING = -t STDERR;
   }
   my $log = $$self{log};
   $$self{log} = q{};

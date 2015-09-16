@@ -1257,6 +1257,7 @@ sub conjoin {
 sub initial {
   my ($self, $string, $force) = @_;
   $string = NFD($string);    # Decompose accents, etc.
+  $string =~ s/^\s+//gs;
   $string =~ s/^[^a-zA-Z]*// if $force;
   return ($string =~ /^([a-zA-Z])/ ? uc($1) : '*'); }
 
@@ -1287,6 +1288,23 @@ sub trimChildNodes {
     return @children; }
   else {
     return (); } }
+
+sub unisort {
+  my ($self, @keys) = @_;
+  # Attempt to use Unicode::Collate, if available.
+  # Use the language from the document.
+  # But put uppercase first; more consistent w/makeindex.
+  my $lang = $self->getDocumentElement->getAttribute('xml:lang') || 'en';
+  my $collator = eval { require 'Unicode/Collate/Locale.pm';
+    Unicode::Collate::Locale->new(locale => $lang,
+      variable           => 'non-ignorable',    # I think; at least space shouldn't be ignored
+      upper_before_lower => 1); };
+  if ($collator) {
+    #    print STDERR "UNICODE SORTING using locale='$lang'\n";
+    return $collator->sort(@keys); }
+  else {
+    # Otherwise, just use primitive codepoint ordering.
+    return (sort @keys); } }
 
 #======================================================================
 
