@@ -2022,7 +2022,7 @@ my $inputdefinitions_options = {    # [CONSTANT]
   type => 1, as_class => 1, noltxml => 1, notex => 1, noerror => 1, after => 1 };
 #   options=>[options...]
 #   withoptions=>boolean : pass options from calling class/package
-#   after=>code or tokens or string as $name.$type-hook macro. (executed after the package is loaded)
+#   after=>code or tokens or string as $name.$type-h@@k macro. (executed after the package is loaded)
 # Returns the path that was loaded, or undef, if none found.
 sub InputDefinitions {
   my ($name, %options) = @_;
@@ -2063,7 +2063,7 @@ sub InputDefinitions {
       PassOptions($name, $astype, @{ $options{options} || [] });    # passed explicit options.
              # Note which packages are pretending to be classes.
       PushValue('@masquerading@as@class', $name) if $options{as_class};
-      DefMacroI(T_CS("\\$name.$astype-hook"), undef, $options{after} || '');
+      DefMacroI(T_CS('\\' . $name . '.' . $astype . '-h@@k'), undef, $options{after} || '');
       DefMacroI(T_CS('\opt@' . $name . '.' . $astype), undef,
         Tokens(Explode(join(',', @{ LookupValue('opt@' . $name . "." . $astype) }))));
     }
@@ -2074,7 +2074,7 @@ sub InputDefinitions {
     else {
       loadTeXDefinitions($filename, $file); }
     if ($options{handleoptions}) {
-      Digest(T_CS("\\$name.$astype-hook"));
+      Digest(T_CS('\\' . $name . '.' . $astype . '-h@@k'));
       DefMacroI('\@currname', undef, Tokens(Explode($prevname))) if $prevname;
       DefMacroI('\@currext',  undef, Tokens(Explode($prevext)))  if $prevext;
       # Add an appropriately faked entry into \@filelist
@@ -3396,7 +3396,7 @@ specifies a list of options (in the 'package options' sense) to be passed
 
 =item C<after=E<gt>I<tokens> | I<code>($gullet)>
 
-provides I<tokens> or I<code> to be processed by a C<I<name>.I<type>-hook> macro.
+provides I<tokens> or I<code> to be processed by a C<I<name>.I<type>-h@@k> macro.
 
 =item C<as_class=E<gt>I<boolean>>
 
