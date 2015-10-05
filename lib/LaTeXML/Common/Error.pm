@@ -13,30 +13,36 @@ package LaTeXML::Common::Error;
 use strict;
 use warnings;
 use LaTeXML::Global;
-##use LaTeXML::Common::Object;
+use LaTeXML::Common::Object;
 use Time::HiRes;
+use Term::ANSIColor qw(:constants);
 use base qw(Exporter);
 our @EXPORT = (
   # Error Reporting
   qw(&Fatal &Error &Warn &Info),
   # Progress reporting
-  qw( &NoteProgress &NoteProgressDetailed &NoteBegin &NoteEnd),
+  qw(&NoteProgress &NoteProgressDetailed &NoteBegin &NoteEnd),
+  # Colored-logging related functions
+  qw(&colorizeString)
 );
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Note: The exported symbols should ultimately be exported as part
-# of LaTeXML::Common, or something like that, to be used BOTH in
-# Digestion & Post-Processing.
-# ======================================================================
-# We want LaTeXML::Global to import this package,
-# but we also want to use some of it's low-level functions.
-sub ToString {
-  my ($item, @more) = @_;
-  return ($LaTeXML::BAILOUT ? "$item" : LaTeXML::Common::Object::ToString($item, @more)); }
+# Color setup
+$Term::ANSIColor::AUTORESET = 1;
+our $COLORIZED_LOGGING = -t STDERR;
 
-sub Stringify {
-  my ($item, @more) = @_;
-  return ($LaTeXML::BAILOUT ? "$item" : LaTeXML::Common::Object::Stringify($item, @more)); }
+our %color_scheme = (
+  details => \&BOLD,
+  success => \&GREEN,
+  info    => \&BLUE,
+  warning => \&YELLOW,
+  error   => sub { BOLD RED shift; },
+  fatal   => sub { BOLD RED UNDERLINE shift; }
+);
+
+sub colorizeString {
+  my ($string, $alias) = @_;
+  return $COLORIZED_LOGGING ? &{ $color_scheme{$alias} }($string) : $string; }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Error reporting
@@ -58,11 +64,10 @@ sub Fatal {
       push(@details, "Recursive Error!"); }
     $state->noteStatus('fatal') if $state && !$ineval;
     $message
-      = generateMessage("Fatal:" . $category . ":" . ToString($object), $where, $message, 1,
+      = generateMessage(colorizeString("Fatal:" . $category . ":" . ToString($object), 'fatal'), $where, $message, 2,
       # ?!?!?!?!?!
       # or just verbosity code >>>1 ???
-      @details,
-      ($verbosity > 0 ? ("Stack Trace:", stacktrace()) : ()));
+      @details);
     # If we're about to (really) DIE, we'll bypass the usual status message, so add it here.
     $message .= $state->getStatusMessage if $state && !$ineval;
   }
@@ -91,7 +96,7 @@ sub Error {
     Fatal($category, $object, $where, $message, @details); }
   else {
     $state && $state->noteStatus('error');
-    print STDERR generateMessage("Error:" . $category . ":" . ToString($object),
+    print STDERR generateMessage(colorizeString("Error:" . $category . ":" . ToString($object), 'error'),
       $where, $message, 1, @details)
       if $verbosity >= -2; }
   if (!$state || ($state->getStatus('error') || 0) > $MAXERRORS) {
@@ -104,7 +109,7 @@ sub Warn {
   my $state = $STATE;
   my $verbosity = $state && $state->lookupValue('VERBOSITY') || 0;
   $state && $state->noteStatus('warning');
-  print STDERR generateMessage("Warning:" . $category . ":" . ToString($object),
+  print STDERR generateMessage(colorizeString("Warning:" . $category . ":" . ToString($object), 'warning'),
     $where, $message, 0, @details)
     if $verbosity >= -1;
   return; }
@@ -116,7 +121,7 @@ sub Info {
   my $state = $STATE;
   my $verbosity = $state && $state->lookupValue('VERBOSITY') || 0;
   $state && $state->noteStatus('info');
-  print STDERR generateMessage("Info:" . $category . ":" . ToString($object),
+  print STDERR generateMessage(colorizeString("Info:" . $category . ":" . ToString($object), 'info'),
     $where, $message, -1, @details)
     if $verbosity >= 0;
   return; }
@@ -257,13 +262,16 @@ sub generateMessage {
 
   #----------------------------------------
   # Add Stack Trace, if that seems worthwhile.
-  if ($detail > -1) {
+  if (($detail > 1) && ($verbosity > 0)) {
+    push(@lines, "Stack Trace:", stacktrace()); }
+  elsif ($detail > -1) {
     my $nstack = ($detail > 1 ? undef : ($detail > 0 ? 4 : 1));
     if (my @objects = objectStack($nstack)) {
       my $top = shift(@objects);
-      push(@lines,   "In " . trim(ToString($top)) . ' ' . ToString(Locator($top)));
-      push(@objects, '...') if @objects && defined $nstack;
-      push(@lines,   join('', (map { ' <= ' . trim(ToString($_)) } @objects))) if @objects; } }
+      push(@lines, "In " . trim(Stringify($$top[0])) . ' ' . Stringify($$top[1]));
+      push(@objects, ['...']) if @objects && defined $nstack;
+      push(@lines, join('', (map { ' <= ' . trim(Stringify($$_[0])) } @objects))) if @objects;
+    } }
 
   # finally, join the result into a block of lines, indenting all but the 1st line.
   return "\n" . join("\n\t", @lines) . "\n"; }
@@ -272,6 +280,8 @@ sub Locator {
   my ($object) = @_;
   return ($object && $object->can('getLocator') ? $object->getLocator : "???"); }
 
+# A more organized abstraction along there likes of $where->whereAreYou
+# might be useful?
 sub getLocation {
   my ($where) = @_;
   my $wheretype = ref $where;
@@ -295,6 +305,10 @@ sub getLocation {
     # (1) With obsoleting Tokens as a Mouth, we can get pointless "Anonymous String" locators!
     # (2) If gullet is the source, we probably want to include next token, etc or
     return $gullet->getLocator(); }
+  # # If in postprocessing
+  # if($LaTeXML::Post::PROCESSOR && $LaTeXML::Post::DOCUMENT){
+  #   return 'in '. $LaTeXML::Post::PROCESSOR->getName
+  #     . ' on '. $LaTeXML::Post::DOCUMENT->siteRelativeDestination; }
   return; }
 
 sub callerName {
@@ -400,9 +414,11 @@ sub objectStack {
       my $method = $info{sub};
       $method =~ s/^.*:://;
       if ($self->can($method)) {
-        next if @objects && ($self eq $objects[-1]);
-        next unless $self->can('getLocator');
-        push(@objects, $self);
+        next if @objects && ($self eq $objects[-1][0]);    # but don't duplicate
+        if ($self->can('getLocator')) {                    # Digestion object?
+          push(@objects, [$self, Locator($self)]); }
+        elsif ($self->isa('LaTeXML::Post::Processor') || $self->isa('LaTeXML::Post::Document')) {
+          push(@objects, [$self, '->' . $method]); }
         last if $maxdepth && (scalar(@objects) >= $maxdepth); } } }
   return @objects; }
 

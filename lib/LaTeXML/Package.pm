@@ -93,7 +93,7 @@ our @EXPORT = (qw(&DefExpandable
     &PushValue &PopValue &UnshiftValue &ShiftValue
     &LookupMapping &AssignMapping &LookupMappingKeys
     &LookupCatcode &AssignCatcode
-    &LookupMeaning &LookupDefinition &InstallDefinition &XEquals
+    &LookupMeaning &LookupDefinition &InstallDefinition &XEquals &IsDefined
     &LookupMathcode &AssignMathcode
     &LookupSFcode &AssignSFcode
     &LookupLCcode &AssignLCcode
@@ -102,7 +102,7 @@ our @EXPORT = (qw(&DefExpandable
     ),
 
   # Random low-level token or string operations.
-  qw(&CleanID &CleanLabel &CleanIndexKey &CleanBibKey &NormalizeBibKey &CleanURL
+  qw(&CleanID &CleanLabel &CleanIndexKey  &CleanClassName &CleanBibKey &NormalizeBibKey &CleanURL
     &UTF
     &roman &Roman),
   # Math & font state.
@@ -296,16 +296,24 @@ sub InstallDefinition {
 
 sub XEquals {
   my ($token1, $token2) = @_;
-  my $def1 = LookupMeaning($token1);
-  my $def2 = LookupMeaning($token2);
-  if (defined $def1 != defined $def2) {    # False, if they don't both have defs or both not have defs
+  my $def1 = LookupMeaning($token1);    # token, definition object or undef
+  my $def2 = LookupMeaning($token2);    # ditto
+  if (defined $def1 != defined $def2) { # False, if only one has 'meaning'
     return; }
-  elsif (!defined $def1 && !defined $def2) { # If neither have defs, then must have same catcode & chars
-    return ($token1->getCatcode == $token2->getCatcode)
-      && ($token1->getCharcode == $token2->getCharcode); }
-  elsif ($def1->equals($def2)) {             # If both have defns, must be same defn!
+  elsif (!defined $def1 && !defined $def2) {    # true if both undefined
+    return 1; }
+  elsif ($def1->equals($def2)) {                # If both have defns, must be same defn!
     return 1; }
   return; }
+
+# Is defined in the LaTeX-y sense of also not being let to \relax.
+sub IsDefined {
+  my ($name) = @_;
+  my $cs = (ref $name ? $name : T_CS($name));
+  my $meaning = $STATE->lookupMeaning($cs);
+  return $meaning
+    && ($meaning->isa('LaTeXML::Core::Token') || ($meaning->getCSName ne '\relax'))
+    && $meaning; }
 
 sub LookupMathcode {
   my ($char) = @_;
@@ -389,7 +397,7 @@ sub DigestLiteral {
 sub DigestIf {
   my ($token) = @_;
   $token = T_CS($token) unless ref $token;
-  if (my $defn = LookupDefinition($token)) {
+  if (my $defn = $STATE->lookupDefinition($token)) {
     return $STATE->getStomach->digest($token); }
   else {
     return; } }
@@ -490,11 +498,23 @@ sub CleanIndexKey {
   $key = ToString($key);
   $key =~ s/^\s+//s; $key =~ s/\s+$//s;    # Trim leading/trailing, in any case
        # We don't want accented chars (do we?) but we need to decompose the accents!
-  $key = NFD($key);
-  $key =~ s/[^a-zA-Z0-9]//g;
+## No, leave in the unicode at this point (strip them later)
+##  $key = NFD($key);
+##  $key =~ s/[^a-zA-Z0-9]//g;
   $key = NFC($key);    # just to be safe(?)
 ## Shouldn't be case insensitive?
 ##  $key =~ tr|A-Z|a-z|;
+  $key =~ s/[\.\,\;]+$//;    # Remove trailing punctuation
+  return $key; }
+
+sub CleanClassName {
+  my ($key) = @_;
+  $key = ToString($key);
+  $key =~ s/^\s+//s; $key =~ s/\s+$//s;    # Trim leading/trailing, in any case
+       # We don't want accented chars (do we?) but we need to decompose the accents!
+  $key = NFD($key);
+  $key =~ s/[^a-zA-Z0-9]//g;
+  $key = NFC($key);    # just to be safe(?)
   return $key; }
 
 sub CleanBibKey {
@@ -658,7 +678,7 @@ sub StepCounter {
 sub RefStepCounter {
   my ($ctr, $noreset) = @_;
   StepCounter($ctr, $noreset);
-  my $iddef = LookupDefinition(T_CS("\\the$ctr\@ID"));
+  my $iddef = $STATE->lookupDefinition(T_CS("\\the$ctr\@ID"));
   my $has_id = $iddef && ((!defined $iddef->getParameters) || ($iddef->getParameters->getNumArgs == 0));
 
   DefMacroI(T_CS('\@currentlabel'), undef, T_CS("\\the$ctr"), scope => 'global');
@@ -770,7 +790,7 @@ sub Expand {
 
 sub Invocation {
   my ($token, @args) = @_;
-  if (my $defn = LookupDefinition((ref $token ? $token : T_CS($token)))) {
+  if (my $defn = $STATE->lookupDefinition((ref $token ? $token : T_CS($token)))) {
     return Tokens($defn->invocation(@args)); }
   else {
     Fatal('undefined', $token, undef,
@@ -958,7 +978,7 @@ sub IfCondition {
   my $gullet = $STATE->getStomach->getGullet;
   $if = coerceCS($if);
   my ($defn, $test);
-  if (($defn = $STATE->lookupMeaning($if))
+  if (($defn = $STATE->lookupDefinition($if))
     && (($$defn{conditional_type} || '') eq 'if') && ($test = $defn->getTest)) {
     return &$test($gullet, @args); }
   elsif (XEquals($if, T_CS('\iftrue'))) {
@@ -975,7 +995,7 @@ sub SetCondition {
   my ($defn, $test);
   my ($if, $value) = @_;
   # We'll accept any conditional \ifxxx, providing it takes no arguments
-  if (($defn = $STATE->lookupMeaning($if)) && (($$defn{conditional_type} || '') eq 'if')
+  if (($defn = $STATE->lookupDefinition($if)) && (($$defn{conditional_type} || '') eq 'if')
     && !$defn->getParameters) {
     Let($if, ($value ? T_CS('\iftrue') : T_CS('\iffalse'))) }
   else {
@@ -1914,8 +1934,8 @@ my $processoptions_options = {    # [CONSTANT]
 sub ProcessOptions {
   my (%options) = @_;
   CheckOptions("ProcessOptions", $processoptions_options, %options);
-  my $name = LookupDefinition(T_CS('\@currname')) && ToString(Digest(T_CS('\@currname')));
-  my $ext  = LookupDefinition(T_CS('\@currext'))  && ToString(Digest(T_CS('\@currext')));
+  my $name = $STATE->lookupDefinition(T_CS('\@currname')) && ToString(Digest(T_CS('\@currname')));
+  my $ext  = $STATE->lookupDefinition(T_CS('\@currext'))  && ToString(Digest(T_CS('\@currext')));
   my @declaredoptions = @{ LookupValue('@declaredoptions') };
   my @curroptions = @{ (defined($name) && defined($ext)
         && LookupValue('opt@' . $name . '.' . $ext)) || [] };
@@ -1952,7 +1972,7 @@ sub ProcessOptions {
 sub executeOption_internal {
   my ($option) = @_;
   my $cs = T_CS('\ds@' . $option);
-  if (LookupDefinition($cs)) {
+  if ($STATE->lookupDefinition($cs)) {
     # print STDERR "\nPROCESS OPTION $option\n";
     DefMacroI('\CurrentOption', undef, $option);
     AssignValue('@unusedoptionlist',
@@ -1994,7 +2014,7 @@ sub AddToMacro {
   $cs = T_CS($cs) unless ref $cs;
   @tokens = map { (ref $_ ? $_ : TokenizeInternal($_)) } @tokens;
   # Needs error checking!
-  my $defn = LookupDefinition($cs);
+  my $defn = $STATE->lookupDefinition($cs);
   if (!defined $defn || !$defn->isExpandable) {
     Error('unexpected', $cs, $STATE->getStomach->getGullet,
       ToString($cs) . " is not an expandable control sequence"); }
@@ -2010,7 +2030,7 @@ my $inputdefinitions_options = {    # [CONSTANT]
   type => 1, as_class => 1, noltxml => 1, notex => 1, noerror => 1, after => 1 };
 #   options=>[options...]
 #   withoptions=>boolean : pass options from calling class/package
-#   after=>code or tokens or string as $name.$type-hook macro. (executed after the package is loaded)
+#   after=>code or tokens or string as $name.$type-h@@k macro. (executed after the package is loaded)
 # Returns the path that was loaded, or undef, if none found.
 sub InputDefinitions {
   my ($name, %options) = @_;
@@ -2018,8 +2038,8 @@ sub InputDefinitions {
   $name =~ s/^\s*//; $name =~ s/\s*$//;
   CheckOptions("InputDefinitions ($name)", $inputdefinitions_options, %options);
 
-  my $prevname = $options{handleoptions} && LookupDefinition(T_CS('\@currname')) && ToString(Digest(T_CS('\@currname')));
-  my $prevext = $options{handleoptions} && LookupDefinition(T_CS('\@currext')) && ToString(Digest(T_CS('\@currext')));
+  my $prevname = $options{handleoptions} && $STATE->lookupDefinition(T_CS('\@currname')) && ToString(Digest(T_CS('\@currname')));
+  my $prevext = $options{handleoptions} && $STATE->lookupDefinition(T_CS('\@currext')) && ToString(Digest(T_CS('\@currext')));
 
   # This file will be treated somewhat as if it were a class
   # IF as_class is true
@@ -2051,7 +2071,7 @@ sub InputDefinitions {
       PassOptions($name, $astype, @{ $options{options} || [] });    # passed explicit options.
              # Note which packages are pretending to be classes.
       PushValue('@masquerading@as@class', $name) if $options{as_class};
-      DefMacroI(T_CS("\\$name.$astype-hook"), undef, $options{after} || '');
+      DefMacroI(T_CS('\\' . $name . '.' . $astype . '-h@@k'), undef, $options{after} || '');
       DefMacroI(T_CS('\opt@' . $name . '.' . $astype), undef,
         Tokens(Explode(join(',', @{ LookupValue('opt@' . $name . "." . $astype) }))));
     }
@@ -2062,13 +2082,13 @@ sub InputDefinitions {
     else {
       loadTeXDefinitions($filename, $file); }
     if ($options{handleoptions}) {
-      Digest(T_CS("\\$name.$astype-hook"));
+      Digest(T_CS('\\' . $name . '.' . $astype . '-h@@k'));
       DefMacroI('\@currname', undef, Tokens(Explode($prevname))) if $prevname;
       DefMacroI('\@currext',  undef, Tokens(Explode($prevext)))  if $prevext;
       # Add an appropriately faked entry into \@filelist
       my ($d, $n, $e) = ($fdir, $fname, $ftype);    # If ftype is ltxml, reparse to get sty/cls!
       ($d, $n, $e) = pathname_split(pathname_concat($d, $n)) if $e eq 'ltxml';    # Fake it???
-      my @p = (LookupDefinition(T_CS('\@filelist'))
+      my @p = ($STATE->lookupDefinition(T_CS('\@filelist'))
         ? Expand(T_CS('\@filelist'))->unlist : ());
       my @n = Explode($e ? $n . '.' . $e : $n);
       DefMacroI('\@filelist', undef, (@p ? Tokens(@p, T_OTHER(','), @n) : Tokens(@n)));
@@ -2272,7 +2292,7 @@ sub DefColor {
   my ($name, $color, $scope) = @_;
   #print STDERR "DEFINE ".ToString($name)." => ".join(',',@$color)."\n";
   my ($model, @spec) = @$color;
-  $scope = 'global' if LookupDefinition(T_CS('\ifglobalcolors')) && IfCondition(T_CS('\ifglobalcolors'));
+  $scope = 'global' if $STATE->lookupDefinition(T_CS('\ifglobalcolors')) && IfCondition(T_CS('\ifglobalcolors'));
   AssignValue('color_' . $name => $color, $scope);
   # We could store these pieces separately,or in a list for above,
   # so that extract could use them more reasonably?
@@ -3384,7 +3404,7 @@ specifies a list of options (in the 'package options' sense) to be passed
 
 =item C<after=E<gt>I<tokens> | I<code>($gullet)>
 
-provides I<tokens> or I<code> to be processed by a C<I<name>.I<type>-hook> macro.
+provides I<tokens> or I<code> to be processed by a C<I<name>.I<type>-h@@k> macro.
 
 =item C<as_class=E<gt>I<boolean>>
 

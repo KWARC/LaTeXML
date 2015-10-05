@@ -40,7 +40,6 @@ use HTTP::Request;
 use JSON::XS qw(decode_json);
 
 binmode(STDERR, ":encoding(UTF-8)");
-binmode(STDOUT, ":encoding(UTF-8)");
 
 # Determine if a socket server is installed locally and obtain its pathname:
 my $latexmls;
@@ -138,16 +137,20 @@ if ((!$sock) && $local && ($expire == -1)) {
 ### Common treatment of output:
 
 # Special features for latexmls:
+my $whatsout = $opts->get('whatsout');
+my $is_archive = $whatsout && ($whatsout =~ /^archive/);
 if ($log) {
   if ($opts->get('log')) {
-    my $clog = $opts->get('log');
-    my $log_handle;
-    if (! open($log_handle,">",$clog)) {
-      print STDERR "Fatal:I/O:forbidden Couldn't open log file $clog : $!\n";
-      exit 1;
+    if (!$is_archive) { # archives only have the archive file
+      my $clog = $opts->get('log');
+      my $log_handle;
+      if (!open($log_handle, ">", $clog)) {
+        print STDERR "Fatal:IO:forbidden Couldn't open log file $clog : $!\n";
+        exit 1;
+      }
+      print $log_handle $log;
+      close $log_handle;
     }
-    print $log_handle $log;
-    close $log_handle;
   } else { print STDERR $log, "\n"; }    #STDERR log otherwise
 }
 
@@ -156,12 +159,15 @@ if ($result) {
     my $output_handle;
     if (!open($output_handle, ">", $opts->get('destination'))) {
       print STDERR "Fatal:IO:forbidden Couldn't open output file " . $opts->get('destination') . ": $!";
-      exit 1;
-    }
-    binmode($output_handle, ":encoding(UTF-8)");
+      exit 1; }
+    if (!$is_archive) { # If we're not outputing binary data, encode to UTF-8
+      binmode($output_handle, ":encoding(UTF-8)"); }
     print $output_handle $result;
     close $output_handle;
-  } else { print STDOUT $result, "\n"; }    #Output to STDOUT
+  } else { 
+    if (!$is_archive) { # If we're not outputing binary data, encode to UTF-8
+      binmode(STDOUT, ":encoding(UTF-8)"); }
+    print STDOUT $result, "\n"; }    #Output to STDOUT
 }
 
 # Print summary, if requested, to STDERR

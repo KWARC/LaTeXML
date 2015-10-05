@@ -310,11 +310,8 @@ sub convert {
       if ((!$post_eval_return) && (!$@));
     if ($@) {    #Fatal occured!
       $$runtime{status_code} = 3;
-      if ($@ =~ "Fatal:perl:die alarm") {    #Alarm handler: (treat timeouts as fatals)
-        print STDERR "Fatal:post:timeout Postprocessing timeout after "
-          . $$opts{timeout} . " seconds!\n"; }
-      else {
-        print STDERR "Fatal:post:generic Post-processor crashed! $@\n"; }
+      $@ = 'Fatal:conversion:unknown '.$@ unless $@ =~ /^Fatal:/;
+      print STDERR $@;
       #Since this is postprocessing, we don't need to do anything
       #   just avoid crashing...
       $result = undef; } }
@@ -334,7 +331,7 @@ sub convert {
   # 5.1 Serialize the XML/HTML result (or just return the Perl object, if requested)
   undef $serialized;
   if ((defined $result) && ref($result) && (ref($result) =~ /^(:?LaTe)?XML/)) {
-    if ($$opts{format} =~ 'x(ht)?ml') {
+    if (($$opts{format} =~ 'x(ht)?ml') || ($$opts{format} eq 'jats')) {
       $serialized = $result->toString(1); }
     elsif ($$opts{format} =~ /^html/) {
       if (ref($result) =~ '^LaTeXML::(Post::)?Document$') {    # Special for documents
@@ -664,6 +661,7 @@ sub bind_log {
     *STDERR_SAVED = *STDERR;
     *STDERR       = *$log_handle;
     binmode(STDERR, ':encoding(UTF-8)');
+    $LaTeXML::Common::Error::COLORIZED_LOGGING = -t STDERR;
     $$self{log_handle} = $log_handle;
   }
   return; }
@@ -678,7 +676,8 @@ sub flush_log {
   if (!$LaTeXML::DEBUG) {
     close $$self{log_handle};
     delete $$self{log_handle};
-    *STDERR = *STDERR_SAVED;
+    *STDERR                                    = *STDERR_SAVED;
+    $LaTeXML::Common::Error::COLORIZED_LOGGING = -t STDERR;
   }
   my $log = $$self{log};
   $$self{log} = q{};

@@ -82,7 +82,7 @@ sub latexml_ok {
   my ($texpath, $xmlpath, $name) = @_;
   if (my $texstrings = process_texfile($texpath, $name)) {
     if (my $xmlstrings = process_xmlfile($xmlpath, $name)) {
-      return is_strings($xmlstrings, $texstrings, $name); } } }
+      return is_strings($texstrings, $xmlstrings, $name); } } }
 
 # These return the list-of-strings form of whatever was requested, if successful,
 # otherwise undef; and they will have reported the failure
@@ -143,6 +143,8 @@ sub is_filecontent {
     close($IN);
     return is_strings($strings, [@lines], $name); } }
 
+# $strings1 is the currently generated material
+# $strings2 is the stored expected result.
 sub is_strings {
   my ($strings1, $strings2, $name) = @_;
   my $max = $#$strings1 > $#$strings2 ? $#$strings1 : $#$strings2;
@@ -196,12 +198,12 @@ sub daemon_ok {
     # Compare the just generated $base.test.xml to the previous $base.xml
     if (my $teststrings = process_xmlfile("$base.test.xml", $base)) {
       if (my $xmlstrings = process_xmlfile("$base.xml", $base)) {
-        is_strings($xmlstrings, $teststrings, $base); } }
+        is_strings($teststrings, $xmlstrings, $base); } }
 
     # Compare the just generated $base.test.status to the previous $base.status
     if (my $teststatus = get_filecontent("$base.test.status", $base)) {
       if (my $status = get_filecontent("$base.status", $base)) {
-        is_strings($status, $teststatus, $base); } }
+        is_strings($teststatus, $status, $base); } }
     unlink "$base.test.xml"    if -e "$base.test.xml";
     unlink "$base.test.status" if -e "$base.test.status";
   }
