@@ -383,9 +383,6 @@ sub finalize_rec {
     # On the other hand, if the font declaration has NOT been effected,
     # We'll need to put an extra wrapper around the text!
     elsif ($type == XML_TEXT_NODE) {
-      # Remove any pending declarations that can't be on $FONT_ELEMENT_NAME
-      foreach my $key (keys %pending_declaration) {
-        delete $pending_declaration{$key} unless $self->canHaveAttribute($FONT_ELEMENT_NAME, $key); }
       if ($self->canContain($qname, $FONT_ELEMENT_NAME)
         && scalar(keys %pending_declaration)) {
         # Too late to do wrapNodes?
@@ -1128,8 +1125,8 @@ sub autoCollapseChildren {
             $node->setAttribute($key, $class . ' ' . $val); }
           else {
             $node->setAttribute($key, $val); } }
-        # xoffset, yoffset should sum up, if present on both.
-        elsif ($key =~ /^(xoffset|yoffset)$/) {
+        # xoffset, yoffset, pad-width, pad-height should sum up, if present on both.
+        elsif ($key =~ /^(xoffset|yoffset|pad-height|pad-width)$/) {
           if (my $val2 = $node->getAttribute($key)) {
             my $v1 = $val =~ /^([\+\-\d\.]*)pt$/  && $1;
             my $v2 = $val2 =~ /^([\+\-\d\.]*)pt$/ && $1;
@@ -1331,26 +1328,10 @@ sub pruneXMDuals {
   foreach my $dual (reverse $self->findnodes('descendant-or-self::ltx:XMDual')) {
     my ($content, $presentation) = element_nodes($dual);
     if (!$self->findnode('descendant-or-self::*[@_pvis or @_cvis]', $content)) {    # content never seen
-      $self->collapseXMDual($dual, $presentation); }
+      $self->replaceTree($presentation, $dual); }
     elsif (!$self->findnode('descendant-or-self::*[@_pvis or @_cvis]', $presentation)) {    # pres.
-      $self->collapseXMDual($dual, $content); }
+      $self->replaceTree($content, $dual); }
   }
-  return; }
-
-# Replace an XMDual with one of its branches
-sub collapseXMDual {
-  my ($self, $dual, $branch) = @_;
-  # The other branch is not visible, nor referenced,
-  # but the dual may have an id and be referenced
-  if (my $dualid = $dual->getAttribute('xml:id')) {
-    $self->unRecordID($dualid);    # We'll move or remove the ID from the dual
-    if (my $branchid = $branch->getAttribute('xml:id')) {    # branch has id too!
-      foreach my $ref ($self->findnodes("//*[\@idref='$dualid']")) {
-        $ref->setAttribute(idref => $branchid); } }          # Change dualid refs to branchid
-    else {
-      $branch->setAttribute('xml:id' => $dualid);            # Just use same ID on the branch
-      $self->recordID($dualid => $branch); } }
-  $self->replaceTree($branch, $dual);
   return; }
 
 #**********************************************************************
@@ -1376,7 +1357,8 @@ sub setNodeFont {
   $$self{node_fonts}{$fontid} = $font;
   if ($node->nodeType == XML_ELEMENT_NODE) {
     $node->setAttribute(_font => $fontid); }
-  # otherwise, probably just ignorable?
+  else {
+    Warn('malformed', 'font', $node, "Can't set font on this node"); }
   return; }
 
 sub getNodeFont {

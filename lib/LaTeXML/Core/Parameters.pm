@@ -64,7 +64,12 @@ sub readArguments {
   my ($self, $gullet, $fordefn) = @_;
   my @args = ();
   foreach my $parameter (@$self) {
+    #    my $value = &{$$parameter{reader}}($gullet,@{$$parameter{extra}||[]});
     my $value = $parameter->read($gullet);
+    if ((!defined $value) && !$$parameter{optional}) {
+      Error('expected', $parameter, $gullet,
+        "Missing argument " . ToString($parameter) . " for " . ToString($fordefn),
+        $gullet->showUnexpected); }
     push(@args, $value) unless $$parameter{novalue}; }
   return @args; }
 
@@ -73,9 +78,26 @@ sub readArgumentsAndDigest {
   my @args   = ();
   my $gullet = $stomach->getGullet;
   foreach my $parameter (@$self) {
-    my $value = $parameter->read($gullet, $fordefn);
+    my $value = $parameter->read($gullet);
+    if ((!defined $value) && !$$parameter{optional}) {
+      Error('expected', $parameter, $stomach,
+        "Missing argument " . Stringify($parameter) . " for " . Stringify($fordefn),
+        $gullet->showUnexpected); }
     if (!$$parameter{novalue}) {
-      $value = $parameter->digest($stomach, $value, $fordefn);
+      # If semiverbatim, Expand (before digest), so tokens can be neutralized; BLECH!!!!
+      if ($$parameter{semiverbatim}) {
+        $STATE->beginSemiverbatim();
+        if ((ref $value eq 'LaTeXML::Core::Token') || (ref $value eq 'LaTeXML::Core::Tokens')) {
+          $gullet->readingFromMouth(LaTeXML::Core::Mouth->new(), sub {
+              my ($igullet) = @_;
+              $igullet->unread($value);
+              my @tokens = ();
+              while (defined(my $token = $igullet->readXToken(1, 1))) {
+                push(@tokens, $token); }
+              $value = Tokens(@tokens);
+              $value = $value->neutralize; }); } }
+      $value = $value->beDigested($stomach) if (ref $value) && !$$parameter{undigested};
+      $STATE->endSemiverbatim() if $$parameter{semiverbatim};    # Corner case?
       push(@args, $value); } }
   return @args; }
 

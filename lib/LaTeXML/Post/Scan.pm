@@ -352,7 +352,7 @@ sub indexmark_handler {
     $entry->noteAssociation(referrers => $parent_id => ($node->getAttribute('style') || 'normal')); }
   return; }
 
-# This handles glossaryentry
+# This handles glossarymark and glossaryentry
 sub glossaryentry_handler {
   my ($self, $doc, $node, $tag, $parent_id) = @_;
   my $id   = $node->getAttribute('xml:id');

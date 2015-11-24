@@ -456,9 +456,6 @@
     <xsl:if test="@float">
       <xsl:value-of select="concat(' ',f:class-pref('ltx_align_float',@float))"/>
     </xsl:if>
-    <xsl:if test="@framed">
-      <xsl:value-of select="concat(' ',f:class-pref('ltx_framed_',@framed))"/>
-    </xsl:if>
   </xsl:template>
 
   <!-- Add a CSS style attribute to the current html element
@@ -506,6 +503,8 @@
     <xsl:if test="@depth"  >
       <xsl:value-of select="concat('vertical-align:',f:negate(@depth),';')"/>
     </xsl:if>
+    <xsl:if test="@pad-width" ><xsl:value-of select="concat('height:',@pad-width,';')"/></xsl:if>
+    <xsl:if test="@pad-height"><xsl:value-of select="concat('height:',@pad-height,';')"/></xsl:if>
     <xsl:if test="@xoffset">
       <xsl:value-of select="concat('position:relative; left:',@xoffset,';')"/>
     </xsl:if>
@@ -517,10 +516,44 @@
       <xsl:value-of select="concat('background-color:',@backgroundcolor,';')"/>
     </xsl:if>
     <xsl:if test="@opacity"><xsl:value-of select="concat('opacity:',@opacity,';')"/></xsl:if>
-    <xsl:if test="@framecolor">
-      <xsl:value-of select="'border-color: '"/>
-      <xsl:value-of select="@framecolor"/>
+    <xsl:if test="@framed='rectangle'">
+      <xsl:value-of select="'border:1px solid '"/>
+      <xsl:choose>
+        <xsl:when test="@framecolor">
+          <xsl:value-of select="@framecolor"/>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:value-of select="'black'"/>
+        </xsl:otherwise>
+      </xsl:choose>
       <xsl:value-of select="';'"/>
+    </xsl:if>
+    <xsl:if test="@framed='left'">
+      <xsl:value-of select="'border-left:1px solid '"/>
+      <xsl:choose>
+        <xsl:when test="@framecolor">
+          <xsl:value-of select="@framecolor"/>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:value-of select="'black'"/>
+        </xsl:otherwise>
+      </xsl:choose>
+      <xsl:value-of select="';'"/>
+    </xsl:if>
+    <xsl:if test="@framed='right'">
+      <xsl:value-of select="'border-right:1px solid '"/>
+      <xsl:choose>
+        <xsl:when test="@framecolor">
+          <xsl:value-of select="@framecolor"/>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:value-of select="'black'"/>
+        </xsl:otherwise>
+      </xsl:choose>
+      <xsl:value-of select="';'"/>
+    </xsl:if>
+    <xsl:if test="@framed='underline'">
+      <xsl:value-of select="'text-decoration:underline;'"/>
     </xsl:if>
     <xsl:if test="@cssstyle"><xsl:value-of select="concat(@cssstyle,';')"/></xsl:if>
   </xsl:template>

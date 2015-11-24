@@ -34,6 +34,8 @@
   width CDATA #IMPLIED
   height CDATA #IMPLIED
   depth CDATA #IMPLIED
+  pad-width CDATA #IMPLIED
+  pad-height CDATA #IMPLIED
   xoffset CDATA #IMPLIED
   yoffset CDATA #IMPLIED
   align (left|center|right|justified) #IMPLIED
@@ -277,6 +279,8 @@
   width CDATA #IMPLIED
   height CDATA #IMPLIED
   depth CDATA #IMPLIED
+  pad-width CDATA #IMPLIED
+  pad-height CDATA #IMPLIED
   xoffset CDATA #IMPLIED
   yoffset CDATA #IMPLIED
   align (left|center|right|justified) #IMPLIED
@@ -473,6 +477,8 @@
   width CDATA #IMPLIED
   height CDATA #IMPLIED
   depth CDATA #IMPLIED
+  pad-width CDATA #IMPLIED
+  pad-height CDATA #IMPLIED
   xoffset CDATA #IMPLIED
   yoffset CDATA #IMPLIED
   align (left|center|right|justified) #IMPLIED
@@ -677,6 +683,8 @@
   width CDATA #IMPLIED
   height CDATA #IMPLIED
   depth CDATA #IMPLIED
+  pad-width CDATA #IMPLIED
+  pad-height CDATA #IMPLIED
   xoffset CDATA #IMPLIED
   yoffset CDATA #IMPLIED
   align (left|center|right|justified) #IMPLIED
@@ -1020,6 +1028,8 @@
   width CDATA #IMPLIED
   height CDATA #IMPLIED
   depth CDATA #IMPLIED
+  pad-width CDATA #IMPLIED
+  pad-height CDATA #IMPLIED
   xoffset CDATA #IMPLIED
   yoffset CDATA #IMPLIED
   align (left|center|right|justified) #IMPLIED
@@ -1496,6 +1506,8 @@
   width CDATA #IMPLIED
   height CDATA #IMPLIED
   depth CDATA #IMPLIED
+  pad-width CDATA #IMPLIED
+  pad-height CDATA #IMPLIED
   xoffset CDATA #IMPLIED
   yoffset CDATA #IMPLIED
   align (left|center|right|justified) #IMPLIED
@@ -1611,6 +1623,8 @@
   width CDATA #IMPLIED
   height CDATA #IMPLIED
   depth CDATA #IMPLIED
+  pad-width CDATA #IMPLIED
+  pad-height CDATA #IMPLIED
   xoffset CDATA #IMPLIED
   yoffset CDATA #IMPLIED
   align (left|center|right|justified) #IMPLIED
@@ -1670,6 +1684,8 @@
   width CDATA #IMPLIED
   height CDATA #IMPLIED
   depth CDATA #IMPLIED
+  pad-width CDATA #IMPLIED
+  pad-height CDATA #IMPLIED
   xoffset CDATA #IMPLIED
   yoffset CDATA #IMPLIED
   align (left|center|right|justified) #IMPLIED
@@ -1729,6 +1745,8 @@
   width CDATA #IMPLIED
   height CDATA #IMPLIED
   depth CDATA #IMPLIED
+  pad-width CDATA #IMPLIED
+  pad-height CDATA #IMPLIED
   xoffset CDATA #IMPLIED
   yoffset CDATA #IMPLIED
   align (left|center|right|justified) #IMPLIED
@@ -1787,6 +1805,8 @@
   width CDATA #IMPLIED
   height CDATA #IMPLIED
   depth CDATA #IMPLIED
+  pad-width CDATA #IMPLIED
+  pad-height CDATA #IMPLIED
   xoffset CDATA #IMPLIED
   yoffset CDATA #IMPLIED
   align (left|center|right|justified) #IMPLIED
@@ -1942,18 +1962,14 @@
   datatype CDATA #IMPLIED
   content CDATA #IMPLIED
   xml:lang CDATA #IMPLIED
-  width CDATA #IMPLIED
-  height CDATA #IMPLIED
-  depth CDATA #IMPLIED
-  xoffset CDATA #IMPLIED
-  yoffset CDATA #IMPLIED
-  align (left|center|right|justified) #IMPLIED
-  vattach (top|middle|bottom|baseline) #IMPLIED
-  float CDATA #IMPLIED
-  framed CDATA #IMPLIED
-  framecolor CDATA #IMPLIED
   role CDATA #IMPLIED
+  open CDATA #IMPLIED
+  close CDATA #IMPLIED
   enclose CDATA #IMPLIED
+  argopen CDATA #IMPLIED
+  argclose CDATA #IMPLIED
+  separators CDATA #IMPLIED
+  punctuation CDATA #IMPLIED
   lpadding CDATA #IMPLIED
   rpadding CDATA #IMPLIED
   possibleFunction CDATA #IMPLIED
@@ -1970,7 +1986,7 @@
   scriptpos CDATA #IMPLIED
   thickness CDATA #IMPLIED
   stretchy CDATA #IMPLIED
-  mathstyle (display|text|script|scriptscript) #IMPLIED>
+  mathstyle (display|text|script|scriptscript|inline) #IMPLIED>
 
 <!ELEMENT ltx:XMApp (ltx:XMApp|ltx:XMTok|ltx:XMRef|ltx:XMHint|ltx:XMArg
                      |ltx:XMWrap|ltx:XMDual|ltx:XMText|ltx:XMArray
@@ -1994,18 +2010,14 @@
   datatype CDATA #IMPLIED
   content CDATA #IMPLIED
   xml:lang CDATA #IMPLIED
-  width CDATA #IMPLIED
-  height CDATA #IMPLIED
-  depth CDATA #IMPLIED
-  xoffset CDATA #IMPLIED
-  yoffset CDATA #IMPLIED
-  align (left|center|right|justified) #IMPLIED
-  vattach (top|middle|bottom|baseline) #IMPLIED
-  float CDATA #IMPLIED
-  framed CDATA #IMPLIED
-  framecolor CDATA #IMPLIED
   role CDATA #IMPLIED
+  open CDATA #IMPLIED
+  close CDATA #IMPLIED
   enclose CDATA #IMPLIED
+  argopen CDATA #IMPLIED
+  argclose CDATA #IMPLIED
+  separators CDATA #IMPLIED
+  punctuation CDATA #IMPLIED
   lpadding CDATA #IMPLIED
   rpadding CDATA #IMPLIED
   possibleFunction CDATA #IMPLIED
@@ -2043,18 +2055,14 @@
   datatype CDATA #IMPLIED
   content CDATA #IMPLIED
   xml:lang CDATA #IMPLIED
-  width CDATA #IMPLIED
-  height CDATA #IMPLIED
-  depth CDATA #IMPLIED
-  xoffset CDATA #IMPLIED
-  yoffset CDATA #IMPLIED
-  align (left|center|right|justified) #IMPLIED
-  vattach (top|middle|bottom|baseline) #IMPLIED
-  float CDATA #IMPLIED
-  framed CDATA #IMPLIED
-  framecolor CDATA #IMPLIED
   role CDATA #IMPLIED
+  open CDATA #IMPLIED
+  close CDATA #IMPLIED
   enclose CDATA #IMPLIED
+  argopen CDATA #IMPLIED
+  argclose CDATA #IMPLIED
+  separators CDATA #IMPLIED
+  punctuation CDATA #IMPLIED
   lpadding CDATA #IMPLIED
   rpadding CDATA #IMPLIED
   possibleFunction CDATA #IMPLIED
@@ -2081,18 +2089,14 @@
   datatype CDATA #IMPLIED
   content CDATA #IMPLIED
   xml:lang CDATA #IMPLIED
-  width CDATA #IMPLIED
-  height CDATA #IMPLIED
-  depth CDATA #IMPLIED
-  xoffset CDATA #IMPLIED
-  yoffset CDATA #IMPLIED
-  align (left|center|right|justified) #IMPLIED
-  vattach (top|middle|bottom|baseline) #IMPLIED
-  float CDATA #IMPLIED
-  framed CDATA #IMPLIED
-  framecolor CDATA #IMPLIED
   role CDATA #IMPLIED
+  open CDATA #IMPLIED
+  close CDATA #IMPLIED
   enclose CDATA #IMPLIED
+  argopen CDATA #IMPLIED
+  argclose CDATA #IMPLIED
+  separators CDATA #IMPLIED
+  punctuation CDATA #IMPLIED
   lpadding CDATA #IMPLIED
   rpadding CDATA #IMPLIED
   possibleFunction CDATA #IMPLIED
@@ -2129,18 +2133,14 @@
   datatype CDATA #IMPLIED
   content CDATA #IMPLIED
   xml:lang CDATA #IMPLIED
-  width CDATA #IMPLIED
-  height CDATA #IMPLIED
-  depth CDATA #IMPLIED
-  xoffset CDATA #IMPLIED
-  yoffset CDATA #IMPLIED
-  align (left|center|right|justified) #IMPLIED
-  vattach (top|middle|bottom|baseline) #IMPLIED
-  float CDATA #IMPLIED
-  framed CDATA #IMPLIED
-  framecolor CDATA #IMPLIED
   role CDATA #IMPLIED
+  open CDATA #IMPLIED
+  close CDATA #IMPLIED
   enclose CDATA #IMPLIED
+  argopen CDATA #IMPLIED
+  argclose CDATA #IMPLIED
+  separators CDATA #IMPLIED
+  punctuation CDATA #IMPLIED
   lpadding CDATA #IMPLIED
   rpadding CDATA #IMPLIED
   possibleFunction CDATA #IMPLIED
@@ -2171,18 +2171,14 @@
   datatype CDATA #IMPLIED
   content CDATA #IMPLIED
   xml:lang CDATA #IMPLIED
-  width CDATA #IMPLIED
-  height CDATA #IMPLIED
-  depth CDATA #IMPLIED
-  xoffset CDATA #IMPLIED
-  yoffset CDATA #IMPLIED
-  align (left|center|right|justified) #IMPLIED
-  vattach (top|middle|bottom|baseline) #IMPLIED
-  float CDATA #IMPLIED
-  framed CDATA #IMPLIED
-  framecolor CDATA #IMPLIED
   role CDATA #IMPLIED
+  open CDATA #IMPLIED
+  close CDATA #IMPLIED
   enclose CDATA #IMPLIED
+  argopen CDATA #IMPLIED
+  argclose CDATA #IMPLIED
+  separators CDATA #IMPLIED
+  punctuation CDATA #IMPLIED
   lpadding CDATA #IMPLIED
   rpadding CDATA #IMPLIED
   possibleFunction CDATA #IMPLIED
@@ -2217,18 +2213,14 @@
   datatype CDATA #IMPLIED
   content CDATA #IMPLIED
   xml:lang CDATA #IMPLIED
-  width CDATA #IMPLIED
-  height CDATA #IMPLIED
-  depth CDATA #IMPLIED
-  xoffset CDATA #IMPLIED
-  yoffset CDATA #IMPLIED
-  align (left|center|right|justified) #IMPLIED
-  vattach (top|middle|bottom|baseline) #IMPLIED
-  float CDATA #IMPLIED
-  framed CDATA #IMPLIED
-  framecolor CDATA #IMPLIED
   role CDATA #IMPLIED
+  open CDATA #IMPLIED
+  close CDATA #IMPLIED
   enclose CDATA #IMPLIED
+  argopen CDATA #IMPLIED
+  argclose CDATA #IMPLIED
+  separators CDATA #IMPLIED
+  punctuation CDATA #IMPLIED
   lpadding CDATA #IMPLIED
   rpadding CDATA #IMPLIED
   possibleFunction CDATA #IMPLIED
@@ -2257,18 +2249,14 @@
   datatype CDATA #IMPLIED
   content CDATA #IMPLIED
   xml:lang CDATA #IMPLIED
-  width CDATA #IMPLIED
-  height CDATA #IMPLIED
-  depth CDATA #IMPLIED
-  xoffset CDATA #IMPLIED
-  yoffset CDATA #IMPLIED
-  align (left|center|right|justified) #IMPLIED
-  vattach (top|middle|bottom|baseline) #IMPLIED
-  float CDATA #IMPLIED
-  framed CDATA #IMPLIED
-  framecolor CDATA #IMPLIED
   role CDATA #IMPLIED
+  open CDATA #IMPLIED
+  close CDATA #IMPLIED
   enclose CDATA #IMPLIED
+  argopen CDATA #IMPLIED
+  argclose CDATA #IMPLIED
+  separators CDATA #IMPLIED
+  punctuation CDATA #IMPLIED
   lpadding CDATA #IMPLIED
   rpadding CDATA #IMPLIED
   possibleFunction CDATA #IMPLIED
@@ -2296,18 +2284,14 @@
   datatype CDATA #IMPLIED
   content CDATA #IMPLIED
   xml:lang CDATA #IMPLIED
-  width CDATA #IMPLIED
-  height CDATA #IMPLIED
-  depth CDATA #IMPLIED
-  xoffset CDATA #IMPLIED
-  yoffset CDATA #IMPLIED
-  align (left|center|right|justified) #IMPLIED
-  vattach (top|middle|bottom|baseline) #IMPLIED
-  float CDATA #IMPLIED
-  framed CDATA #IMPLIED
-  framecolor CDATA #IMPLIED
   role CDATA #IMPLIED
+  open CDATA #IMPLIED
+  close CDATA #IMPLIED
   enclose CDATA #IMPLIED
+  argopen CDATA #IMPLIED
+  argclose CDATA #IMPLIED
+  separators CDATA #IMPLIED
+  punctuation CDATA #IMPLIED
   lpadding CDATA #IMPLIED
   rpadding CDATA #IMPLIED
   possibleFunction CDATA #IMPLIED

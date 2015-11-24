@@ -39,17 +39,11 @@
       <equation frefnum="(1.1)" refnum="1.1" xml:id="S1.E1">
         <Math mode="display" tex="a+b," text="a + b" xml:id="S1.E1.m1">
           <XMath>
-            <XMDual>
-              <XMRef idref="S1.E1.m1.1"/>
-              <XMWrap>
-                <XMApp xml:id="S1.E1.m1.1">
-                  <XMTok meaning="plus" role="ADDOP">+</XMTok>
-                  <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                  <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                </XMApp>
-                <XMTok role="PUNCT">,</XMTok>
-              </XMWrap>
-            </XMDual>
+            <XMApp punctuation=",">
+              <XMTok meaning="plus" role="ADDOP">+</XMTok>
+              <XMTok font="italic" role="UNKNOWN">a</XMTok>
+              <XMTok font="italic" role="UNKNOWN">b</XMTok>
+            </XMApp>
           </XMath>
         </Math>
       </equation>
@@ -58,17 +52,11 @@
       <equation frefnum="(1.2)" refnum="1.2" xml:id="S1.E2">
         <Math mode="display" tex="c+d," text="c + d" xml:id="S1.E2.m1">
           <XMath>
-            <XMDual>
-              <XMRef idref="S1.E2.m1.1"/>
-              <XMWrap>
-                <XMApp xml:id="S1.E2.m1.1">
-                  <XMTok meaning="plus" role="ADDOP">+</XMTok>
-                  <XMTok font="italic" role="UNKNOWN">c</XMTok>
-                  <XMTok font="italic" role="UNKNOWN">d</XMTok>
-                </XMApp>
-                <XMTok role="PUNCT">,</XMTok>
-              </XMWrap>
-            </XMDual>
+            <XMApp punctuation=",">
+              <XMTok meaning="plus" role="ADDOP">+</XMTok>
+              <XMTok font="italic" role="UNKNOWN">c</XMTok>
+              <XMTok font="italic" role="UNKNOWN">d</XMTok>
+            </XMApp>
           </XMath>
         </Math>
       </equation>
@@ -100,7 +88,7 @@
                   <XMApp>
                     <XMTok role="SUPERSCRIPTOP" scriptpos="post9"/>
                     <XMTok font="italic" role="UNKNOWN">x</XMTok>
-                    <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                    <XMTok meaning="2" role="NUMBER">2</XMTok>
                   </XMApp>
                 </XMath>
               </Math></td>
@@ -112,7 +100,7 @@
                   <XMApp>
                     <XMTok role="SUPERSCRIPTOP" scriptpos="post9"/>
                     <XMTok font="italic" role="UNKNOWN">y</XMTok>
-                    <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                    <XMTok meaning="2" role="NUMBER">2</XMTok>
                   </XMApp>
                 </XMath>
               </Math></td>
@@ -412,19 +400,19 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                 <XMApp>
                   <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                   <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                  <XMTok fontsize="70%" meaning="1" role="NUMBER">1</XMTok>
+                  <XMTok meaning="1" role="NUMBER">1</XMTok>
                 </XMApp>
                 <XMApp>
                   <XMTok meaning="plus" role="ADDOP">+</XMTok>
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                    <XMTok fontsize="70%" meaning="1" role="NUMBER">1</XMTok>
+                    <XMTok meaning="1" role="NUMBER">1</XMTok>
                   </XMApp>
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">c</XMTok>
-                    <XMTok fontsize="70%" meaning="1" role="NUMBER">1</XMTok>
+                    <XMTok meaning="1" role="NUMBER">1</XMTok>
                   </XMApp>
                 </XMApp>
               </XMApp>
@@ -439,7 +427,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                 <XMApp>
                   <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                   <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                  <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                  <XMTok meaning="2" role="NUMBER">2</XMTok>
                 </XMApp>
                 <XMApp>
                   <XMTok meaning="plus" role="ADDOP">+</XMTok>
@@ -450,24 +438,24 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                       <XMApp>
                         <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                         <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                        <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                        <XMTok meaning="2" role="NUMBER">2</XMTok>
                       </XMApp>
                       <XMApp>
                         <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                         <XMTok font="italic" role="UNKNOWN">c</XMTok>
-                        <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                        <XMTok meaning="2" role="NUMBER">2</XMTok>
                       </XMApp>
                     </XMApp>
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">d</XMTok>
-                      <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                      <XMTok meaning="2" role="NUMBER">2</XMTok>
                     </XMApp>
                   </XMApp>
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">e</XMTok>
-                    <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                    <XMTok meaning="2" role="NUMBER">2</XMTok>
                   </XMApp>
                 </XMApp>
               </XMApp>
@@ -487,19 +475,19 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                    <XMTok fontsize="70%" meaning="1" role="NUMBER">1</XMTok>
+                    <XMTok meaning="1" role="NUMBER">1</XMTok>
                   </XMApp>
                   <XMApp>
                     <XMTok meaning="plus" role="ADDOP">+</XMTok>
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                      <XMTok fontsize="70%" meaning="1" role="NUMBER">1</XMTok>
+                      <XMTok meaning="1" role="NUMBER">1</XMTok>
                     </XMApp>
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">c</XMTok>
-                      <XMTok fontsize="70%" meaning="1" role="NUMBER">1</XMTok>
+                      <XMTok meaning="1" role="NUMBER">1</XMTok>
                     </XMApp>
                   </XMApp>
                 </XMApp>
@@ -511,7 +499,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                      <XMTok fontsize="70%" meaning="1" role="NUMBER">1</XMTok>
+                      <XMTok meaning="1" role="NUMBER">1</XMTok>
                     </XMApp>
                   </XMath>
                 </Math></td>
@@ -525,12 +513,12 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                         <XMApp>
                           <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                           <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                          <XMTok fontsize="70%" meaning="1" role="NUMBER">1</XMTok>
+                          <XMTok meaning="1" role="NUMBER">1</XMTok>
                         </XMApp>
                         <XMApp>
                           <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                           <XMTok font="italic" role="UNKNOWN">c</XMTok>
-                          <XMTok fontsize="70%" meaning="1" role="NUMBER">1</XMTok>
+                          <XMTok meaning="1" role="NUMBER">1</XMTok>
                         </XMApp>
                       </XMApp>
                     </XMApp>
@@ -548,7 +536,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                    <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                    <XMTok meaning="2" role="NUMBER">2</XMTok>
                   </XMApp>
                   <XMApp>
                     <XMTok meaning="plus" role="ADDOP">+</XMTok>
@@ -559,24 +547,24 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                         <XMApp>
                           <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                           <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                          <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                          <XMTok meaning="2" role="NUMBER">2</XMTok>
                         </XMApp>
                         <XMApp>
                           <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                           <XMTok font="italic" role="UNKNOWN">c</XMTok>
-                          <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                          <XMTok meaning="2" role="NUMBER">2</XMTok>
                         </XMApp>
                       </XMApp>
                       <XMApp>
                         <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                         <XMTok font="italic" role="UNKNOWN">d</XMTok>
-                        <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                        <XMTok meaning="2" role="NUMBER">2</XMTok>
                       </XMApp>
                     </XMApp>
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">e</XMTok>
-                      <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                      <XMTok meaning="2" role="NUMBER">2</XMTok>
                     </XMApp>
                   </XMApp>
                 </XMApp>
@@ -588,7 +576,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                      <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                      <XMTok meaning="2" role="NUMBER">2</XMTok>
                     </XMApp>
                   </XMath>
                 </Math></td>
@@ -606,24 +594,24 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                             <XMApp>
                               <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                               <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                              <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                              <XMTok meaning="2" role="NUMBER">2</XMTok>
                             </XMApp>
                             <XMApp>
                               <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                               <XMTok font="italic" role="UNKNOWN">c</XMTok>
-                              <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                              <XMTok meaning="2" role="NUMBER">2</XMTok>
                             </XMApp>
                           </XMApp>
                           <XMApp>
                             <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                             <XMTok font="italic" role="UNKNOWN">d</XMTok>
-                            <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                            <XMTok meaning="2" role="NUMBER">2</XMTok>
                           </XMApp>
                         </XMApp>
                         <XMApp>
                           <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                           <XMTok font="italic" role="UNKNOWN">e</XMTok>
-                          <XMTok fontsize="70%" meaning="2" role="NUMBER">2</XMTok>
+                          <XMTok meaning="2" role="NUMBER">2</XMTok>
                         </XMApp>
                       </XMApp>
                     </XMApp>
@@ -645,12 +633,12 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                    <XMTok fontsize="70%" meaning="11" role="NUMBER">11</XMTok>
+                    <XMTok meaning="11" role="NUMBER">11</XMTok>
                   </XMApp>
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                    <XMTok fontsize="70%" meaning="11" role="NUMBER">11</XMTok>
+                    <XMTok meaning="11" role="NUMBER">11</XMTok>
                   </XMApp>
                 </XMApp>
               </XMath>
@@ -661,7 +649,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                      <XMTok fontsize="70%" meaning="11" role="NUMBER">11</XMTok>
+                      <XMTok meaning="11" role="NUMBER">11</XMTok>
                     </XMApp>
                   </XMath>
                 </Math></td>
@@ -673,7 +661,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                       <XMApp>
                         <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                         <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                        <XMTok fontsize="70%" meaning="11" role="NUMBER">11</XMTok>
+                        <XMTok meaning="11" role="NUMBER">11</XMTok>
                       </XMApp>
                     </XMApp>
                   </XMath>
@@ -688,12 +676,12 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                    <XMTok fontsize="70%" meaning="12" role="NUMBER">12</XMTok>
+                    <XMTok meaning="12" role="NUMBER">12</XMTok>
                   </XMApp>
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                    <XMTok fontsize="70%" meaning="12" role="NUMBER">12</XMTok>
+                    <XMTok meaning="12" role="NUMBER">12</XMTok>
                   </XMApp>
                 </XMApp>
               </XMath>
@@ -704,7 +692,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                      <XMTok fontsize="70%" meaning="12" role="NUMBER">12</XMTok>
+                      <XMTok meaning="12" role="NUMBER">12</XMTok>
                     </XMApp>
                   </XMath>
                 </Math></td>
@@ -716,7 +704,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                       <XMApp>
                         <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                         <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                        <XMTok fontsize="70%" meaning="12" role="NUMBER">12</XMTok>
+                        <XMTok meaning="12" role="NUMBER">12</XMTok>
                       </XMApp>
                     </XMApp>
                   </XMath>
@@ -733,12 +721,12 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                    <XMTok fontsize="70%" meaning="21" role="NUMBER">21</XMTok>
+                    <XMTok meaning="21" role="NUMBER">21</XMTok>
                   </XMApp>
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                    <XMTok fontsize="70%" meaning="21" role="NUMBER">21</XMTok>
+                    <XMTok meaning="21" role="NUMBER">21</XMTok>
                   </XMApp>
                 </XMApp>
               </XMath>
@@ -749,7 +737,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                      <XMTok fontsize="70%" meaning="21" role="NUMBER">21</XMTok>
+                      <XMTok meaning="21" role="NUMBER">21</XMTok>
                     </XMApp>
                   </XMath>
                 </Math></td>
@@ -761,7 +749,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                       <XMApp>
                         <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                         <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                        <XMTok fontsize="70%" meaning="21" role="NUMBER">21</XMTok>
+                        <XMTok meaning="21" role="NUMBER">21</XMTok>
                       </XMApp>
                     </XMApp>
                   </XMath>
@@ -776,19 +764,19 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                    <XMTok fontsize="70%" meaning="22" role="NUMBER">22</XMTok>
+                    <XMTok meaning="22" role="NUMBER">22</XMTok>
                   </XMApp>
                   <XMApp>
                     <XMTok meaning="plus" role="ADDOP">+</XMTok>
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                      <XMTok fontsize="70%" meaning="22" role="NUMBER">22</XMTok>
+                      <XMTok meaning="22" role="NUMBER">22</XMTok>
                     </XMApp>
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">c</XMTok>
-                      <XMTok fontsize="70%" meaning="22" role="NUMBER">22</XMTok>
+                      <XMTok meaning="22" role="NUMBER">22</XMTok>
                     </XMApp>
                   </XMApp>
                 </XMApp>
@@ -800,7 +788,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                      <XMTok fontsize="70%" meaning="22" role="NUMBER">22</XMTok>
+                      <XMTok meaning="22" role="NUMBER">22</XMTok>
                     </XMApp>
                   </XMath>
                 </Math></td>
@@ -814,12 +802,12 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                         <XMApp>
                           <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                           <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                          <XMTok fontsize="70%" meaning="22" role="NUMBER">22</XMTok>
+                          <XMTok meaning="22" role="NUMBER">22</XMTok>
                         </XMApp>
                         <XMApp>
                           <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                           <XMTok font="italic" role="UNKNOWN">c</XMTok>
-                          <XMTok fontsize="70%" meaning="22" role="NUMBER">22</XMTok>
+                          <XMTok meaning="22" role="NUMBER">22</XMTok>
                         </XMApp>
                       </XMApp>
                     </XMApp>
@@ -867,12 +855,12 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                    <XMTok fontsize="70%" meaning="11" role="NUMBER">11</XMTok>
+                    <XMTok meaning="11" role="NUMBER">11</XMTok>
                   </XMApp>
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                    <XMTok fontsize="70%" meaning="11" role="NUMBER">11</XMTok>
+                    <XMTok meaning="11" role="NUMBER">11</XMTok>
                   </XMApp>
                 </XMApp>
               </XMath>
@@ -883,7 +871,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                      <XMTok fontsize="70%" meaning="11" role="NUMBER">11</XMTok>
+                      <XMTok meaning="11" role="NUMBER">11</XMTok>
                     </XMApp>
                   </XMath>
                 </Math></td>
@@ -895,7 +883,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                       <XMApp>
                         <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                         <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                        <XMTok fontsize="70%" meaning="11" role="NUMBER">11</XMTok>
+                        <XMTok meaning="11" role="NUMBER">11</XMTok>
                       </XMApp>
                     </XMApp>
                   </XMath>
@@ -910,12 +898,12 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                    <XMTok fontsize="70%" meaning="12" role="NUMBER">12</XMTok>
+                    <XMTok meaning="12" role="NUMBER">12</XMTok>
                   </XMApp>
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                    <XMTok fontsize="70%" meaning="12" role="NUMBER">12</XMTok>
+                    <XMTok meaning="12" role="NUMBER">12</XMTok>
                   </XMApp>
                 </XMApp>
               </XMath>
@@ -926,7 +914,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                      <XMTok fontsize="70%" meaning="12" role="NUMBER">12</XMTok>
+                      <XMTok meaning="12" role="NUMBER">12</XMTok>
                     </XMApp>
                   </XMath>
                 </Math></td>
@@ -938,7 +926,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                       <XMApp>
                         <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                         <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                        <XMTok fontsize="70%" meaning="12" role="NUMBER">12</XMTok>
+                        <XMTok meaning="12" role="NUMBER">12</XMTok>
                       </XMApp>
                     </XMApp>
                   </XMath>
@@ -955,12 +943,12 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                    <XMTok fontsize="70%" meaning="21" role="NUMBER">21</XMTok>
+                    <XMTok meaning="21" role="NUMBER">21</XMTok>
                   </XMApp>
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                    <XMTok fontsize="70%" meaning="21" role="NUMBER">21</XMTok>
+                    <XMTok meaning="21" role="NUMBER">21</XMTok>
                   </XMApp>
                 </XMApp>
               </XMath>
@@ -971,7 +959,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                      <XMTok fontsize="70%" meaning="21" role="NUMBER">21</XMTok>
+                      <XMTok meaning="21" role="NUMBER">21</XMTok>
                     </XMApp>
                   </XMath>
                 </Math></td>
@@ -983,7 +971,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                       <XMApp>
                         <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                         <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                        <XMTok fontsize="70%" meaning="21" role="NUMBER">21</XMTok>
+                        <XMTok meaning="21" role="NUMBER">21</XMTok>
                       </XMApp>
                     </XMApp>
                   </XMath>
@@ -998,19 +986,19 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                   <XMApp>
                     <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                     <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                    <XMTok fontsize="70%" meaning="22" role="NUMBER">22</XMTok>
+                    <XMTok meaning="22" role="NUMBER">22</XMTok>
                   </XMApp>
                   <XMApp>
                     <XMTok meaning="plus" role="ADDOP">+</XMTok>
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                      <XMTok fontsize="70%" meaning="22" role="NUMBER">22</XMTok>
+                      <XMTok meaning="22" role="NUMBER">22</XMTok>
                     </XMApp>
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">c</XMTok>
-                      <XMTok fontsize="70%" meaning="22" role="NUMBER">22</XMTok>
+                      <XMTok meaning="22" role="NUMBER">22</XMTok>
                     </XMApp>
                   </XMApp>
                 </XMApp>
@@ -1022,7 +1010,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                     <XMApp>
                       <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                       <XMTok font="italic" role="UNKNOWN">a</XMTok>
-                      <XMTok fontsize="70%" meaning="22" role="NUMBER">22</XMTok>
+                      <XMTok meaning="22" role="NUMBER">22</XMTok>
                     </XMApp>
                   </XMath>
                 </Math></td>
@@ -1036,12 +1024,12 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
                         <XMApp>
                           <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                           <XMTok font="italic" role="UNKNOWN">b</XMTok>
-                          <XMTok fontsize="70%" meaning="22" role="NUMBER">22</XMTok>
+                          <XMTok meaning="22" role="NUMBER">22</XMTok>
                         </XMApp>
                         <XMApp>
                           <XMTok role="SUBSCRIPTOP" scriptpos="post7"/>
                           <XMTok font="italic" role="UNKNOWN">c</XMTok>
-                          <XMTok fontsize="70%" meaning="22" role="NUMBER">22</XMTok>
+                          <XMTok meaning="22" role="NUMBER">22</XMTok>
                         </XMApp>
                       </XMApp>
                     </XMApp>

@@ -1771,13 +1771,12 @@ DefRegister('\mathindent' => Dimension(0));
 #======================================================================
 # sub, superscript and prime are in TeX.pool
 # Underlying support in TeX.pool.ltxml
-DefConstructor('\frac InFractionStyle InFractionStyle',
+DefConstructor('\frac{}{}',
   "<ltx:XMApp>"
-    . "<ltx:XMTok meaning='divide' role='FRACOP' mathstyle='#mathstyle'/>"
+    . "<ltx:XMTok meaning='divide' role='MULOP' mathstyle='#mathstyle'/>"
     . "<ltx:XMArg>#1</ltx:XMArg><ltx:XMArg>#2</ltx:XMArg>"
     . "</ltx:XMApp>",
-  sizer => sub { fracSizer($_[0]->getArg(1), $_[0]->getArg(2)); },
-  properties => { mathstyle => sub { LookupValue('font')->getMathstyle; } });
+  beforeDigest => \&beforeFrac, afterDigest => \&afterFrac);
 
 # Ellipsis: See TeX.pool
 

@@ -22,7 +22,7 @@ our @EXPORT = (
   qw( &DefMathML ),
   qw( &pmml &pmml_scriptsize &pmml_smaller
     &pmml_mi &pmml_mo &pmml_mn &pmml_bigop
-    &pmml_punctuate &pmml_parenthesize
+    &pmml_punctuate &pmml_parentesize
     &pmml_infix &pmml_script &pmml_summation),
   qw( &cmml &cmml_share &cmml_shared &cmml_ci
     &cmml_or_compose &cmml_synth_not &cmml_synth_complement),
@@ -168,7 +168,7 @@ sub realize {
 # For a node that is a (possibly embellished) operator,
 # find the underlying role.
 my %EMBELLISHING_ROLE = (    # CONSTANT
-  SUPERSCRIPTOP => 1, SUBSCRIPTOP => 1,
+  SUPERSCRIPTOP => 1, SUBSCRIPTOP => 1, STACKED => 1,
   OVERACCENT => 1, UNDERACCENT => 1, MODIFIER => 1, MODIFIEROP => 1);
 
 sub getOperatorRole {
@@ -223,41 +223,22 @@ sub lookupContent {
 my %stylestep = (    # CONSTANT
   display => 'text',         text         => 'script',
   script  => 'scriptscript', scriptscript => 'scriptscript');
-my %stylesize = (    # CONSTANT
-  display => '100%', text         => '100%',
-  script  => '70%',  scriptscript => '50%');
 my %style_script_step = (    # CONSTANT
   display => 'script',       text         => 'script',
   script  => 'scriptscript', scriptscript => 'scriptscript');
-# Attributes for m:mstyle when changing between two mathstyles
 my %stylemap = (             # CONSTANT
-  display => { text => { displaystyle => 'false' },
-    script       => { displaystyle => 'false', scriptlevel => '+1' },
-    scriptscript => { displaystyle => 'false', scriptlevel => '+2' } },
-  text => { display => { displaystyle => 'true' },
-    script       => { scriptlevel => '+1' },
-    scriptscript => { scriptlevel => '+2' } },
-  script => { display => { displaystyle => 'true', scriptlevel => '-1' },
-    text         => { scriptlevel => '-1' },
-    scriptscript => { scriptlevel => '+1' } },
-  scriptscript => { display => { displaystyle => 'true', scriptlevel => '-2' },
-    text   => { scriptlevel => '-2' },
-    script => { scriptlevel => '-1' } });
-# Similar to above, but for use when there are no MathML structures used
-# that NEED displaystyle to be set; presumably only to set a fontsize context
-my %stylemap2 = (    # CONSTANT
-  display => { text => {},
-    script       => { scriptlevel => '+1' },
-    scriptscript => { scriptlevel => '+2' } },
-  text => { display => {},
-    script       => { scriptlevel => '+1' },
-    scriptscript => { scriptlevel => '+2' } },
-  script => { display => { displaystyle => 'true', scriptlevel => '-1' },
-    text         => { scriptlevel => '-1' },
-    scriptscript => { scriptlevel => '+1' } },
-  scriptscript => { display => { displaystyle => 'true', scriptlevel => '-2' },
-    text   => { scriptlevel => '-2' },
-    script => { scriptlevel => '-1' } });
+  display => { text => [displaystyle => 'false'],
+    script       => [displaystyle => 'false', scriptlevel => '+1'],
+    scriptscript => [displaystyle => 'false', scriptlevel => '+2'] },
+  text => { display => [displaystyle => 'true'],
+    script       => [scriptlevel => '+1'],
+    scriptscript => [scriptlevel => '+2'] },
+  script => { display => [displaystyle => 'true', scriptlevel => '-1'],
+    text         => [scriptlevel => '-1'],
+    scriptscript => [scriptlevel => '+1'] },
+  scriptscript => { display => [displaystyle => 'true', scriptlevel => '-2'],
+    text   => [scriptlevel => '-2'],
+    script => [scriptlevel => '-1'] });
 
 # Mappings between (normalized) internal fonts & sizes.
 # Default math font is roman|medium|upright.
@@ -324,11 +305,10 @@ sub pmml_top {
   local $LaTeXML::MathML::FONT = find_inherited_attribute($node, 'font');
   #  $LaTeXML::MathML::FONT = undef
   #    if $LaTeXML::MathML::FONT && !$mathvariants{$LaTeXML::MathML::FONT};    # verify sane font
-  local $LaTeXML::MathML::SIZE    = find_inherited_attribute($node, 'fontsize') || '100%';
+  local $LaTeXML::MathML::SIZE    = find_inherited_attribute($node, 'fontsize');
   local $LaTeXML::MathML::COLOR   = find_inherited_attribute($node, 'color');
   local $LaTeXML::MathML::BGCOLOR = find_inherited_attribute($node, 'backgroundcolor');
   local $LaTeXML::MathML::OPACITY = find_inherited_attribute($node, 'opacity');
-  local $LaTeXML::MathML::DESIRED_SIZE = $LaTeXML::MathML::SIZE;
   my @result = map { pmml($_) } element_nodes($node);
   return (scalar(@result) > 1 ? ['m:mrow', {}, @result] : $result[0]); }
 
@@ -347,7 +327,6 @@ sub find_inherited_attribute {
 sub pmml_smaller {
   my ($node) = @_;
   local $LaTeXML::MathML::STYLE = $stylestep{$LaTeXML::MathML::STYLE};
-  local $LaTeXML::MathML::SIZE  = $stylesize{$LaTeXML::MathML::STYLE};
   return pmml($node); }
 
 # Convert a node that will automatically be made scriptsize,
@@ -355,7 +334,6 @@ sub pmml_smaller {
 sub pmml_scriptsize {
   my ($script) = @_;
   local $LaTeXML::MathML::STYLE = $style_script_step{$LaTeXML::MathML::STYLE};
-  local $LaTeXML::MathML::SIZE  = $stylesize{$LaTeXML::MathML::STYLE};
   return ($script ? pmml($script) : ['m:none']); }
 
 sub pmml {
@@ -369,21 +347,26 @@ sub pmml {
     $node = realize($node); }
   # Bind any other style information from the refering node or the current node
   # so that any tokens synthesized from strings recover that style.
-  local $LaTeXML::MathML::DESIRED_SIZE = _getattr($refr, $node, 'fontsize') || $LaTeXML::MathML::DESIRED_SIZE;
-  local $LaTeXML::MathML::COLOR = _getattr($refr, $node, 'color') || $LaTeXML::MathML::COLOR;
+  local $LaTeXML::MathML::SIZE  = _getattr($refr, $node, 'fontsize') || $LaTeXML::MathML::SIZE;
+  local $LaTeXML::MathML::COLOR = _getattr($refr, $node, 'color')    || $LaTeXML::MathML::COLOR;
   local $LaTeXML::MathML::BGCOLOR = _getattr($refr, $node, 'backgroundcolor')
     || $LaTeXML::MathML::BGCOLOR;
   local $LaTeXML::MathML::OPACITY = _getattr($refr, $node, 'opacity') || $LaTeXML::MathML::OPACITY;
   my $result = pmml_internal($node);
   # Let customization annotate the result.
   # Now possibly wrap the result in a row, enclose, etc, if needed
+  my $o = _getattr($refr, $node, 'open');
+  my $c = _getattr($refr, $node, 'close');
   my $e = _getattr($refr, $node, 'enclose');
+  my $p = _getattr($refr, $node, 'punctuation');
   # these should COMBINE!
   my $l = _getspace($refr, $node, 'lpadding');
   my $r = _getspace($refr, $node, 'rpadding');
   my $cl = join(' ', grep { $_ } $refr && $refr->getAttribute('class'), $node->getAttribute('class'));
-  # Wrap in an enclose, if there's an enclose attribute (Ugh!)
+  # Handle generic things: open/close delimiters, punctuation
+  $result = pmml_parenthesize($result, $o, $c) if $o || $c;
   $result = ['m:menclose', { notation => $e }, $result] if $e;
+  $result = ['m:mrow', {}, $result, pmml_mo($p)] if $p;
   # Add spacing last; outside parens & enclosing (?)
   if (!(((ref $result) eq 'ARRAY') && ($$result[0] eq 'm:mo'))  # mo will already have gotten spacing!
     && ($r || $l)) {
@@ -452,20 +435,14 @@ sub pmml_internal {
       return [($2 eq 'SUB' ? 'm:msub' : 'm:msup'), {}, ['m:mi'],
         pmml_scriptsize($op)]; }
     else {
-      my $rop = realize($op);
-      my $style =
-        $rop->getAttribute('mathstyle') || $op->getAttribute('mathstyle');
-      my $ostyle = $LaTeXML::MathML::STYLE;
+      my $rop = realize($op);    # NOTE: Could loose open/close on XMRef ???
+      my $style = $rop->getAttribute('mathstyle') || $op->getAttribute('mathstyle');
+      my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
       local $LaTeXML::MathML::STYLE
         = ($style && $stylestep{$style} ? $style : $LaTeXML::MathML::STYLE);
       my $result = &{ lookupPresenter('Apply', getOperatorRole($rop), $rop->getAttribute('meaning'))
       }($op, @args);
-      $result = pmml_mayberesize($node, $result);
-      my $needsmathstyle = needsMathstyle($result);
-      my %styleattr = %{ ($style && ($needsmathstyle
-            ? $stylemap{$ostyle}{$style}
-            : $stylemap2{$ostyle}{$style})) || {} };
-      $result = ['m:mstyle', {%styleattr}, $result] if keys %styleattr;
+      $result = ['m:mstyle', {@$styleattr}, $result] if $styleattr;
       return $result; } }
   elsif ($tag eq 'ltx:XMTok') {
     return &{ lookupPresenter('Token', $role, $node->getAttribute('meaning')) }($node); }
@@ -480,38 +457,32 @@ sub pmml_internal {
     my $rowsep  = $node->getAttribute('rowsep') || '0pt';
     my $colsep  = $node->getAttribute('colsep') || '5pt';
     $vattach = 'axis' if !$vattach || ($vattach eq 'middle');    # roughly MathML's axis?
-    my $ostyle = $LaTeXML::MathML::STYLE;
+    my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
     local $LaTeXML::MathML::STYLE
       = ($style && $stylestep{$style} ? $style : $LaTeXML::MathML::STYLE);
-    my @rows  = ();
-    my $nrows = 0;
-    my $ncols = 0;
+    my @rows = ();
 
     foreach my $row (element_nodes($node)) {
       my @cols = ();
-      my $nc   = 0;
-      $nrows++;
       foreach my $col (element_nodes($row)) {
-        $nc++;
-        my $a    = $col->getAttribute('align');
-        my $b    = $col->getAttribute('border');
-        my $bc   = ($b ? join(' ', map { 'ltx_border_' . $_ } split(/\s/, $b)) : $b);
-        my $th   = $col->getAttribute('thead');
-        my $hc   = ($th ? join(' ', map { 'ltx_th_' . $_ } split(/\s/, $th)) : '');
-        my $cl   = $col->getAttribute('class');
-        my $c    = ($bc ? ($hc ? "$bc $hc" : $bc) : $hc);
-        my $cs   = $col->getAttribute('colspan');
-        my $rs   = $col->getAttribute('rowspan');
-        my @cell = map { pmml($_) } element_nodes($col);
+        my $a  = $col->getAttribute('align');
+        my $b  = $col->getAttribute('border');
+        my $bc = ($b ? join(' ', map { 'ltx_border_' . $_ } split(/\s/, $b)) : $b);
+        my $th = $col->getAttribute('thead');
+        my $hc = ($th ? join(' ', map { 'ltx_th_' . $_ } split(/\s/, $th)) : '');
+        my $cl = $col->getAttribute('class');
+        my $c  = ($bc ? ($hc ? "$bc $hc" : $bc) : $hc);
+        my $cs = $col->getAttribute('colspan');
+        my $rs = $col->getAttribute('rowspan');
         push(@cols, ['m:mtd', { ($a ? (columnalign => $a) : ()),
               ($c || $cl ? (class => ($c && $cl ? "$c $cl" : $c || $cl)) : ()),
               ($cs ? (columnspan => $cs) : ()),
               ($rs ? (rowspan    => $rs) : ()) },
-            @cell]); }
-      $ncols = $nc if $nc > $ncols;
+            map { pmml($_) } element_nodes($col)]); }
       push(@rows, ['m:mtr', {}, @cols]); }
-    $rowsep = undef if $nrows < 2;
-    $colsep = undef if $ncols < 2;
+### We shouldn't use a blanket (row|column)spacing!!!
+### Either it should scale with font size, or be recorded when creating the alignment!
+####    my $result = ['m:mtable', { rowspacing => "0.2ex", columnspacing => "0.4em", align => $vattach }, @rows];
     my $result = ['m:mtable', { ($vattach ne 'axis' ? (align => $vattach) : ()),
         ($rowsep ? (rowspacing    => $rowsep) : ()),
         ($colsep ? (columnspacing => $colsep) : ()),
@@ -519,12 +490,7 @@ sub pmml_internal {
         # Mozilla seems to need some encouragement?
         ($LaTeXML::MathML::STYLE eq 'display' ? (displaystyle => 'true') : ()) },
       @rows];
-    my $needsmathstyle = needsMathstyle($result);
-    my %styleattr = %{ ($style && ($needsmathstyle
-          ? $stylemap{$ostyle}{$style}
-          : $stylemap2{$ostyle}{$style})) || {} };
-    $result = ['m:mstyle', {%styleattr}, $result] if keys %styleattr;
-
+    $result = ['m:mstyle', {@$styleattr}, $result] if $styleattr;
     return $result; }
   elsif ($tag eq 'ltx:XMRow') {
     my $style = $node->getAttribute('style');
@@ -572,39 +538,6 @@ sub pmml_internal {
     $text =~ s/\s+$/$NBSP/;
     return ['m:mtext', {}, $text]; } }
 
-sub needsMathstyle {
-  my ($node) = @_;
-  if (ref $node eq 'ARRAY') {
-    my ($tag, $attr, @children) = @$node;
-    return 1 if $tag eq 'm:mfrac';
-    return 1 if $$attr{largeop};
-    return 0 if ($tag eq 'm:mstyle') && defined $$attr{displaystyle};
-    return 1 if grep { needsMathstyle($_) } @children; }
-  return; }
-
-# Use mpadded instead of mrow if size has been given
-sub pmml_mayberesize {
-  my ($node, $result) = @_;
-  return $result unless ref $node;
-  my $width  = $node->getAttribute('width');
-  my $height = $node->getAttribute('height');
-  my $depth  = $node->getAttribute('depth');
-  my $xoff   = $node->getAttribute('xoffset');
-  my $yoff   = $node->getAttribute('yoffset');
-  if ($width || $height || $depth || $xoff || $yoff) {
-    if ($$result[0] eq 'm:mpadded') { }
-    elsif ($$result[0] eq 'm:mrow') {
-      $$result[0] = 'm:mpadded'; }
-    else {
-      $result = ['m:mpadded', {}, $result]; }
-    my $attr = $$result[1];
-    $$attr{width}   = $width  if $width;
-    $$attr{height}  = $height if $height;
-    $$attr{depth}   = $depth  if $depth;
-    $$attr{lspace}  = $xoff   if $xoff;
-    $$attr{voffset} = $yoff   if $yoff; }
-  return $result; }
-
 sub pmml_row {
   my (@items) = @_;
   @items = grep { $_ } @items;
@@ -628,13 +561,19 @@ sub pmml_parenthesize {
   # (however, line-breaking inside of a mrow w/parens needs some special treatment too! scripts!!)
   elsif ($$LaTeXML::Post::MATHPROCESSOR{usemfenced}) {
     return ['m:mfenced', { open => ($open || ''), close => ($close || '') }, $item]; }
+## Maybe better not open the contained mrow; seems to affect bracket size in Moz.???
+  # elsif($item && (ref $item)  && ($item->[0] eq 'm:mrow')){
+  #   my($tag,$attr,@children)=@$item;
+  #   ['m:mrow',$attr,
+  #    ($open ? (pmml_mo($open)):()),
+  #    @children,
+  #    ($close ? (pmml_mo($close)):())]; }
   else {
     return ['m:mrow', {},
       ($open ? (pmml_mo($open, role => 'OPEN')) : ()),
       $item,
       ($close ? (pmml_mo($close, role => 'CLOSE')) : ())]; } }
 
-# never used?
 sub pmml_punctuate {
   my ($separators, @items) = @_;
   $separators = '' unless defined $separators;
@@ -664,6 +603,7 @@ sub pmml_infix {
     my $arg1 = realize(shift(@args));
     if (($role eq 'ADDOP')
       && (getQName($arg1) eq 'ltx:XMApp')
+      && !$arg1->getAttribute('open') && !$arg1->getAttribute('close')
       && (getOperatorRole((element_nodes($arg1))[0]) eq $role)) {
       push(@items, pmml_unrow(pmml($arg1))); }
     else {
@@ -714,8 +654,6 @@ my %plane1hack = (    # CONSTANT
   fraktur => $plane1map{fraktur}, 'bold-fraktur' => $plane1map{fraktur},
   'double-struck' => $plane1map{'double-struck'});
 
-my %symmetric_roles = (OPEN => 1, CLOSE => 1, MIDDLE => 1, VERTBAR => 1);
-
 # Given an item (string or token element w/attributes) and latexml attributes,
 # convert the string to the appropriate unicode (possibly plane1)
 # & MathML presentation attributes (mathvariant, mathsize, mathcolor, stretchy)
@@ -727,7 +665,7 @@ sub stylizeContent {
   my $font      = ($iselement ? $item->getAttribute('font') : $attr{font})
     || $LaTeXML::MathML::FONT;
   my $size = ($iselement ? $item->getAttribute('fontsize') : $attr{fontsize})
-    || $LaTeXML::MathML::DESIRED_SIZE;
+    || $LaTeXML::MathML::SIZE;
   my $color = ($iselement ? $item->getAttribute('color') : $attr{color})
     || $LaTeXML::MathML::COLOR;
   my $bgcolor = ($iselement ? $item->getAttribute('backgroundcolor') : $attr{backgroundcolor})
@@ -738,25 +676,22 @@ sub stylizeContent {
   my $text     = (ref $item  ? $item->textContent              : $item);
   my $variant  = ($font      ? mathvariantForFont($font)       : '');
   my $stretchy = ($iselement ? $item->getAttribute('stretchy') : $attr{stretchy});
-  $stretchy = undef if ($tag ne 'm:mo');                           # Only allowed on m:mo!
-  $size     = undef if ($stretchy || 'false') eq 'true';           # Ignore size, if we're stretching.
-  $size     = undef if $size && ($size eq $LaTeXML::MathML::SIZE);
+  $size = undef if ($stretchy || 'false') eq 'true';    # Ignore size, if we're stretching.
+  $size = undef if $size && ($size eq $LaTeXML::MathML::STYLE);
   my $stretchyhack = undef;
 
-  if ($text =~ /^[\x{2061}\x{2062}\x{2063}]*$/) {                  # invisible
-    $stretchy = $size = undef; }
   if ($size) {
     # Note that symmetric is only allowed when stretchy, which looks crappy for specific sizes
     # so we'll pretend that delimiters are still stretchy, but restrict size by minsize & maxsize
     # (Thanks Peter Krautzberger)
-    # Really we should check the Operator Dictionary to see if it's expected to be symmetric
-    if ($role && $symmetric_roles{$role}) {
+    if (($role eq 'OPEN') || ($role eq 'CLOSE')) {
       $stretchyhack = 1;
       $stretchy     = undef; }
-    elsif ($tag eq 'm:mo') {
-      $stretchy = 'false' } };    # Conversely, if size specifically set, don't stretch it!
-
-  if ((!defined $text) || ($text eq '')) {    # Failsafe for empty tokens?
+    else {
+      $stretchy = 'false' } };    # Conversely, if size was specifically set, we shouldn't stretch it!
+  $stretchy = undef unless $tag eq 'm:mo';    # Only allowed on m:mo!
+                                              # Failsafe for empty tokens?
+  if ((!defined $text) || ($text eq '')) {
     $text = ($iselement ? $item->getAttribute('name') || $item->getAttribute('meaning') || $role : '?');
     $color = 'red'; }
 
@@ -821,15 +756,13 @@ my %punctuation = (',' => 1, ';' => 1, "\x{2063}" => 1);                 # CONST
 sub pmml_mi {
   my ($item, %attr) = @_;
   my ($text, %mmlattr) = stylizeContent($item, 'm:mi', %attr);
-  #  return ['m:mi', {%mmlattr}, $text]; }
-  return pmml_mayberesize($item, ['m:mi', {%mmlattr}, $text]); }
+  return ['m:mi', {%mmlattr}, $text]; }
 
 # Really, the same issues as with mi.
 sub pmml_mn {
   my ($item, %attr) = @_;
   my ($text, %mmlattr) = stylizeContent($item, 'm:mn', %attr);
-  #  return ['m:mn', {%mmlattr}, $text]; }
-  return pmml_mayberesize($item, ['m:mn', {%mmlattr}, $text]); }
+  return ['m:mn', {%mmlattr}, $text]; }
 
 # Note that $item should be either a string, or at most, an XMTok
 sub pmml_mo {
@@ -846,34 +779,31 @@ sub pmml_mo {
     || ((ref $item) && $item->getAttribute('rpadding'))
     || ($role && ($role eq 'MODIFIEROP') && 'mediummathspace');
   my $pos = (ref $item && $item->getAttribute('scriptpos')) || 'post';
-  return
-    pmml_mayberesize($item,
-    ['m:mo', { %mmlattr,
-        ($isfence && !$fences{$text}      ? (fence     => 'true') : ()),
-        ($ispunct && !$punctuation{$text} ? (separator => 'true') : ()),
-        ($islargeop ? (largeop   => 'true') : ()),
-        ($islargeop ? (symmetric => 'true') : ()),    # Not sure this is strictly correct...
-               # Note that lspace,rspace is the left & right space that replaces Op.Dictionary
-               # what we've recorded is _padding_, so we have to adjust the unknown OpDict entry!
-               # Just assume something between mediummathspace = 4/18em = 2.222pt
-               # and thickmathspace = 5/18em = 2.7777pt, so 2.5pt.
-        ($lpad ? (lspace => max(0, (2.5 + getXMHintSpacing($lpad))) . 'pt') : ()),
-        ($rpad ? (rspace => max(0, (2.5 + getXMHintSpacing($rpad))) . 'pt') : ()),
-        # If an operator has specifically located it's scripts,
-        # don't let mathml move them.
-        (($pos =~ /mid/) || $LaTeXML::MathML::NOMOVABLELIMITS
-          ? (movablelimits => 'false') : ()) },
-      $text]); }
+  return ['m:mo', { %mmlattr,
+      ($isfence && !$fences{$text}      ? (fence     => 'true') : ()),
+      ($ispunct && !$punctuation{$text} ? (separator => 'true') : ()),
+      ($islargeop ? (largeop   => 'true') : ()),
+      ($islargeop ? (symmetric => 'true') : ()),    # Not sure this is strictly correct...
+             # Note that lspace,rspace is the left & right space that replaces Op.Dictionary
+             # what we've recorded is _padding_, so we have to adjust the unknown OpDict entry!
+             # Just assume something between mediummathspace = 4/18em = 2.222pt
+             # and thickmathspace = 5/18em = 2.7777pt, so 2.5pt.
+      ($lpad ? (lspace => max(0, (2.5 + getXMHintSpacing($lpad))) . 'pt') : ()),
+      ($rpad ? (rspace => max(0, (2.5 + getXMHintSpacing($rpad))) . 'pt') : ()),
+      # If an operator has specifically located it's scripts,
+      # don't let mathml move them.
+      (($pos =~ /mid/) || $LaTeXML::MathML::NOMOVABLELIMITS
+        ? (movablelimits => 'false') : ()) },
+    $text]; }
 
 sub pmml_bigop {
   my ($op) = @_;
   my $style = $op->getAttribute('mathstyle');
-  my %styleattr = %{ ($style && ($style ne $LaTeXML::MathML::STYLE)
-        && $stylemap{$LaTeXML::MathML::STYLE}{$style}) || {} };
+  my $styleattr = $style && $stylemap{$LaTeXML::MathML::STYLE}{$style};
   local $LaTeXML::MathML::STYLE
     = ($style && $stylestep{$style} ? $style : $LaTeXML::MathML::STYLE);
   my $mml = pmml_mo($op);
-  $mml = ['m:mstyle', {%styleattr}, $mml] if keys %styleattr;
+  $mml = ['m:mstyle', {@$styleattr}, $mml] if $styleattr;
   return $mml; }
 
 # Since we're keeping track of display style, under/over vs. sub/super
@@ -902,6 +832,7 @@ sub pmml_script {
   # check if base needs displaystyle.
   my $style = $innerbase->getAttribute('mathstyle');
   if ($style && ($style ne $LaTeXML::MathML::STYLE)) {
+    local $LaTeXML::MathML::STYLE = $style;
     return ['m:mstyle', { displaystyle => ($style eq 'display' ? 'true' : 'false') },
       pmml_script_multi_layout(
         pmml_script_mid_layout($innerbase, $midscripts, $emb_left, $emb_right),
@@ -913,19 +844,13 @@ sub pmml_script {
 
 sub pmml_script_mid_layout {
   my ($base, $midscripts, $emb_left, $emb_right) = @_;
-
   if (scalar(@$midscripts) == 0) {
-    ##### TRY this to block an extra mstyle
-    { local $LaTeXML::MathML::STYLE = $base->getAttribute('mathstyle') || $LaTeXML::MathML::STYLE;
-      $base = pmml($base); }
-    return $base; }
+    return pmml($base); }
   else {
     if (scalar(@$midscripts) > 1) {
       Error("unexpected", $base, "Multiple mid-level (limit) scripts; extras are DROPPED!",
         map { @$_ } @$midscripts); }
     { local $LaTeXML::MathML::NOMOVABLELIMITS = 1;
-      ##### TRY this to block an extra mstyle
-      local $LaTeXML::MathML::STYLE = $base->getAttribute('mathstyle') || $LaTeXML::MathML::STYLE;
       $base = pmml($base); }
     # Get the (possibly padded) over & under scripts (if any)
     my $under = (!defined $$midscripts[0][0] ? undef
@@ -1012,6 +937,7 @@ sub pmml_script_decipher {
   # Keep from having multiple scripts when $loc is stack!!!
   while (1) {
     last unless getQName($base) eq 'ltx:XMApp';
+    last if $base->getAttribute('open') || $base->getAttribute('close');
     my ($xop, $xbase, $xscript) = element_nodes($base);
     last unless (getQName($xop) eq 'ltx:XMTok');
     my ($ny) = ($xop->getAttribute('role') || '') =~ /^(SUPER|SUB)SCRIPTOP$/;
@@ -1094,13 +1020,13 @@ sub pmml_text_aux {
 
 sub cmml_top {
   my ($self, $node) = @_;
-  local $LaTeXML::MathML::STYLE        = 'text';
-  local $LaTeXML::MathML::FONT         = find_inherited_attribute($node, 'font');
-  local $LaTeXML::MathML::SIZE         = find_inherited_attribute($node, 'fontsize') || '100%';
-  local $LaTeXML::MathML::COLOR        = find_inherited_attribute($node, 'color');
-  local $LaTeXML::MathML::BGCOLOR      = find_inherited_attribute($node, 'backgroundcolor');
-  local $LaTeXML::MathML::OPACITY      = find_inherited_attribute($node, 'opacity');
-  local $LaTeXML::MathML::DESIRED_SIZE = $LaTeXML::MathML::SIZE;
+  local $LaTeXML::MathML::STYLE   = 'text';
+  local $LaTeXML::MathML::FONT    = find_inherited_attribute($node, 'font');
+  local $LaTeXML::MathML::SIZE    = find_inherited_attribute($node, 'fontsize');
+  local $LaTeXML::MathML::COLOR   = find_inherited_attribute($node, 'color');
+  local $LaTeXML::MathML::BGCOLOR = find_inherited_attribute($node, 'backgroundcolor');
+  local $LaTeXML::MathML::OPACITY = find_inherited_attribute($node, 'opacity');
+
   return cmml_contents($node); }
 
 sub cmml {
@@ -1131,11 +1057,11 @@ sub cmml_internal {
       if (!$op) {
         return ['m:merror', {}, ['m:mtext', {}, "Missing Operator"]]; }
       else {
-        my $rop = realize($op);
+        my $rop = realize($op);                                # NOTE: Could loose open/close on XMRef ???
         return &{ lookupContent('Apply', $rop->getAttribute('role'), $rop->getAttribute('meaning')) }($op, @args); } } }
   elsif ($tag eq 'ltx:XMTok') {
     return &{ lookupContent('Token', $node->getAttribute('role'), $node->getAttribute('meaning')) }($node); }
-  elsif ($tag eq 'ltx:XMHint') {    # ????
+  elsif ($tag eq 'ltx:XMHint') {                               # ????
     return &{ lookupContent('Hint', $node->getAttribute('role'), $node->getAttribute('meaning')) }($node); }
   elsif ($tag eq 'ltx:XMArray') {
     return &{ lookupContent('Array', $node->getAttribute('role'), $node->getAttribute('meaning')) }($node); }
@@ -1289,7 +1215,6 @@ DefMathML('Hint:?:?', sub {
 
 # At presentation level, these are essentially adorned tokens.
 # args are (accent,base)
-# Note: accents are drawn at same size as base!
 DefMathML('Apply:OVERACCENT:?', sub {
     my ($accent, $base) = @_;
     if (getQName($base) eq 'ltx:XMApp') {
@@ -1297,8 +1222,8 @@ DefMathML('Apply:OVERACCENT:?', sub {
       if ((getQName($xaccent) eq 'ltx:XMTok')
         && (($xaccent->getAttribute('role') || '') eq 'UNDERACCENT')) {
         return ['m:munderover', { accent => 'true', accentunder => 'true' },
-          pmml($xbase), pmml_scriptsize($xaccent), pmml($accent)]; } }
-    return ['m:mover', { accent => 'true' }, pmml($base), pmml($accent)]; });
+          pmml($xbase), pmml_scriptsize($xaccent), pmml_scriptsize($accent)]; } }
+    return ['m:mover', { accent => 'true' }, pmml($base), pmml_scriptsize($accent)]; });
 
 DefMathML('Apply:UNDERACCENT:?', sub {
     my ($accent, $base) = @_;
@@ -1307,8 +1232,8 @@ DefMathML('Apply:UNDERACCENT:?', sub {
       if ((getQName($xaccent) eq 'ltx:XMTok')
         && (($xaccent->getAttribute('role') || '') eq 'OVERACCENT')) {
         return ['m:munderover', { accent => 'true', accentunder => 'true' },
-          pmml($xbase), pmml_scriptsize($accent), pmml($xaccent)]; } }
-    return ['m:munder', { accentunder => 'true' }, pmml($base), pmml($accent)]; });
+          pmml($xbase), pmml_scriptsize($accent), pmml_scriptsize($xaccent)]; } }
+    return ['m:munder', { accentunder => 'true' }, pmml($base), pmml_scriptsize($accent)]; });
 
 DefMathML('Apply:ENCLOSE:?', sub {
     my ($op, $base) = @_;
@@ -1330,7 +1255,8 @@ DefMathML('Apply:?:?', sub {
     my ($op, @args) = @_;
     return ['m:mrow', {},
       pmml($op), pmml_mo("\x{2061}"),             # FUNCTION APPLICATION
-      map { pmml($_) } @args]; },
+      pmml_parenthesize(pmml_punctuate($op->getAttribute('separators'), map { pmml($_) } @args),
+        $op->getAttribute('argopen'), $op->getAttribute('argclose'))]; },
   sub {
     my ($op, @args) = @_;
     return ['m:apply', {}, cmml($op), map { cmml($_) } @args]; });
@@ -1401,12 +1327,32 @@ DefMathML('Apply:ADDOP:?', \&pmml_infix, undef);
 
 DefMathML("Token:MULOP:?", \&pmml_mo,    undef);
 DefMathML('Apply:MULOP:?', \&pmml_infix, undef);
+# REALLY shouldn't conflate "divide" with MULOP, here... Use FRACOP
+DefMathML('Apply:?:divide', sub {
+    my ($op, $num, $den, @more) = @_;
+    my $style     = $op->getAttribute('mathstyle');
+    my $thickness = $op->getAttribute('thickness');
+    my $color     = $op->getAttribute('color') || $LaTeXML::MathML::COLOR;
+    my $optext    = $op->textContent;
+    #  ['m:mfrac',{($thickness ? (linethickness=>$thickness):()),
+    #      ($style && ($style eq 'inline') ? (bevelled=>'true'):())},
+    #   pmml_smaller($num),pmml_smaller($den)]; });
+    # Bevelled looks crappy (operands too small) in Mozilla, so just open-code it.
+    if ($optext || ($style && ($style eq 'inline')) || @more) {
+      # Shouldn't end up with multiple denominators unless using an infix op w/visible content.
+      # but better check, rather than have it disappear...
+      $op = '/' unless $optext;
+      return pmml_infix($op, $num, $den, @more); }
+    else {
+      return ['m:mfrac', { ($thickness ? (linethickness => $thickness) : ()),
+          ($color ? (mathcolor => $color) : ()) },
+        pmml_smaller($num), pmml_smaller($den)]; } });
 
 DefMathML('Apply:FRACOP:?', sub {
     my ($op, $num, $den, @more) = @_;
     my $thickness = $op->getAttribute('thickness');
     my $color = $op->getAttribute('color') || $LaTeXML::MathML::COLOR;
-    return ['m:mfrac', { (defined $thickness ? (linethickness => $thickness) : ()),
+    return ['m:mfrac', { ($thickness ? (linethickness => $thickness) : ()),
         ($color ? (mathcolor => $color) : ()) },
       pmml_smaller($num), pmml_smaller($den)]; });
 
@@ -1438,7 +1384,7 @@ DefMathML('Apply:?:square-root',
 DefMathML('Apply:?:nth-root',
   sub {
     my $color = $_[0]->getAttribute('color') || $LaTeXML::MathML::COLOR;
-    return ['m:mroot', { ($color ? (mathcolor => $color) : ()) }, pmml($_[2]), pmml_scriptsize($_[1])]; },
+    return ['m:mroot', { ($color ? (mathcolor => $color) : ()) }, pmml($_[2]), pmml_smaller($_[1])]; },
   sub { return ['m:apply', {}, ['m:root', {}], ['m:degree', {}, cmml($_[1])], cmml($_[2])]; });
 
 # Note MML's distinction between quotient and divide: quotient yeilds an integer
@@ -1507,13 +1453,33 @@ DefMathML('Apply:?:cdlf-set',
 # Top level relations
 DefMathML('Apply:?:formulae', sub {
     my ($op, @elements) = @_;
-    return pmml_row(map { pmml($_) } @elements); },
+    return pmml_punctuate($op->getAttribute('separators'), map { pmml($_) } @elements); },
   sub {
     my ($op, @elements) = @_;
     return ['m:apply', {},
       ['m:csymbol', { cd => 'ambiguous' }, 'formulae-sequence'],
       map { cmml($_) } @elements];
   });
+
+# TRICKY: How should this get converted to cmml ???
+# DefMathML('Apply:?:multirelation',
+#         sub {
+#           my($op,@elements)=@_;
+#           pmml_row(map(pmml($_),@elements)); },
+#         sub {
+#           my($op,@elements)=@_;
+#           my @stuff=();
+#           my $a = cmml(shift(@elements));
+#           return $a unless @elements;
+#           while(@elements){
+#             my $rel = cmml(shift(@elements));
+#             my $b=cmml(shift(@elements));
+#             my $id = generate_id('sh');
+#             $$b[1]{'xml:id'}=$id;
+#             push(@stuff,['m:apply',{},$rel,$a,$b]);
+#             $a = ['m:share',{href=>'#'.$id}]; }
+#           (scalar(@stuff) > 1 ? ['m:and',{},@stuff] : $stuff[0]); }
+#         );
 
 DefMathML('Apply:?:multirelation',
   sub {
@@ -1759,6 +1725,29 @@ DefMathML("Token:ID:infinity",       undef, sub { return ['m:infinity']; });
 # only appear in XWrap's or in the presentation branch of an XMDual, so we won't
 # attempt to convert them to content.  But if we do, should we warn?
 
+DefMathML('Apply:FENCED:?', sub {
+    my ($op, @elements) = @_;
+    return pmml_parenthesize(pmml_punctuate($op->getAttribute('separators'),
+        map { pmml($_) } @elements),
+      $op->getAttribute('argopen'), $op->getAttribute('argclose')); });
+
+# Note how annoyingly MML's arrays don't change the style the same
+# way TeX does!
+# This stacks any number of items, one per row.
+DefMathML('Apply:STACKED:?', sub {
+    my ($op, @items) = @_;
+    my $c = $op->getAttribute('class');
+    my $align = $c && ($c eq 'alignl' ? 'left'
+      : ($c eq 'alignc' ? 'center'
+        : ($c eq 'alignl' ? 'right' : undef)));
+    my $stack = ['m:mtable', { rowspacing => "0.2ex", columnspacing => "0.4em",
+        ($align ? (columnalign => $align) : ()) },
+      map { ['m:mtr', {}, ['m:mtd', {}, pmml($_)]] } @items];
+    if ($LaTeXML::MathML::STYLE =~ /^(text|script)$/) {
+      return ['m:mstyle', { scriptlevel => '+1' }, $stack]; }
+    else {
+      return $stack; } });
+
 # ================================================================================
 # More exotic things
 
@@ -1769,7 +1758,6 @@ DefMathML("Token:ID:infinity",       undef, sub { return ['m:infinity']; });
 # If denom is a sum/diff then last summand can be: cdots, cfrac
 #  or invisibleTimes of cdots and something which could also be a cfrac!
 # There is some really messy manipulation of display/text style...probably not all correct.
-# This really should be handled earlier by an XMDual.
 sub do_cfrac {
   my ($numer, $denom) = @_;
   if (getQName($denom) eq 'ltx:XMApp') {    # Denominator is some kind of application
@@ -1778,28 +1766,43 @@ sub do_cfrac {
       || (($denomop->textContent || '') eq "\x{22EF}")) {      # OR a \cdots
       my $last = pop(@denomargs);                              # Check last operand in denominator.
            # this is the current contribution to the cfrac (if we match the last term)
-      my $curr = ['m:mfrac', {}, pmml_smaller($numer),
-        ['m:mrow', {},
-          (@denomargs > 1 ? pmml_infix($denomop, @denomargs) : pmml_smaller($denomargs[0])),
-          pmml_smaller($denomop)]];
+      my $curr;
+      { local $LaTeXML::MathML::STYLE = 'text';
+        $curr = ['m:mfrac', {}, pmml($numer),
+          ['m:mrow', {},
+            (@denomargs > 1 ? pmml_infix($denomop, @denomargs) : pmml($denomargs[0])),
+            pmml($denomop)]]; }
+      $curr = ['m:mstyle', { displaystyle => 'true' }, $curr]
+        unless $LaTeXML::MathML::STYLE eq 'display';
       if (($last->textContent || '') eq "\x{22EF}") {    # Denom ends w/ \cdots
-        return ($curr, pmml_smaller($last)); }           # bring dots up to toplevel
+        return ($curr, pmml($last)); }                   # bring dots up to toplevel
       elsif (getQName($last) eq 'ltx:XMApp') {           # Denom ends w/ application --- what kind?
         my ($lastop, @lastargs) = element_nodes($last);
         if (($lastop->getAttribute('meaning') || '') eq 'continued-fraction') { # Denom ends w/ cfrac, pull it to toplevel
           return ($curr, do_cfrac(@lastargs)); }
         elsif ((($lastop->textContent || '') eq "\x{2062}")    # Denom ends w/ * (invisible)
           && (scalar(@lastargs) == 2) && (($lastargs[0]->textContent || '') eq "\x{22EF}")) {
-          return ($curr, pmml_smaller($lastargs[0]), pmml_smaller($lastargs[1])); } } } }
-  return ['m:mfrac', {}, pmml_smaller($numer), pmml_smaller($denom)]; }
+          my ($n, $d);
+          $n = pmml($lastargs[0]);
+          { local $LaTeXML::MathML::STYLE = 'text';            # Trick into being treated as display.
+            $d = pmml($lastargs[1]) }
+          return ($curr, $n, $d); } } } }
+##  (['m:mfrac',{},pmml_smaller($numer),pmml_smaller($denom)]); }
+  if ($LaTeXML::MathML::STYLE eq 'display') {
+    return ['m:mfrac', {}, pmml_smaller($numer), pmml_smaller($denom)]; }
+  else {
+    local $LaTeXML::MathML::STYLE = 'display';                 # Trick into being treated as display.
+    return (['m:mstyle', { displaystyle => 'true' },
+        ['m:mfrac', {}, pmml_smaller($numer), pmml_smaller($denom)]]); } }
 
 DefMathML('Apply:?:continued-fraction', sub {
     my ($op, $numer, $denom) = @_;
-    my $style = (($op->getAttribute('name') || '') eq 'cfrac-inline' ? 'inline' : 'display');
+    my $style = $op->getAttribute('mathstyle') || 'display';
     if ($style eq 'inline') {
       return pmml_row(do_cfrac($numer, $denom)); }
     else {
-      return ['m:mfrac', {}, pmml_smaller($numer), pmml_smaller($denom)]; } });
+      local $LaTeXML::MathML::STYLE = 'text';
+      return ['m:mfrac', {}, pmml($numer), pmml($denom)]; } });
 
 #================================================================================
 # A Hack for Demo/Testing Purposes ONLY!!!

@@ -113,8 +113,9 @@ sub copy {
   my ($src, $dst) = @_;
   if ($force || (!-f $dst) || ((-M $src) < (-M $dst))) {
     print STDERR "Copying $src to $dst\n" if $verbosity >= 0;
-    system('cp', $src, $dst) == 0 or die "Couldn't copy $src to $dst: $!"; }
-  return; }
+    return system('cp', $src, $dst) == 0 or die "Couldn't copy $src to $dst: $!"; }
+  else {
+    return; } }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 BEGIN {

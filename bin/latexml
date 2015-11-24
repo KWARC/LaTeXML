@@ -117,6 +117,7 @@ eval {
         } }); }
 };
 if ($@) {    # Fatal error?
+  $$latexml{state}->noteStatus('fatal');
   print STDERR $@; }
 $latexml->showProfile();    # Show profile (if any)
 
