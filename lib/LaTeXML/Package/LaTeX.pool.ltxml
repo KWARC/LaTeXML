@@ -1771,12 +1771,13 @@ DefRegister('\mathindent' => Dimension(0));
 #======================================================================
 # sub, superscript and prime are in TeX.pool
 # Underlying support in TeX.pool.ltxml
-DefConstructor('\frac{}{}',
+DefConstructor('\frac InFractionStyle InFractionStyle',
   "<ltx:XMApp>"
-    . "<ltx:XMTok meaning='divide' role='MULOP' mathstyle='#mathstyle'/>"
+    . "<ltx:XMTok meaning='divide' role='FRACOP' mathstyle='#mathstyle'/>"
     . "<ltx:XMArg>#1</ltx:XMArg><ltx:XMArg>#2</ltx:XMArg>"
     . "</ltx:XMApp>",
-  beforeDigest => \&beforeFrac, afterDigest => \&afterFrac);
+  sizer => sub { fracSizer($_[0]->getArg(1), $_[0]->getArg(2)); },
+  properties => { mathstyle => sub { LookupValue('font')->getMathstyle; } });
 
 # Ellipsis: See TeX.pool
 
@@ -1861,7 +1862,8 @@ DefPrimitive('\newcommand OptionalMatch:* DefToken [Number][]{}', sub {
     my ($stomach, $star, $cs, $nargs, $opt, $body) = @_;
     if (!isDefinable($cs)) {
       Info('ignore', $cs, $stomach,
-        "Ignoring redefinition (\\newcommand) of '" . Stringify($cs) . "'");
+        "Ignoring redefinition (\\newcommand) of '" . Stringify($cs) . "'")
+        unless LookupValue(ToString($cs) . ':locked');
       return; }
     DefMacroI($cs, convertLaTeXArgs($nargs, $opt), $body); });
 
@@ -2034,9 +2036,12 @@ DefPrimitive('\TextSymbolUnavailable{}',     undef);
 DefPrimitive('\newenvironment OptionalMatch:* {}[Number][]{}{}', sub {
     my ($stomach, $star, $name, $nargs, $opt, $begin, $end) = @_;
     $name = ToString($name);
-    Info('ignore', $name, $stomach,
-      "Ignoring redefinition (\\newenvironment) of Environment '$name'")
-      if IsDefined(T_CS("\\$name"));
+    if (IsDefined(T_CS("\\$name"))) {
+      Info('ignore', $name, $stomach,
+        "Ignoring redefinition (\\newenvironment) of Environment '$name'")
+        unless (LookupValue('\\' . $name . ':locked')
+        || LookupValue('\\begin{' . $name . '}:locked'));
+      return; }
     DefMacroI(T_CS("\\$name"), convertLaTeXArgs($nargs, $opt), $begin);
     DefMacroI(T_CS("\\end$name"), undef, $end); });
 
