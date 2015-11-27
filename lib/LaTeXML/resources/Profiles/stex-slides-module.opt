@@ -52,4 +52,3 @@ preload = wrapfig
 preload = colortbl
 preload = [show]ed
 preload = cmath
-preload = [ngerman]babel
