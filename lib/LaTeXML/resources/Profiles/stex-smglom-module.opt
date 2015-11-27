@@ -50,4 +50,3 @@ preload = url
 preload = wrapfig
 preload = colortbl
 preload = [show]ed
-preload = [ngerman]babel
