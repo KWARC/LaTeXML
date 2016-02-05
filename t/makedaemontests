@@ -13,7 +13,6 @@ use LaTeXML::Util::Test;
 
 latexml_tests('t/daemon/api',generate=>1);
 latexml_tests('t/daemon/profiles',generate=>1);
-latexml_tests('t/daemon/profiles/stex',generate=>1);
 latexml_tests('t/daemon/formats',generate=>1);
 latexml_tests('t/daemon/runtimes',generate=>1);
 latexml_tests('t/daemon/complex',generate=>1);
