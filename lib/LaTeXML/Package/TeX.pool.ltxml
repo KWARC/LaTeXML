@@ -455,7 +455,7 @@ DefParameterType('CommaList', sub {
           push(@items, Tokens(@tokens)); @tokens = (); }
         elsif ($token->equals(T_BEGIN)) {
           push(@tokens, $token, $gullet->readBalanced->unlist, T_END); }
-          else {push(@tokens, $token); }}
+        else {push(@tokens, $token); }}
       if ($typedef) {
         @items = map { [$typedef->reparseArgument($gullet, $_)]->[0] } @items; }
       LaTeXML::Core::Array->new(open => T_BEGIN, close => T_END, type => $type,
