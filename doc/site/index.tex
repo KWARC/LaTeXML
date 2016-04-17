@@ -1,0 +1,598 @@
+\documentclass{article}
+\usepackage{latexml}
+\usepackage{hyperref}
+\usepackage{../sty/latexmldoc}
+\usepackage{listings}
+% Should the additional keywords be indexed?
+\lstdefinestyle{shell}{language=bash,escapechar=@,basicstyle=\ttfamily\small,%
+   morekeywords={latexml,latexmlpost,latexmlmath},
+   moredelim=[is][\itshape]{\%}{\%}}
+
+\input{releases.tex}
+\newcommand{\PDFIcon}{\includegraphics{pdf}}
+
+\title{\LaTeXML\ \emph{A \LaTeX\ to XML/HTML/MathML Converter}}
+\lxKeywords{LaTeXML, LaTeX to XML, LaTeX to HTML, LaTeX to MathML, LaTeX to ePub, converter}
+%============================================================
+\begin{lxNavbar}
+\lxRef{top}{\includegraphics{../graphics/latexml}}\\
+\includegraphics{../graphics/mascot}\\
+\lxContextTOC\\
+% Direct link to manual from navbar
+\vspace{1cm}
+\URL[\hspace{4em}\LARGE The\ Manual]{./manual/}
+\end{lxNavbar}
+%============================================================
+\lxDocumentID{ltxsite}
+\begin{document}
+\label{top}
+\maketitle
+
+%============================================================
+\emph{Now available}:  \htmlref{\LaTeXML\ \CurrentVersion}{get}!
+
+In the process of developing the
+\href{http://dlmf.nist.gov/}{Digital Library of Mathematical Functions},
+we needed a means of transforming
+the \LaTeX\ sources of our material into XML which would be used
+for further manipulations, rearrangements and construction of the web site.
+In particular, a true `Digital Library' should focus on the \emph{semantics}
+of the material, and so we should convert the mathematical material into both
+content and presentation MathML.
+At the time, we found no software suitable to our needs, so we began
+development of \LaTeXML\ in-house.  
+
+In brief, \texttt{latexml} is a program, written in Perl, that attempts to
+faithfully mimic \TeX's behavior, but produces XML instead of dvi.
+The document model of the target XML makes explicit the model implied
+by \LaTeX.
+The processing and model are both extensible; you can define
+the mapping between \TeX\ constructs and the XML fragments to be created.
+A postprocessor, \texttt{latexmlpost} converts this
+XML into other formats such as HTML or XHTML, with options
+to convert the math into MathML (currently only presentation) or images.
+
+\emph{Caveats}: It isn't finished, there are gaps in the coverage,
+particularly in missing implementations of the many useful \LaTeX\ packages.
+But is beginning to stabilize and interested parties
+are invited to try it out, give feedback and even to help out.
+
+
+%============================================================
+\section{Examples}\label{examples}\index{examples}
+At the moment, the best example of \LaTeXML's output is 
+the \href{http://dlmf.nist.gov/}{DLMF} itself.
+There is, of course, a fair amount of insider, special case,
+code, but it shows what can be done.
+
+Some highlights:
+\begin{description}
+\item[\href{examples/tabular/tabular.html}{LaTeX tabular}]
+    from the \LaTeX\ manual, p.205.
+    (\href{examples/tabular/tabular.tex}{\TeX},
+     \href{examples/tabular/tabular.pdf}{\PDFIcon})
+\item[\url{http://latexml.mathweb.org/editor}] an online editor/showcase
+  of things that \LaTeXML\ can do.
+\item[\url{http://arxmliv.kwarc.info}] An experiment processing
+  the entire \url{http://arXiv.org}.
+\end{description}
+And, of course
+\begin{description}
+\item[\href{http://dlmf.nist.gov/}{DLMF}]
+   The Digital Library of Mathematical Functions was the
+   primary instigator for this project.
+\item[\href{manual/}{\LaTeXML\ Manual}]
+   The \LaTeXML\ User's manual (\href{manual.pdf}{\PDFIcon}).
+\item[And these pages] were produced using \LaTeXML, as well.
+\end{description}
+
+%============================================================
+\section{Get \LaTeXML}\label{get}\index{get}
+\paragraph{Current Release:}\label{download.current}
+The current release is \CurrentVersion. (see the \href{Changes}{Change Log}).
+
+There are several ways to install \LaTeXML, depending on your OS platform,
+whether you want a bleeding-edge version from GitHub.  Since \LaTeXML\ depends
+on, or can use if available, several other Perl Modules and external programs,
+consult \ref{prerequisites} before deciding.
+\begin{itemize}
+\item \emph{Normally}, it is preferable to install a platform-specific, prebuilt release,
+  if available,  which will install all prerequisites,  usually including the optional ones.
+
+\item You may install from \htmlref{CPAN}{install.cpan} which will install most prerequisites,
+  although you may prefer to pre-install prerequisites using the platform-specific approach
+   and should pre-install any optional prerequisites that you want.
+
+\item You may download and install the \htmlref{tarball}{install.tarball},
+   but you will need to pre-install prerequisites (including any optional ones)
+   using \htmlref{CPAN}{install.cpan.prereq} or a platform-specific approach.
+
+\item If you want to use the development version with the latest patches and improvements,
+  you may fetch the source from \htmlref{GitHub}{install.github}.
+  Again you will need to pre-install prerequisites (including optional ones)
+   using \htmlref{CPAN}{install.cpan.prereq} or a platform-specific approach.
+\end{itemize}
+
+\par\noindent
+\begin{tabular}{l|l|l}
+Platform & To install prebuilt & To install prerequisites \\\hline
+RPM-based Linux
+   & see \htmlref{RPM prebuit}{install.rpm}
+   & see \htmlref{RPM prerequisites}{install.rpm.prereq} \\
+Debian-based Linux
+   & see \htmlref{Debian prebuilt}{install.deb}
+   & see \htmlref{Debian prerequisites}{install.deb.prereq}\\
+Macintosh OS w/\href{http://www.macports.org}{MacPorts}
+   & see \htmlref{MacPorts prebuilt}{install.mac}
+   & see \htmlref{MacPorts prerequisites}{install.mac.prereq}\\
+Windows w/\href{http://strawberryperl.com}{Strawberry Perl}
+   & see \htmlref{Windows CPAN}{install.windows}
+   & see \htmlref{Windows prerequisites}{install.windows.prereq}  \\
+Other
+   & see \htmlref{CPAN}{install.cpan} or \htmlref{GitHub}{install.github}
+   & see \htmlref{CPAN prerequisites}{install.cpan.prereq} \\
+\end{tabular}
+Note that there is \emph{no} implied endorsement of any of these systems.
+
+\paragraph{Prerequisites}\label{prerequisites}
+\LaTeXML\ requires several Perl modules to do it's job.  Most
+are automatically installed by the platform-specific installation or CPAN.
+However, CPAN will \emph{not} install the required C libraries needed for
+\texttt{XML::LibXML}, and \texttt{XML::LibXSLT}.
+If \texttt{libxml2} and \texttt{libxslt} are are not already installed,
+follow the instructions at \href{http://www.xmlsoft.org}{XMLSoft} to
+download and install the most recent versions of \texttt{libxml2} and \texttt{libxslt}.
+Note that Strawberry Perl, on Windows, already includes these libraries
+(but ActiveState does not).
+
+\paragraph{Optional Prerequisites}
+The following packages are optional because they are sometimes difficult
+to find or install, or in order to allow for minimal installs in unusual
+circumstances.  Most users should consider them as required and install
+them if at all possible.
+\begin{description}
+\item[\TeX] Virtually all users of \LaTeXML\ will want to install \TeX.  \LaTeXML\ 
+\emph{should} find whatever \TeX-installation you have, and will
+use \TeX's style files directly in some cases, providing broader coverage,
+particularly for the more complex styles like \texttt{babel} and \texttt{tikz}.
+Moreover, if \TeX\ is present when \LaTeXML\ is being installed,
+\LaTeXML\ will install a couple of its own style files that can be used
+with regular \TeX, or \LaTeX\ runs;
+So if you are going to install \TeX, install it first!
+
+\item[Image::Magick] provides a handy library of image manipulation routines.
+When they are present \LaTeXML\ is able to carry out more image processing,
+such as transformations by the \texttt{graphicx} package, and conversion of math to images;
+otherwise, some such operations will not be supported.
+
+Please do \emph{not} try to install \texttt{Image::Magick} from CPAN, however:
+the module there seldom matches the underlying \texttt{ImageMagick} library.
+It is recommended to install the Perl binding for \texttt{Image::Magick} from
+the same source as the library was obtained, either from your system's repository,
+or from the \href{http://www.imagemagick.org/}{ImageMagick} site, itself.
+In the latter case, follow the instructions at \href{http://www.imagemagick.org/}{ImageMagick}
+to download and install the latest version of ImageMagick being sure to enable
+and build the Perl binding along with it.
+
+\item[Graphics::Magick] is an \emph{alternative} to \texttt{Image::Magick} that \LaTeXML\ will
+use if is found on the system; it may (or may not ) be easier to install, although it
+is less widely available.
+
+\item[UUID::Tiny] generates unique identifiers that can be used to make better ePub documents
+  (it can be installed using \htmlref{CPAN}{install.cpan.prereq}).
+
+\end{description}
+\emph{Note to packagers:} If you are preparing a compiled installation package (such as rpm or deb) for
+\LaTeXML, and the above packages are easily installable in your distribution,
+you probably should include them as dependencies of \LaTeXML.
+
+
+%\subsection[OS-Specific Notes]{Operating System Specific Notes}\label{install.osnotes}
+%With \emph{no} implied endorsement of any of these systems.
+
+\subsection[RPM-based systems]{RPM-based systems}\label{install.rpm}
+\index{rpm}\index{Fedora}\index{Redhat}\index{Centos}
+For Fedora and RedHat Enterprise based distributions
+(Redhat Enterprise Linux 6, Centos 6,\ldots) and similar,
+most software is obtained and installed via the yum repository.
+
+\paragraph{Installing prebuilt}\\
+The following commands will install \LaTeXML, including its required
+and optional prerequisites:
+\begin{itemize}
+\item Download \CurrentFedora\ or \CurrentRedHat\ (but enable the elp repository),
+as appropriate.
+\item Install \LaTeXML, and its prerequisites, using the command:
+\begin{lstlisting}[style=shell]
+yum --nogpgcheck localinstall LaTeXML-@\CurrentVersion@-*.noarch.rpm
+\end{lstlisting}
+\end{itemize}
+
+\paragraph{Installing prerequisites}\label{install.rpm.prereq}
+The prerequisites (including the optional ones) can be installed
+by running this command as root: 
+\begin{lstlisting}[style=shell]
+yum install \
+  perl-Archive-Zip perl-DB_File perl-File-Which \
+  perl-Getopt-Long perl-Image-Size perl-IO-String perl-JSON-XS \
+  perl-libwww-perl perl-Parse-RecDescent perl-Pod-Parser \
+  perl-Time-HiRes perl-URI perl-XML-LibXML perl-XML-LibXSLT \
+  perl-UUID-Tiny texlive ImageMagick ImageMagick-perl
+\end{lstlisting}
+Continue by installing \LaTeXML\ from
+\htmlref{tarball}{install.tarball}, \htmlref{CPAN}{install.cpan}
+or \htmlref{GitHub}{install.github}, as desired.
+
+\subsection{Debian-based systems}\label{install.deb}\index{Debian}
+For Debian-based systems (including Ubuntu), the deb repositories
+are generally used for software installation.
+Thanks to Peter Ralph and Atsuhito Kohda, \LaTeXML\ is available from Debian's
+unstable repositories.
+
+\paragraph{Installing prebuilt}
+The following command will install \LaTeXML, including its required
+and optional prerequisites:
+\begin{lstlisting}[style=shell]
+sudo apt-get install latexml
+\end{lstlisting}
+
+\paragraph{Installing prerequisites}\label{install.deb.prereq}
+The prerequisites (including optional ones) can be installed
+by running this command: 
+\begin{lstlisting}[style=shell]
+sudo apt-get install   \
+  libarchive-zip-perl libfile-which-perl libimage-size-perl  \
+  libio-string-perl libjson-xs-perl libparse-recdescent-perl \
+  liburi-perl libuuid-tiny-perl libwww-perl                  \
+  libxml2 libxml-libxml-perl libxslt1.1 libxml-libxslt-perl  \
+  texlive-latex-base imagemagick libimage-magick-perl
+\end{lstlisting}
+Continue by installing \LaTeXML\ from
+\htmlref{tarball}{install.tarball}, \htmlref{CPAN}{install.cpan}
+or \htmlref{GitHub}{install.github}, as desired.
+
+\subsection{MacOS}\label{install.mac}\index{Apple Macintosh}
+For Apple Macintosh systems, the  \href{http://www.macports.org}{MacPorts}
+repository is the most convenient way to install \LaTeXML;
+thanks to devens, Mojca, Sean and Andrew Fernandes.
+Download and install MacPorts from that site.
+
+\paragraph{Installing prebuilt}
+Since some users prefer \href{http://tug.org/mactex/}{MacTeX} or another
+\TeX\ system over MacPort's \texttt{texlive}, and since \texttt{texlive} is quite large,
+the \emph{default} \LaTeXML\ installation does \emph{not} include a dependency
+on a \TeX-installation nor does it install \LaTeXML's own style files!
+However, we provide two `variants' that do include or assume such a dependency:
+
+\subparagraph{MacPort's TeXLive:}  To install \LaTeXML, including MacPort's \texttt{texlive}
+along with \LaTeXML's other prerequisites and style files, use the command:
+\begin{lstlisting}[style=shell]
+sudo port install LaTeXML +texlive
+\end{lstlisting}
+
+\subparagraph{MacTeX:}  To install \LaTeXML, along with its prerequisites and style files,
+using your (preinstalled) MacTeX, use the command:
+\begin{lstlisting}[style=shell]
+sudo port install LaTeXML +mactex
+\end{lstlisting}
+
+\subparagraph{Other:} To install \LaTeXML\ without assuming any installed \TeX,
+use the command:
+\begin{lstlisting}[style=shell]
+sudo port install LaTeXML
+\end{lstlisting}
+Note that the latter will \emph{not} install \LaTeXML's style files into any texmf directory,
+although \LaTeXML\ will still use any \TeX\ system it finds at runtime.
+
+\paragraph{Installing prerequisites}\label{install.mac.prereq}
+The prerequisites (including optional ones except \TeX) can be installed by running
+this command as root: 
+\begin{lstlisting}[style=shell]
+sudo port install \
+  p5-archive-zip p5-file-which p5-getopt-long p5-image-size \
+  p5-io-string p5-json-xs p5-libwww-perl p5-parse-recdescent \
+  p5-time-hires p5-uri p5-xml-libxml p5-xml-libxslt \
+  p5-perlmagick
+\end{lstlisting}
+Additionally, either add \texttt{texlive} to the above list,
+or install \href{http://tug.org/mactex/}{MacTeX}.
+Continue by installing \LaTeXML\ from
+\htmlref{tarball}{install.tarball}, \htmlref{CPAN}{install.cpan}
+or \htmlref{GitHub}{install.github}, as desired.
+
+% \emph{Note:} There have been issues reported regarding \verb|DB_File|
+% not being installed;  Apparently you must install the 
+% the db `variant' of perl, rather than the gdbm variant;
+% that is, you must run \verb|sudo port install perl +db|
+% (possibly after uninstalling perl first?).
+
+% \emph{Note:} There have been issues reported with recent
+% installations of Perl with MacPorts:  it will install \LaTeXML's
+% executables in a directory specific to the current version of Perl
+% (eg. \texttt{/opt/local/libexec/perl5.12/sitebin},
+% instead of \texttt{/opt/local/bin} which would be in your \texttt{PATH} environment variable).
+% Apparently this is a feature, not a bug; it only happens when installing from source or git;
+% not when installing the MacPorts port.  There are three workarounds, each with disadvantages:
+% \begin{itemize}
+% \item Watch for where the scripts get installed and that directory to your \texttt{PATH}
+%   environment variable;
+% \item Set up symbolic links from a directory in your path, such as \texttt{/opt/local/bin},
+%   to the actual installed locations;
+% \item Use the makefile options to choose an installation directory (see \ref{install.options}):
+% \begin{lstlisting}[style=shell]
+% perl Makefile.PL INSTALLSITEBIN=/opt/local/bin INSTALLSITESCRIPT=/opt/local/bin
+% \end{lstlisting}
+% \end{itemize}
+
+\subsection{Windows}\index{windows}
+These installation instructions assume you will use
+\href{http://strawberryperl.com}{Strawberry Perl},
+which comes with \emph{many} of our prerequisites pre-installed,
+and provides other needed commands (\texttt{perl}, \texttt{cpan}, \texttt{dmake}).
+
+\paragraph{Installing prebuilt}\label{install.windows}
+There is currently no prebuilt \LaTeXML\ for Windows,
+but it should install cleanly under \href{http://strawberryperl.com}{Strawberry Perl}'s CPAN.
+Install the \TeX-system of your choice (if desired),
+ImageMagick (see \ref{install.windows.imagemagick})
+and then install LaTeXML using:
+\begin{lstlisting}[style=shell]
+cpan LaTeXML
+\end{lstlisting}
+
+Installing the optional package \texttt{Image::Magick} on Windows seems to be problematic,
+so we have omitted it from these instructions.
+You may want to try \href{ImageMagick}, but
+you're on your own, there!  You may  have better luck with \texttt{Graphics::Magick}.
+
+\paragraph{Installing prerequisites}\label{install.windows.prereq}\\
+Install \href{http://strawberryperl.com}{Strawberry Perl}, and
+the \TeX-system of your choice (if desired), 
+ImageMagick (if you want to try; see \ref{install.windows.imagemagick}),
+and then install the additional prerequisites as
+\begin{lstlisting}[style=shell]
+cpan Image::Size Parse::RecDescent UUID::Tiny
+\end{lstlisting}
+Continue by installing \LaTeXML\ from
+\htmlref{tarball}{install.tarball}, \htmlref{CPAN}{install.cpan}
+or \htmlref{GitHub}{install.github}, as desired,
+but note that the \texttt{dmake} command should be used in place of \texttt{make}.
+
+\paragraph{Installing ImageMagick under Windows}\label{install.windows.imagemagick}
+In principle, you should be able to install the binary from ImageMagick
+and then install the Perl binding using CPAN; unfortunately, it seems that the
+CPAN version seldom matches the binary or fails for other reasons.  What
+should work the following:
+
+Download and install the main ImageMagick binary appropriate for your Windows system
+from \href{http://imagemagick.org/script/binary-releases.php#windows}{ImageMagick}.
+Then fetch the \texttt{PerlMagick} tarball \emph{with the same version} from
+\href{http://imagemagick.com/download/perl/}{ImageMagick/perl}.
+Use the following commands to compile and install the PerlMagick,
+with X.XX being the version you downloaded:
+\begin{lstlisting}[style=shell]
+tar -zxvf PerlMagick-X.XX.tar.gz
+cd PerlMagick-X.XX
+perl Makefile.PL
+dmake
+dmake test
+dmake install
+\end{lstlisting}
+
+\subsection{CPAN installation}\label{install.cpan}
+The following command will install \LaTeXML\ and its Perl prerequisites,
+but you may need to pre-install \texttt{libxml2} and  \texttt{libxslt} (See \ref{prerequisites}).
+Pre-install \TeX\ and any optional Perl modules, if desired.
+\begin{lstlisting}[style=shell]
+cpan LaTeXML
+\end{lstlisting}
+
+\paragraph{Installing prerequisites}\label{install.cpan.prereq}
+The following command will install the Perl prerequisites (including optional)
+for \LaTeXML, but you may need to pre-install \texttt{libxml2} and  \texttt{libxslt} (See \ref{prerequisites}).
+\begin{lstlisting}[style=shell]
+cpan Archive::Zip DB_File File::Which Image::Size \
+  IO::String JSON::XS LWP Parse::RecDescent \
+  URI XML::LibXML XML::LibXSLT UUID::Tiny
+\end{lstlisting}
+You may still want to install \TeX\ and \texttt{Image::Magick}
+using other means.
+
+\subsection{Installing tarball}\label{install.tarball}
+\paragraph{Source tarball}\label{source.tarball}
+To download the tar file containing the source:
+\begin{itemize}
+\item Download \CurrentTarball
+\item Unpack using
+\begin{lstlisting}[style=shell]
+tar zxvf LaTeXML-@\CurrentVersion@.tar.gz
+\end{lstlisting}
+\end{itemize}
+
+\paragraph{Building}\label{build.source}
+Whether you've downloaded using the tar file or from git,
+you build the system using the standard Perl procedure
+(On Windows systems, use \texttt{dmake} instead of \texttt{make}):
+\begin{lstlisting}[style=shell]
+cd LaTeXML  [@or@  LaTeXML-@\CurrentVersion@ @or@  LaTeXML-master]
+perl Makefile.PL
+make
+make test
+\end{lstlisting}
+The last step runs the system through some basic tests,
+which should complete without error (although some tests may be `skipped'
+under certain circumstances).
+
+
+\emph{Note:} You can specify nonstandard place to install files
+--- possibly avoiding the need to install as root! ---
+by modifying the Makefile creating command above to
+\begin{lstlisting}[style=shell]
+perl Makefile.PL PREFIX=%perldir% TEXMF=%texdir%
+\end{lstlisting}
+where \emph{perldir} is where you want the perl related files to go and
+\emph{texdir} is where you want the \TeX\ style files to go.
+(See \texttt{perl perlmodinstall} for more details and options.)
+
+\paragraph{Installing}\label{install.source}
+After building, you will finally want to install \LaTeXML\ where the OS can find the files.  
+You'll typically need to be root:
+\begin{lstlisting}[style=shell]
+su
+make install
+\end{lstlisting}
+or perhaps
+\begin{lstlisting}[style=shell]
+sudo make install
+\end{lstlisting}
+(On Windows, use \texttt{dmake}).
+
+\subsection{Installing from GitHub}\label{install.github}
+The development version of \LaTeXML\ is available on  \href{https://github.com}{GitHub}.
+This will include the latest patches and enhancements between official releases,
+but may of course introduce new bugs or incompatibilities with little notice
+(you may wish to subscribe to the \LaTeXML\ \htmlref{mailing list}{contact.list}).
+You can also browse the current code at GitHub, as well as file bug reports and enhancement requests.
+
+Fetch the development version using the following command:
+\begin{lstlisting}[style=shell]
+git clone https://github.com/brucemiller/LaTeXML.git
+\end{lstlisting}
+Continue with building and installing as described in \ref{build.source}.
+
+Keep up-to-date by occasionally running the command:
+\begin{lstlisting}[style=shell]
+git pull
+\end{lstlisting}
+in the source directory, and then repeating the building and install commands.
+
+You can avoid directly using \texttt{git}, but still get the development sources
+by downloading
+\href{https://github.com/brucemiller/LaTeXML/archive/master.zip}{LaTeXML-master.zip}
+and running
+\begin{lstlisting}[style=shell]
+unzip LaTeXML-master.zip
+\end{lstlisting}
+
+\subsection{Archived Releases:}\label{archive}
+\AllReleases.
+
+%============================================================
+\section{Documentation}\label{docs}
+If you're lucky, all that should be needed to convert
+a \TeX\ file, \textit{mydoc}\texttt{.tex} to XML, and
+then to HTML would be:
+\begin{lstlisting}[style=shell]
+   latexml --dest=%mydoc%.xml %mydoc%
+   latexmlpost -dest=%somewhere/mydoc%.html %mydoc%.xml
+\end{lstlisting}
+This will carry out a default transformation into HTML5,
+which represents mathematics using MathML.  Using an
+extension of xhtml would generate XHTML including MathML.
+Adding the option \verb|--format=html4| will generate
+HTML (version 4), using images to represent the math.
+
+If you're not so lucky, or want to get fancy, well \ldots dig deeper:
+\begin{description}
+\item[\href{manual/}{LaTeXML Manual}] (\href{manual.pdf}{\PDFIcon}).
+\item[\href{manual/commands/latexml.html}{\texttt{latexml}}]
+    describes the \texttt{latexml} command.
+\item[\href{manual/commands/latexmlpost.html}{\texttt{latexmlpost} command}]
+   describes the \texttt{latexmlpost} command for postprocessing.
+\end{description}
+
+% Possibly, eventually, want to expose:
+%   http://www.mathweb.org/wiki/????
+% But, it doesn't have anything in it yet.
+
+%============================================================
+\section{Contacts \& Support}\label{contact}
+
+\paragraph{Mailing List}\label{contact.list}
+There is a low-volume mailing list for questions, support and comments.
+See \href{http://lists.jacobs-university.de/mailman/listinfo/project-latexml}{\texttt{latexml-project}} for subscription information.
+
+
+\paragraph{Bug-Tracker}\label{contact.git}
+We are using the git repository hosted at
+\href{https://github.com/brucemiller/LaTeXML/}{https://github.com/brucemiller/LaTeXML/}.
+You can browse the code, the latest changes, and check-out the current code from
+there (see \ref{get}).  There is also an Issues database where you can
+file bug reports or feature requests.
+
+%  There is a Trac bug-tracking system for reporting bugs, or checking the
+%  status of previously reported bugs at
+%  \href{https://trac.mathweb.org/LaTeXML/}{Bug-Tracker}.
+
+% To report bugs, please:
+% \begin{itemize}
+% \item \href{http://trac.mathweb.org/register/register}{Register} a Trac account
+%   (preferably give an email so that you'll get notifications about activity regarding the bug).
+% \item \href{http://trac.mathweb.org/LaTeXML/newticket}{Create a ticket}
+% \end{itemize} 
+
+\paragraph{Thanks} to our friends at
+the \href{http://kwarc.info}{KWARC Research Group}
+for hosting the mailing list, the original Trac system and svn repository,
+as well as general moral support.
+
+\paragraph{Author} \href{mailto:bruce.miller@nist.gov}{Bruce Miller}.
+%============================================================
+\section{License \& Notices}\label{notices}
+
+\paragraph{License}
+  This software was developed at the National Institute of Standards and
+Technology by employees of the Federal Government in the course of their
+official duties. Pursuant to title 17 Section 105 of the United States
+Code, this software is not subject to copyright protection in the U.S.
+and is in the \textbf{public domain}.
+
+To the extent that any copyright protections may be considered to be held
+by the authors of this sofware in some jurisdiction outside the United
+States, the authors hereby waive those copyright protections and dedicate
+the software to the public domain. Thus, this license may be considered equivalent to
+\href{http://creativecommons.org/about/cc0}{Creative Commons 0: "No Rights Reserved"}.
+
+Note that, according to
+\href{http://www.gnu.org/licences/license-list.html#PublicDomain}{Gnu.org},
+public domain is compatible with GPL.
+
+We would appreciate acknowledgement if the software is used.
+
+\paragraph{Contributor Notice}
+  Contributions of software patches and enhancements to this project
+are welcome; such contributions are assumed to be under the same terms
+as the software itself.  Specifically, if you contribute code, documention,
+text samples or any other material, you are asserting and acknowledging that:
+you are the copyright holder of the material or that it is in the public domain;
+it does not contain any patented material; and that you waive any copyright
+protections and dedicate the material to the public domain.
+
+\paragraph{Disclaimer}
+  \LaTeXML\ is an experimental system provided by NIST as a public service.
+
+The software is expressly provided "AS IS." NIST makes NO warranty of
+any kind, express, implied, in fact or arising by operation of law,
+including, without limitation, the implied warranty of
+merchantability, fitness for a particular purpose, non-infringement
+and data accuracy. nist neither represents nor warrants that the
+operation of the software will be uninterrupted or error-free, or that
+any defects will be corrected. NIST does not warrant or make any
+representations regarding the use of the software or the results
+thereof, including but not limited to the correctness, accuracy,
+reliability, or usefulness of the software.
+
+You are solely responsible for determining the appropriateness of
+using and distributing the software and you assume all risks
+associated with its use, including but not limited to the risks and
+costs of program errors, compliance with applicable laws, damage to or
+loss of data, programs or equipment, and the unavailability or
+interruption of operation. This software is not intended to be used in
+any situation where a failure could cause risk of injury or damage to
+property.
+
+\paragraph{Privacy Notice}
+We adhere to \href{http://www.nist.gov/public_affairs/privacy.cfm}{NIST's Privacy, Security and Accessibility Policy}.
+%============================================================
+
+\end{document}

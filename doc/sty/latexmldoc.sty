@@ -1,0 +1,66 @@
+%======================================================================
+% Collected separately so I can override for LaTeXML
+%======================================================================
+\usepackage{latexml}
+\usepackage{color}
+%======================================================================
+\def\toctitle#1{}
+
+%======================================================================
+
+\let\@@LaTeXML\LaTeXML
+\def\LaTeXML{\ifHy@pdfstring LaTeXML\else\@@LaTeXML\fi}
+\def\BibTeX{{\rm B}{\sc ib}\TeX}
+
+\let\@title\@empty
+\def\subtitle#1{\gdef\@subtitle{#1}}
+\def\@maketitle{%
+  \newpage
+  \null
+  \vskip 2em%
+  \begin{center}%
+  \let \footnote \thanks
+    {\LARGE \@title \par}%
+    \ifx\@subtitle\@empty\else
+      \vskip 1.0em%
+      {\large \@subtitle \par}%
+    \fi
+    \vskip 1.5em%
+    {\large
+      \lineskip .5em%
+      \begin{tabular}[t]{c}%
+        \@author
+      \end{tabular}\par}%
+    \vskip 1em%
+    {\large \@date}%
+  \end{center}%
+  \par
+  \vskip 1.5em}
+\renewcommand\maketitle{\begin{titlepage}%
+  \let\footnotesize\small
+  \let\footnoterule\relax
+  \let \footnote \thanks
+  \null\vfil
+  \vskip 60\p@
+  \begin{center}%
+    {\LARGE \@title \par}%
+    \ifx\@subtitle\@empty\else
+      \vskip 1.0em%
+      {\large \@subtitle \par}%
+    \fi
+    \vskip 3em%
+    {\large
+     \lineskip .75em%
+      \begin{tabular}[t]{c}%
+        \@author
+      \end{tabular}\par}%
+      \vskip 1.5em%
+    {\large \@date \par}%       % Set date in \large size.
+  \end{center}\par
+  \@thanks
+  \vfil\null
+  \end{titlepage}%
+}
+\usepackage{graphicx}
+
+%======================================================================

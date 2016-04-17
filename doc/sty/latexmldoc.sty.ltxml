@@ -1,0 +1,23 @@
+# -*- CPERL -*-
+#======================================================================
+# Collected separately so I can override for LaTeXML
+#======================================================================
+package LaTeXML::Package::Pool;
+use strict;
+use warnings;
+use LaTeXML::Package;
+
+RequirePackage('latexml');
+RequirePackage('graphicx');
+RequirePackage('hyperref');
+
+DefMacro('\subtitle{}', '\@add@frontmatter{ltx:subtitle}{#1}');
+DefMacro('\toctitle{}', '\@add@frontmatter{ltx:toctitle}{#1}');
+DefMacro('\BibTeX',     'BibTeX');
+
+DefMacro('\thesection',       '');
+DefMacro('\thesubsection',    '');
+DefMacro('\thesubsubsection', '');
+
+#======================================================================
+1;
