@@ -160,9 +160,9 @@ sub stringify {
 #**********************************************************************
 sub getLocator {
   my ($self, $length) = @_;
-  my ($l, $c) = ($$self{lineno}, $$self{colno});
+  my ($l, $c, $lstart, $cstart) = ($$self{lineno}, $$self{colno});
   # Make Xpointer style locator optional
-  if (LookupValue('XPOINTER_LOCATORS') {
+  if ($STATE->lookupValue('XPOINTER_LOCATORS')) {
       #Deyan: Upgrade message to XPointer style
       my $nc = $$self{nchars} - 1;    #There is always a weird (end of line?) char that gets counted
       if ((defined $c) && ($c >= $nc)) {
